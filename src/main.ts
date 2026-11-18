@@ -18,13 +18,22 @@ import {
   raycastAABB,
   updatePlayerMovement,
 } from './physics/movement';
-import { ARENA_COLLIDERS, PLAYER_SPAWN, buildArenaScene } from './arena/map';
+import {
+  ARENA_COLLIDERS,
+  PLAYER_SPAWN,
+  buildArenaScene,
+  getArenaSpawns,
+} from './arena/map';
 import { WEAPON_SPECS } from './combat/arsenal';
 import { createWeaponSystem } from './combat/weapons';
 import { createAbilitySystem } from './abilities/system';
 import { createSoundEngine } from './audio/sfx';
 import { createMatchManager } from './match/roundManager';
 import { createCrosshairController } from './ui/crosshair';
+import {
+  createMapEditorController,
+  loadSavedCustomMapGrid,
+} from './ui/mapEditor';
 
 /**
  * Clamp a number between min and max.
@@ -61,6 +70,8 @@ scene.add(camera);
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.12;
 
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
@@ -69,9 +80,9 @@ window.addEventListener('resize', () => {
 });
 
 // ---------------------------------------------------------------------------
-// 2. Arena, Match Manager, Arsenal, Abilities, Crosshair & Audio Integration
+// 2. Arena, Match Manager, Arsenal, Abilities, Crosshair, Map Maker & Audio
 // ---------------------------------------------------------------------------
-buildArenaScene(scene);
+buildArenaScene(scene, loadSavedCustomMapGrid() ?? undefined);
 
 const player = createInitialPlayerState(PLAYER_SPAWN);
 const sfx = createSoundEngine();
@@ -108,6 +119,9 @@ const overlayEl = document.getElementById('overlay') as HTMLDivElement;
 const openXhairFromOverlayBtn = document.getElementById(
   'open-xhair-from-overlay'
 ) as HTMLButtonElement;
+const openMapFromOverlayBtn = document.getElementById(
+  'open-map-from-overlay'
+) as HTMLButtonElement;
 const screenFxEl = document.getElementById('screen-fx') as HTMLDivElement;
 const scopeOverlayEl = document.getElementById('scope-overlay') as HTMLDivElement;
 const crosshairEl = document.getElementById('crosshair') as HTMLDivElement;
@@ -136,6 +150,7 @@ const ammoEl = document.getElementById('hud-ammo') as HTMLDivElement;
 const speedEl = document.getElementById('hud-speed') as HTMLDivElement;
 const hint3pEl = document.getElementById('hint-3p') as HTMLDivElement;
 const hintXhairEl = document.getElementById('hint-xhair') as HTMLDivElement;
+const hintMapEl = document.getElementById('hint-map') as HTMLDivElement;
 
 const agentPills = Array.from(document.querySelectorAll<HTMLDivElement>('.pill'));
 const weaponPills = Array.from(document.querySelectorAll<HTMLDivElement>('.wpn-pill'));
@@ -183,6 +198,11 @@ function syncLocalPlayerFromCombatant(): void {
 // Initialize local player state and HUD accent to match the starting combatant.
 syncLocalPlayerFromCombatant();
 
+const mapEditor = createMapEditorController(scene, () => {
+  match.onMapRebuilt();
+  syncLocalPlayerFromCombatant();
+});
+
 // ---------------------------------------------------------------------------
 // 4. Pointer Lock, Mouse Look (Focal-Length Zoom Scaling) & Input Bindings
 // ---------------------------------------------------------------------------
@@ -190,19 +210,33 @@ function isPointerLocked(): boolean {
   return document.pointerLockElement === canvas;
 }
 
+function isAnyModalOpen(): boolean {
+  return crosshair.isOpen() || mapEditor.isOpen();
+}
+
 function syncOverlayVisibility(): void {
-  // Keep `#overlay` hidden while either playing (pointer locked) OR editing crosshair.
-  overlayEl.classList.toggle('hidden', isPointerLocked() || crosshair.isOpen());
+  // Keep `#overlay` hidden while playing (pointer locked) OR editing crosshair/map.
+  overlayEl.classList.toggle('hidden', isPointerLocked() || isAnyModalOpen());
   hintXhairEl.classList.toggle('active', crosshair.isOpen());
+  hintMapEl.classList.toggle('active', mapEditor.isOpen());
 }
 
 crosshair.setOnClose(() => {
   syncOverlayVisibility();
-  canvas.requestPointerLock();
+  if (!isAnyModalOpen()) {
+    canvas.requestPointerLock();
+  }
+});
+
+mapEditor.setOnClose(() => {
+  syncOverlayVisibility();
+  if (!isAnyModalOpen()) {
+    canvas.requestPointerLock();
+  }
 });
 
 overlayEl.addEventListener('click', () => {
-  if (crosshair.isOpen()) return;
+  if (isAnyModalOpen()) return;
   sfx.unlock();
   canvas.requestPointerLock();
 });
@@ -214,8 +248,15 @@ openXhairFromOverlayBtn.addEventListener('click', (e: MouseEvent) => {
   syncOverlayVisibility();
 });
 
+openMapFromOverlayBtn.addEventListener('click', (e: MouseEvent) => {
+  e.stopPropagation();
+  sfx.unlock();
+  mapEditor.open();
+  syncOverlayVisibility();
+});
+
 canvas.addEventListener('click', () => {
-  if (crosshair.isOpen()) return;
+  if (isAnyModalOpen()) return;
   sfx.unlock();
   if (!isPointerLocked()) {
     canvas.requestPointerLock();
@@ -241,7 +282,7 @@ document.addEventListener('pointerlockchange', () => {
 });
 
 document.addEventListener('mousemove', (e: MouseEvent) => {
-  if (!isPointerLocked() || crosshair.isOpen()) return;
+  if (!isPointerLocked() || isAnyModalOpen()) return;
 
   /**
    * Focal-Length Zoomed Mouse Sensitivity Scaling:
@@ -270,7 +311,7 @@ window.addEventListener('contextmenu', (e: MouseEvent) => {
 });
 
 window.addEventListener('mousedown', (e: MouseEvent) => {
-  if (!isPointerLocked() || crosshair.isOpen()) return;
+  if (!isPointerLocked() || isAnyModalOpen()) return;
   sfx.unlock();
 
   if (e.button === 0) {
@@ -293,7 +334,7 @@ window.addEventListener('mouseup', (e: MouseEvent) => {
 window.addEventListener(
   'wheel',
   (e: WheelEvent) => {
-    if (!isPointerLocked() || crosshair.isOpen()) return;
+    if (!isPointerLocked() || isAnyModalOpen()) return;
     if (!match.getPlayerCombatant().alive) return;
     const dir = Math.sign(e.deltaY);
     if (dir !== 0) {
@@ -376,17 +417,40 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
   if (!e.repeat) {
     // [C] Crosshair Customizer modal toggle
     if (e.code === 'KeyC') {
+      const wasMapOpen = mapEditor.isOpen();
       const nowOpen = crosshair.toggle();
-      if (nowOpen) {
-        if (isPointerLocked()) {
-          document.exitPointerLock();
-        }
+      if (wasMapOpen) {
+        mapEditor.close();
+      }
+      if (nowOpen && isPointerLocked()) {
+        document.exitPointerLock();
       }
       syncOverlayVisibility();
       return;
     }
 
-    if (crosshair.isOpen()) {
+    // [M] Killhouse Map Maker modal toggle
+    if (e.code === 'KeyM') {
+      const wasCrosshairOpen = crosshair.isOpen();
+      const nowOpen = mapEditor.toggle();
+      if (wasCrosshairOpen) {
+        crosshair.close();
+      }
+      if (nowOpen && isPointerLocked()) {
+        document.exitPointerLock();
+      }
+      syncOverlayVisibility();
+      return;
+    }
+
+    if (e.code === 'Escape' && isAnyModalOpen()) {
+      crosshair.close();
+      mapEditor.close();
+      syncOverlayVisibility();
+      return;
+    }
+
+    if (isAnyModalOpen()) {
       return;
     }
 
@@ -627,11 +691,13 @@ function tick(now: number): void {
     updatePlayerMovement(player, input, ARENA_COLLIDERS, dt, moveModifiers);
 
     if (lastHudPhase === 'buy') {
-      if (player.position.z < 16.5) {
-        player.position.z = 16.5;
+      const minBuyZ = getArenaSpawns().buyMinAllyZ;
+      const maxBuyZ = 15.5;
+      if (player.position.z < minBuyZ) {
+        player.position.z = minBuyZ;
         if (player.velocity.z < 0) player.velocity.z = 0;
-      } else if (player.position.z > 24.5) {
-        player.position.z = 24.5;
+      } else if (player.position.z > maxBuyZ) {
+        player.position.z = maxBuyZ;
         if (player.velocity.z > 0) player.velocity.z = 0;
       }
     }

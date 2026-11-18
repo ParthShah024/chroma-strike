@@ -868,6 +868,249 @@
       .overlay-xhair-btn:hover {
         border-color: var(--accent);
       }
+
+      /* Killhouse [M] Map Maker Modal */
+      #map-editor-modal {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(8, 11, 16, 0.72);
+        backdrop-filter: blur(6px);
+        z-index: 32;
+      }
+
+      #map-editor-modal.hidden {
+        display: none;
+      }
+
+      .map-card {
+        width: 720px;
+        max-width: calc(100vw - 28px);
+        max-height: calc(100vh - 28px);
+        overflow-y: auto;
+        padding: 18px 20px;
+        border-radius: 14px;
+        background: rgba(18, 23, 32, 0.96);
+        border: 1px solid var(--border-glass);
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65);
+      }
+
+      .map-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+      }
+
+      .map-title {
+        font-size: 14px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        color: #fff;
+      }
+
+      .map-title span {
+        color: var(--accent);
+        font-weight: 700;
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        margin-left: 8px;
+      }
+
+      .map-body {
+        display: flex;
+        gap: 18px;
+        align-items: flex-start;
+        justify-content: space-between;
+      }
+
+      .map-grid-wrap {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .map-axis-label {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        color: var(--text-muted);
+      }
+
+      #map-editor-grid {
+        display: grid;
+        grid-template-columns: repeat(14, 22px);
+        grid-template-rows: repeat(17, 22px);
+        gap: 2px;
+        padding: 6px;
+        border-radius: 10px;
+        background: rgba(10, 14, 20, 0.9);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+      }
+
+      .map-cell {
+        width: 22px;
+        height: 22px;
+        border-radius: 3px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        font-size: 10px;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: crosshair;
+        padding: 0;
+        transition: transform 60ms ease, border-color 60ms ease;
+      }
+
+      .map-cell:hover:not(.locked) {
+        transform: scale(1.1);
+        border-color: #ffffff;
+        z-index: 2;
+      }
+
+      .map-cell.locked {
+        cursor: not-allowed;
+        opacity: 0.72;
+      }
+
+      .tile-wall {
+        background: #8c6d4f;
+        color: #fff3e0;
+      }
+
+      .tile-low {
+        background: #b8945a;
+        color: #141820;
+      }
+
+      .tile-crate {
+        background: #475569;
+        color: #e2e8f0;
+      }
+
+      .tile-deck {
+        background: #3b82f6;
+        color: #ffffff;
+      }
+
+      .tile-stair {
+        background: #06b6d4;
+        color: #082f49;
+      }
+
+      .tile-floor {
+        background: #1b2230;
+        color: #64748b;
+      }
+
+      .tile-ally {
+        background: #10b981;
+        color: #052e16;
+      }
+
+      .tile-enemy {
+        background: #ef4444;
+        color: #ffffff;
+      }
+
+      .map-sidebar {
+        flex: 1;
+        min-width: 230px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      #map-editor-palette {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 6px;
+      }
+
+      .map-brush-btn {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        padding: 7px 10px;
+        border-radius: 7px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text-main);
+        font-size: 11.5px;
+        font-weight: 700;
+        cursor: pointer;
+        text-align: left;
+      }
+
+      .map-brush-btn:hover {
+        border-color: rgba(255, 255, 255, 0.32);
+      }
+
+      .map-brush-btn.active {
+        border-color: var(--accent);
+        background: rgba(255, 255, 255, 0.13);
+        color: #fff;
+      }
+
+      .brush-swatch {
+        width: 20px;
+        height: 20px;
+        border-radius: 4px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 800;
+        flex-shrink: 0;
+        border: 1px solid rgba(255, 255, 255, 0.25);
+      }
+
+      #map-editor-status {
+        font-size: 11px;
+        line-height: 1.4;
+        color: var(--text-muted);
+        padding: 7px 10px;
+        border-radius: 7px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .map-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+        margin-top: 2px;
+      }
+
+      .map-action-btn {
+        padding: 9px 12px;
+        border-radius: 7px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        background: rgba(255, 255, 255, 0.07);
+        color: #fff;
+        font-size: 11.5px;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        cursor: pointer;
+      }
+
+      .map-action-btn:hover {
+        border-color: var(--accent);
+      }
+
+      .map-action-btn.primary {
+        background: var(--accent);
+        color: #0d1117;
+        border-color: transparent;
+      }
+
+      .map-action-btn.primary:hover {
+        filter: brightness(1.08);
+      }
     </style>
   </head>
   <body>
@@ -950,6 +1193,7 @@
       <div class="hud-hints">
         <div class="hint-chip" id="hint-3p">[V] 3P</div>
         <div class="hint-chip" id="hint-xhair">[C] XHAIR</div>
+        <div class="hint-chip" id="hint-map">[M] MAP</div>
       </div>
     </div>
 
@@ -1019,6 +1263,68 @@
       </div>
     </div>
 
+    <!-- Killhouse [M] Map Maker Modal -->
+    <div id="map-editor-modal" class="hidden">
+      <div class="map-card">
+        <div class="map-header">
+          <div class="map-title">KILLHOUSE MAP MAKER <span>14 × 17 GRID (28m × 34m)</span></div>
+          <button type="button" class="xhair-close" id="map-close-btn">CLOSE [M]</button>
+        </div>
+
+        <div class="map-body">
+          <div class="map-grid-wrap">
+            <div class="map-axis-label">NORTH — ENEMY SIDE (-Z)</div>
+            <div id="map-editor-grid"></div>
+            <div class="map-axis-label">SOUTH — ALLY SIDE (+Z)</div>
+          </div>
+
+          <div class="map-sidebar">
+            <div class="xhair-section-label">Tile Brushes (Drag to Paint • Right-Click Erase)</div>
+            <div id="map-editor-palette">
+              <button type="button" class="map-brush-btn active" data-tile-brush="#">
+                <span class="brush-swatch tile-wall">#</span> Tall Wall (3.2m)
+              </button>
+              <button type="button" class="map-brush-btn" data-tile-brush="=">
+                <span class="brush-swatch tile-low">=</span> Low Cover (1.28m Head-Glitch)
+              </button>
+              <button type="button" class="map-brush-btn" data-tile-brush="B">
+                <span class="brush-swatch tile-crate">B</span> Tall Crate (2.2m)
+              </button>
+              <button type="button" class="map-brush-btn" data-tile-brush="P">
+                <span class="brush-swatch tile-deck">P</span> Watchtower Deck (0.90m)
+              </button>
+              <button type="button" class="map-brush-btn" data-tile-brush="^">
+                <span class="brush-swatch tile-stair">^</span> Stairs (0.45m)
+              </button>
+              <button type="button" class="map-brush-btn" data-tile-brush=".">
+                <span class="brush-swatch tile-floor">.</span> Open Floor
+              </button>
+              <button type="button" class="map-brush-btn" data-tile-brush="A">
+                <span class="brush-swatch tile-ally">A</span> Ally Spawn
+              </button>
+              <button type="button" class="map-brush-btn" data-tile-brush="E">
+                <span class="brush-swatch tile-enemy">E</span> Enemy Spawn
+              </button>
+            </div>
+
+            <div id="map-editor-status">Outer perimeter walls are locked.</div>
+
+            <div class="map-actions">
+              <button type="button" class="map-action-btn primary" id="map-apply-btn">
+                Apply Live to 3D Arena
+              </button>
+              <button type="button" class="map-action-btn" id="map-reset-btn">
+                Reset Default Killhouse
+              </button>
+              <button type="button" class="map-action-btn" id="map-copy-btn">
+                Copy TypeScript Code
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Click-to-play Pointer Lock overlay -->
     <div id="overlay">
       <div class="overlay-card">
@@ -1032,6 +1338,7 @@
           <div class="ctrl-item"><span class="key">Q / E</span> Abilities</div>
           <div class="ctrl-item"><span class="key">F1-F3</span> Switch Agent</div>
           <div class="ctrl-item"><span class="key">C</span> Crosshair Customizer</div>
+          <div class="ctrl-item"><span class="key">M</span> Live Map Maker</div>
           <div class="ctrl-item"><span class="key">V</span> 1st/3rd-Person Model View</div>
           <div class="ctrl-item"><span class="key">Tab</span> Bot Takeover</div>
           <div class="ctrl-item"><span class="key">Left Click / R</span> Shoot / Reload</div>
@@ -1040,6 +1347,9 @@
           <div class="play-prompt">CLICK TO ENTER ARENA</div>
           <button type="button" class="overlay-xhair-btn" id="open-xhair-from-overlay">
             CROSSHAIR [C]
+          </button>
+          <button type="button" class="overlay-xhair-btn" id="open-map-from-overlay">
+            MAP [M]
           </button>
         </div>
       </div>

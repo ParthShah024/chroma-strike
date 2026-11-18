@@ -152,3 +152,34 @@ $$\Delta\psi = \operatorname{atan2}\!\big(\sin(\psi_{\text{target}} - \psi_{\tex
 
 - **Round Loop (`buy -> combat -> round_end -> match_over`)** ([src/match/roundManager.ts](../src/match/roundManager.ts)): First to 5 wins, with Round 1 Pistols -> Round 2 SMGs -> Rounds 3+ AR/Sniper, `[F1-F3]` Agent switching, and **`[Tab]` Living Ally Bot Takeover**.
 - **CSS Variable Crosshair Customizer (`[C]`)** ([src/ui/crosshair.ts](../src/ui/crosshair.ts)): Updates `--ch-color`, `--ch-len`, `--ch-thick`, `--ch-gap`, and `--ch-dot-size` on the parent DOM root in one unified browser style pass and saves presets to `localStorage`.
+
+---
+
+# Chapter 4 — Killhouse Skirmish Map, Live `[M]` Map Maker & Opus Sculpted 3D Agents
+
+## 4.1 2D ASCII Skirmish Pipeline & Coordinate Transform ([src/arena/skirmishAscii.ts](../src/arena/skirmishAscii.ts), [src/arena/map.ts](../src/arena/map.ts))
+Rather than hardcoding 80 separate coordinate boxes, Chroma Strike defines its **CoD Killhouse / *Valorant* Skirmish** warehouse as a $14 \times 17$ text grid of $s = 2.0\text{ m}$ tiles (`28 m × 34 m` centered at $(0, 0)$):
+
+$$x_{\text{center}}(c) = -14.0 + (c + 0.5) \cdot 2.0, \qquad z_{\text{center}}(r) = -17.0 + (r + 0.5) \cdot 2.0$$
+
+- `#`: Perimeter wall (`4.20 m`) or interior plywood wall (`3.20 m`)
+- `=`: Chest-high head-glitch cover (`1.28 m`, shields torso while exposing the `1.38–1.82 m` head hitbox)
+- `B`: Industrial shipping crate (`2.20 m`, full standing cover)
+- `P` & `^` / `v`: Central steel Watchtower deck (`0.90 m`) reached via two-step stairs (`0.45 m`)
+- `A` / `E` / `.`: Ally (`+Z`) & Enemy (`-Z`) spawn pads and concrete floor (`0.00 m`)
+
+## 4.2 2D Greedy Meshing (`greedyMeshGrid`) & In-Place Single Source of Truth
+Scanning row-by-row from top-left to bottom-right, `greedyMeshGrid` expands maximal rectangles ($w \times h$) of unvisited tiles sharing the same `MergeKind` and emits **one combined `AABB` collider** per block — compressing ~85 raw solid tiles into ~25 seamless colliders and eliminating internal seam-snags. `applyGridData` mutates `ARENA_COLLIDERS` strictly in place (`length = 0; push(...)`) so `movement.ts`, `weapons.ts`, `botBrain.ts`, and `map.ts` never go out of sync after a live edit.
+
+## 4.3 Auto-Extracted Nav-Graph, Stair-Stepping (`STEP_HEIGHT = 0.52 m`) & `[M]` Live Map Maker
+- **Auto-BFS Waypoints (`extractWaypoints`)**: Converts every walkable cell into an `ArenaWaypoint`, linking orthogonal neighbors when $|h_A - h_B| \le 0.50\text{ m}$ (stairs climb smoothly, `0.90 m` cliffs do not) and linking diagonals only when both shared corner cells also pass the step test.
+- **Quake/*Valorant* Stair-Stepping ([src/physics/movement.ts](../src/physics/movement.ts))**: During `X`/`Z` collision resolution, grounded combatants facing a ledge with $0 < \text{box.max.y} - y \le 0.52\text{ m}$ test `canStepUpToY` for ceiling clearance and step cleanly onto `0.45 m` stairs without jumping.
+- **`[M]` Live Map Maker ([src/ui/mapEditor.ts](../src/ui/mapEditor.ts))**: Left-click/drag paints brushes (`#`, `=`, `B`, `P`, `^`, `v`, `A`, `E`), right-click erases to `.`, **Apply Live** disposes old GPU meshes (`disposeArenaRoot`), rebuilds `ARENA_COLLIDERS`, waypoints, and spawns, persists to `localStorage`, and **Copy TypeScript Code** exports a drop-in `DEFAULT_KILLHOUSE_GRID` array.
+
+## 4.4 Opus Sculpted 3D Agents: `LatheGeometry`, 70/30 Color Readability & 2-Bone IK ([src/entities/characterModel.ts](../src/entities/characterModel.ts))
+- **Two-Channel Hue/Value Separation + `ACESFilmicToneMapping`**: ~70% of each soldier's silhouette (helmet, chest cuirass, pauldrons, thighs, greaves, gauntlets, boots) wears vivid self-illuminated Red (`0xff2244`), Electric Cobalt-Cyan (`0x00a8ff`), or Emerald-Jade (`0x10d464`) armor (`emissiveIntensity: 0.28`), while ~30% (undersuit joints, collar, inner biceps/thighs, gloves, belt) carries Team Value — Pearl-Titanium White (`0xf2f6ff`) for Allies vs. Matte Obsidian (`0x141722`) for Enemies — plus clean ground rings and daylight overcast lighting.
+- **Surfaces of Revolution (`THREE.LatheGeometry`)**: Sweeps hand-sculpted Catmull-Rom chest splines (`sliceTorsoLathe`), `taperedCapsuleGeometry` limbs, and Mist's partial-angle cowl (`phiLength = 2π - 1.7`) around $+Y$:
+
+$$(x, y, z) = \big(r(t)\sin\phi,\; y(t),\; r(t)\cos\phi\big)$$
+
+- **Backward-Only Knee FK & Analytic 2-Bone Arm IK (`solveArmIK`)**: Rotating downward leg limbs (`(0, -1, 0)^T`) about $+X$ sends $+\theta$ toward `-Z` (forward) and $-\theta$ toward `+Z` (backward); clamping `kneeL/kneeR <= 0` prevents hyperextension. Meanwhile `solveArmIK` applies the Law of Cosines with elbow pole hints to place both hands accurately onto Pistol, SMG, AR, and Sniper grips at every pitch angle!

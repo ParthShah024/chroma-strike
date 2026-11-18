@@ -27,6 +27,12 @@ export const RUN_SPEED = 8.2;
 /** Maximum Shift-walk speed in meters per second (silent, low-spread movement). */
 export const WALK_SPEED = 4.3;
 
+/**
+ * Maximum vertical ledge/stair height in meters that a grounded player or bot
+ * can automatically step up onto while moving horizontally (Quake/Valorant style).
+ */
+export const STEP_HEIGHT = 0.52;
+
 // Valorant-inspired snappy movement constants:
 // High ground acceleration + strong exponential friction allows stopping or
 // counter-strafing (tapping the opposite movement key) to reach <0.45 m/s
@@ -153,6 +159,36 @@ function intervalsOverlap(
 }
 
 /**
+ * Returns `true` when a combatant's standing AABB `[y, y + PLAYER_HEIGHT]`
+ * at `(x, y, z)` is clear of all static colliders (used to verify ceiling/wall
+ * clearance before performing a Quake/Valorant stair step-up).
+ */
+function canStepUpToY(
+  x: number,
+  newY: number,
+  z: number,
+  colliders: AABB[]
+): boolean {
+  const minX = x - PLAYER_RADIUS + COLLISION_EPSILON;
+  const maxX = x + PLAYER_RADIUS - COLLISION_EPSILON;
+  const minY = newY + COLLISION_EPSILON;
+  const maxY = newY + PLAYER_HEIGHT - COLLISION_EPSILON;
+  const minZ = z - PLAYER_RADIUS + COLLISION_EPSILON;
+  const maxZ = z + PLAYER_RADIUS - COLLISION_EPSILON;
+
+  for (const other of colliders) {
+    if (
+      intervalsOverlap(minX, maxX, other.min.x, other.max.x) &&
+      intervalsOverlap(minY, maxY, other.min.y, other.max.y) &&
+      intervalsOverlap(minZ, maxZ, other.min.z, other.max.z)
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
  * Advances player physics by `dt` seconds and resolves collisions against static AABBs.
  *
  * Resolution order (`X` -> `Z` -> `Y`):
@@ -246,6 +282,17 @@ export function updatePlayerMovement(
         box.max.x
       )
     ) {
+      const stepDelta = box.max.y - player.position.y;
+      if (
+        player.grounded &&
+        stepDelta > 0 &&
+        stepDelta <= STEP_HEIGHT &&
+        canStepUpToY(player.position.x, box.max.y, player.position.z, colliders)
+      ) {
+        player.position.y = box.max.y;
+        continue;
+      }
+
       if (player.velocity.x > 0) {
         player.position.x = box.min.x - PLAYER_RADIUS;
       } else if (player.velocity.x < 0) {
@@ -280,6 +327,17 @@ export function updatePlayerMovement(
         box.max.z
       )
     ) {
+      const stepDelta = box.max.y - player.position.y;
+      if (
+        player.grounded &&
+        stepDelta > 0 &&
+        stepDelta <= STEP_HEIGHT &&
+        canStepUpToY(player.position.x, box.max.y, player.position.z, colliders)
+      ) {
+        player.position.y = box.max.y;
+        continue;
+      }
+
       if (player.velocity.z > 0) {
         player.position.z = box.min.z - PLAYER_RADIUS;
       } else if (player.velocity.z < 0) {

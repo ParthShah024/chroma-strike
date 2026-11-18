@@ -17,9 +17,13 @@ A fast-paced, *Valorant*-inspired **3v3 Tactical 3D First-Person Shooter** built
   - **Red — Blaze (Duelist):** **`[Q]` Crimson Dash** (`30 -> 8.2 m/s` cubic ease-out burst + `90°` FOV warp + 3D wind streaks) & **`[E]` Inferno Orb** (Voronoi magma shader, `0.95 m` scrolling flame crown, `28` swirling embers, `45 DPS`).
   - **Blue — Mist (Controller):** **`[Q]` Smoke Dome** (100% opaque Z-buffered `DoubleSide` GLSL hollow sphere with Fresnel rim, `smoothstep` shell seam masking, and `discard` dissolve — **zero see-through**) & **`[E]` Cryo Field** (ice fracture shader, `14` erupting 3D crystal spikes, `80%` target slow + jump lock).
   - **Green — Pulse (Initiator):** **`[Q]` Pop-Flash** (wall-bouncing `0.65 s` orb with warning chirp, 3D starbursts, wall occlusion & *Valorant*-style turn-away dot-product counterplay) & **`[E]` Bio-Stim Beacon** (`+24 HP/s` heal, `1.25x` move speed, `1.35x` fire/reload rate, `0.65x` recoil & overdrive rifle glow).
-- **Articulated 3D Person Models & `[V]` 1st/3rd-Person Camera:**
-  - Hierarchical $4\times 4$ Forward Kinematic humanoid rigs with anti-phase sinusoidal walk gait, team-distinct Titanium Silver (Ally) vs. Obsidian Charcoal (Enemy) armor + glowing Red/Blue/Green visors, swappable 3D held weapons, and death collapse physics.
+- **Articulated 3D Person Models (Sculpted by Claude Opus) & `[V]` 1st/3rd-Person Camera:**
+  - `THREE.LatheGeometry` revolution-sculpted torsos & tapered limbs with **70%+ vivid Red / Cobalt-Cyan / Emerald armor** (`emissiveIntensity: 0.28`) paired with clean **Pearl-White (Ally) vs. Obsidian (Enemy)** undersuits & ground team rings — unmistakable at 30 m in any fight.
+  - Distinct role silhouettes (**Blaze** chevron V-visor, swept wing-fins & animated scarves; **Mist** hooded shadow mask with 3 optic slits & hovering cryo-emitters; **Pulse** emerald recon goggles, comms antenna & spinning octahedron generator pack), backward-only knee gait FK, and **analytic 2-bone arm IK** onto every weapon grip.
   - Toggle **`[V]`** anytime to view your own 3D model with a wall-clamped over-the-shoulder camera!
+- **Daylight Killhouse Skirmish Arena & `[M]` Live Map Maker:**
+  - Fast-paced `28 m × 34 m` (`14 × 17` 2 m ASCII grid) CoD Killhouse / *Valorant* Skirmish warehouse featuring a central climbable Watchtower (`0.45 m` stairs -> `0.90 m` deck), `1.28 m` chest-high head-glitch barriers, `2.20 m` shipping crates, `ACESFilmicToneMapping` daylight visibility, **2D Greedy Meshing**, and auto-extracted BFS AI waypoints.
+  - Press **`[M]`** anytime to open the interactive **Killhouse Map Maker** — paint walls, cover, stairs, highground, and spawns live in the browser (`localStorage`-saved) or copy the generated TypeScript ASCII array straight into [skirmishAscii.ts](src/arena/skirmishAscii.ts).
 - **3v3 Round-Based AI Match (`First to 5`):**
   - Round-scaled loadouts (R1 Pistols, R2 SMGs, R3+ AR/Sniper), `buy -> combat -> round_end -> match_over` loop, non-cheating AI bots blocked by walls, smokes (`raycastSphere`), and flashes, plus **`[Tab]` Living Ally Bot Takeover** if eliminated early.
 - **Crosshair Customizer (`[C]`) & Procedural Web Audio:**
@@ -41,6 +45,7 @@ A fast-paced, *Valorant*-inspired **3v3 Tactical 3D First-Person Shooter** built
 | **`Q` / `E`** | Cast Agent Ability 1 / Ability 2 |
 | **`F1` / `F2` / `F3`** | Switch Active Agent (**Red** / **Blue** / **Green**) |
 | **`V`** | Toggle **1st-Person FPS** <-> **3rd-Person 3D Person Model View** |
+| **`M`** | Open/Close **Killhouse Live Map Maker** (Paint & Export ASCII Maps) |
 | **`C`** | Open/Close **Crosshair Customizer** |
 | **`Tab`** | Take Over a Living Ally Bot (when eliminated) |
 
@@ -70,7 +75,7 @@ npm run build
 ```text
 chroma-strike/
 ├── docs/
-│   └── MASTERCLASS.md            # Complete Chapters 1–3 engineering & math handbook
+│   └── MASTERCLASS.md            # Complete Chapters 1–4 engineering & math handbook
 ├── src/
 │   ├── abilities/
 │   │   ├── definitions.ts        # Immutable AGENT_ABILITIES spec table
@@ -79,7 +84,8 @@ chroma-strike/
 │   ├── ai/
 │   │   └── botBrain.ts           # 4-state AI FSM, BFS lane routing & multi-gate perception
 │   ├── arena/
-│   │   └── map.ts                # Single-source-of-truth ARENA_COLLIDERS & Three.js map
+│   │   ├── map.ts                # 2D Greedy Meshing, Auto-Waypoints, Spawns & Killhouse 3D map
+│   │   └── skirmishAscii.ts      # 14x17 2m ASCII Killhouse grid format + normalization
 │   ├── audio/
 │   │   └── sfx.ts                # Zero-dependency procedural Web Audio synthesizer
 │   ├── combat/
@@ -89,13 +95,14 @@ chroma-strike/
 │   ├── core/
 │   │   └── types.ts              # Pure simulation contracts (zero Three.js coupling)
 │   ├── entities/
-│   │   └── characterModel.ts     # Hierarchical 3D humanoid soldier rigs & gait animation
+│   │   └── characterModel.ts     # Opus sculpted LatheGeometry 3D rigs, FK gait & 2-bone arm IK
 │   ├── match/
 │   │   └── roundManager.ts       # 3v3 round loop, killfeed, bot takeover & rig sync
 │   ├── physics/
-│   │   └── movement.ts           # Counter-strafe physics, AABB sweep, Slab & Sphere raycasts
+│   │   └── movement.ts           # Counter-strafe physics, stair-stepping, AABB/Sphere raycasts
 │   ├── ui/
-│   │   └── crosshair.ts          # CSS-variable reactive Crosshair Customizer
+│   │   ├── crosshair.ts          # CSS-variable reactive Crosshair Customizer
+│   │   └── mapEditor.ts          # Interactive [M] Killhouse Live Map Maker & TS exporter
 │   └── main.ts                   # Game loop, focal-length sensitivity, 1P/3P camera & HUD
 ├── index.html                    # Minimalist color-driven HUD, #scope-overlay & modals
 ├── package.json

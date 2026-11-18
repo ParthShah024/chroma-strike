@@ -13,7 +13,7 @@ import {
   Vec3,
   WeaponId,
 } from '../core/types';
-import { ARENA_COLLIDERS } from '../arena/map';
+import { ARENA_COLLIDERS, getArenaSpawns } from '../arena/map';
 import { raycastSphere } from '../physics/movement';
 import { WEAPON_SPECS } from '../combat/arsenal';
 import { CharacterRig, createCharacterModel } from '../entities/characterModel';
@@ -57,6 +57,7 @@ export interface MatchManager {
   tryTakeoverAlly(): AgentColorId | null;
   skipBuyPhase(): void;
   restartMatch(): void;
+  onMapRebuilt(): void;
   setThirdPersonMode(thirdPerson: boolean): void;
   syncPlayerFromPhysics(
     player: PlayerState,
@@ -94,14 +95,17 @@ interface SpawnDef {
   yaw: number;
 }
 
-const ROSTER_SPAWNS: SpawnDef[] = [
-  { id: 'ally-red', team: 'ally', colorId: 'red', spawn: { x: -4.5, y: 0.1, z: 19.5 }, yaw: 0 },
-  { id: 'ally-blue', team: 'ally', colorId: 'blue', spawn: { x: 0, y: 0.1, z: 20.5 }, yaw: 0 },
-  { id: 'ally-green', team: 'ally', colorId: 'green', spawn: { x: 4.5, y: 0.1, z: 19.5 }, yaw: 0 },
-  { id: 'enemy-red', team: 'enemy', colorId: 'red', spawn: { x: -5, y: 0.1, z: -20.5 }, yaw: Math.PI },
-  { id: 'enemy-blue', team: 'enemy', colorId: 'blue', spawn: { x: 0, y: 0.1, z: -21.5 }, yaw: Math.PI },
-  { id: 'enemy-green', team: 'enemy', colorId: 'green', spawn: { x: 5, y: 0.1, z: -20.5 }, yaw: Math.PI },
-];
+function buildRosterSpawns(): SpawnDef[] {
+  const spawns = getArenaSpawns();
+  return [
+    { id: 'ally-red', team: 'ally', colorId: 'red', spawn: { ...spawns.allies[0] }, yaw: 0 },
+    { id: 'ally-blue', team: 'ally', colorId: 'blue', spawn: { ...spawns.allies[1] }, yaw: 0 },
+    { id: 'ally-green', team: 'ally', colorId: 'green', spawn: { ...spawns.allies[2] }, yaw: 0 },
+    { id: 'enemy-red', team: 'enemy', colorId: 'red', spawn: { ...spawns.enemies[0] }, yaw: Math.PI },
+    { id: 'enemy-blue', team: 'enemy', colorId: 'blue', spawn: { ...spawns.enemies[1] }, yaw: Math.PI },
+    { id: 'enemy-green', team: 'enemy', colorId: 'green', spawn: { ...spawns.enemies[2] }, yaw: Math.PI },
+  ];
+}
 
 function getBotWeaponForRound(roundNum: number, colorId: AgentColorId): WeaponId {
   if (roundNum <= 1) return 'pistol';
@@ -147,8 +151,9 @@ export function createMatchManager(
   let nextKillId = 1;
   const killFeed: KillFeedEntry[] = [];
 
-  // Spawn all 6 combatants + articulated 3D CharacterRigs
-  for (const def of ROSTER_SPAWNS) {
+  // Spawn all 6 combatants + articulated 3D CharacterRigs using dynamic Killhouse spawns
+  const initialSpawns = buildRosterSpawns();
+  for (const def of initialSpawns) {
     const isInitialPlayer = def.team === 'ally' && def.colorId === preferredPlayerColor;
     const startingWeapon: WeaponId = isInitialPlayer
       ? weaponSystem.currentWeaponId
@@ -369,8 +374,9 @@ export function createMatchManager(
     weaponSystem.resetForRound();
     dotFlashCooldownById.clear();
 
-    for (let i = 0; i < ROSTER_SPAWNS.length; i++) {
-      const def = ROSTER_SPAWNS[i];
+    const rosterSpawns = buildRosterSpawns();
+    for (let i = 0; i < rosterSpawns.length; i++) {
+      const def = rosterSpawns[i];
       const c = combatants[i];
       const shouldBePlayer = def.team === 'ally' && def.colorId === preferredPlayerColor;
 
@@ -510,6 +516,10 @@ export function createMatchManager(
     killFeed.length = 0;
     setupRound(1);
     sfx.playRoundCue('buy');
+  }
+
+  function onMapRebuilt(): void {
+    setupRound(roundNumber);
   }
 
   function setThirdPersonMode(thirdPerson: boolean): void {
@@ -809,6 +819,7 @@ export function createMatchManager(
     tryTakeoverAlly,
     skipBuyPhase,
     restartMatch,
+    onMapRebuilt,
     setThirdPersonMode,
     syncPlayerFromPhysics,
     update,

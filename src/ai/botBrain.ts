@@ -17,6 +17,7 @@ import {
   raycastSphere,
   updatePlayerMovement,
 } from '../physics/movement';
+import { ArenaWaypoint, getArenaWaypoints } from '../arena/map';
 import { WEAPON_SPECS, computeWeaponDamage } from '../combat/arsenal';
 import { AbilitySystem } from '../abilities/system';
 import { WeaponSystem } from '../combat/weapons';
@@ -80,63 +81,8 @@ export interface BotFireCallback {
 }
 
 // ---------------------------------------------------------------------------
-// Tactical Waypoint Graph Around ARENA_COLLIDERS
+// Dynamic Tactical Waypoint Graph (Derived Live from ../arena/map)
 // ---------------------------------------------------------------------------
-
-interface WaypointNode {
-  id: string;
-  pos: Vec3;
-  neighbors: string[];
-}
-
-/**
- * Collision-free navigation graph routing cleanly around `ARENA_COLLIDERS`:
- * - West corridor (`x = -17`), clearing West Lane Divider (`x: [-13, -11.5]`)
- * - Mid flanks (`x = ±5.5`), clearing Mid Center Pillar (`x: [-2, 2], z: [-2, 2]`)
- * - East corridor (`x = 17`), clearing East Lane Box (`x: [11.5, 14.5]`)
- * - Attacker (`z = 13.5..19`) and Defender (`z = -10.5..-19.5`) cross-links
- */
-const WAYPOINTS: WaypointNode[] = [
-  // Attacker Spawn & Cross-link (+Z)
-  { id: 'atk_spawn_w', pos: { x: -5.5, y: 0, z: 18 }, neighbors: ['atk_spawn_m', 'atk_mid_w'] },
-  { id: 'atk_spawn_m', pos: { x: 0, y: 0, z: 19 }, neighbors: ['atk_spawn_w', 'atk_spawn_e', 'atk_mid_w', 'atk_mid_e'] },
-  { id: 'atk_spawn_e', pos: { x: 5.5, y: 0, z: 18 }, neighbors: ['atk_spawn_m', 'atk_mid_e'] },
-  { id: 'atk_west_entry', pos: { x: -17, y: 0, z: 13.5 }, neighbors: ['atk_mid_w', 'west_south'] },
-  { id: 'atk_mid_w', pos: { x: -6, y: 0, z: 13.5 }, neighbors: ['atk_spawn_w', 'atk_spawn_m', 'atk_west_entry', 'atk_mid_e', 'mid_w_south'] },
-  { id: 'atk_mid_e', pos: { x: 4, y: 0, z: 13.5 }, neighbors: ['atk_spawn_m', 'atk_spawn_e', 'atk_mid_w', 'atk_east_entry', 'mid_e_south'] },
-  { id: 'atk_east_entry', pos: { x: 17, y: 0, z: 13.5 }, neighbors: ['atk_mid_e', 'east_south'] },
-
-  // West Corridor (x = -17)
-  { id: 'west_south', pos: { x: -17, y: 0, z: 5 }, neighbors: ['atk_west_entry', 'west_mid'] },
-  { id: 'west_mid', pos: { x: -17, y: 0, z: -1 }, neighbors: ['west_south', 'west_north'] },
-  { id: 'west_north', pos: { x: -17, y: 0, z: -10 }, neighbors: ['west_mid', 'def_west_flank', 'def_mid_w'] },
-
-  // Mid West & Mid East Flanks (x = ±5.5)
-  { id: 'mid_w_south', pos: { x: -5.5, y: 0, z: 5.5 }, neighbors: ['atk_mid_w', 'mid_w', 'mid_e_south'] },
-  { id: 'mid_w', pos: { x: -5.5, y: 0, z: 0 }, neighbors: ['mid_w_south', 'mid_w_north'] },
-  { id: 'mid_w_north', pos: { x: -5.5, y: 0, z: -5.5 }, neighbors: ['mid_w', 'mid_e_north', 'def_mid_w'] },
-
-  { id: 'mid_e_south', pos: { x: 5.5, y: 0, z: 4.5 }, neighbors: ['atk_mid_e', 'mid_e', 'mid_w_south'] },
-  { id: 'mid_e', pos: { x: 5.5, y: 0, z: 0 }, neighbors: ['mid_e_south', 'mid_e_north'] },
-  { id: 'mid_e_north', pos: { x: 5.5, y: 0, z: -5.5 }, neighbors: ['mid_e', 'mid_w_north', 'def_mid_e'] },
-
-  // East Corridor (x = 17)
-  { id: 'east_south', pos: { x: 17, y: 0, z: 5 }, neighbors: ['atk_east_entry', 'east_mid'] },
-  { id: 'east_mid', pos: { x: 17, y: 0, z: -1 }, neighbors: ['east_south', 'east_north'] },
-  { id: 'east_north', pos: { x: 17, y: 0, z: -10 }, neighbors: ['east_mid', 'def_east_flank', 'def_mid_e'] },
-
-  // Defender Cross-links & Spawn (-Z)
-  { id: 'def_mid_w', pos: { x: -4.5, y: 0, z: -10.5 }, neighbors: ['mid_w_north', 'west_north', 'def_mid_c', 'def_spawn_w'] },
-  { id: 'def_mid_c', pos: { x: 0, y: 0, z: -10.5 }, neighbors: ['def_mid_w', 'def_mid_e', 'def_spawn_c'] },
-  { id: 'def_mid_e', pos: { x: 4.5, y: 0, z: -10.5 }, neighbors: ['mid_e_north', 'east_north', 'def_mid_c', 'def_spawn_e'] },
-  { id: 'def_west_flank', pos: { x: -15, y: 0, z: -16 }, neighbors: ['west_north', 'def_spawn_w'] },
-  { id: 'def_east_flank', pos: { x: 15, y: 0, z: -16 }, neighbors: ['east_north', 'def_spawn_e'] },
-  { id: 'def_spawn_w', pos: { x: -5, y: 0, z: -18.5 }, neighbors: ['def_west_flank', 'def_mid_w', 'def_spawn_c'] },
-  { id: 'def_spawn_c', pos: { x: 0, y: 0, z: -19.5 }, neighbors: ['def_mid_c', 'def_spawn_w', 'def_spawn_e'] },
-  { id: 'def_spawn_e', pos: { x: 5, y: 0, z: -18.5 }, neighbors: ['def_east_flank', 'def_mid_e', 'def_spawn_c'] },
-];
-
-const WAYPOINT_BY_ID = new Map<string, WaypointNode>(WAYPOINTS.map((wp) => [wp.id, wp]));
 
 // ---------------------------------------------------------------------------
 // Per-Bot Tuning Constants
@@ -187,10 +133,11 @@ function wrapAngleRad(angle: number): number {
   return Math.atan2(Math.sin(angle), Math.cos(angle));
 }
 
-function findNearestWaypointId(pos: Vec3): string {
-  let bestId = WAYPOINTS[0].id;
+function findNearestWaypointId(pos: Vec3, waypoints: ArenaWaypoint[]): string | null {
+  if (waypoints.length === 0) return null;
+  let bestId = waypoints[0].id;
   let bestDistSq = Infinity;
-  for (const wp of WAYPOINTS) {
+  for (const wp of waypoints) {
     const dx = wp.pos.x - pos.x;
     const dz = wp.pos.z - pos.z;
     const d2 = dx * dx + dz * dz;
@@ -202,11 +149,35 @@ function findNearestWaypointId(pos: Vec3): string {
   return bestId;
 }
 
+function findClosestWaypointInSubset(
+  candidates: ArenaWaypoint[],
+  targetX: number,
+  targetZ: number
+): string | null {
+  if (candidates.length === 0) return null;
+  let best = candidates[0];
+  let bestDistSq = Infinity;
+  for (const wp of candidates) {
+    const dx = wp.pos.x - targetX;
+    const dz = wp.pos.z - targetZ;
+    const d2 = dx * dx + dz * dz;
+    if (d2 < bestDistSq) {
+      bestDistSq = d2;
+      best = wp;
+    }
+  }
+  return best.id;
+}
+
 /**
- * Unweighted BFS shortest path on the tactical lane graph.
- * Graph size is 27 nodes, so BFS completes in < 2 microseconds per replan.
+ * Unweighted BFS shortest path on the dynamically generated Killhouse waypoint graph.
+ * Runs in < 0.02ms on ~150 walkable tiles and adapts instantly to custom maps.
  */
-function findShortestPath(startId: string, goalId: string): string[] {
+function findShortestPath(
+  startId: string,
+  goalId: string,
+  waypointById: Map<string, ArenaWaypoint>
+): string[] {
   if (startId === goalId) return [goalId];
 
   const queue: string[] = [startId];
@@ -217,7 +188,7 @@ function findShortestPath(startId: string, goalId: string): string[] {
   while (head < queue.length) {
     const curr = queue[head++];
     if (curr === goalId) break;
-    const node = WAYPOINT_BY_ID.get(curr);
+    const node = waypointById.get(curr);
     if (!node) continue;
 
     for (const nextId of node.neighbors) {
@@ -242,23 +213,47 @@ function findShortestPath(startId: string, goalId: string): string[] {
   return path;
 }
 
-function chooseTacticalGoal(bot: Combatant, mem: BotMemory): string {
+function chooseTacticalGoal(
+  bot: Combatant,
+  mem: BotMemory,
+  waypoints: ArenaWaypoint[]
+): string | null {
+  if (waypoints.length === 0) return null;
+
   if (mem.lastSeenPos && mem.timeSinceSeen < 6.0) {
-    return findNearestWaypointId(mem.lastSeenPos);
+    return findNearestWaypointId(mem.lastSeenPos, waypoints);
   }
 
   const isAlly = bot.team === 'ally';
-  if (mem.laneBias === 'west') {
-    return isAlly ? 'west_north' : 'west_south';
+
+  if (mem.laneBias === 'mid') {
+    // Prefer Mid Watchtower / center Killhouse nodes (|z| < 3)
+    const midNodes = waypoints.filter((wp) => Math.abs(wp.pos.z) < 3);
+    if (midNodes.length > 0) {
+      return findClosestWaypointInSubset(midNodes, 0, 0);
+    }
   }
-  if (mem.laneBias === 'east') {
-    return isAlly ? 'east_north' : 'east_south';
-  }
-  return isAlly ? 'def_mid_c' : 'mid_w_south';
+
+  // Opposing-half nodes: z < -8 for allies pushing North, z > 8 for enemies pushing South
+  const opposingHalf = waypoints.filter((wp) =>
+    isAlly ? wp.pos.z < -8 : wp.pos.z > 8
+  );
+  const pool = opposingHalf.length > 0 ? opposingHalf : waypoints;
+  const targetZ = isAlly ? -12 : 12;
+  const targetX = mem.laneBias === 'west' ? -9 : mem.laneBias === 'east' ? 9 : 0;
+
+  return findClosestWaypointInSubset(pool, targetX, targetZ);
 }
 
-function chooseCoverGoal(bot: Combatant): string {
-  return bot.team === 'ally' ? 'atk_spawn_m' : 'def_spawn_c';
+function chooseCoverGoal(bot: Combatant, waypoints: ArenaWaypoint[]): string | null {
+  if (waypoints.length === 0) return null;
+
+  const isAlly = bot.team === 'ally';
+  const friendlyHalf = waypoints.filter((wp) =>
+    isAlly ? wp.pos.z > 8 : wp.pos.z < -8
+  );
+  const pool = friendlyHalf.length > 0 ? friendlyHalf : waypoints;
+  return findClosestWaypointInSubset(pool, 0, isAlly ? 13 : -13);
 }
 
 /**
@@ -680,17 +675,28 @@ export function createBotBrainSystem(): BotBrainSystem {
         }
       }
     } else {
-      // 'advance' or 'evade_cover': navigate waypoint graph
+      // 'advance' or 'evade_cover': navigate dynamic Killhouse waypoint graph
+      const waypoints = getArenaWaypoints();
+      const waypointById = new Map<string, ArenaWaypoint>(
+        waypoints.map((wp) => [wp.id, wp])
+      );
       const targetGoalId =
-        mem.fsm === 'evade_cover' ? chooseCoverGoal(bot) : chooseTacticalGoal(bot, mem);
+        mem.fsm === 'evade_cover'
+          ? chooseCoverGoal(bot, waypoints)
+          : chooseTacticalGoal(bot, mem, waypoints);
 
-      if (mem.route.length === 0 || mem.goalId !== targetGoalId) {
-        const startId = findNearestWaypointId(bot.position);
-        mem.route = findShortestPath(startId, targetGoalId);
+      if (
+        targetGoalId &&
+        (mem.route.length === 0 ||
+          mem.goalId !== targetGoalId ||
+          !waypointById.has(mem.route[0]))
+      ) {
+        const startId = findNearestWaypointId(bot.position, waypoints);
+        mem.route = startId ? findShortestPath(startId, targetGoalId, waypointById) : [];
         mem.goalId = targetGoalId;
       }
 
-      const nextWp = WAYPOINT_BY_ID.get(mem.route[0]);
+      const nextWp = mem.route.length > 0 ? waypointById.get(mem.route[0]) : undefined;
       if (nextWp) {
         const dx = nextWp.pos.x - bot.position.x;
         const dz = nextWp.pos.z - bot.position.z;
