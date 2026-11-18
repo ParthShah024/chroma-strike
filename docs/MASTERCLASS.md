@@ -257,3 +257,21 @@ $$C_{t+1} = \min\!\Big(9000,\; C_t + R_{\text{round}}(L) + 200\,K + 300\,B_{\tex
 - **1P Hands & 3P Kneel/Ult Polish:** Articulated gloves & Agent-colored gauntlets hold all 4 weapons (`setAgentColor`); `[F]` plant/defuse triggers a `-0.42 m` one-knee tactical crouch (`left: +1.5/-1.4`, `right: -0.05/-1.42`) + 12-key holo keypad; Ult casting triggers twin aura rings + `8` rising orbit motes.
 - **5 Signature `[X]` Ultimates (`5` Pts, `2/5` per Half):** **Blaze** *Inferno Overdrive* (`1.35x` RoF + kill Dash resets via `notifyKill`), **Mist** *Glacial Whiteout* (`8.5 m` 75% blizzard + Frost Smoke), **Pulse** *Orbital Recon* (`3` sonar waves revealing all foes on `180 × 200` Minimap), **Umbra** *Eclipse Curtain* (`~26 m` wall of 5 Void spheres), and **Volt** *Thunderstorm* (`1.50x` sprint, rapid slides & `8.5 m` chain-lightning zaps).
 
+---
+
+# Chapter 8 — Option 1: Retiring ASCII for Blender 5.2 `.glb` + 3D AABB/Waypoint JSON, KAY/O Androids & Next-Gen Tactical Viewers
+
+## 8.1 Single-Source-of-Truth Blender Pipeline ([build_ascent_map.py](../scripts/blender/build_ascent_map.py), [ascentMapData.ts](../src/arena/ascentMapData.ts), [map.ts](../src/arena/map.ts))
+- **Retired `skirmishAscii.ts`:** Replaced uniform `2m` ASCII tiles with headless Blender 5.2.2 LTS scripts mapping Three.js `(tx, ty, tz)` cleanly to Blender `(tx, -tz, ty)` via $R_x(+90^\circ)$ (`det = +1`) so exported glTF Y-up geometry aligns `< 0.001 m` with `ARENA_COLLIDERS`.
+- `build_ascent_map.py` exports **both** `public/models/ascent_map.glb` (`1,890,696 bytes`, `24,420` triangles) **and** `src/arena/ascentMapData.ts` (`150` static colliders, `1,162` multi-level 3D waypoints, `2` Blast Doors, `20` callouts, and vector minimap shapes), mathematically verifying `100%` BFS connectivity (`A Heaven y=3.0m` + `A Hell y=0.0m`) and **`0` opening LoS pairs**.
+
+## 8.2 Articulated Blender KAY/O Combat Androids ([build_kayo_agent.py](../scripts/blender/build_kayo_agent.py), [characterModel.ts](../src/entities/characterModel.ts), [weapons.ts](../src/combat/weapons.ts))
+- Exports `public/models/agent_kayo.glb` (`446,124 bytes`, `8,856` triangles, `16` named segments) with joint-local pivots matching `characterModel.ts` (`Kayo_Pelvis`, `Kayo_Torso`, `Kayo_Head` LED visor, `Kayo_UpperArm_L/R`, `Kayo_Forearm_L/R`, `Kayo_Thigh_L/R`, `Kayo_Shin_L/R`, and 5 dorsal kits `Kit_Red..Kit_Gold`).
+- Clones segments and PBR materials per rig into live FK/IK bones with **Ally Pearl-Titanium (`#dce4ef`)** vs. **Enemy Obsidian-Gunmetal (`#171c26`)** contrast while preserving gait, Power-Slide, plant-kneel, holo-keypad, and back-Spike; upgrades 1P hands to segmented mechanical titanium gauntlets and detects `hitDoorId` shots in `weapons.ts`.
+
+## 8.3 Two-Story Ascent, Breakable Blast Doors & Next-Gen Viewers ([mapViewer.ts](../src/ui/mapViewer.ts), [minimap.ts](../src/ui/minimap.ts), [roundManager.ts](../src/match/roundManager.ts), [botBrain.ts](../src/ai/botBrain.ts))
+- **True Two-Story A Site & Boat House:** **A Heaven** (`y = 3.00 m`) sits directly above **A Hell** (`y = 0.00 m`, `2.65 m` clearance) via a `7`-tread CT staircase alongside sculpted **A Generator**, **A Dice**, **A Wine** barrels, **Mid Catwalk (`0.85 m`)**, **Mid Market** (`1.10–2.50 m` window), **B Lane (`0.85 m`)**, enclosed **B Boat House** with gable roof, and skyline **Campanile Bell Tower**.
+- **Breakable Blast Doors (`a_tree`, `b_market`, `400 HP`):** Open each round (`resetArenaDoors()`); `[F]` near switches (yielding strictly to Spike plant/defuse) slides panels over `0.6 s` and mutates `ARENA_COLLIDERS` in-place; gunfire/bots shatter closed shutters at `0 HP` into 20 metal shards.
+- **Tactical Viewers:** Retired `mapEditor.ts`; `[M]` opens [`mapViewer.ts`](../src/ui/mapViewer.ts) (live fullscreen **3D Orbit Viewer** w/ 7 presets, projected callouts & door test toggles + **`2×` DPR 2D Vector Blueprint** w/ drag LoS/distance ruler); [`minimap.ts`](../src/ui/minimap.ts) delivers **Rotating Player-Centered Radar** (`[N]` Fixed toggle) and **`[CapsLock]` Full Tactical Overlay** (`480 × 520` CSS / `960 × 1040` buffer).
+
+

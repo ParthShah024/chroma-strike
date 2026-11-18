@@ -27,6 +27,7 @@ import {
   raycastAABB,
   stepProjectile,
 } from '../physics/movement';
+import { ARENA_DEPTH_M, ARENA_WIDTH_M } from '../arena/map';
 import { TargetsManager } from '../combat/targets';
 import { AGENT_ABILITIES } from './definitions';
 import {
@@ -219,8 +220,8 @@ const PULSE_ULT_TEAM_SPEED_MULT = 1.15;
 const UMBRA_ULT_DURATION_SEC = 9.0;
 const UMBRA_ULT_RADIUS = 3.6;
 const UMBRA_ULT_DISTANCES: readonly number[] = [4, 9, 14, 19, 24];
-const UMBRA_ULT_CLAMP_X = 35.0;
-const UMBRA_ULT_CLAMP_Z = 39.0;
+const UMBRA_ULT_CLAMP_X = ARENA_WIDTH_M * 0.5 - 1.0;
+const UMBRA_ULT_CLAMP_Z = ARENA_DEPTH_M * 0.5 - 1.0;
 
 // Gold (Volt) [X] — Thunderstorm
 const VOLT_ULT_DURATION_SEC = 7.5;

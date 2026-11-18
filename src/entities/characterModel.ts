@@ -90,6 +90,33 @@ const AGENT_STYLE: Record<AgentColorId, { primary: number; trim: number }> = {
   gold: { primary: 0xffbf00, trim: 0xfff27a }, // Volt  — electric amber-gold + lemon neon
 };
 
+/** Vivid Agent armour hexes applied to cloned Blender KAY/O `Mat_ArmorPrimary`. */
+const KAYO_AGENT_PRIMARY_HEX: Record<AgentColorId, number> = {
+  red: 0xff3b5c,
+  blue: 0x00d2ff,
+  green: 0x2ecc71,
+  violet: 0xa855f7,
+  gold: 0xfacc15,
+};
+
+/** Dorsal kit node name per agent inside `public/models/agent_kayo.glb`. */
+const KAYO_KIT_NODE: Record<AgentColorId, string> = {
+  red: 'Kit_Red',
+  blue: 'Kit_Blue',
+  green: 'Kit_Green',
+  violet: 'Kit_Violet',
+  gold: 'Kit_Gold',
+};
+
+const KAYO_GLB_URL = '/models/agent_kayo.glb';
+const KAYO_HEAD_NECK_OFFSET_Y = -0.135; // seats neck (local y=0) on collar (1.465m) & centers visor at 1.60m
+const KAYO_ALLY_PEARL_HEX = 0xdce4ef;
+const KAYO_ENEMY_OBSIDIAN_HEX = 0x171c26;
+const KAYO_ARMOR_BASE_EMISSIVE = 0.15;
+const KAYO_VISOR_BASE_EMISSIVE = 2.2;
+const KAYO_VISOR_ULT_BOOST_BASE = 0.85;
+const KAYO_VISOR_ULT_BOOST_PULSE = 0.55; // base 2.2 + 0.85 + 0.55 = 3.6 peak during Ult Overcharge
+
 /**
  * Per-agent armour surface tuning. Most agents share the default finish, but
  * two hues need help to keep the "hue = agent" channel readable:
@@ -1552,21 +1579,198 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
   }
 
   // -------------------------------------------------------------------------
-  // Optional `.glb` override holder (procedural rig stays 100% intact if absent)
+  // Articulated Blender KAY/O Combat Android + optional full-body `.glb` override
+  // (procedural rig stays 100% intact if absent or while loading)
   // -------------------------------------------------------------------------
   const glbHolder = new THREE.Group();
   bodyTiltGroup.add(glbHolder);
   let disposed = false;
+  let fullBodyGlbMounted = false;
+
+  // Snapshot procedural body meshes per bone slot BEFORE mounting any GLB so
+  // weapons, IK pivots, Spike, holo-keypad, Ult aura, and arcs remain untouched.
+  const keepBodyGroups = new Set<THREE.Object3D>([
+    upperBody,
+    leftLeg.hip,
+    rightLeg.hip,
+    keypadGroup,
+    ultMotesGroup,
+    glbHolder,
+  ]);
+  const keepUpperGroups = new Set<THREE.Object3D>([
+    headGroup,
+    leftArm.shoulder,
+    rightArm.shoulder,
+    aimPivot,
+    spikeGroup,
+    ultGroup,
+  ]);
+  const procPelvisNodes = bodyTiltGroup.children.filter(
+    (c) => !keepBodyGroups.has(c) && !(c instanceof THREE.Line)
+  );
+  const procTorsoNodes = upperBody.children.filter((c) => !keepUpperGroups.has(c));
+  const procHeadNodes = [...headGroup.children];
+  const procUpperArmL = leftArm.shoulder.children.filter((c) => c !== leftArm.elbow);
+  const procUpperArmR = rightArm.shoulder.children.filter((c) => c !== rightArm.elbow);
+  const procForearmL = [...leftArm.elbow.children];
+  const procForearmR = [...rightArm.elbow.children];
+  const procThighL = leftLeg.hip.children.filter((c) => c !== leftLeg.knee);
+  const procThighR = rightLeg.hip.children.filter((c) => c !== rightLeg.knee);
+  const procShinL = leftLeg.knee.children.filter((c) => c instanceof THREE.Mesh);
+  const procShinR = rightLeg.knee.children.filter((c) => c instanceof THREE.Mesh);
+
+  const kayoPrimaryHex = KAYO_AGENT_PRIMARY_HEX[colorId];
+  const kayoChassisHex = isEnemy ? KAYO_ENEMY_OBSIDIAN_HEX : KAYO_ALLY_PEARL_HEX;
+  const kayoChassisEmissiveHex = isEnemy ? 0x000000 : 0xcbd8eb;
+  const kayoChassisEmissiveBase = isEnemy ? 0.0 : 0.06;
+
+  interface KayoClonedMaterials {
+    armorPrimary: THREE.MeshStandardMaterial | null;
+    headArmorPrimary: THREE.MeshStandardMaterial | null;
+    visorLed: THREE.MeshStandardMaterial | null;
+    chassisDark: THREE.MeshStandardMaterial | null;
+    teamStripe: THREE.MeshStandardMaterial | null;
+    owned: THREE.Material[];
+  }
+  const kayoMats: KayoClonedMaterials = {
+    armorPrimary: null,
+    headArmorPrimary: null,
+    visorLed: null,
+    chassisDark: null,
+    teamStripe: null,
+    owned: [],
+  };
+  const kayoMountedParts: THREE.Object3D[] = [];
 
   scene.add(root);
 
   /**
-   * Swaps the procedural body for a Blender-exported agent mesh: auto-fit to
-   * the 1.82 m hitbox height, feet on the floor, centred on the root. The
+   * Mounts the articulated Blender KAY/O Combat Android (`public/models/agent_kayo.glb`)
+   * piece-by-piece into the live FK/IK bone groups while cloning & tinting PBR
+   * materials per rig (never mutating the shared cached template).
+   */
+  function applyKayoGlb(kayoGlb: THREE.Object3D): void {
+    if (disposed || fullBodyGlbMounted) return;
+
+    const rigMatCache = new Map<string, THREE.Material>();
+
+    const getRigMaterial = (srcMat: THREE.Material, isHead: boolean): THREE.Material => {
+      const matName = srcMat.name || '';
+      const cacheKey = isHead && matName === 'Mat_ArmorPrimary' ? 'Mat_ArmorPrimary_Head' : matName;
+      const existing = rigMatCache.get(cacheKey);
+      if (existing) return existing;
+
+      const cloned = srcMat.clone();
+      kayoMats.owned.push(cloned);
+      rigMatCache.set(cacheKey, cloned);
+
+      if (cloned instanceof THREE.MeshStandardMaterial) {
+        if (matName === 'Mat_ArmorPrimary') {
+          cloned.color.setHex(kayoPrimaryHex);
+          cloned.metalness = 0.38;
+          cloned.roughness = 0.34;
+          cloned.emissive.setHex(kayoPrimaryHex);
+          cloned.emissiveIntensity = KAYO_ARMOR_BASE_EMISSIVE;
+          if (isHead) {
+            kayoMats.headArmorPrimary = cloned;
+          } else {
+            kayoMats.armorPrimary = cloned;
+          }
+        } else if (matName === 'Mat_VisorLED') {
+          cloned.color.setHex(agent.trim);
+          cloned.emissive.setHex(agent.trim);
+          cloned.emissiveIntensity = KAYO_VISOR_BASE_EMISSIVE;
+          cloned.metalness = 0.05;
+          cloned.roughness = 0.14;
+          kayoMats.visorLed = cloned;
+        } else if (matName === 'Mat_ChassisDark') {
+          cloned.color.setHex(kayoChassisHex);
+          cloned.metalness = isEnemy ? 0.36 : 0.24;
+          cloned.roughness = isEnemy ? 0.56 : 0.42;
+          cloned.emissive.setHex(kayoChassisEmissiveHex);
+          cloned.emissiveIntensity = kayoChassisEmissiveBase;
+          kayoMats.chassisDark = cloned;
+        } else if (matName === 'Mat_TeamStripe') {
+          cloned.color.setHex(kayoChassisHex);
+          cloned.metalness = isEnemy ? 0.34 : 0.22;
+          cloned.roughness = isEnemy ? 0.48 : 0.3;
+          cloned.emissive.setHex(isEnemy ? 0x000000 : KAYO_ALLY_PEARL_HEX);
+          cloned.emissiveIntensity = isEnemy ? 0.0 : 0.18;
+          kayoMats.teamStripe = cloned;
+        } else if (matName === 'Mat_ArmorSecondary') {
+          cloned.color.setHex(isEnemy ? 0x232a38 : 0xb8c5d9);
+          cloned.metalness = isEnemy ? 0.6 : 0.5;
+          cloned.roughness = isEnemy ? 0.38 : 0.36;
+          cloned.emissive.setHex(isEnemy ? 0x000000 : 0x9fb4d1);
+          cloned.emissiveIntensity = isEnemy ? 0.0 : 0.04;
+        } else if (matName === 'Mat_JointMetal') {
+          cloned.color.setHex(isEnemy ? 0x3a4354 : 0x96a4b8);
+          cloned.metalness = isEnemy ? 0.84 : 0.82;
+          cloned.roughness = isEnemy ? 0.3 : 0.26;
+        }
+      }
+      return cloned;
+    };
+
+    const mountSegment = (
+      nodeName: string,
+      targetBone: THREE.Object3D,
+      offsetY: number,
+      replacedProcedural: THREE.Object3D[],
+      isHead = false
+    ): boolean => {
+      const part = kayoGlb.getObjectByName(nodeName);
+      if (!part) return false;
+      part.position.set(0, offsetY, 0);
+      part.rotation.set(0, 0, 0);
+      part.scale.set(1, 1, 1);
+      part.traverse((node) => {
+        // Shared GLB BufferGeometries stay owned by the cached template; per-rig cloned
+        // materials are tracked separately in `kayoMats.owned` and disposed in `dispose()`.
+        node.userData.sharedGlb = true;
+        if (node instanceof THREE.Mesh) {
+          node.castShadow = true;
+          node.receiveShadow = true;
+          if (Array.isArray(node.material)) {
+            node.material = node.material.map((m) => getRigMaterial(m, isHead));
+          } else if (node.material) {
+            node.material = getRigMaterial(node.material, isHead);
+          }
+        }
+      });
+      targetBone.add(part);
+      kayoMountedParts.push(part);
+      for (const proc of replacedProcedural) {
+        proc.visible = false;
+      }
+      return true;
+    };
+
+    mountSegment('Kayo_Pelvis', bodyTiltGroup, HIP_Y, procPelvisNodes);
+    mountSegment('Kayo_Torso', upperBody, 0, procTorsoNodes);
+    if (mountSegment(KAYO_KIT_NODE[colorId], upperBody, 0, [])) {
+      // Ensure the back-mounted Spike clears the Blender dorsal kit cleanly.
+      spikeGroup.position.z = Math.max(SPIKE_BACK_Z[colorId], 0.26);
+    }
+    mountSegment('Kayo_Head', headGroup, KAYO_HEAD_NECK_OFFSET_Y, procHeadNodes, true);
+    mountSegment('Kayo_UpperArm_L', leftArm.shoulder, 0, procUpperArmL);
+    mountSegment('Kayo_UpperArm_R', rightArm.shoulder, 0, procUpperArmR);
+    mountSegment('Kayo_Forearm_L', leftArm.elbow, 0, procForearmL);
+    mountSegment('Kayo_Forearm_R', rightArm.elbow, 0, procForearmR);
+    mountSegment('Kayo_Thigh_L', leftLeg.hip, 0, procThighL);
+    mountSegment('Kayo_Thigh_R', rightLeg.hip, 0, procThighR);
+    mountSegment('Kayo_Shin_L', leftLeg.knee, 0, procShinL);
+    mountSegment('Kayo_Shin_R', rightLeg.knee, 0, procShinR);
+  }
+
+  /**
+   * Swaps the body for a per-agent full-body Blender override mesh (`agent_<colorId>.glb`):
+   * auto-fit to the 1.82 m hitbox height, feet on the floor, centred on the root. The
    * weapon, Spike, keypad, ult aura and overhead UI remain procedural.
    */
   function applyGlbOverride(glb: THREE.Object3D): void {
     if (disposed) return;
+    fullBodyGlbMounted = true;
     glb.updateMatrixWorld(true);
     const box = new THREE.Box3().setFromObject(glb);
     const size = box.getSize(new THREE.Vector3());
@@ -1587,6 +1791,10 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
     });
     glbHolder.add(glb);
 
+    for (const part of kayoMountedParts) {
+      part.visible = false;
+    }
+
     const keepBody = new Set<THREE.Object3D>([upperBody, glbHolder, keypadGroup, ultMotesGroup]);
     const keepUpper = new Set<THREE.Object3D>([aimPivot, spikeGroup, ultGroup]);
     for (const child of bodyTiltGroup.children) {
@@ -1597,6 +1805,7 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
     }
   }
 
+  const cancelKayoGlbRequest = requestAgentGlb(KAYO_GLB_URL, applyKayoGlb);
   const cancelGlbRequest = requestAgentGlb(`/models/agent_${colorId}.glb`, applyGlbOverride);
 
   // -------------------------------------------------------------------------
@@ -1939,6 +2148,13 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
     if (ultBlend < 1e-3) ultBlend = 0;
     const ultPulse = 0.5 + 0.5 * Math.sin(time * 6);
     trimMat.emissiveIntensity = 1.15 + Math.sin(time * 3.1) * 0.2 + ultBlend * (1.3 + 0.6 * ultPulse);
+    if (kayoMats.visorLed) {
+      const visorBreath = (1 - ultBlend) * Math.sin(time * 3.1) * 0.14;
+      kayoMats.visorLed.emissiveIntensity =
+        KAYO_VISOR_BASE_EMISSIVE +
+        visorBreath +
+        ultBlend * (KAYO_VISOR_ULT_BOOST_BASE + KAYO_VISOR_ULT_BOOST_PULSE * ultPulse);
+    }
 
     // Holo-keypad projection (fades/scales in with the kneel).
     keypadGroup.visible = pb > 0.02;
@@ -1986,6 +2202,18 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
       armorMat.emissiveIntensity = lastHitWasHeadshot ? 0.55 : 1.0;
       helmetMat.emissiveIntensity = lastHitWasHeadshot ? 1.8 : 0.9;
       suitMat.emissiveIntensity = lastHitWasHeadshot ? 0.35 : 0.6;
+      if (kayoMats.armorPrimary) {
+        kayoMats.armorPrimary.emissive.setHex(0xffffff);
+        kayoMats.armorPrimary.emissiveIntensity = lastHitWasHeadshot ? 0.55 : 1.0;
+      }
+      if (kayoMats.headArmorPrimary) {
+        kayoMats.headArmorPrimary.emissive.setHex(0xffffff);
+        kayoMats.headArmorPrimary.emissiveIntensity = lastHitWasHeadshot ? 1.8 : 0.9;
+      }
+      if (kayoMats.chassisDark) {
+        kayoMats.chassisDark.emissive.setHex(0xffffff);
+        kayoMats.chassisDark.emissiveIntensity = lastHitWasHeadshot ? 0.35 : 0.6;
+      }
     } else if (state.slowTimer > 0) {
       armorMat.emissive.setHex(0xaef0ff);
       helmetMat.emissive.setHex(0xaef0ff);
@@ -1993,6 +2221,18 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
       armorMat.emissiveIntensity = 0.55;
       helmetMat.emissiveIntensity = 0.55;
       suitMat.emissiveIntensity = 0.45;
+      if (kayoMats.armorPrimary) {
+        kayoMats.armorPrimary.emissive.setHex(0xaef0ff);
+        kayoMats.armorPrimary.emissiveIntensity = 0.55;
+      }
+      if (kayoMats.headArmorPrimary) {
+        kayoMats.headArmorPrimary.emissive.setHex(0xaef0ff);
+        kayoMats.headArmorPrimary.emissiveIntensity = 0.55;
+      }
+      if (kayoMats.chassisDark) {
+        kayoMats.chassisDark.emissive.setHex(0x7fdcff);
+        kayoMats.chassisDark.emissiveIntensity = 0.45;
+      }
     } else if ((state.concussTimer ?? 0) > 0) {
       // Concussed: a fast, jittery electric gold-white shimmer over the
       // agent's own hue (two incommensurate sines read as crackle, not a pulse).
@@ -2004,6 +2244,18 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
       armorMat.emissiveIntensity = finish.emissiveIntensity + 0.3 * s;
       helmetMat.emissiveIntensity = finish.emissiveIntensity + 0.38 * s;
       suitMat.emissiveIntensity = teamStyle.suitEmissiveIntensity;
+      if (kayoMats.armorPrimary) {
+        kayoMats.armorPrimary.emissive.copy(_shimmerColor);
+        kayoMats.armorPrimary.emissiveIntensity = KAYO_ARMOR_BASE_EMISSIVE + 0.3 * s;
+      }
+      if (kayoMats.headArmorPrimary) {
+        kayoMats.headArmorPrimary.emissive.copy(_shimmerColor);
+        kayoMats.headArmorPrimary.emissiveIntensity = KAYO_ARMOR_BASE_EMISSIVE + 0.38 * s;
+      }
+      if (kayoMats.chassisDark) {
+        kayoMats.chassisDark.emissive.setHex(kayoChassisEmissiveHex);
+        kayoMats.chassisDark.emissiveIntensity = kayoChassisEmissiveBase;
+      }
     } else {
       armorMat.emissive.setHex(agent.primary);
       helmetMat.emissive.setHex(agent.primary);
@@ -2011,6 +2263,18 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
       armorMat.emissiveIntensity = finish.emissiveIntensity;
       helmetMat.emissiveIntensity = finish.emissiveIntensity;
       suitMat.emissiveIntensity = teamStyle.suitEmissiveIntensity;
+      if (kayoMats.armorPrimary) {
+        kayoMats.armorPrimary.emissive.setHex(kayoPrimaryHex);
+        kayoMats.armorPrimary.emissiveIntensity = KAYO_ARMOR_BASE_EMISSIVE;
+      }
+      if (kayoMats.headArmorPrimary) {
+        kayoMats.headArmorPrimary.emissive.setHex(kayoPrimaryHex);
+        kayoMats.headArmorPrimary.emissiveIntensity = KAYO_ARMOR_BASE_EMISSIVE;
+      }
+      if (kayoMats.chassisDark) {
+        kayoMats.chassisDark.emissive.setHex(kayoChassisEmissiveHex);
+        kayoMats.chassisDark.emissiveIntensity = kayoChassisEmissiveBase;
+      }
     }
 
     // Ultimate overcharge: armour self-illumination swells with the ring pulse.
@@ -2018,6 +2282,8 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
       const boost = ultBlend * (0.18 + 0.14 * ultPulse);
       armorMat.emissiveIntensity += boost;
       helmetMat.emissiveIntensity += boost;
+      if (kayoMats.armorPrimary) kayoMats.armorPrimary.emissiveIntensity += boost;
+      if (kayoMats.headArmorPrimary) kayoMats.headArmorPrimary.emissiveIntensity += boost;
     }
 
     // Overhead health bar & blind halo (hidden when occluded by smoke).
@@ -2048,10 +2314,11 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
 
   function dispose(targetScene: THREE.Scene): void {
     disposed = true;
+    cancelKayoGlbRequest();
     cancelGlbRequest();
     targetScene.remove(root);
     root.traverse((node) => {
-      // GLB clones share geometry/materials with the cached template: never dispose them here.
+      // GLB clones share geometry with the cached template: never dispose shared buffers here.
       if (node.userData.sharedGlb) return;
       if (
         node instanceof THREE.Mesh ||
@@ -2069,6 +2336,11 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
         }
       }
     });
+    // Dispose per-rig cloned KAY/O PBR materials (never shared with the cached GLB template).
+    for (const mat of kayoMats.owned) {
+      mat.dispose();
+    }
+    kayoMats.owned.length = 0;
   }
 
   return {

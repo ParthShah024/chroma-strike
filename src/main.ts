@@ -24,12 +24,13 @@ import {
 } from './physics/movement';
 import {
   ARENA_COLLIDERS,
+  ARENA_WIDTH_M,
   PLAYER_SPAWN,
   buildArenaScene,
   getArenaSpawns,
   setArenaBuyBarriersVisible,
+  updateArenaDoors,
 } from './arena/map';
-import { ARENA_WIDTH_M } from './arena/skirmishAscii';
 import { WEAPON_SPECS } from './combat/arsenal';
 import { createWeaponSystem } from './combat/weapons';
 import { AGENT_ABILITIES } from './abilities/definitions';
@@ -40,10 +41,7 @@ import { createCrosshairController } from './ui/crosshair';
 import { createAgentSelectController } from './ui/agentSelect';
 import { createBuyMenuController } from './ui/buyMenu';
 import { createMinimapController } from './ui/minimap';
-import {
-  createMapEditorController,
-  loadSavedCustomMapGrid,
-} from './ui/mapEditor';
+import { createMapViewerController } from './ui/mapViewer';
 
 /**
  * Clamp a number between min and max.
@@ -68,11 +66,11 @@ const camera = new THREE.PerspectiveCamera(
   BASE_FOV_DEG,
   window.innerWidth / window.innerHeight,
   0.05,
-  260
+  300
 );
-// Tight near plane so first-person viewmodels/slide-cam never clip; far=260 covers 72x80m diagonals.
+// Tight near plane so first-person viewmodels/slide-cam never clip; far=300 covers 84x92m diagonals.
 camera.near = 0.05;
-camera.far = 260;
+camera.far = 300;
 camera.updateProjectionMatrix();
 // YXZ Euler order applies yaw (around world Y) before pitch (around local X),
 // preventing camera roll/tilt when looking diagonally in an FPS.
@@ -97,9 +95,9 @@ window.addEventListener('resize', () => {
 });
 
 // ---------------------------------------------------------------------------
-// 2. Arena, Match Manager, Arsenal, Abilities, Crosshair, Map Maker & Audio
+// 2. Arena, Match Manager, Arsenal, Abilities, Crosshair, Map Viewer & Audio
 // ---------------------------------------------------------------------------
-buildArenaScene(scene, loadSavedCustomMapGrid() ?? undefined);
+buildArenaScene(scene);
 
 const player = createInitialPlayerState(PLAYER_SPAWN);
 const sfx = createSoundEngine();
@@ -122,6 +120,7 @@ let eyeOffsetSmoothed = 0;
 let slideTiltSmoothed = 0;
 let interactHeld = false;
 let dropSpikePressed = false;
+let capsHeld = false;
 let unownedHintTimer = 0;
 
 let lastAbilityFeedback: AbilityFrameFeedback | null = null;
@@ -130,6 +129,7 @@ let lastHudPhase: RoundPhase = 'buy';
 let lastRoundNumber = 1;
 let lastPlayerSide: TacticalSide = 'attacker';
 let lastSpikeHud: SpikeHudState | null = null;
+let lastFrozenHud: MatchHudState | null = null;
 
 // Plain input snapshot polled each simulation tick.
 const input: InputState = {
@@ -271,12 +271,7 @@ function syncLocalPlayerFromCombatant(): void {
 // Initialize local player state and HUD accent to match the starting combatant.
 syncLocalPlayerFromCombatant();
 
-const mapEditor = createMapEditorController(scene, () => {
-  match.onMapRebuilt();
-  syncLocalPlayerFromCombatant();
-  frozenDrawn = false;
-  setArenaBuyBarriersVisible(lastHudPhase === 'buy');
-});
+const mapViewer = createMapViewerController(scene);
 
 // ---------------------------------------------------------------------------
 // 4. Pointer Lock, Mouse Look (Focal-Length Zoom Scaling) & Input Bindings
@@ -286,7 +281,7 @@ function isPointerLocked(): boolean {
 }
 
 function isAnyModalOpen(): boolean {
-  return crosshair.isOpen() || mapEditor.isOpen() || agentSelect.isOpen() || buyMenu.isOpen();
+  return crosshair.isOpen() || mapViewer.isOpen() || agentSelect.isOpen() || buyMenu.isOpen();
 }
 
 function syncOverlayVisibility(): void {
@@ -294,7 +289,7 @@ function syncOverlayVisibility(): void {
   overlayEl.classList.toggle('hidden', isPointerLocked() || isAnyModalOpen());
   hintBuyEl.classList.toggle('active', buyMenu.isOpen());
   hintXhairEl.classList.toggle('active', crosshair.isOpen());
-  hintMapEl.classList.toggle('active', mapEditor.isOpen());
+  hintMapEl.classList.toggle('active', mapViewer.isOpen());
   hintAgentsEl.classList.toggle('active', agentSelect.isOpen());
 }
 
@@ -322,8 +317,9 @@ function openBuyMenu(): void {
   if (lastHudPhase !== 'buy') return;
   if (isPointerLocked()) document.exitPointerLock();
   clearHeldInputs();
+  minimap.setExpanded(false);
   crosshair.close();
-  mapEditor.close();
+  mapViewer.close();
   buyMenu.open();
   syncOverlayVisibility();
 }
@@ -333,10 +329,11 @@ function openAgentSelect(): void {
   if (isPointerLocked()) document.exitPointerLock();
   clearHeldInputs();
   frozenDrawn = false;
+  minimap.setExpanded(false);
   agentSelect.open(match.getPlayerCombatant().colorId);
   buyMenu.close();
   crosshair.close();
-  mapEditor.close();
+  mapViewer.close();
   syncOverlayVisibility();
 }
 
@@ -409,7 +406,9 @@ crosshair.setOnClose(() => {
   }
 });
 
-mapEditor.setOnClose(() => {
+mapViewer.setOnClose(() => {
+  setArenaBuyBarriersVisible(lastHudPhase === 'buy');
+  frozenDrawn = false;
   syncOverlayVisibility();
   if (!isAnyModalOpen()) {
     canvas.requestPointerLock();
@@ -425,6 +424,7 @@ overlayEl.addEventListener('click', () => {
 openXhairFromOverlayBtn.addEventListener('click', (e: MouseEvent) => {
   e.stopPropagation();
   sfx.unlock();
+  minimap.setExpanded(false);
   crosshair.open();
   syncOverlayVisibility();
 });
@@ -432,7 +432,8 @@ openXhairFromOverlayBtn.addEventListener('click', (e: MouseEvent) => {
 openMapFromOverlayBtn.addEventListener('click', (e: MouseEvent) => {
   e.stopPropagation();
   sfx.unlock();
-  mapEditor.open();
+  minimap.setExpanded(false);
+  mapViewer.open();
   syncOverlayVisibility();
 });
 
@@ -579,6 +580,7 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
   if (
     e.code === 'Space' ||
     e.code === 'Tab' ||
+    e.code === 'CapsLock' ||
     e.code === 'F1' ||
     e.code === 'F2' ||
     e.code === 'F3' ||
@@ -601,13 +603,13 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
   }
 
   if (!e.repeat) {
-    // [B] opens/closes Buyout Shop during the Buy phase (never overlaps Crosshair/MapMaker).
+    // [B] opens/closes Buyout Shop during the Buy phase (never overlaps Crosshair/MapViewer).
     if (
       e.code === 'KeyB' &&
       gameStarted &&
       lastHudPhase === 'buy' &&
       !crosshair.isOpen() &&
-      !mapEditor.isOpen()
+      !mapViewer.isOpen()
     ) {
       if (buyMenu.isOpen()) buyMenu.close();
       else openBuyMenu();
@@ -620,7 +622,7 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
       gameStarted &&
       lastHudPhase === 'buy' &&
       !crosshair.isOpen() &&
-      !mapEditor.isOpen() &&
+      !mapViewer.isOpen() &&
       !buyMenu.isOpen()
     ) {
       openAgentSelect();
@@ -629,10 +631,11 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
 
     // [C] Crosshair Customizer modal toggle
     if (e.code === 'KeyC') {
-      const wasMapOpen = mapEditor.isOpen();
+      minimap.setExpanded(false);
+      const wasMapOpen = mapViewer.isOpen();
       const wasBuyOpen = buyMenu.isOpen();
       const nowOpen = crosshair.toggle();
-      if (wasMapOpen) mapEditor.close();
+      if (wasMapOpen) mapViewer.close();
       if (wasBuyOpen) buyMenu.close();
       if (nowOpen && isPointerLocked()) {
         document.exitPointerLock();
@@ -641,11 +644,12 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
       return;
     }
 
-    // [M] Killhouse Map Maker modal toggle
+    // [M] Ascent 3D Orbit & 2D Blueprint Map Viewer toggle
     if (e.code === 'KeyM') {
+      minimap.setExpanded(false);
       const wasCrosshairOpen = crosshair.isOpen();
       const wasBuyOpen = buyMenu.isOpen();
-      const nowOpen = mapEditor.toggle();
+      const nowOpen = mapViewer.toggle();
       if (wasCrosshairOpen) crosshair.close();
       if (wasBuyOpen) buyMenu.close();
       if (nowOpen && isPointerLocked()) {
@@ -657,13 +661,32 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
 
     if (e.code === 'Escape' && isAnyModalOpen()) {
       crosshair.close();
-      mapEditor.close();
+      mapViewer.close();
       buyMenu.close();
       syncOverlayVisibility();
       return;
     }
 
+    if (e.code === 'Escape' && minimap.isExpanded()) {
+      capsHeld = false;
+      minimap.setExpanded(false);
+      return;
+    }
+
     if (isAnyModalOpen()) {
+      return;
+    }
+
+    // [N] Toggle Minimap Radar (player-centered) vs Fixed North-Up
+    if (e.code === 'KeyN') {
+      minimap.toggleRotateMode();
+      return;
+    }
+
+    // [CapsLock] Hold / peek Full Tactical Map Overlay
+    if (e.code === 'CapsLock') {
+      capsHeld = true;
+      minimap.setExpanded(true);
       return;
     }
 
@@ -696,6 +719,11 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
     }
 
     if (isPointerLocked()) {
+      // [F] Fresh press toggles nearby Blast Door switch (hold still plants/defuses Spike)
+      if (e.code === 'KeyF' && match.getPlayerCombatant().alive) {
+        match.tryInteractDoor(player);
+      }
+
       // [G] Drop carried Spike
       if (e.code === 'KeyG') {
         dropSpikePressed = true;
@@ -731,6 +759,10 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
 });
 
 window.addEventListener('keyup', (e: KeyboardEvent) => {
+  if (e.code === 'CapsLock' && capsHeld) {
+    capsHeld = false;
+    minimap.setExpanded(false);
+  }
   handleKey(e.code, false);
 });
 
@@ -967,7 +999,7 @@ function syncSpikeAndEconomyHud(hud: MatchHudState): void {
 
   if (canPlant && spike) {
     const pct = Math.round(spike.plantProgress * 100);
-    spikeInteractHudEl.classList.remove('hidden', 'defuse');
+    spikeInteractHudEl.classList.remove('hidden', 'defuse', 'door');
     spikeInteractHudEl.classList.add('plant');
     spikeInteractLabelEl.textContent =
       spike.plantProgress > 0
@@ -980,7 +1012,7 @@ function syncSpikeAndEconomyHud(hud: MatchHudState): void {
   } else if (canDefuse && spike) {
     const pct = Math.round(spike.defuseProgress * 100);
     const activeDefuse = interactHeld && spike.defuseProgress > 0;
-    spikeInteractHudEl.classList.remove('hidden', 'plant');
+    spikeInteractHudEl.classList.remove('hidden', 'plant', 'door');
     spikeInteractHudEl.classList.add('defuse');
     spikeInteractLabelEl.textContent = activeDefuse
       ? `DEFUSING SPIKE (${pct}%)`
@@ -990,13 +1022,21 @@ function syncSpikeAndEconomyHud(hud: MatchHudState): void {
     spikeProgressFillEl.style.width = `${(spike.defuseProgress * 100).toFixed(1)}%`;
     spikeHalfwayNotchEl.classList.toggle('hidden', !showBar);
     spikeHalfwayTagEl.classList.toggle('hidden', !spike.halfwayCheckpoint);
-  } else if (unownedHintTimer > 0 && hud.phase === 'buy') {
+  } else if (hud.nearbyDoorPrompt) {
     spikeInteractHudEl.classList.remove('hidden', 'plant', 'defuse');
+    spikeInteractHudEl.classList.add('door');
+    spikeInteractLabelEl.textContent = `[F] ${hud.nearbyDoorPrompt.action} ${hud.nearbyDoorPrompt.label}`;
+    spikeProgressTrackEl.classList.add('hidden');
+    spikeHalfwayNotchEl.classList.add('hidden');
+    spikeHalfwayTagEl.classList.add('hidden');
+  } else if (unownedHintTimer > 0 && hud.phase === 'buy') {
+    spikeInteractHudEl.classList.remove('hidden', 'plant', 'defuse', 'door');
     spikeInteractLabelEl.textContent = 'WEAPON NOT OWNED — PRESS [B] BUY SHOP';
     spikeProgressTrackEl.classList.add('hidden');
     spikeHalfwayNotchEl.classList.add('hidden');
     spikeHalfwayTagEl.classList.add('hidden');
   } else {
+    spikeInteractHudEl.classList.remove('door');
     spikeInteractHudEl.classList.add('hidden');
   }
 }
@@ -1102,19 +1142,32 @@ function tick(now: number): void {
     if (agentSelect.isOpen()) {
       agentSelect.render(dt);
     }
-    if (!frozenDrawn) {
+    if (!frozenDrawn || !lastFrozenHud) {
       const pc = match.getPlayerCombatant();
       camera.position.set(player.position.x, player.position.y + EYE_HEIGHT, player.position.z);
       camera.rotation.y = pc.yaw;
       camera.rotation.x = 0;
       camera.rotation.z = 0;
       const frozenHud = match.update(0, player, camera.position, []);
-      setArenaBuyBarriersVisible(frozenHud.phase === 'buy');
+      lastFrozenHud = frozenHud;
+      if (!(mapViewer.isOpen() && mapViewer.is3DViewActive())) {
+        setArenaBuyBarriersVisible(frozenHud.phase === 'buy');
+      }
       syncMatchHud(frozenHud);
       syncAbilityXSlot(frozenHud, lastAbilityFeedback?.xHud);
       minimap.update(frozenHud, match.combatants, player, pc.yaw, false);
-      renderer.render(scene, camera);
+      if (!mapViewer.isOpen()) {
+        renderer.render(scene, camera);
+      }
       frozenDrawn = true;
+    }
+    if (!agentSelect.isOpen() && mapViewer.isOpen()) {
+      if (mapViewer.is3DViewActive()) {
+        updateArenaDoors(dt);
+        mapViewer.render3D(renderer, scene);
+      } else if (lastFrozenHud) {
+        mapViewer.update2D(lastFrozenHud, match.combatants, player);
+      }
     }
     input.fireJustPressed = false;
     return;
@@ -1316,6 +1369,10 @@ function tick(now: number): void {
     if (shot.fired) {
       sfx.playWeaponShot(weapon.currentWeaponId, feedback.stimActive, 0);
 
+      if (shot.hitDoorId) {
+        match.handleDoorShotHit(shot.hitDoorId, shot.doorDamageDealt ?? 25);
+      }
+
       // Low-ammo warning click on the last few rounds of a magazine.
       const lowThreshold = Math.min(5, Math.ceil(activeSpec.maxAmmo * 0.3));
       if (weapon.state.ammo > 0 && weapon.state.ammo <= lowThreshold) {
@@ -1348,7 +1405,9 @@ function tick(now: number): void {
   dropSpikePressed = false;
   const ultRevealActive = Boolean(lastAbilityFeedback?.ultRevealActive);
   const hud = match.update(dt, player, camera.position, feedback.activeSmokes, ultRevealActive);
-  setArenaBuyBarriersVisible(hud.phase === 'buy');
+  if (!(mapViewer.isOpen() && mapViewer.is3DViewActive())) {
+    setArenaBuyBarriersVisible(hud.phase === 'buy');
+  }
 
   // When a new round begins, snap local orientation & UI highlights cleanly to the spawned agent.
   if (hud.roundNumber !== lastRoundNumber || (lastHudPhase === 'match_over' && hud.phase === 'buy')) {
@@ -1432,7 +1491,14 @@ function tick(now: number): void {
     ammoEl.innerHTML = `${ammoNow} <span class="muted">/ ${activeSpec.maxAmmo}</span>`;
   }
 
-  renderer.render(scene, camera);
+  if (mapViewer.isOpen() && mapViewer.is3DViewActive()) {
+    mapViewer.render3D(renderer, scene);
+  } else {
+    renderer.render(scene, camera);
+    if (mapViewer.isOpen()) {
+      mapViewer.update2D(hud, match.combatants, player);
+    }
+  }
 
   // Clear one-frame semi-auto trigger flag at the end of the tick.
   input.fireJustPressed = false;

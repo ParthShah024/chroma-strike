@@ -869,282 +869,435 @@
         border-color: var(--accent);
       }
 
-      /* Killhouse [M] Map Maker Modal */
-      #map-editor-modal {
-        position: fixed;
-        inset: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: rgba(8, 11, 16, 0.72);
-        backdrop-filter: blur(6px);
-        z-index: 32;
+      /* Valorant [M] 3D Orbit & 2D Blueprint Map Viewer */
+      body.map-viewer-3d #hud-top,
+      body.map-viewer-3d #hud-bottom,
+      body.map-viewer-3d #minimap-wrap,
+      body.map-viewer-3d #crosshair,
+      body.map-viewer-3d #scope-overlay,
+      body.map-viewer-3d #control-strip,
+      body.map-viewer-3d #killfeed,
+      body.map-viewer-3d #round-banner,
+      body.map-viewer-3d #spike-interact-hud,
+      body.map-viewer-3d #headshot-ring,
+      body.map-viewer-3d #damage-arc,
+      body.map-viewer-3d #kill-medal {
+        opacity: 0 !important;
+        pointer-events: none !important;
       }
 
-      #map-editor-modal.hidden {
+      #map-viewer-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 32;
+        pointer-events: none;
+      }
+
+      #map-viewer-modal.hidden {
         display: none;
       }
 
-      .map-card {
-        width: 890px;
-        max-width: calc(100vw - 24px);
-        max-height: calc(100vh - 24px);
-        overflow: auto;
-        padding: 14px 16px;
-        border-radius: 14px;
-        background: rgba(18, 23, 32, 0.96);
-        border: 1px solid var(--border-glass);
-        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65);
+      #map-viewer-modal.mode-3d {
+        background: transparent;
       }
 
-      .map-header {
+      #map-viewer-modal.mode-2d {
+        background: rgba(7, 10, 16, 0.82);
+        backdrop-filter: blur(8px);
+        pointer-events: auto;
+      }
+
+      #map-viewer-topbar {
+        position: fixed;
+        top: 14px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 6;
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        margin-bottom: 12px;
+        gap: 14px;
+        padding: 7px 14px;
+        border-radius: 12px;
+        background: rgba(11, 16, 24, 0.84);
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        backdrop-filter: blur(12px);
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.48);
+        pointer-events: auto;
+        white-space: nowrap;
       }
 
-      .map-title {
-        font-size: 14px;
-        font-weight: 800;
-        letter-spacing: 0.12em;
+      .mv-brand {
+        font-size: 13px;
+        font-weight: 900;
+        letter-spacing: 0.14em;
         color: #fff;
       }
 
-      .map-title span {
-        color: var(--accent);
-        font-weight: 700;
-        font-size: 11px;
-        letter-spacing: 0.08em;
-        margin-left: 8px;
-      }
-
-      .map-body {
-        display: flex;
-        gap: 18px;
-        align-items: flex-start;
-        justify-content: space-between;
-      }
-
-      .map-grid-wrap {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 5px;
-        max-width: 100%;
-        overflow: auto;
-      }
-
-      .map-axis-label {
+      .mv-brand span {
+        margin-left: 6px;
         font-size: 10px;
         font-weight: 700;
-        letter-spacing: 0.1em;
+        letter-spacing: 0.08em;
+        color: var(--accent);
+      }
+
+      .mv-tabs {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .mv-tab {
+        padding: 5px 12px;
+        border-radius: 6px;
+        border: 0;
+        background: transparent;
+        color: var(--text-muted);
+        font: inherit;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.09em;
+        cursor: pointer;
+        transition: background 120ms ease, color 120ms ease;
+      }
+
+      .mv-tab:hover {
+        color: #fff;
+      }
+
+      .mv-tab.active {
+        background: var(--accent);
+        color: #0d1117;
+      }
+
+      .mv-hint {
+        font-size: 10.5px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
         color: var(--text-muted);
       }
 
-      #map-editor-grid {
-        display: grid;
-        grid-template-columns: repeat(36, 12px);
-        grid-template-rows: repeat(40, 12px);
-        gap: 1.5px;
-        padding: 6px;
-        border-radius: 10px;
-        background: rgba(10, 14, 20, 0.9);
-        border: 1px solid rgba(255, 255, 255, 0.12);
+      #map-viewer-3d-layer {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
       }
 
-      .map-cell {
-        width: 12px;
-        height: 12px;
-        border-radius: 2px;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        font-size: 8px;
-        line-height: 1;
-        font-weight: 800;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: crosshair;
-        padding: 0;
-        transition: transform 60ms ease, border-color 60ms ease;
+      #map-viewer-3d-layer.hidden,
+      #map-viewer-2d-layer.hidden,
+      #map-viewer-pins.hidden {
+        display: none;
       }
 
-      .map-cell:hover:not(.locked) {
-        transform: scale(1.1);
-        border-color: #ffffff;
+      #map-viewer-orbit-surface {
+        position: fixed;
+        inset: 0;
+        z-index: 1;
+        pointer-events: auto;
+        cursor: grab;
+      }
+
+      #map-viewer-orbit-surface:active {
+        cursor: grabbing;
+      }
+
+      #map-viewer-pins {
+        position: fixed;
+        inset: 0;
         z-index: 2;
+        pointer-events: none;
+        overflow: hidden;
       }
 
-      .map-cell.locked {
-        cursor: not-allowed;
-        opacity: 0.72;
+      .mv-callout-pin {
+        position: absolute;
+        top: 0;
+        left: 0;
+        padding: 2px 7px;
+        border-radius: 5px;
+        background: rgba(9, 14, 23, 0.78);
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        color: #e2e8f0;
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.09em;
+        white-space: nowrap;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
       }
 
-      .tile-wall {
-        background: #8c6d4f;
-        color: #fff3e0;
+      .mv-callout-pin.major {
+        font-size: 10.5px;
+        border-color: rgba(255, 255, 255, 0.42);
+        color: #ffffff;
+        background: rgba(11, 17, 28, 0.88);
       }
 
-      .tile-window {
-        background: #0ea5e9;
-        color: #062536;
-      }
-
-      .tile-arch {
-        background: #64748b;
-        color: #f8fafc;
-        border-style: dashed;
-      }
-
-      .tile-low {
-        background: #b8945a;
-        color: #141820;
-      }
-
-      .tile-dbox {
-        background: #5f6b4e;
+      .mv-callout-pin.high {
+        border-color: rgba(250, 204, 21, 0.72);
         color: #fef08a;
       }
 
-      .tile-crate {
-        background: #475569;
-        color: #e2e8f0;
-      }
-
-      .tile-deck {
-        background: #3b82f6;
-        color: #ffffff;
-      }
-
-      .tile-stair {
-        background: #06b6d4;
-        color: #082f49;
-      }
-
-      .tile-site-a {
-        background: #f97316;
-        color: #ffffff;
-      }
-
-      .tile-site-b {
-        background: #0284c7;
-        color: #ffffff;
-      }
-
-      .me-tile-S {
-        background: linear-gradient(135deg, #f59e0b, #facc15);
-        color: #1c1917;
-        border-color: rgba(253, 224, 71, 0.8);
-      }
-
-      .tile-floor {
-        background: #1b2230;
-        color: #64748b;
-      }
-
-      .tile-ally {
-        background: #10b981;
-        color: #052e16;
-      }
-
-      .tile-enemy {
-        background: #ef4444;
-        color: #ffffff;
-      }
-
-      .map-sidebar {
-        flex: 1;
-        min-width: 265px;
+      #map-viewer-dock {
+        position: fixed;
+        bottom: 14px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 6;
         display: flex;
         flex-direction: column;
-        gap: 10px;
-      }
-
-      #map-editor-palette {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 5px;
-      }
-
-      .map-brush-btn {
-        display: flex;
         align-items: center;
-        gap: 9px;
-        padding: 7px 10px;
-        border-radius: 7px;
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        background: rgba(255, 255, 255, 0.04);
-        color: var(--text-main);
-        font-size: 11.5px;
+        gap: 7px;
+        padding: 9px 14px;
+        border-radius: 12px;
+        background: rgba(11, 16, 24, 0.86);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(12px);
+        box-shadow: 0 14px 36px rgba(0, 0, 0, 0.55);
+        pointer-events: auto;
+        max-width: calc(100vw - 24px);
+      }
+
+      .mv-dock-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+      }
+
+      .mv-dock-btn {
+        padding: 5px 10px;
+        border-radius: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        background: rgba(255, 255, 255, 0.05);
+        color: #e2e8f0;
+        font: inherit;
+        font-size: 10.5px;
         font-weight: 700;
+        letter-spacing: 0.05em;
         cursor: pointer;
-        text-align: left;
+        transition: border-color 110ms ease, background 110ms ease, color 110ms ease;
       }
 
-      .map-brush-btn:hover {
-        border-color: rgba(255, 255, 255, 0.32);
-      }
-
-      .map-brush-btn.active {
-        border-color: var(--accent);
-        background: rgba(255, 255, 255, 0.13);
+      .mv-dock-btn:hover {
+        border-color: rgba(255, 255, 255, 0.36);
         color: #fff;
       }
 
-      .brush-swatch {
-        width: 20px;
-        height: 20px;
-        border-radius: 4px;
-        display: inline-flex;
+      .mv-dock-btn.active {
+        border-color: var(--accent);
+        background: rgba(255, 255, 255, 0.14);
+        color: #fff;
+      }
+
+      .mv-dock-btn[data-status='open'] {
+        border-color: rgba(34, 211, 238, 0.55);
+        color: #67e8f9;
+      }
+
+      .mv-dock-btn[data-status='closed'] {
+        border-color: rgba(245, 158, 11, 0.75);
+        background: rgba(245, 158, 11, 0.16);
+        color: #fde68a;
+      }
+
+      .mv-dock-btn[data-status='broken'] {
+        border-color: rgba(239, 68, 68, 0.65);
+        color: #fca5a5;
+      }
+
+      #map-viewer-2d-layer {
+        position: fixed;
+        inset: 0;
+        z-index: 4;
+        display: flex;
         align-items: center;
         justify-content: center;
+        padding: 68px 16px 18px;
+        pointer-events: auto;
+      }
+
+      .mv-2d-card {
+        display: flex;
+        gap: 16px;
+        align-items: stretch;
+        padding: 14px;
+        border-radius: 14px;
+        background: rgba(13, 18, 27, 0.96);
+        border: 1px solid var(--border-glass);
+        box-shadow: 0 24px 64px rgba(0, 0, 0, 0.7);
+        max-height: calc(100vh - 90px);
+        max-width: calc(100vw - 32px);
+      }
+
+      #map-viewer-2d-canvas {
+        display: block;
+        width: 580px;
+        height: 635px;
+        max-width: calc(100vw - 340px);
+        max-height: calc(100vh - 122px);
+        aspect-ratio: 580 / 635;
+        border-radius: 9px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        cursor: crosshair;
+      }
+
+      .mv-2d-sidebar {
+        width: 248px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        font-size: 11.5px;
+      }
+
+      .mv-ruler-readout {
+        padding: 9px 11px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.12);
         font-size: 11px;
         font-weight: 800;
+        letter-spacing: 0.04em;
+        line-height: 1.4;
+        color: var(--text-muted);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .mv-ruler-readout.clear {
+        border-color: rgba(46, 204, 113, 0.65);
+        background: rgba(46, 204, 113, 0.12);
+        color: #86efac;
+      }
+
+      .mv-ruler-readout.blocked {
+        border-color: rgba(239, 68, 68, 0.65);
+        background: rgba(239, 68, 68, 0.12);
+        color: #fca5a5;
+      }
+
+      .mv-2d-controls-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--text-muted);
+      }
+
+      .mv-legend {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding: 10px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        font-size: 10.5px;
+        color: var(--text-muted);
+      }
+
+      .mv-legend-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .mv-swatch {
+        width: 13px;
+        height: 13px;
+        border-radius: 3px;
         flex-shrink: 0;
         border: 1px solid rgba(255, 255, 255, 0.25);
       }
 
-      #map-editor-status {
-        font-size: 11px;
-        line-height: 1.4;
-        color: var(--text-muted);
-        padding: 7px 10px;
-        border-radius: 7px;
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.08);
+      /* Full-Screen [CapsLock] Tactical Map Overlay */
+      #tactical-map-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 28;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(6, 10, 16, 0.78);
+        backdrop-filter: blur(8px);
+        padding: 16px;
       }
 
-      .map-actions {
+      #tactical-map-overlay.hidden {
+        display: none;
+      }
+
+      .tactical-map-card {
         display: flex;
         flex-direction: column;
-        gap: 7px;
-        margin-top: 2px;
+        align-items: center;
+        gap: 10px;
+        padding: 14px 16px;
+        border-radius: 14px;
+        background: rgba(13, 18, 27, 0.94);
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        box-shadow: 0 24px 64px rgba(0, 0, 0, 0.72);
       }
 
-      .map-action-btn {
-        padding: 9px 12px;
-        border-radius: 7px;
-        border: 1px solid rgba(255, 255, 255, 0.18);
-        background: rgba(255, 255, 255, 0.07);
+      .tactical-map-head {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .tactical-map-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        font-weight: 900;
+        letter-spacing: 0.14em;
         color: #fff;
-        font-size: 11.5px;
-        font-weight: 800;
-        letter-spacing: 0.05em;
-        cursor: pointer;
       }
 
-      .map-action-btn:hover {
-        border-color: var(--accent);
+      #tactical-map-side {
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 9.5px;
+        font-weight: 900;
+        letter-spacing: 0.1em;
       }
 
-      .map-action-btn.primary {
-        background: var(--accent);
-        color: #0d1117;
-        border-color: transparent;
+      #tactical-map-side.atk {
+        color: #ff9a76;
+        background: rgba(255, 123, 84, 0.18);
+        border: 1px solid rgba(255, 123, 84, 0.5);
       }
 
-      .map-action-btn.primary:hover {
-        filter: brightness(1.08);
+      #tactical-map-side.def {
+        color: #7ee7ff;
+        background: rgba(56, 189, 248, 0.18);
+        border: 1px solid rgba(56, 189, 248, 0.5);
+      }
+
+      #tactical-map-canvas {
+        display: block;
+        width: 480px;
+        height: 520px;
+        max-width: calc(100vw - 56px);
+        max-height: calc(100vh - 130px);
+        aspect-ratio: 480 / 520;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+      }
+
+      .tactical-map-foot {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        color: var(--text-muted);
       }
       /* ================= Wave 2B: violet/gold agents, HUD juice ================= */
       .agent-dot[data-color='violet'] {
@@ -1864,7 +2017,8 @@
         backdrop-filter: blur(10px);
         border: 1px solid var(--border-glass);
         box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4);
-        pointer-events: none;
+        pointer-events: auto;
+        cursor: pointer;
         z-index: 10;
       }
 
@@ -1895,10 +2049,44 @@
 
       #minimap-canvas {
         display: block;
-        width: 180px;
-        height: 200px;
+        width: 210px;
+        height: 230px;
         border-radius: 6px;
         border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .minimap-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-top: 5px;
+        gap: 6px;
+      }
+
+      #minimap-mode-pill {
+        padding: 2px 7px;
+        border-radius: 5px;
+        border: 1px solid rgba(56, 189, 248, 0.45);
+        background: rgba(56, 189, 248, 0.14);
+        color: #7ee7ff;
+        font: inherit;
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        cursor: pointer;
+      }
+
+      #minimap-mode-pill.fixed {
+        border-color: rgba(255, 255, 255, 0.22);
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--text-muted);
+      }
+
+      .minimap-caps-hint {
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        color: var(--text-muted);
       }
 
       #side-badge {
@@ -2006,6 +2194,10 @@
 
       #spike-interact-hud.defuse #spike-interact-label {
         color: #38bdf8;
+      }
+
+      #spike-interact-hud.door #spike-interact-label {
+        color: #fde68a;
       }
 
       #spike-progress-track {
@@ -2521,13 +2713,34 @@
       <div class="scope-dot"></div>
     </div>
 
-    <!-- Top Left Cached 2D Tactical Minimap -->
-    <div id="minimap-wrap">
+    <!-- Top Left 2x-DPR Vector Radar Minimap -->
+    <div id="minimap-wrap" title="Click for Full Tactical Map [CapsLock]">
       <div class="minimap-head">
-        <span>RADAR • S&amp;D</span>
+        <span>ASCENT • RADAR</span>
         <span class="minimap-sites"><b class="site-a">A</b><b class="site-b">B</b></span>
       </div>
-      <canvas id="minimap-canvas" width="180" height="200"></canvas>
+      <canvas id="minimap-canvas" width="420" height="460"></canvas>
+      <div class="minimap-footer">
+        <button type="button" id="minimap-mode-pill">[N] RADAR</button>
+        <span class="minimap-caps-hint">[CAPS] FULL MAP</span>
+      </div>
+    </div>
+
+    <!-- Full-Screen [CapsLock] Valorant Tactical Map Overlay -->
+    <div id="tactical-map-overlay" class="hidden" role="dialog" aria-label="Tactical Map">
+      <div class="tactical-map-card">
+        <div class="tactical-map-head">
+          <div class="tactical-map-title">
+            CHROMA ASCENT &mdash; TACTICAL MAP
+            <span id="tactical-map-side" class="atk">ATTACKER</span>
+          </div>
+          <button type="button" class="xhair-close" id="tactical-map-close">CLOSE [CAPS]</button>
+        </div>
+        <canvas id="tactical-map-canvas" width="960" height="1040"></canvas>
+        <div class="tactical-map-foot">
+          HEAVEN (+3.0m) &bull; CATWALK / B LANE (+0.85m) &bull; BLAST DOORS (CYAN OPEN / AMBER CLOSED / RED BROKEN)
+        </div>
+      </div>
     </div>
 
     <!-- Top Center 3v3 Round Scoreboard & Side Indicator -->
@@ -2592,9 +2805,9 @@
       <div id="kill-medal-streak"></div>
     </div>
     <div id="control-strip">
-      <b>[Q / E]</b> Abilities &bull; <b>[X]</b> Ultimate &bull; <b>[B]</b> Buy Shop &bull;
-      <b>[H]</b> Agents &bull; <b>[F]</b> Plant/Defuse &bull; <b>[G]</b> Drop Spike &bull;
-      <b>[Space]</b> Skip Buy
+      <b>[Q / E]</b> Abilities &bull; <b>[X]</b> Ult &bull; <b>[B]</b> Buy &bull;
+      <b>[F]</b> Doors/Spike &bull; <b>[Caps]</b> Tactical Map &bull; <b>[N]</b> Radar &bull;
+      <b>[M]</b> 3D/2D Viewer &bull; <b>[Space]</b> Skip Buy
     </div>
 
     <!-- Minimalist Bottom HUD -->
@@ -2704,83 +2917,66 @@
       </div>
     </div>
 
-    <!-- Killhouse [M] Map Maker Modal -->
-    <div id="map-editor-modal" class="hidden">
-      <div class="map-card">
-        <div class="map-header">
-          <div class="map-title">CHROMA ASCENT MAP MAKER <span>36 × 40 GRID (72m × 80m S&amp;D)</span></div>
-          <button type="button" class="xhair-close" id="map-close-btn">CLOSE [M]</button>
+    <!-- Valorant [M] 3D Orbit & 2D Blueprint Map Viewer Modal -->
+    <div id="map-viewer-modal" class="hidden mode-3d" role="dialog" aria-label="Ascent Map Viewer">
+      <div id="map-viewer-topbar">
+        <div class="mv-brand">CHROMA ASCENT <span>84m &times; 92m</span></div>
+        <div class="mv-tabs">
+          <button type="button" class="mv-tab active" id="mv-tab-3d">3D ORBIT</button>
+          <button type="button" class="mv-tab" id="mv-tab-2d">2D BLUEPRINT</button>
         </div>
+        <span class="mv-hint">L-Drag Orbit &bull; R-Drag/Shift Pan &bull; Scroll Zoom</span>
+        <button type="button" class="xhair-close" id="mv-close-btn">CLOSE [M]</button>
+      </div>
 
-        <div class="map-body">
-          <div class="map-grid-wrap">
-            <div class="map-axis-label">NORTH — DEFENDER SIDE (-Z)</div>
-            <div id="map-editor-grid"></div>
-            <div class="map-axis-label">SOUTH — ATTACKER SIDE (+Z)</div>
+      <div id="map-viewer-3d-layer">
+        <div id="map-viewer-orbit-surface"></div>
+        <div id="map-viewer-pins"></div>
+        <div id="map-viewer-dock">
+          <div class="mv-dock-row">
+            <button type="button" class="mv-dock-btn active" data-mv-preset="overview">Overview</button>
+            <button type="button" class="mv-dock-btn" data-mv-preset="site_a">Site A (Heaven &amp; Hell)</button>
+            <button type="button" class="mv-dock-btn" data-mv-preset="a_tree">A Tree &amp; Catwalk</button>
+            <button type="button" class="mv-dock-btn" data-mv-preset="mid_market">Mid &amp; Market</button>
+            <button type="button" class="mv-dock-btn" data-mv-preset="site_b">Site B &amp; Boat House</button>
+            <button type="button" class="mv-dock-btn" data-mv-preset="t_spawn">T-Spawn</button>
+            <button type="button" class="mv-dock-btn" data-mv-preset="ct_spawn">CT-Spawn</button>
           </div>
+          <div class="mv-dock-row">
+            <button type="button" class="mv-dock-btn" id="mv-toggle-barriers">Buy Barriers: OFF</button>
+            <button type="button" class="mv-dock-btn active" id="mv-toggle-callouts">Callouts: ON</button>
+            <button type="button" class="mv-dock-btn" id="mv-door-a-btn" data-status="open">A Tree Door: OPEN</button>
+            <button type="button" class="mv-dock-btn" id="mv-door-b-btn" data-status="open">B Market Door: OPEN</button>
+          </div>
+        </div>
+      </div>
 
-          <div class="map-sidebar">
-            <div class="xhair-section-label">Tile Brushes (Drag to Paint • Right-Click Erase)</div>
-            <div id="map-editor-palette">
-              <button type="button" class="map-brush-btn active" data-tile-brush="#">
-                <span class="brush-swatch tile-wall">#</span> Tall Wall (3.6m)
-              </button>
-              <button type="button" class="map-brush-btn" data-tile-brush="W">
-                <span class="brush-swatch tile-window">W</span> Window (1.1-2.5m)
-              </button>
-              <button type="button" class="map-brush-btn" data-tile-brush="O">
-                <span class="brush-swatch tile-arch">O</span> Archway
-              </button>
-              <button type="button" class="map-brush-btn" data-tile-brush="=">
-                <span class="brush-swatch tile-low">=</span> Low Cover (1.26m)
-              </button>
-              <button type="button" class="map-brush-btn" data-tile-brush="D">
-                <span class="brush-swatch tile-dbox">D</span> Double Box (1.72m)
-              </button>
-              <button type="button" class="map-brush-btn" data-tile-brush="B">
-                <span class="brush-swatch tile-crate">B</span> Tall Crate (2.25m)
-              </button>
-              <button type="button" class="map-brush-btn" data-tile-brush="P">
-                <span class="brush-swatch tile-deck">P</span> Heaven Deck (0.90m)
-              </button>
-              <button type="button" class="map-brush-btn" data-tile-brush="^">
-                <span class="brush-swatch tile-stair">^</span> North Stairs (0.45m)
-              </button>
-              <button type="button" class="map-brush-btn" data-tile-brush="v">
-                <span class="brush-swatch tile-stair">v</span> South Stairs (0.45m)
-              </button>
-              <button type="button" class="map-brush-btn" data-tile-brush=".">
-                <span class="brush-swatch tile-floor">.</span> Open Floor
-              </button>
-              <button type="button" class="map-brush-btn" data-tile-brush="1">
-                <span class="brush-swatch tile-site-a">1</span> Bomb Site A
-              </button>
-              <button type="button" class="map-brush-btn" data-tile-brush="2">
-                <span class="brush-swatch tile-site-b">2</span> Bomb Site B
-              </button>
-              <button type="button" class="map-brush-btn" data-tile-brush="S">
-                <span class="brush-swatch me-tile-S">S</span> Spike Pedestal
-              </button>
-              <button type="button" class="map-brush-btn" data-tile-brush="A">
-                <span class="brush-swatch tile-ally">A</span> Attacker Spawn
-              </button>
-              <button type="button" class="map-brush-btn" data-tile-brush="E">
-                <span class="brush-swatch tile-enemy">E</span> Defender Spawn
-              </button>
+      <div id="map-viewer-2d-layer" class="hidden">
+        <div class="mv-2d-card">
+          <canvas id="map-viewer-2d-canvas" width="1160" height="1270"></canvas>
+          <div class="mv-2d-sidebar">
+            <div class="xhair-section-label">Tactical Sightline &amp; LoS Ruler</div>
+            <div id="mv-ruler-readout" class="mv-ruler-readout">
+              RULER: Left-drag on blueprint to measure distance &amp; 1.62m LoS
             </div>
-
-            <div id="map-editor-status">Outer perimeter walls are locked.</div>
-
-            <div class="map-actions">
-              <button type="button" class="map-action-btn primary" id="map-apply-btn">
-                Apply Live to 3D Arena
-              </button>
-              <button type="button" class="map-action-btn" id="map-reset-btn">
-                Reset Default Killhouse
-              </button>
-              <button type="button" class="map-action-btn" id="map-copy-btn">
-                Copy TypeScript Code
-              </button>
+            <div class="mv-2d-controls-row">
+              <span>Zoom: <b id="mv-2d-zoom">1.00x</b></span>
+              <button type="button" class="mv-dock-btn" id="mv-2d-reset-btn">Reset View</button>
+            </div>
+            <div class="xhair-section-label">Controls</div>
+            <div class="mv-legend">
+              <div><b>Left-Drag:</b> Distance &amp; 1.62m Eye LoS</div>
+              <div><b>Right-Drag / Shift:</b> Pan Blueprint</div>
+              <div><b>Mouse Wheel:</b> Smooth Zoom (0.75x&ndash;3.2x)</div>
+            </div>
+            <div class="xhair-section-label">Elevation &amp; Tactical Legend</div>
+            <div class="mv-legend">
+              <div class="mv-legend-item"><span class="mv-swatch" style="background:#182232"></span> Ground Floor (0.00m)</div>
+              <div class="mv-legend-item"><span class="mv-swatch" style="background:#223146; border-color:#38bdf8"></span> Mid / Catwalk / B Lane (+0.85m)</div>
+              <div class="mv-legend-item"><span class="mv-swatch" style="background:#2d3f5c; border-color:#facc15"></span> A Heaven Overlook (+3.00m)</div>
+              <div class="mv-legend-item"><span class="mv-swatch" style="background:#22d3ee"></span> Shoot-Through Window</div>
+              <div class="mv-legend-item"><span class="mv-swatch" style="background:#f59e0b"></span> Blast Doors (Open / Closed / Broken)</div>
+              <div class="mv-legend-item"><span class="mv-swatch" style="background:rgba(71,85,105,0.45)"></span> Sloped Boat House / Market Roof</div>
             </div>
           </div>
         </div>
@@ -2960,11 +3156,12 @@
           <div class="ctrl-item"><span class="key">Right Click</span> Scope / ADS</div>
           <div class="ctrl-item"><span class="key">B</span> Buyout Shop (Buy Phase)</div>
           <div class="ctrl-item"><span class="key">H / F1-F5</span> Agent Select / Switch</div>
-          <div class="ctrl-item"><span class="key">F / G</span> Plant &amp; Defuse / Drop Spike</div>
+          <div class="ctrl-item"><span class="key">F / G</span> Doors &amp; Spike / Drop</div>
           <div class="ctrl-item"><span class="key">Q / E</span> Tactical Abilities</div>
           <div class="ctrl-item"><span class="key">X</span> Ultimate Ability (5 Pts)</div>
           <div class="ctrl-item"><span class="key">C</span> Crosshair Customizer</div>
-          <div class="ctrl-item"><span class="key">M</span> Live Map Maker</div>
+          <div class="ctrl-item"><span class="key">M</span> 3D/2D Map Viewer</div>
+          <div class="ctrl-item"><span class="key">Caps / N</span> Tactical Map / Radar</div>
           <div class="ctrl-item"><span class="key">V</span> 1st/3rd-Person Model View</div>
           <div class="ctrl-item"><span class="key">Tab</span> Bot Takeover</div>
           <div class="ctrl-item"><span class="key">Left Click / R</span> Shoot / Reload</div>

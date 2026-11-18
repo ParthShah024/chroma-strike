@@ -25,10 +25,16 @@ import {
 } from '../core/types';
 import {
   ARENA_COLLIDERS,
+  damageArenaDoor,
+  findNearbyDoorSwitch,
+  getArenaDoors,
   getArenaSpawns,
   getBombSiteAt,
   getBombSites,
   getSpikeSpawnPos,
+  resetArenaDoors,
+  toggleArenaDoor,
+  updateArenaDoors,
 } from '../arena/map';
 import { raycastAABB, raycastSphere } from '../physics/movement';
 import { WEAPON_SPECS } from '../combat/arsenal';
@@ -84,6 +90,8 @@ export interface MatchManager {
   buyShield(tier: ShieldTier): boolean;
   swapSides(): void;
   tryCastPlayerUltimate(player: PlayerState, input: InputState): boolean;
+  tryInteractDoor(player: PlayerState): boolean;
+  handleDoorShotHit(doorId: string, damage: number): void;
   syncPlayerFromPhysics(
     player: PlayerState,
     yaw: number,
@@ -490,6 +498,7 @@ export function createMatchManager(
   }
   weaponSystem.equipWeapon(getPlayerCombatant().weaponId);
   resetSpikeForRound();
+  resetArenaDoors();
   botBrain.resetRound(combatants, getAttackerTeam());
 
   function pushKillFeed(
@@ -791,6 +800,7 @@ export function createMatchManager(
     }
 
     resetSpikeForRound();
+    resetArenaDoors();
     botBrain.resetRound(combatants, attackerTeam);
     updateRigVisibilities();
   }
@@ -1009,6 +1019,30 @@ export function createMatchManager(
     pc.ultActiveTimer = PLAYER_ULT_ACTIVE_SEC;
     sfx.playUltimateActivate(pc.colorId);
     return true;
+  }
+
+  function tryInteractDoor(player: PlayerState): boolean {
+    if (phase !== 'combat') return false;
+    const pc = getPlayerCombatant();
+    if (!pc.alive) return false;
+    const spikeHud = buildSpikeHudState(pc);
+    if (spikeHud.canPlantNow || spikeHud.canDefuseNow) return false;
+
+    const nearby = findNearbyDoorSwitch(player.position, 2.5);
+    if (!nearby) return false;
+
+    const newState = toggleArenaDoor(nearby.doorId);
+    if (!newState) return false;
+    sfx.playDoorToggle(newState === 'closed');
+    return true;
+  }
+
+  function handleDoorShotHit(doorId: string, damage: number): void {
+    const res = damageArenaDoor(doorId, damage);
+    if (res.hit) {
+      if (res.broken) sfx.playDoorBreak();
+      else sfx.playDoorHit();
+    }
   }
 
   function restartMatch(): void {
@@ -1369,6 +1403,9 @@ export function createMatchManager(
     playerStateRef = player;
     const playerCombatant = getPlayerCombatant();
 
+    // Animate Blast Door slides & shatter debris every frame
+    updateArenaDoors(dt);
+
     // 1. Age out kill feed & decay status / ultimate timers
     for (let i = killFeed.length - 1; i >= 0; i--) {
       killFeed[i].age += dt;
@@ -1663,6 +1700,13 @@ export function createMatchManager(
       });
 
     const minimapEnemies = computeMinimapEnemies(activeSmokes, ultRevealAll);
+    const nearbyDoorPrompt =
+      phase === 'combat' &&
+      playerCombatant.alive &&
+      !spikeHud.canPlantNow &&
+      !spikeHud.canDefuseNow
+        ? findNearbyDoorSwitch(player.position, 2.5)
+        : null;
 
     return {
       phase,
@@ -1696,6 +1740,8 @@ export function createMatchManager(
       minimapEnemies,
       ultPoints: playerCombatant.ultPoints ?? 0,
       maxUltPoints: MAX_ULT_POINTS,
+      doors: getArenaDoors(),
+      nearbyDoorPrompt,
     };
   }
 
@@ -1719,6 +1765,8 @@ export function createMatchManager(
     buyShield,
     swapSides,
     tryCastPlayerUltimate,
+    tryInteractDoor,
+    handleDoorShotHit,
     syncPlayerFromPhysics,
     update,
   };

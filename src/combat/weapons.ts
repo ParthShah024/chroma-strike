@@ -87,26 +87,26 @@ interface WeaponModelRig {
 }
 
 /**
- * First-person glove/gauntlet colours. Matches `AGENT_STYLE` in
- * `entities/characterModel.ts` so the forearms you see in 1st person are the
- * same vivid armour hue + neon trim your 3rd-person agent wears.
+ * First-person KAY/O mechanical hand/gauntlet colours. Matches the Blender KAY/O
+ * rig (`KAYO_AGENT_PRIMARY_HEX` / `AGENT_STYLE` in `entities/characterModel.ts`)
+ * so the 1st-person android hands match the 3rd-person agent seamlessly.
  */
 const VIEWMODEL_GLOVE_STYLE: Record<AgentColorId, { primary: number; trim: number }> = {
-  red: { primary: 0xff2244, trim: 0xff6b85 }, // Blaze
-  blue: { primary: 0x00a8ff, trim: 0x6ce8ff }, // Mist
-  green: { primary: 0x10d464, trim: 0x7dffb3 }, // Pulse
-  violet: { primary: 0xa23cff, trim: 0xdcb0ff }, // Umbra
-  gold: { primary: 0xffbf00, trim: 0xfff27a }, // Volt
+  red: { primary: 0xff3b5c, trim: 0xff6b85 }, // Blaze
+  blue: { primary: 0x00d2ff, trim: 0x6ce8ff }, // Mist
+  green: { primary: 0x2ecc71, trim: 0x7dffb3 }, // Pulse
+  violet: { primary: 0xa855f7, trim: 0xdcb0ff }, // Umbra
+  gold: { primary: 0xfacc15, trim: 0xfff27a }, // Volt
 };
 
 interface HandMaterials {
-  /** Dark carbon-fibre glove shell. */
+  /** Dark titanium robotic chassis & segmented mechanical fingers. */
   glove: THREE.Material;
-  /** Slightly lighter armoured knuckle caps / finger segments. */
+  /** Brushed steel knuckle actuator plates, hinge pins, and hydraulic rods. */
   knuckle: THREE.Material;
-  /** Agent-coloured gauntlet armour (`handArmorMat`). */
+  /** Angular Agent-coloured wrist/dorsal armour plates (`handArmorMat`). */
   armor: THREE.Material;
-  /** Neon cuff / strip trim (`handTrimMat`). */
+  /** Glowing LED wrist status bars & neon telemetry strips (`handTrimMat`). */
   trim: THREE.Material;
 }
 
@@ -125,10 +125,12 @@ function addPart(
 }
 
 /**
- * Hand wrapped around a vertical grip (pistol grip or vertical foregrip).
+ * Mechanical KAY/O combat-android hand wrapped around a vertical grip (pistol
+ * grip or vertical foregrip): dark titanium segmented mechanical fingers,
+ * beveled knuckle actuator plates, angular Agent-colored wrist/dorsal armor
+ * plates, and twin glowing LED wrist status bars.
  * Frame: grip axis = local +Y, barrel = -Z, grip centred at the origin.
- * `side = +1` builds a RIGHT hand (back of hand on +X, thumb wrapping the -X
- * face); `side = -1` mirrors it into a LEFT hand.
+ * `side = +1` builds a RIGHT hand; `side = -1` mirrors it into a LEFT hand.
  */
 function buildGripHand(
   mats: HandMaterials,
@@ -140,52 +142,172 @@ function buildGripHand(
   const w = halfWidth;
   const d = halfDepth;
 
-  // Back of the hand on the outer face + armoured knuckle guard.
-  addPart(hand, new THREE.BoxGeometry(0.02, 0.074, 0.06), mats.glove, side * (w + 0.01), -0.006, 0.004);
-  addPart(hand, new THREE.BoxGeometry(0.007, 0.062, 0.024), mats.armor, side * (w + 0.022), -0.004, -0.014);
-  // Palm heel wrapping the backstrap + thumb web on the top-rear.
-  addPart(hand, new THREE.BoxGeometry(2 * w + 0.016, 0.064, 0.018), mats.glove, side * 0.004, -0.01, d + 0.008);
-  const web = addPart(hand, new THREE.SphereGeometry(0.015, 10, 8), mats.glove, -side * w * 0.3, 0.03, d + 0.004);
-  web.scale.set(1.25, 0.8, 1.0);
+  // Dark titanium metacarpal housing on the outer face + stepped angular Agent armour carapace.
+  addPart(hand, new THREE.BoxGeometry(0.019, 0.072, 0.062), mats.glove, side * (w + 0.01), -0.006, 0.005);
+  // Chamfered angular dorsal armour plate (main + sloped bevel strips).
+  addPart(hand, new THREE.BoxGeometry(0.009, 0.056, 0.042), mats.armor, side * (w + 0.021), -0.004, 0.006);
+  const dorsalFrontBevel = addPart(
+    hand,
+    new THREE.BoxGeometry(0.007, 0.054, 0.014),
+    mats.armor,
+    side * (w + 0.018),
+    -0.004,
+    -0.017,
+  );
+  dorsalFrontBevel.rotation.y = side * 0.42;
+  const dorsalRearBevel = addPart(
+    hand,
+    new THREE.BoxGeometry(0.007, 0.054, 0.014),
+    mats.armor,
+    side * (w + 0.018),
+    -0.004,
+    0.029,
+  );
+  dorsalRearBevel.rotation.y = -side * 0.42;
 
-  // Four curled fingers wrapping across the front strap, index on top.
-  const fingerSpan = [0.96, 1.0, 0.95, 0.8];
+  // Machined palm heel block wrapping backstrap + metallic thumb-gimbal servo cylinder.
+  addPart(hand, new THREE.BoxGeometry(2 * w + 0.016, 0.064, 0.018), mats.glove, side * 0.004, -0.01, d + 0.008);
+  const thumbGimbal = addPart(
+    hand,
+    new THREE.CylinderGeometry(0.012, 0.013, 0.022, 8),
+    mats.knuckle,
+    -side * w * 0.35,
+    0.028,
+    d + 0.005,
+  );
+  thumbGimbal.rotation.z = Math.PI / 2;
+
+  // Beveled MCP knuckle actuator bridge across the front-outer edge.
+  const knuckleBridge = addPart(
+    hand,
+    new THREE.BoxGeometry(0.015, 0.072, 0.018),
+    mats.knuckle,
+    side * (w + 0.013),
+    -0.006,
+    -(d + 0.001),
+  );
+  knuckleBridge.rotation.y = side * 0.25;
+
+  // Four dark titanium segmented mechanical fingers wrapping across the front strap.
+  const fingerSpan = [0.96, 1.0, 0.94, 0.8];
   for (let i = 0; i < 4; i++) {
-    const y = 0.02 - i * 0.0185;
-    const span = (2 * w + 0.012) * fingerSpan[i];
-    const finger = addPart(
+    const y = 0.021 - i * 0.0185;
+    const totalSpan = (2 * w + 0.014) * fingerSpan[i];
+    const proxLen = totalSpan * 0.52;
+    const midLen = totalSpan * 0.42;
+
+    // Beveled individual knuckle actuator plate at the MCP joint.
+    const knPlate = addPart(
       hand,
-      new THREE.CapsuleGeometry(0.0085, span, 3, 8),
+      new THREE.BoxGeometry(0.013, 0.013, 0.015),
+      mats.knuckle,
+      side * (w + 0.014),
+      y,
+      -(d + 0.005),
+    );
+    knPlate.rotation.y = side * 0.3;
+
+    // Proximal titanium finger phalanx.
+    addPart(
+      hand,
+      new THREE.BoxGeometry(proxLen, 0.013, 0.013),
       mats.glove,
-      side * (w + 0.008 - span / 2),
+      side * (w + 0.009 - proxLen * 0.5),
+      y,
+      -(d + 0.009),
+    );
+
+    // Machined cylindrical PIP knuckle hinge pin between segments.
+    addPart(
+      hand,
+      new THREE.CylinderGeometry(0.0062, 0.0062, 0.0145, 8),
+      mats.knuckle,
+      side * (w + 0.009 - proxLen),
+      y,
+      -(d + 0.009),
+    );
+
+    // Medial titanium finger phalanx.
+    addPart(
+      hand,
+      new THREE.BoxGeometry(midLen, 0.012, 0.0125),
+      mats.glove,
+      side * (w + 0.008 - proxLen - midLen * 0.5),
       y,
       -(d + 0.008),
     );
-    finger.rotation.z = Math.PI / 2;
-    // Fingertip segment curling back along the far face.
-    const tip = addPart(
+
+    // Distal mechanical fingertip block curling back along the far grip face.
+    addPart(
       hand,
-      new THREE.CapsuleGeometry(0.0078, 0.012, 3, 8),
+      new THREE.BoxGeometry(0.011, 0.0115, 0.018),
       mats.glove,
-      side * (w + 0.006 - span),
+      side * (w + 0.005 - totalSpan),
       y,
-      -d + 0.004,
+      -d + 0.003,
     );
-    tip.rotation.x = Math.PI / 2;
-    // Armoured knuckle cap where the finger leaves the back of the hand.
-    addPart(hand, new THREE.BoxGeometry(0.012, 0.014, 0.013), mats.knuckle, side * (w + 0.013), y, -(d + 0.003));
   }
 
-  // Thumb wrapping the inner face, angled forward-down.
-  const thumb = addPart(hand, new THREE.CapsuleGeometry(0.0095, 0.034, 3, 8), mats.glove, -side * (w + 0.008), 0.024, 0.002);
-  thumb.rotation.x = Math.PI / 2 + 0.35;
-  addPart(hand, new THREE.BoxGeometry(0.004, 0.01, 0.022), mats.trim, -side * (w + 0.018), 0.022, 0.0);
+  // Articulated 2-segment mechanical thumb wrapping the inner face, angled forward-down.
+  const thumbProx = addPart(
+    hand,
+    new THREE.BoxGeometry(0.015, 0.015, 0.024),
+    mats.glove,
+    -side * (w + 0.008),
+    0.026,
+    0.012,
+  );
+  thumbProx.rotation.x = 0.25;
+  addPart(
+    hand,
+    new THREE.CylinderGeometry(0.007, 0.007, 0.017, 8),
+    mats.knuckle,
+    -side * (w + 0.008),
+    0.022,
+    -0.001,
+  );
+  const thumbDist = addPart(
+    hand,
+    new THREE.BoxGeometry(0.0135, 0.0135, 0.022),
+    mats.glove,
+    -side * (w + 0.008),
+    0.016,
+    -0.012,
+  );
+  thumbDist.rotation.x = 0.42;
+  // Angular thumb plate + glowing LED accent on inner visible side.
+  addPart(hand, new THREE.BoxGeometry(0.004, 0.008, 0.022), mats.trim, -side * (w + 0.017), 0.022, 0.002);
+
+  // Angular Agent-colored wrist armor plate + twin glowing LED wrist status bars.
+  const wristPlate = addPart(
+    hand,
+    new THREE.BoxGeometry(0.012, 0.026, 0.056),
+    mats.armor,
+    side * (w + 0.016),
+    -0.036,
+    d * 0.65 + 0.018,
+  );
+  wristPlate.rotation.x = 0.24;
+  for (const dz of [-0.009, 0.009]) {
+    const ledBar = addPart(
+      hand,
+      new THREE.BoxGeometry(0.004, 0.016, 0.0055),
+      mats.trim,
+      side * (w + 0.023),
+      -0.035,
+      d * 0.65 + 0.018 + dz,
+    );
+    ledBar.rotation.x = 0.24;
+  }
 
   return hand;
 }
 
 /**
- * Support hand cradling a horizontal handguard from below.
+ * Mechanical KAY/O support hand cradling a horizontal handguard from below:
+ * dark titanium segmented mechanical fingers, beveled knuckle actuator bridge,
+ * angular Agent-colored wrist/ventral armor plates, and twin glowing LED wrist
+ * status bars visible in 1st person.
  * Frame: handguard axis = local Z, handguard centred at the origin.
  * `side = -1` = LEFT hand (thumb along the -X face, fingers curling up +X).
  */
@@ -199,40 +321,135 @@ function buildCradleHand(
   const w = halfWidth;
   const h = halfHeight;
 
-  // Palm under the handguard + armoured back-of-hand plate below it.
-  addPart(hand, new THREE.BoxGeometry(2 * w + 0.014, 0.018, 0.074), mats.glove, 0, -h - 0.009, 0.004);
-  addPart(hand, new THREE.BoxGeometry(2 * w * 0.8, 0.006, 0.05), mats.armor, 0, -h - 0.021, 0.008);
-  const thumbBase = addPart(hand, new THREE.SphereGeometry(0.016, 10, 8), mats.glove, side * (w + 0.002), -h - 0.004, 0.026);
-  thumbBase.scale.set(0.9, 0.8, 1.3);
+  // Dark titanium palm cradle plate + angular Agent-colored ventral armour guard.
+  addPart(hand, new THREE.BoxGeometry(2 * w + 0.016, 0.017, 0.074), mats.glove, 0, -h - 0.009, 0.004);
+  addPart(hand, new THREE.BoxGeometry(2 * w * 0.84, 0.008, 0.052), mats.armor, 0, -h - 0.021, 0.008);
+  const outerArmorFlank = addPart(
+    hand,
+    new THREE.BoxGeometry(0.01, 0.022, 0.058),
+    mats.armor,
+    side * (w + 0.01),
+    -h - 0.004,
+    0.014,
+  );
+  outerArmorFlank.rotation.z = side * 0.28;
 
-  // Fingers curl up the far face.
+  // Machined metallic thumb base gimbal cylinder.
+  const thumbBase = addPart(
+    hand,
+    new THREE.CylinderGeometry(0.012, 0.013, 0.022, 8),
+    mats.knuckle,
+    side * (w + 0.004),
+    -h - 0.004,
+    0.026,
+  );
+  thumbBase.rotation.x = Math.PI / 2;
+
+  // Beveled knuckle actuator rail along the far edge where fingers articulate upward.
+  const knuckleRail = addPart(
+    hand,
+    new THREE.BoxGeometry(0.014, 0.015, 0.072),
+    mats.knuckle,
+    -side * (w + 0.006),
+    -h - 0.008,
+    -0.002,
+  );
+  knuckleRail.rotation.z = -side * 0.35;
+
+  // Four dark titanium segmented mechanical fingers curling up the far face.
   for (let i = 0; i < 4; i++) {
     const z = -0.03 + i * 0.019;
-    const len = i === 3 ? 0.02 : 0.026;
-    const finger = addPart(
+    const proxH = i === 3 ? 0.016 : 0.02;
+    const distH = i === 3 ? 0.013 : 0.016;
+
+    // Beveled individual MCP knuckle cap.
+    addPart(hand, new THREE.BoxGeometry(0.014, 0.012, 0.013), mats.knuckle, -side * (w + 0.007), -h - 0.008, z);
+
+    // Proximal mechanical finger segment.
+    const prox = addPart(
       hand,
-      new THREE.CapsuleGeometry(0.0082, len, 3, 8),
+      new THREE.BoxGeometry(0.013, proxH, 0.013),
       mats.glove,
-      -side * (w + 0.008),
-      -h + 0.008,
+      -side * (w + 0.01),
+      -h + proxH * 0.45,
       z,
     );
-    finger.rotation.z = side * 0.18; // tips curl in toward the handguard
-    addPart(hand, new THREE.BoxGeometry(0.013, 0.012, 0.012), mats.knuckle, -side * (w + 0.006), -h - 0.008, z);
+    prox.rotation.z = side * 0.1;
+
+    // Machined PIP knuckle hinge pin.
+    const pin = addPart(
+      hand,
+      new THREE.CylinderGeometry(0.006, 0.006, 0.014, 8),
+      mats.knuckle,
+      -side * (w + 0.011),
+      -h + proxH + 0.001,
+      z,
+    );
+    pin.rotation.x = Math.PI / 2;
+
+    // Distal mechanical fingertip curling inward over the handguard lip.
+    const dist = addPart(
+      hand,
+      new THREE.BoxGeometry(0.012, distH, 0.012),
+      mats.glove,
+      -side * (w + 0.008),
+      -h + proxH + distH * 0.45,
+      z,
+    );
+    dist.rotation.z = side * 0.34;
   }
 
-  // Thumb laid forward along the near face.
-  const thumb = addPart(hand, new THREE.CapsuleGeometry(0.0092, 0.04, 3, 8), mats.glove, side * (w + 0.008), -h * 0.3, -0.008);
-  thumb.rotation.x = Math.PI / 2 - 0.2;
-  addPart(hand, new THREE.BoxGeometry(0.004, 0.009, 0.026), mats.trim, side * (w + 0.018), -h * 0.3, -0.006);
+  // Articulated 2-segment mechanical thumb laid forward along the visible near face.
+  addPart(hand, new THREE.BoxGeometry(0.014, 0.014, 0.026), mats.glove, side * (w + 0.009), -h * 0.34, 0.006);
+  const thumbPin = addPart(
+    hand,
+    new THREE.CylinderGeometry(0.0065, 0.0065, 0.016, 8),
+    mats.knuckle,
+    side * (w + 0.009),
+    -h * 0.3,
+    -0.008,
+  );
+  thumbPin.rotation.z = Math.PI / 2;
+  const thumbTip = addPart(
+    hand,
+    new THREE.BoxGeometry(0.0125, 0.013, 0.022),
+    mats.glove,
+    side * (w + 0.008),
+    -h * 0.24,
+    -0.02,
+  );
+  thumbTip.rotation.x = -0.18;
+  // Glowing thumb telemetry accent + angular wrist armour plate + twin glowing LED wrist status bars.
+  addPart(hand, new THREE.BoxGeometry(0.004, 0.007, 0.026), mats.trim, side * (w + 0.018), -h * 0.3, -0.005);
+
+  const wristArmor = addPart(
+    hand,
+    new THREE.BoxGeometry(0.044, 0.018, 0.032),
+    mats.armor,
+    side * (w * 0.35),
+    -h - 0.012,
+    0.046,
+  );
+  wristArmor.rotation.y = side * 0.22;
+  for (const dx of [-0.008, 0.008]) {
+    addPart(
+      hand,
+      new THREE.BoxGeometry(0.005, 0.0045, 0.022),
+      mats.trim,
+      side * (w * 0.35) + dx,
+      -h - 0.002,
+      0.046,
+    );
+  }
 
   return hand;
 }
 
 /**
- * Armoured forearm gauntlet running from `wrist` to `elbow` (weapon-local
- * space): carbon undersleeve, Agent-coloured shell + dorsal ridge, and neon
- * cuff rings / side strip.
+ * Mechanical KAY/O armoured forearm gauntlet running from `wrist` to `elbow`
+ * (weapon-local space): faceted octagonal dark titanium chassis, angular
+ * Agent-coloured wrist/forearm armour plates, lateral hydraulic piston rod,
+ * and twin glowing LED wrist status bars.
  */
 function buildForearm(
   mats: HandMaterials,
@@ -247,26 +464,39 @@ function buildForearm(
   dir.normalize();
   arm.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), dir); // local +Z = toward elbow
 
-  // CylinderGeometry axis is +Y; rotateX(+PI/2) maps +Y -> +Z, so radiusTop sits at the elbow end.
-  const cuffGeo = new THREE.CylinderGeometry(0.031, 0.03, 0.04, 14);
+  // Machined metallic wrist gimbal collar (8-sided industrial ring).
+  const cuffGeo = new THREE.CylinderGeometry(0.031, 0.029, 0.038, 8);
   cuffGeo.rotateX(Math.PI / 2);
-  addPart(arm, cuffGeo, mats.glove, 0, 0, 0.012);
+  addPart(arm, cuffGeo, mats.knuckle, 0, 0, 0.014);
 
-  const sleeveGeo = new THREE.CylinderGeometry(0.041, 0.032, len, 14);
+  // Octagonal dark titanium mechanical forearm chassis.
+  const sleeveGeo = new THREE.CylinderGeometry(0.042, 0.032, len, 8);
   sleeveGeo.rotateX(Math.PI / 2);
   addPart(arm, sleeveGeo, mats.glove, 0, 0, len / 2);
 
-  // Partial shell covering top + outer flanks (theta centred on PI = local +Y after rotation).
-  const shellLen = len * 0.72;
-  const shellGeo = new THREE.CylinderGeometry(0.047, 0.038, shellLen, 16, 1, false, Math.PI - 1.45, 2.9);
-  shellGeo.rotateX(Math.PI / 2);
-  addPart(arm, shellGeo, mats.armor, 0, 0, 0.05 + shellLen / 2);
-  addPart(arm, new THREE.BoxGeometry(0.016, 0.01, len * 0.55), mats.armor, 0, 0.046, 0.06 + len * 0.3);
+  // Flared angular Agent-coloured wrist armour collar plate right behind the hand.
+  addPart(arm, new THREE.BoxGeometry(0.064, 0.022, 0.056), mats.armor, 0, 0.032, 0.052);
+  addPart(arm, new THREE.BoxGeometry(0.018, 0.044, 0.054), mats.armor, side * 0.034, 0.004, 0.054);
 
-  // Neon cuff rings (TorusGeometry lies in XY = wraps the local Z axis) + side strip.
-  addPart(arm, new THREE.TorusGeometry(0.04, 0.005, 6, 20), mats.trim, 0, 0, 0.05);
-  addPart(arm, new THREE.TorusGeometry(0.047, 0.004, 6, 20), mats.trim, 0, 0, 0.05 + shellLen);
-  addPart(arm, new THREE.BoxGeometry(0.004, 0.006, len * 0.5), mats.trim, side * 0.043, 0.002, 0.08 + len * 0.25);
+  // Angular faceted gauntlet carapace shell covering top + outer flanks.
+  const shellLen = len * 0.68;
+  const shellGeo = new THREE.CylinderGeometry(0.048, 0.039, shellLen, 8, 1, false, Math.PI - 1.45, 2.9);
+  shellGeo.rotateX(Math.PI / 2);
+  addPart(arm, shellGeo, mats.armor, 0, 0, 0.062 + shellLen / 2);
+  addPart(arm, new THREE.BoxGeometry(0.02, 0.012, len * 0.56), mats.armor, 0, 0.047, 0.07 + len * 0.28);
+
+  // Lateral brushed-steel hydraulic actuator piston along the outer forearm.
+  const pistonGeo = new THREE.CylinderGeometry(0.0055, 0.0055, len * 0.64, 8);
+  pistonGeo.rotateX(Math.PI / 2);
+  addPart(arm, pistonGeo, mats.knuckle, side * 0.042, -0.014, 0.05 + len * 0.32);
+
+  // Twin glowing LED wrist status bars (clearly visible on top-inner wrist cuff in 1st person!).
+  for (const offset of [-0.011, 0.011]) {
+    addPart(arm, new THREE.BoxGeometry(0.006, 0.005, 0.044), mats.trim, offset, 0.044, 0.052);
+  }
+  // Secondary glowing telemetry cuff trim & lateral forearm status strip.
+  addPart(arm, new THREE.TorusGeometry(0.04, 0.0042, 6, 8), mats.trim, 0, 0, 0.042);
+  addPart(arm, new THREE.BoxGeometry(0.0045, 0.006, len * 0.44), mats.trim, side * 0.045, 0.006, 0.095 + len * 0.22);
 
   return arm;
 }
@@ -380,32 +610,32 @@ export function createWeaponSystem(
     metalness: 0.2,
   });
 
-  // Tactician glove + gauntlet materials (recoloured live in setAgentColor).
+  // KAY/O mechanical android hand + gauntlet materials (recoloured live in setAgentColor).
   const initialGlove = VIEWMODEL_GLOVE_STYLE[activeColorId];
   const gloveMat = new THREE.MeshStandardMaterial({
-    color: 0x151922,
-    roughness: 0.62,
-    metalness: 0.38,
+    color: 0x161b25,
+    roughness: 0.42,
+    metalness: 0.65,
   });
   const gloveKnuckleMat = new THREE.MeshStandardMaterial({
-    color: 0x262d3b,
-    roughness: 0.45,
-    metalness: 0.55,
+    color: 0x3b4559,
+    roughness: 0.28,
+    metalness: 0.84,
   });
   const handArmorMat = new THREE.MeshStandardMaterial({
     color: initialGlove.primary,
     emissive: initialGlove.primary,
-    emissiveIntensity: 0.25,
+    emissiveIntensity: 0.22,
     roughness: 0.34,
-    metalness: 0.3,
+    metalness: 0.38,
     side: THREE.DoubleSide, // partial gauntlet shell reads solid from inside
   });
   const handTrimMat = new THREE.MeshStandardMaterial({
     color: initialGlove.trim,
     emissive: initialGlove.trim,
-    emissiveIntensity: 1.25,
-    roughness: 0.2,
-    metalness: 0.1,
+    emissiveIntensity: 1.85,
+    roughness: 0.16,
+    metalness: 0.08,
   });
   const handMats: HandMaterials = {
     glove: gloveMat,
@@ -1056,9 +1286,9 @@ export function createWeaponSystem(
       isScoped = false;
     }
 
-    // Highlight weapon accent rail when Bio-Stim overdrive is active.
+    // Highlight weapon accent rail & wrist LED bars when Bio-Stim overdrive is active.
     accentMat.emissiveIntensity = fireRateMultiplier > 1.05 ? 2.1 : 0.9;
-    handTrimMat.emissiveIntensity = fireRateMultiplier > 1.05 ? 2.0 : 1.25;
+    handTrimMat.emissiveIntensity = fireRateMultiplier > 1.05 ? 2.8 : 1.85;
 
     // 1. Advance fire cooldown and reload progress (scaled by active stim multiplier)
     state.fireTimer = Math.max(0, state.fireTimer - dt);
@@ -1131,15 +1361,17 @@ export function createWeaponSystem(
       kickPitch = Math.min(0.22, kickPitch + (currentWeaponId === 'sniper' ? 0.16 : 0.075));
       muzzleFlashTimer = 0.045;
 
-      // Stage A: Raycast against solid arena geometry (walls, floor, cover) first
+      // Stage A: Raycast against solid arena geometry (walls, floor, cover, closed doors) first
       let closestWallDist = MAX_RAY_DISTANCE;
       let closestWallHit: RaycastHit | null = null;
+      let closestWallBox: AABB | null = null;
 
       for (const box of colliders) {
         const hit = raycastAABB(origin, shotDir, box, closestWallDist);
         if (hit && hit.distance < closestWallDist) {
           closestWallDist = hit.distance;
           closestWallHit = hit;
+          closestWallBox = box;
         }
       }
 
@@ -1212,12 +1444,15 @@ export function createWeaponSystem(
           spec.tracerWidthScale,
         );
       } else if (closestWallHit) {
+        const hitDoorId = closestWallBox?.doorId;
+        const doorDmg = hitDoorId ? computeWeaponDamage(spec, closestWallDist, false) : undefined;
         result = {
           fired: true,
           hitPoint: closestWallHit.point,
           hitType: 'wall',
           damageDealt: 0,
           killedTarget: false,
+          ...(hitDoorId ? { hitDoorId, doorDamageDealt: doorDmg } : {}),
         };
         spawnTracerSegment(
           tracerOrigin,

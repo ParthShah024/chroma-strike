@@ -75,7 +75,8 @@ export interface AABB {
   min: Vec3;
   max: Vec3;
   color?: number;
-  tag?: 'floor' | 'wall' | 'cover';
+  tag?: 'floor' | 'wall' | 'cover' | 'door';
+  doorId?: string;
 }
 
 export interface InputState {
@@ -156,6 +157,8 @@ export interface ShotResult {
   hitType: 'none' | 'wall' | 'body' | 'head';
   damageDealt: number;
   killedTarget: boolean;
+  hitDoorId?: string;
+  doorDamageDealt?: number;
 }
 
 // ============================================================================
@@ -443,6 +446,8 @@ export interface MatchHudState {
   minimapEnemies?: MinimapContact[];
   ultPoints?: number;
   maxUltPoints?: number;
+  doors?: ArenaDoorHudState[];
+  nearbyDoorPrompt?: { doorId: string; label: string; action: 'CLOSE' | 'OPEN' } | null;
 }
 
 // ============================================================================
@@ -481,4 +486,24 @@ export interface MinimapContact {
   x: number;
   z: number;
   colorId: AgentColorId;
+}
+
+// ============================================================================
+// Chapter 8: Interactive Breakable / Toggleable Arena Doors
+// ============================================================================
+
+export type ArenaDoorStatus = 'open' | 'closed' | 'broken';
+
+export interface ArenaDoorHudState {
+  id: string;
+  label: string;
+  status: ArenaDoorStatus;
+  hp: number;
+  maxHp: number;
+  center: Vec3;
+  switchPos: Vec3;
+  minX: number;
+  maxX: number;
+  minZ: number;
+  maxZ: number;
 }

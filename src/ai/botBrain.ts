@@ -22,7 +22,12 @@ import {
   raycastSphere,
   updatePlayerMovement,
 } from '../physics/movement';
-import { ArenaWaypoint, getArenaSpawns, getArenaWaypoints } from '../arena/map';
+import {
+  ArenaWaypoint,
+  damageArenaDoor,
+  getArenaSpawns,
+  getArenaWaypoints,
+} from '../arena/map';
 import { WEAPON_SPECS, computeWeaponDamage } from '../combat/arsenal';
 import { AbilitySystem } from '../abilities/system';
 import { WeaponSystem } from '../combat/weapons';
@@ -166,6 +171,9 @@ const BOT_PLANT_THREAT_DIST_M = 13.5;
 const MAX_ULT_POINTS = 5;
 const BOT_ULT_ACTIVE_SEC = 7.5;
 const BUY_SPIKE_BOT_PICKUP_WINDOW_SEC = 7.5;
+const BOT_DOOR_DETECT_DIST_M = 6.2;
+const BOT_DOOR_FIRE_MIN_INTERVAL_SEC = 0.18;
+const BOT_DOOR_FIRE_MAX_INTERVAL_SEC = 0.3;
 
 function slideDrop(c: Combatant): number {
   return (c.slideTimer ?? 0) > 0 ? SLIDE_HITBOX_DROP_M : 0;
@@ -226,8 +234,10 @@ function findNearestWaypointId(pos: Vec3, waypoints: ArenaWaypoint[]): string | 
   let bestDistSq = Infinity;
   for (const wp of waypoints) {
     const dx = wp.pos.x - pos.x;
+    const dy = wp.pos.y - pos.y;
     const dz = wp.pos.z - pos.z;
-    const d2 = dx * dx + dz * dz;
+    // Heavily weight vertical separation so multi-level A Heaven (y=3m) and A Hell (y=0m) never cross-snap
+    const d2 = dx * dx + dz * dz + dy * dy * 9.0;
     if (d2 < bestDistSq) {
       bestDistSq = d2;
       bestId = wp.id;
@@ -239,7 +249,8 @@ function findNearestWaypointId(pos: Vec3, waypoints: ArenaWaypoint[]): string | 
 function findClosestWaypointInSubset(
   candidates: ArenaWaypoint[],
   targetX: number,
-  targetZ: number
+  targetZ: number,
+  targetY?: number
 ): string | null {
   if (candidates.length === 0) return null;
   let best = candidates[0];
@@ -247,7 +258,8 @@ function findClosestWaypointInSubset(
   for (const wp of candidates) {
     const dx = wp.pos.x - targetX;
     const dz = wp.pos.z - targetZ;
-    const d2 = dx * dx + dz * dz;
+    const dy = targetY !== undefined ? wp.pos.y - targetY : 0;
+    const d2 = dx * dx + dz * dz + dy * dy * 9.0;
     if (d2 < bestDistSq) {
       bestDistSq = d2;
       best = wp;
@@ -482,7 +494,8 @@ function chooseSdObjectiveGoal(
         goalId: findClosestWaypointInSubset(
           siteWps,
           targetSiteZone.center.x,
-          targetSiteZone.center.z
+          targetSiteZone.center.z,
+          targetSiteZone.center.y
         ),
         directTargetPos: distCenter < 4.0 ? targetSiteZone.center : null,
         shouldHoldAtGoal: false,
@@ -696,15 +709,16 @@ function chooseBuyPhaseGoal(
     };
   }
 
-  // Stage neatly behind `buyMinAllyZ` facing West / Mid / East barrier exits
+  // Stage neatly behind `buyMinAllyZ` facing West (A Main) / Mid / East (B Main) barrier exits
+  const midStageX = (sites.A.center.x + sites.B.center.x) * 0.5 + 5.0;
   const stageX =
     mem.role === 'lurker'
-      ? 0
+      ? midStageX
       : botSlotIndex % 3 === 0
-        ? -12
+        ? sites.A.center.x
         : botSlotIndex % 3 === 1
-          ? 0
-          : 12;
+          ? midStageX
+          : sites.B.center.x;
   const stageZ = atkMinZ + 1.4;
   return {
     goalId: findClosestWaypointInSubset(pool, stageX, stageZ),
@@ -798,6 +812,125 @@ function getCombatantHitboxes(c: Combatant): { head: AABB; body: AABB } {
       },
     },
   };
+}
+
+interface BlockingDoorInfo {
+  box: AABB;
+  doorId: string;
+  center: Vec3;
+  dist: number;
+}
+
+/**
+ * Checks whether a closed Blast Door (`tag === 'door' && box.doorId`) blocks
+ * the bot's immediate path within `maxDist` meters with clear line of sight.
+ */
+function findBlockingClosedDoor(
+  bot: Combatant,
+  pathPoints: Vec3[],
+  colliders: AABB[],
+  maxDist = BOT_DOOR_DETECT_DIST_M
+): BlockingDoorInfo | null {
+  if (pathPoints.length === 0) return null;
+
+  // Fast exit when all Blast Doors are open or shattered
+  const closedDoors: AABB[] = [];
+  for (const box of colliders) {
+    if (box.tag === 'door' && box.doorId) {
+      closedDoors.push(box);
+    }
+  }
+  if (closedDoors.length === 0) return null;
+
+  const origin: Vec3 = {
+    x: bot.position.x,
+    y: bot.position.y + 1.25,
+    z: bot.position.z,
+  };
+
+  // 1. Raycast along upcoming path segments toward next waypoints
+  for (const pt of pathPoints) {
+    const dx = pt.x - origin.x;
+    const dy = pt.y + 1.25 - origin.y;
+    const dz = pt.z - origin.z;
+    const segDist = Math.hypot(dx, dy, dz);
+    if (segDist < 0.08) continue;
+
+    const dir: Vec3 = { x: dx / segDist, y: dy / segDist, z: dz / segDist };
+    const rayLimit = Math.min(segDist, maxDist);
+    let closestDist = rayLimit;
+    let closestBox: AABB | null = null;
+
+    for (const box of colliders) {
+      const hit = raycastAABB(origin, dir, box, closestDist);
+      if (hit && hit.distance < closestDist) {
+        closestDist = hit.distance;
+        closestBox = box;
+      }
+    }
+
+    if (closestBox && closestBox.tag === 'door' && closestBox.doorId) {
+      return {
+        box: closestBox,
+        doorId: closestBox.doorId,
+        center: {
+          x: (closestBox.min.x + closestBox.max.x) * 0.5,
+          y: (closestBox.min.y + closestBox.max.y) * 0.5,
+          z: (closestBox.min.z + closestBox.max.z) * 0.5,
+        },
+        dist: closestDist,
+      };
+    }
+  }
+
+  // 2. Close-proximity oblique approach guard (prevents snagging near doorway edges)
+  const firstPt = pathPoints[0];
+  const moveDx = firstPt.x - bot.position.x;
+  const moveDz = firstPt.z - bot.position.z;
+  const moveLen = Math.hypot(moveDx, moveDz);
+  if (moveLen > 0.1) {
+    const mx = moveDx / moveLen;
+    const mz = moveDz / moveLen;
+
+    for (const doorBox of closedDoors) {
+      const center: Vec3 = {
+        x: (doorBox.min.x + doorBox.max.x) * 0.5,
+        y: (doorBox.min.y + doorBox.max.y) * 0.5,
+        z: (doorBox.min.z + doorBox.max.z) * 0.5,
+      };
+      const toDx = center.x - origin.x;
+      const toDy = center.y - origin.y;
+      const toDz = center.z - origin.z;
+      const horizD = Math.hypot(toDx, toDz);
+      if (horizD > 2.8 || Math.abs(toDy) > 2.2) continue;
+
+      const dot = horizD > 1e-4 ? (toDx * mx + toDz * mz) / horizD : 1;
+      if (dot < 0.25) continue;
+
+      const dist3d = Math.hypot(toDx, toDy, toDz);
+      if (dist3d < 1e-4) continue;
+      const dir: Vec3 = { x: toDx / dist3d, y: toDy / dist3d, z: toDz / dist3d };
+      let closestDist = Math.min(dist3d + 0.5, maxDist);
+      let closestBox: AABB | null = null;
+      for (const box of colliders) {
+        const hit = raycastAABB(origin, dir, box, closestDist);
+        if (hit && hit.distance < closestDist) {
+          closestDist = hit.distance;
+          closestBox = box;
+        }
+      }
+      if (closestBox === doorBox && doorBox.doorId) {
+        return {
+          box: doorBox,
+          doorId: doorBox.doorId,
+          center,
+          dist: closestDist,
+        };
+      }
+    }
+  }
+
+  return null;
 }
 
 function applyBotSpread(dir: Vec3, spreadRad: number): Vec3 {
@@ -1105,7 +1238,7 @@ export function createBotBrainSystem(): BotBrainSystem {
               const dx = nextWp.pos.x - bot.position.x;
               const dz = nextWp.pos.z - bot.position.z;
               const horizDist = Math.hypot(dx, dz);
-              if (horizDist < 1.15) {
+              if (horizDist < 1.15 && Math.abs(nextWp.pos.y - bot.position.y) < 1.8) {
                 mem.route.shift();
               }
               if (horizDist > 0.15) {
@@ -1263,7 +1396,7 @@ export function createBotBrainSystem(): BotBrainSystem {
         const isExecutingOrRetaking = Boolean(
           sdContext &&
             (sdContext.spike.status === 'planted' ||
-              (bot.team === sdContext.attackerTeam && Math.abs(bot.position.z) < 20))
+              (bot.team === sdContext.attackerTeam && Math.abs(bot.position.z) < 26))
         );
         const engaged = spottedTarget !== null;
         let shouldCastUlt = false;
@@ -1439,6 +1572,7 @@ export function createBotBrainSystem(): BotBrainSystem {
 
     let desiredYaw = bot.yaw;
     let desiredPitch = 0;
+    let blockingDoor: BlockingDoorInfo | null = null;
 
     if (mem.fsm === 'plant' && sdContext) {
       // Stand still in safe site zone and channel Spike plant
@@ -1554,7 +1688,7 @@ export function createBotBrainSystem(): BotBrainSystem {
           const dz = nextWp.pos.z - bot.position.z;
           const horizDist = Math.hypot(dx, dz);
 
-          if (horizDist < 1.25) {
+          if (horizDist < 1.25 && Math.abs(nextWp.pos.y - bot.position.y) < 1.8) {
             mem.route.shift();
             if (mem.route.length === 0) {
               mem.lastSeenPos = null;
@@ -1611,6 +1745,38 @@ export function createBotBrainSystem(): BotBrainSystem {
               }
             }
           }
+        }
+      }
+
+      // Closed Blast Door awareness: if a closed steel shutter blocks the path within ~6m,
+      // halt movement and aim at door center to breach it with weapon bursts!
+      if (!spottedTarget) {
+        const pathPoints: Vec3[] = [];
+        if (directTargetPos) {
+          pathPoints.push(directTargetPos);
+        } else {
+          for (let r = 0; r < Math.min(3, mem.route.length); r++) {
+            const wp = waypointById.get(mem.route[r]);
+            if (wp) pathPoints.push(wp.pos);
+          }
+        }
+
+        blockingDoor = findBlockingClosedDoor(bot, pathPoints, colliders);
+        if (blockingDoor) {
+          botInput.forward = false;
+          botInput.left = false;
+          botInput.right = false;
+          botInput.walk = false;
+          botInput.backward = blockingDoor.dist < 1.35;
+
+          const botEye: Vec3 = {
+            x: bot.position.x,
+            y: bot.position.y + BOT_EYE_HEIGHT,
+            z: bot.position.z,
+          };
+          const doorAim = computeAimAngles(botEye, blockingDoor.center);
+          desiredYaw = doorAim.yaw;
+          desiredPitch = doorAim.pitch;
         }
       }
     }
@@ -1698,14 +1864,16 @@ export function createBotBrainSystem(): BotBrainSystem {
         );
         sfx.playWeaponShot(bot.weaponId, blazeUltActive, listenerDist);
 
-        // Raycast static colliders first (bullets pass cleanly through open 'W' windows!)
+        // Raycast static colliders & closed doors first (bullets pass cleanly through open windows!)
         let closestWallDist = BOT_MAX_RAY_DIST;
         let closestWallHit: RaycastHit | null = null;
+        let closestWallBox: AABB | null = null;
         for (const box of colliders) {
           const hit = raycastAABB(origin, shotDir, box, closestWallDist);
           if (hit && hit.distance < closestWallDist) {
             closestWallDist = hit.distance;
             closestWallHit = hit;
+            closestWallBox = box;
           }
         }
 
@@ -1754,6 +1922,14 @@ export function createBotBrainSystem(): BotBrainSystem {
             hitHeadshot
           );
         } else if (closestWallHit) {
+          if (closestWallBox && closestWallBox.tag === 'door' && closestWallBox.doorId) {
+            const doorDmg = computeWeaponDamage(spec, closestWallDist, false);
+            const doorRes = damageArenaDoor(closestWallBox.doorId, doorDmg);
+            if (doorRes.hit) {
+              if (doorRes.broken) sfx.playDoorBreak();
+              else if (listenerDist < 42) sfx.playDoorHit();
+            }
+          }
           weaponSystem.spawnWorldTracer(
             muzzleOffset,
             closestWallHit.point,
@@ -1779,6 +1955,69 @@ export function createBotBrainSystem(): BotBrainSystem {
           mem.reloading = true;
           mem.reloadTimer = spec.reloadDurationSec;
         }
+      }
+    } else if (
+      blockingDoor &&
+      !spottedTarget &&
+      !mem.reloading &&
+      mem.ammo > 0 &&
+      mem.fireTimer <= 0 &&
+      Math.abs(yawDiff) < 0.35
+    ) {
+      // Dedicated Blast Door breaching bursts until the shutter shatters
+      mem.ammo -= 1;
+      const fireRateMult =
+        (concussed ? CONCUSS_FIRE_RATE_MULT : 1.0) * (blazeUltActive ? 1.35 : 1.0);
+      const rawDoorInterval =
+        bot.weaponId === 'sniper'
+          ? BOT_DOOR_FIRE_MAX_INTERVAL_SEC
+          : clamp(
+              spec.fireIntervalSec * 1.6,
+              BOT_DOOR_FIRE_MIN_INTERVAL_SEC,
+              BOT_DOOR_FIRE_MAX_INTERVAL_SEC
+            );
+      mem.fireTimer = rawDoorInterval / fireRateMult;
+
+      const origin: Vec3 = {
+        x: bot.position.x,
+        y: bot.position.y + BOT_EYE_HEIGHT - slideDrop(bot),
+        z: bot.position.z,
+      };
+      const baseDir = getLookDirection(bot.yaw, bot.pitch);
+      const shotDir = applyBotSpread(baseDir, 0.018);
+
+      onFire(bot);
+
+      const listenerDist = Math.hypot(
+        origin.x - cameraPos.x,
+        origin.y - cameraPos.y,
+        origin.z - cameraPos.z
+      );
+      sfx.playWeaponShot(bot.weaponId, blazeUltActive, listenerDist);
+
+      const doorHit = raycastAABB(origin, shotDir, blockingDoor.box, BOT_DOOR_DETECT_DIST_M + 2.0);
+      const hitPoint = doorHit ? doorHit.point : blockingDoor.center;
+      const hitNormal = doorHit ? doorHit.normal : null;
+      const hitDist = doorHit ? doorHit.distance : blockingDoor.dist;
+
+      const paletteHex = AGENT_PALETTES[bot.colorId].hex;
+      const muzzleOffset: Vec3 = {
+        x: origin.x + shotDir.x * 0.45,
+        y: origin.y - 0.12,
+        z: origin.z + shotDir.z * 0.45,
+      };
+      weaponSystem.spawnWorldTracer(muzzleOffset, hitPoint, hitNormal, paletteHex, false);
+
+      const botDoorDamage = computeWeaponDamage(spec, hitDist, false);
+      const doorRes = damageArenaDoor(blockingDoor.doorId, botDoorDamage);
+      if (doorRes.hit) {
+        if (doorRes.broken) sfx.playDoorBreak();
+        else if (listenerDist < 42) sfx.playDoorHit();
+      }
+
+      if (mem.ammo <= 0) {
+        mem.reloading = true;
+        mem.reloadTimer = spec.reloadDurationSec;
       }
     }
   }

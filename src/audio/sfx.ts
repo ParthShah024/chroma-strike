@@ -45,6 +45,9 @@ export interface SoundEngine {
   playSpikeDefuseCue(halfwayReached: boolean): void;
   playSpikeDefused(): void;
   playSpikeDetonate(): void;
+  playDoorToggle(closing: boolean): void;
+  playDoorHit(): void;
+  playDoorBreak(): void;
 }
 
 const NOISE_BUFFER_DURATION_SEC = 1.0;
@@ -1582,6 +1585,235 @@ export function createSoundEngine(): SoundEngine {
     blastSrc.stop(now + 0.9);
   }
 
+  /**
+   * Heavy hydraulic steel slide + latch slam (`120 -> 52 Hz` pitch drop + metallic clang on close;
+   * rising pneumatic hiss on open).
+   */
+  function playDoorToggle(closing: boolean): void {
+    const nodes = getReadyNodes();
+    if (!nodes) return;
+    const { context, out, noise } = nodes;
+    const now = context.currentTime;
+
+    if (closing) {
+      // Hydraulic steel slide
+      const slideSrc = context.createBufferSource();
+      slideSrc.buffer = noise;
+      const slideFilter = context.createBiquadFilter();
+      slideFilter.type = 'bandpass';
+      slideFilter.frequency.setValueAtTime(780, now);
+      slideFilter.frequency.exponentialRampToValueAtTime(260, now + 0.2);
+      slideFilter.Q.setValueAtTime(1.8, now);
+      const slideGain = context.createGain();
+      slideGain.gain.setValueAtTime(0.005, now);
+      slideGain.gain.linearRampToValueAtTime(0.24, now + 0.025);
+      slideGain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + 0.22);
+      slideSrc.connect(slideFilter);
+      slideFilter.connect(slideGain);
+      slideGain.connect(out);
+      slideSrc.start(now);
+      slideSrc.stop(now + 0.24);
+
+      // Heavy latch slam: 120 -> 52 Hz pitch drop at lock-in
+      const slamTime = now + 0.11;
+      const slamOsc = context.createOscillator();
+      const slamGain = context.createGain();
+      slamOsc.type = 'triangle';
+      slamOsc.frequency.setValueAtTime(120, slamTime);
+      slamOsc.frequency.exponentialRampToValueAtTime(52, slamTime + 0.14);
+      slamGain.gain.setValueAtTime(0.42, slamTime);
+      slamGain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, slamTime + 0.17);
+      slamOsc.connect(slamGain);
+      slamGain.connect(out);
+      slamOsc.start(slamTime);
+      slamOsc.stop(slamTime + 0.19);
+
+      // Metallic clang partials on latch impact
+      const clangPartials: Array<{ freq: number; type: OscillatorType; peak: number; dur: number }> = [
+        { freq: 430, type: 'triangle', peak: 0.2, dur: 0.16 },
+        { freq: 710, type: 'sine', peak: 0.14, dur: 0.14 },
+      ];
+      for (const p of clangPartials) {
+        const osc = context.createOscillator();
+        const gain = context.createGain();
+        osc.type = p.type;
+        osc.frequency.setValueAtTime(p.freq, slamTime);
+        osc.frequency.exponentialRampToValueAtTime(p.freq * 0.92, slamTime + p.dur);
+        gain.gain.setValueAtTime(p.peak, slamTime);
+        gain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, slamTime + p.dur);
+        osc.connect(gain);
+        gain.connect(out);
+        osc.start(slamTime);
+        osc.stop(slamTime + p.dur + 0.015);
+      }
+    } else {
+      // Unlatch click
+      const clickSrc = context.createBufferSource();
+      clickSrc.buffer = noise;
+      const clickBp = context.createBiquadFilter();
+      clickBp.type = 'bandpass';
+      clickBp.frequency.setValueAtTime(2200, now);
+      clickBp.Q.setValueAtTime(3.0, now);
+      const clickGain = context.createGain();
+      clickGain.gain.setValueAtTime(0.22, now);
+      clickGain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + 0.035);
+      clickSrc.connect(clickBp);
+      clickBp.connect(clickGain);
+      clickGain.connect(out);
+      clickSrc.start(now);
+      clickSrc.stop(now + 0.045);
+
+      // Rising pneumatic hiss
+      const hissSrc = context.createBufferSource();
+      hissSrc.buffer = noise;
+      const hissFilter = context.createBiquadFilter();
+      hissFilter.type = 'bandpass';
+      hissFilter.frequency.setValueAtTime(360, now + 0.02);
+      hissFilter.frequency.exponentialRampToValueAtTime(2400, now + 0.24);
+      hissFilter.Q.setValueAtTime(1.5, now + 0.02);
+      const hissGain = context.createGain();
+      hissGain.gain.setValueAtTime(0.005, now + 0.02);
+      hissGain.gain.linearRampToValueAtTime(0.26, now + 0.07);
+      hissGain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + 0.27);
+      hissSrc.connect(hissFilter);
+      hissFilter.connect(hissGain);
+      hissGain.connect(out);
+      hissSrc.start(now + 0.02);
+      hissSrc.stop(now + 0.29);
+
+      // Rising hydraulic servo tone
+      const servoOsc = context.createOscillator();
+      const servoGain = context.createGain();
+      servoOsc.type = 'triangle';
+      servoOsc.frequency.setValueAtTime(150, now + 0.02);
+      servoOsc.frequency.exponentialRampToValueAtTime(340, now + 0.2);
+      servoGain.gain.setValueAtTime(0.005, now + 0.02);
+      servoGain.gain.linearRampToValueAtTime(0.14, now + 0.06);
+      servoGain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + 0.22);
+      servoOsc.connect(servoGain);
+      servoGain.connect(out);
+      servoOsc.start(now + 0.02);
+      servoOsc.stop(now + 0.24);
+    }
+  }
+
+  /**
+   * Crisp metallic bullet ricochet/clang against armored door plate.
+   */
+  function playDoorHit(): void {
+    const nodes = getReadyNodes();
+    if (!nodes) return;
+    const { context, out, noise } = nodes;
+    const now = context.currentTime;
+
+    // Impact transient crack
+    const crackSrc = context.createBufferSource();
+    crackSrc.buffer = noise;
+    const hp = context.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.setValueAtTime(2600, now);
+    const crackGain = context.createGain();
+    crackGain.gain.setValueAtTime(0.24, now);
+    crackGain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + 0.032);
+    crackSrc.connect(hp);
+    hp.connect(crackGain);
+    crackGain.connect(out);
+    crackSrc.start(now);
+    crackSrc.stop(now + 0.04);
+
+    // Metallic ricochet zing
+    const ricOsc = context.createOscillator();
+    const ricGain = context.createGain();
+    ricOsc.type = 'triangle';
+    ricOsc.frequency.setValueAtTime(2450, now);
+    ricOsc.frequency.exponentialRampToValueAtTime(1280, now + 0.085);
+    ricGain.gain.setValueAtTime(0.22, now);
+    ricGain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + 0.095);
+    ricOsc.connect(ricGain);
+    ricGain.connect(out);
+    ricOsc.start(now);
+    ricOsc.stop(now + 0.11);
+
+    // Armored plate clang harmonics
+    const platePartials: Array<{ freq: number; type: OscillatorType; peak: number; dur: number }> = [
+      { freq: 790, type: 'triangle', peak: 0.2, dur: 0.11 },
+      { freq: 1340, type: 'sine', peak: 0.15, dur: 0.095 },
+    ];
+    for (const p of platePartials) {
+      const osc = context.createOscillator();
+      const gain = context.createGain();
+      osc.type = p.type;
+      osc.frequency.setValueAtTime(p.freq, now);
+      gain.gain.setValueAtTime(p.peak, now);
+      gain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + p.dur);
+      osc.connect(gain);
+      gain.connect(out);
+      osc.start(now);
+      osc.stop(now + p.dur + 0.015);
+    }
+  }
+
+  /**
+   * Loud metallic shatter crunch + resonant debris clatter when an armored door breaks.
+   */
+  function playDoorBreak(): void {
+    const nodes = getReadyNodes();
+    if (!nodes) return;
+    const { context, out, noise } = nodes;
+    const now = context.currentTime;
+
+    // Structural sub-bass crunch
+    const subOsc = context.createOscillator();
+    const subGain = context.createGain();
+    subOsc.type = 'sawtooth';
+    subOsc.frequency.setValueAtTime(140, now);
+    subOsc.frequency.exponentialRampToValueAtTime(36, now + 0.34);
+    subGain.gain.setValueAtTime(0.45, now);
+    subGain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + 0.36);
+    subOsc.connect(subGain);
+    subGain.connect(out);
+    subOsc.start(now);
+    subOsc.stop(now + 0.38);
+
+    // Broadband shatter blast
+    const shatterSrc = context.createBufferSource();
+    shatterSrc.buffer = noise;
+    const lp = context.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.setValueAtTime(4200, now);
+    lp.frequency.exponentialRampToValueAtTime(280, now + 0.38);
+    const shatterGain = context.createGain();
+    shatterGain.gain.setValueAtTime(0.5, now);
+    shatterGain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + 0.4);
+    shatterSrc.connect(lp);
+    lp.connect(shatterGain);
+    shatterGain.connect(out);
+    shatterSrc.start(now);
+    shatterSrc.stop(now + 0.42);
+
+    // Resonant metallic debris clatter bursts
+    const debris = [
+      { delay: 0.02, freq: 1120, peak: 0.24, dur: 0.14 },
+      { delay: 0.075, freq: 1680, peak: 0.18, dur: 0.11 },
+      { delay: 0.14, freq: 890, peak: 0.16, dur: 0.12 },
+      { delay: 0.23, freq: 1450, peak: 0.12, dur: 0.09 },
+    ];
+    for (const d of debris) {
+      const t0 = now + d.delay;
+      const osc = context.createOscillator();
+      const gain = context.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(d.freq, t0);
+      osc.frequency.exponentialRampToValueAtTime(d.freq * 0.65, t0 + d.dur);
+      gain.gain.setValueAtTime(d.peak, t0);
+      gain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, t0 + d.dur);
+      osc.connect(gain);
+      gain.connect(out);
+      osc.start(t0);
+      osc.stop(t0 + d.dur + 0.015);
+    }
+  }
+
   return {
     unlock,
     playShot,
@@ -1604,5 +1836,8 @@ export function createSoundEngine(): SoundEngine {
     playSpikeDefuseCue,
     playSpikeDefused,
     playSpikeDetonate,
+    playDoorToggle,
+    playDoorHit,
+    playDoorBreak,
   };
 }
