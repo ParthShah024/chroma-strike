@@ -55,6 +55,7 @@ export interface AbilitySystem {
     aimYaw: number,
     aimPitch: number
   ): boolean;
+  notifyKill(killerColor: AgentColorId, isPlayer: boolean): void;
   resetRound(): void;
   update(
     dt: number,
@@ -190,6 +191,47 @@ const PROJECTILE_SPAWN_FORWARD_OFFSET = 0.28;
 const PROJECTILE_SPAWN_VERTICAL_OFFSET = -0.06;
 const ZONE_VERTICAL_TOLERANCE_M = 1.8;
 
+// Signature [X] Ultimate Constants (All 5 Agents)
+// Red (Blaze) [X] — Inferno Overdrive
+const BLAZE_ULT_DURATION_SEC = 8.0;
+const BLAZE_ULT_FIRE_RATE_MULT = 1.35;
+const BLAZE_ULT_SPEED_MULT = 1.2;
+const BLAZE_ULT_RECOIL_MULT = 0.65;
+
+// Blue (Mist) [X] — Glacial Whiteout
+const MIST_ULT_PROJ_SPEED = 30.0;
+const MIST_ULT_PROJ_GRAVITY = 12.0;
+const MIST_ULT_PROJ_RESTITUTION = 0.45;
+const MIST_ULT_CRYO_RADIUS = 8.5;
+const MIST_ULT_SMOKE_RADIUS = 4.8;
+const MIST_ULT_DURATION_SEC = 7.5;
+const MIST_ULT_PLAYER_SPEED_MULT = 0.25; // 75% target slow
+const MIST_ULT_SLOW_REFRESH_SEC = 0.55;
+
+// Green (Pulse) [X] — Orbital Recon
+const PULSE_ULT_DURATION_SEC = 6.5;
+const PULSE_ULT_WAVE_TIMES: readonly number[] = [0.0, 2.2, 4.4];
+const PULSE_ULT_WAVE_DURATION_SEC = 1.9;
+const PULSE_ULT_WAVE_MAX_RADIUS = 56.0;
+const PULSE_ULT_TEAM_SPEED_MULT = 1.15;
+
+// Violet (Umbra) [X] — Eclipse Curtain
+const UMBRA_ULT_DURATION_SEC = 9.0;
+const UMBRA_ULT_RADIUS = 3.6;
+const UMBRA_ULT_DISTANCES: readonly number[] = [4, 9, 14, 19, 24];
+const UMBRA_ULT_CLAMP_X = 35.0;
+const UMBRA_ULT_CLAMP_Z = 39.0;
+
+// Gold (Volt) [X] — Thunderstorm
+const VOLT_ULT_DURATION_SEC = 7.5;
+const VOLT_ULT_SPEED_MULT = 1.5;
+const VOLT_ULT_SLIDE_LOCKOUT_SEC = 0.6;
+const VOLT_ULT_ZAP_RADIUS_M = 8.5;
+const VOLT_ULT_ZAP_INTERVAL_SEC = 0.55;
+const VOLT_ULT_ZAP_DAMAGE = 12.0;
+const VOLT_ULT_ZAP_CONCUSS_SEC = 0.8;
+const VOLT_ULT_ARC_DURATION_SEC = 0.24;
+
 // ---------------------------------------------------------------------------
 // Internal Visual + Simulation Record Interfaces
 // ---------------------------------------------------------------------------
@@ -200,6 +242,7 @@ interface ProjectileEntry {
   ownerTeam?: TeamId;
   casterId?: string;
   isPlayerCast?: boolean;
+  isMistUlt?: boolean;
   bounces: number;
   group: THREE.Group;
   auraMesh?: THREE.Mesh;
@@ -246,6 +289,7 @@ interface ZoneEntry {
   ownerTeam?: TeamId;
   casterId?: string;
   discharged?: boolean;
+  isBlizzard?: boolean;
   visual: ZoneVisualHandles;
 }
 
@@ -268,12 +312,39 @@ interface BotVoidChargeState {
   recastLock: number;
 }
 
+interface ActivePulseUlt {
+  team: TeamId;
+  origin: Vec3;
+  elapsed: number;
+  remaining: number;
+  wavesSpawned: number;
+}
+
+interface BotBlazeUltEntry {
+  combatant: Combatant;
+  timer: number;
+}
+
+interface BotVoltUltEntry {
+  combatant: Combatant;
+  timer: number;
+  zapTimer: number;
+}
+
 interface TransientBurst {
-  kind: 'dash_tunnel' | 'smoke_shockwave' | 'flash_burst' | 'slide_sparks';
+  kind:
+    | 'dash_tunnel'
+    | 'smoke_shockwave'
+    | 'flash_burst'
+    | 'slide_sparks'
+    | 'sonar_wave'
+    | 'lightning_arc'
+    | 'ult_ring';
   group: THREE.Group;
   materials: THREE.Material[];
   age: number;
   duration: number;
+  maxScale?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -556,22 +627,25 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
   let zoneSeq = 0;
 
   // Independent per-agent cooldown pools across all 5 roster agents.
-  const cooldowns: Record<AgentColorId, { q: number; e: number }> = {
-    red: { q: 0, e: 0 },
-    blue: { q: 0, e: 0 },
-    green: { q: 0, e: 0 },
-    violet: { q: 0, e: 0 },
-    gold: { q: 0, e: 0 },
+  const cooldowns: Record<AgentColorId, Record<AbilitySlot, number>> = {
+    red: { q: 0, e: 0, x: 0 },
+    blue: { q: 0, e: 0, x: 0 },
+    green: { q: 0, e: 0, x: 0 },
+    violet: { q: 0, e: 0, x: 0 },
+    gold: { q: 0, e: 0, x: 0 },
   };
-  const botCooldowns = new Map<string, { q: number; e: number }>();
+  const botCooldowns = new Map<string, Record<AbilitySlot, number>>();
   const botDashes = new Map<string, BotDashEntry>();
   const botSlides = new Map<string, BotSlideEntry>();
   const botVoidStates = new Map<string, BotVoidChargeState>();
+  const botBlazeUlts = new Map<string, BotBlazeUltEntry>();
+  const botVoltUlts = new Map<string, BotVoltUltEntry>();
+  const activePulseUlts: ActivePulseUlt[] = [];
 
-  function getOrInitBotCooldowns(botId: string): { q: number; e: number } {
+  function getOrInitBotCooldowns(botId: string): Record<AbilitySlot, number> {
     let cd = botCooldowns.get(botId);
     if (!cd) {
-      cd = { q: 0, e: 0 };
+      cd = { q: 0, e: 0, x: 0 };
       botCooldowns.set(botId, cd);
     }
     return cd;
@@ -615,6 +689,14 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
   let walkArmedForSlide = true;
   let smoothEyeHeightOffset = 0;
   let playerConcussTimer = 0;
+
+  // Active Signature [X] Ultimate Timers (Player)
+  let blazeUltTimer = 0;
+  let mistUltTimer = 0;
+  let pulseUltTimer = 0;
+  let umbraUltTimer = 0;
+  let voltUltTimer = 0;
+  let voltUltZapTimer = 0;
 
   // -------------------------------------------------------------------------
   // 3D VFX Builders
@@ -1182,6 +1264,184 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
     };
   }
 
+  /**
+   * Dramatic ground-level activation ring for signature [X] Ultimates.
+   */
+  function createUltActivationRingVisual(
+    origin: Vec3,
+    colorHex: number,
+    maxScale = 6.2
+  ): TransientBurst {
+    const group = new THREE.Group();
+    group.position.set(origin.x, origin.y + 0.08, origin.z);
+
+    const ringGeo = new THREE.RingGeometry(0.78, 1.0, 48);
+    ringGeo.rotateX(-Math.PI * 0.5);
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: colorHex,
+      transparent: true,
+      opacity: 0.92,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    });
+    group.add(new THREE.Mesh(ringGeo, ringMat));
+
+    const wallGeo = new THREE.CylinderGeometry(1.0, 1.0, 0.85, 48, 1, true);
+    const wallMat = new THREE.MeshBasicMaterial({
+      color: colorHex,
+      transparent: true,
+      opacity: 0.34,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    });
+    const wallMesh = new THREE.Mesh(wallGeo, wallMat);
+    wallMesh.position.y = 0.42;
+    group.add(wallMesh);
+
+    group.scale.setScalar(0.45);
+    scene.add(group);
+    return {
+      kind: 'ult_ring',
+      group,
+      materials: [ringMat, wallMat],
+      age: 0,
+      duration: 0.65,
+      maxScale,
+    };
+  }
+
+  /**
+   * Green (Pulse) [X] Orbital Recon — massive arena-wide emerald 3D sonar shockwave
+   * expanding from `origin` to `PULSE_ULT_WAVE_MAX_RADIUS` (~56m) across the compound.
+   */
+  function createOrbitalSonarWaveVisual(origin: Vec3): TransientBurst {
+    const group = new THREE.Group();
+    group.position.set(origin.x, origin.y + 0.14, origin.z);
+
+    const ringGeo = new THREE.RingGeometry(0.92, 1.0, 64);
+    ringGeo.rotateX(-Math.PI * 0.5);
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: 0x34f59a,
+      transparent: true,
+      opacity: 0.9,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    });
+    group.add(new THREE.Mesh(ringGeo, ringMat));
+
+    const wallGeo = new THREE.CylinderGeometry(1.0, 1.0, 2.6, 64, 1, true);
+    const wallMat = new THREE.MeshBasicMaterial({
+      color: 0x2ecc71,
+      transparent: true,
+      opacity: 0.28,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    });
+    const wallMesh = new THREE.Mesh(wallGeo, wallMat);
+    wallMesh.position.y = 1.3;
+    group.add(wallMesh);
+
+    group.scale.set(0.6, 1.0, 0.6);
+    scene.add(group);
+    return {
+      kind: 'sonar_wave',
+      group,
+      materials: [ringMat, wallMat],
+      age: 0,
+      duration: PULSE_ULT_WAVE_DURATION_SEC,
+      maxScale: PULSE_ULT_WAVE_MAX_RADIUS,
+    };
+  }
+
+  /**
+   * Gold (Volt) [X] Thunderstorm — visible jagged 3D chain-lightning arc
+   * connecting `from` to `to` with a bright impact spark.
+   */
+  function createChainLightningArcVisual(from: Vec3, to: Vec3): TransientBurst {
+    const group = new THREE.Group();
+
+    const mainMat = new THREE.LineBasicMaterial({
+      color: 0xfef08a,
+      transparent: true,
+      opacity: 0.98,
+    });
+    const outerMat = new THREE.LineBasicMaterial({
+      color: 0xfacc15,
+      transparent: true,
+      opacity: 0.82,
+    });
+
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+    const dz = to.z - from.z;
+    const len = Math.max(0.01, Math.hypot(dx, dy, dz));
+    // Perpendicular basis for jagged displacement
+    const invLen = 1 / len;
+    const nx = dx * invLen;
+    const ny = dy * invLen;
+    const nz = dz * invLen;
+    const refX = Math.abs(ny) < 0.9 ? 0 : 1;
+    const refY = Math.abs(ny) < 0.9 ? 1 : 0;
+    const refZ = 0;
+    let px = ny * refZ - nz * refY;
+    let py = nz * refX - nx * refZ;
+    let pz = nx * refY - ny * refX;
+    const pLen = Math.hypot(px, py, pz) || 1;
+    px /= pLen;
+    py /= pLen;
+    pz /= pLen;
+    const qx = ny * pz - nz * py;
+    const qy = nz * px - nx * pz;
+    const qz = nx * py - ny * px;
+
+    const segs = 9;
+    for (let strand = 0; strand < 2; strand++) {
+      const pts: THREE.Vector3[] = [];
+      const amp = strand === 0 ? 0.24 : 0.38;
+      for (let s = 0; s <= segs; s++) {
+        const t = s / segs;
+        let x = from.x + dx * t;
+        let y = from.y + dy * t;
+        let z = from.z + dz * t;
+        if (s > 0 && s < segs) {
+          const j1 = (Math.random() * 2 - 1) * amp;
+          const j2 = (Math.random() * 2 - 1) * amp;
+          x += px * j1 + qx * j2;
+          y += py * j1 + qy * j2;
+          z += pz * j1 + qz * j2;
+        }
+        pts.push(new THREE.Vector3(x, y, z));
+      }
+      const geo = new THREE.BufferGeometry().setFromPoints(pts);
+      group.add(new THREE.Line(geo, strand === 0 ? mainMat : outerMat));
+    }
+
+    const sparkGeo = new THREE.OctahedronGeometry(0.26, 0);
+    const sparkMat = new THREE.MeshBasicMaterial({
+      color: 0xfef9c3,
+      transparent: true,
+      opacity: 0.95,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    });
+    const sparkMesh = new THREE.Mesh(sparkGeo, sparkMat);
+    sparkMesh.position.set(to.x, to.y, to.z);
+    group.add(sparkMesh);
+
+    scene.add(group);
+    return {
+      kind: 'lightning_arc',
+      group,
+      materials: [mainMat, outerMat, sparkMat],
+      age: 0,
+      duration: VOLT_ULT_ARC_DURATION_SEC,
+    };
+  }
+
   // -------------------------------------------------------------------------
   // Spawners & Detonation Logic
   // -------------------------------------------------------------------------
@@ -1193,7 +1453,8 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
     center: Vec3,
     radius: number,
     durationSec: number,
-    casterId?: string
+    casterId?: string,
+    isBlizzard = false
   ): void {
     const data: ActiveZone = {
       id: `zone-${nextEntityId++}`,
@@ -1211,6 +1472,7 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
       ownerTeam: team,
       casterId,
       discharged: false,
+      isBlizzard,
       visual,
     });
   }
@@ -1230,7 +1492,8 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
     upwardLob: number,
     casterId?: string,
     isPlayerCast = false,
-    eyeOffsetY = 0
+    eyeOffsetY = 0,
+    isMistUlt = false
   ): void {
     const eye: Vec3 = {
       x: originPos.x,
@@ -1268,12 +1531,16 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
     };
 
     const { group, auraMesh, auraMat } = createProjectileVisual(kind, colorId, spawnPos);
+    if (isMistUlt) {
+      group.scale.setScalar(1.45);
+    }
     projectiles.push({
       data,
       team,
       ownerTeam: team,
       casterId,
       isPlayerCast,
+      isMistUlt,
       bounces: 0,
       group,
       auraMesh,
@@ -1318,7 +1585,7 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
       slideDir = computeDashDirection(input);
     }
     slideTimer = SLIDE_DURATION_SEC;
-    slideLockoutTimer = SLIDE_LOCKOUT_SEC;
+    slideLockoutTimer = voltUltTimer > 0 ? VOLT_ULT_SLIDE_LOCKOUT_SEC : SLIDE_LOCKOUT_SEC;
     bursts.push(createSlideSparksVisual(player.position, slideDir));
     audioSink.push('power_slide');
   }
@@ -1452,16 +1719,47 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
         audioEvents.push('smoke_bloom');
         break;
       case 'slow_orb':
-        spawnZone(
-          'slow',
-          'blue',
-          ownerTeam,
-          proj.position,
-          SLOW_ZONE_RADIUS,
-          SLOW_ZONE_DURATION_SEC,
-          entry.casterId
-        );
-        audioEvents.push('slow_shatter');
+        if (entry.isMistUlt) {
+          const floorCenter = projectPointToFloor(proj.position, null, colliders);
+          // Massive 8.5m Cryo Blizzard Field (75% slow + jump suppression)
+          spawnZone(
+            'slow',
+            'blue',
+            ownerTeam,
+            floorCenter,
+            MIST_ULT_CRYO_RADIUS,
+            MIST_ULT_DURATION_SEC,
+            entry.casterId,
+            true
+          );
+          // Inner 4.8m Opaque Frost Smoke Dome blocking LoS for 7.5s
+          spawnZone(
+            'smoke',
+            'blue',
+            ownerTeam,
+            {
+              x: floorCenter.x,
+              y: floorCenter.y + SMOKE_CENTER_Y_OFFSET,
+              z: floorCenter.z,
+            },
+            MIST_ULT_SMOKE_RADIUS,
+            MIST_ULT_DURATION_SEC,
+            entry.casterId
+          );
+          bursts.push(createUltActivationRingVisual(floorCenter, 0x7ae9ff, MIST_ULT_CRYO_RADIUS));
+          audioEvents.push('slow_shatter', 'smoke_bloom');
+        } else {
+          spawnZone(
+            'slow',
+            'blue',
+            ownerTeam,
+            proj.position,
+            SLOW_ZONE_RADIUS,
+            SLOW_ZONE_DURATION_SEC,
+            entry.casterId
+          );
+          audioEvents.push('slow_shatter');
+        }
         break;
       case 'flash_orb':
         detonateFlash(
@@ -1496,11 +1794,112 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
   }
 
   // -------------------------------------------------------------------------
-  // Public `cast`, `castForBot`, `resetRound`, and `update`
+  // Public `cast`, `castForBot`, `notifyKill`, `resetRound`, and `update`
   // -------------------------------------------------------------------------
+
+  /**
+   * Projects Violet (Umbra) [X] Eclipse Curtain: 5 overlapping 3.6m-radius
+   * opaque `void_smoke` spheres (~26m continuous shadow wall) forward along
+   * the horizontal aim vector (`d = 4, 9, 14, 19, 24m`), clamped inside arena bounds.
+   */
+  function spawnEclipseCurtain(
+    origin: Vec3,
+    yaw: number,
+    team: TeamId,
+    casterId?: string
+  ): void {
+    const fx = -Math.sin(yaw);
+    const fz = -Math.cos(yaw);
+    const baseY = Math.max(0, origin.y) + VOID_SMOKE_FLOOR_Y_OFFSET;
+
+    for (let idx = 0; idx < UMBRA_ULT_DISTANCES.length; idx++) {
+      const d = UMBRA_ULT_DISTANCES[idx];
+      const cx = clamp(origin.x + fx * d, -UMBRA_ULT_CLAMP_X, UMBRA_ULT_CLAMP_X);
+      const cz = clamp(origin.z + fz * d, -UMBRA_ULT_CLAMP_Z, UMBRA_ULT_CLAMP_Z);
+      spawnZone(
+        'void_smoke',
+        'violet',
+        team,
+        { x: cx, y: baseY, z: cz },
+        UMBRA_ULT_RADIUS,
+        UMBRA_ULT_DURATION_SEC,
+        casterId
+      );
+      if (idx === 0 || idx === 2 || idx === 4) {
+        bursts.push(createSmokeShockwaveVisual({ x: cx, y: Math.max(0, origin.y), z: cz }, 0xc084fc));
+      }
+    }
+  }
 
   function cast(slot: AbilitySlot, player: PlayerState, input: InputState): boolean {
     const colorId = player.colorId;
+
+    // Signature [X] Ultimates (all 5 Agents)
+    if (slot === 'x') {
+      if (colorId === 'red') {
+        blazeUltTimer = BLAZE_ULT_DURATION_SEC;
+        cooldowns.red.q = 0; // Immediate Crimson Dash refresh
+        bursts.push(createUltActivationRingVisual(player.position, AGENT_PALETTES.red.hex, 5.5));
+        pendingAudioEvents.push('ult_blaze');
+        return true;
+      }
+
+      if (colorId === 'blue') {
+        mistUltTimer = MIST_ULT_DURATION_SEC;
+        spawnProjectileFromOrigin(
+          'slow_orb',
+          'blue',
+          playerTeam,
+          player.position,
+          input.yaw,
+          input.pitch,
+          MIST_ULT_PROJ_SPEED,
+          MIST_ULT_PROJ_GRAVITY,
+          MIST_ULT_PROJ_RESTITUTION,
+          3.5,
+          true,
+          0.08,
+          playerCasterId,
+          true,
+          smoothEyeHeightOffset,
+          true
+        );
+        pendingAudioEvents.push('ult_mist');
+        return true;
+      }
+
+      if (colorId === 'green') {
+        activePulseUlts.push({
+          team: playerTeam,
+          origin: { ...player.position },
+          elapsed: 0,
+          remaining: PULSE_ULT_DURATION_SEC,
+          wavesSpawned: 0,
+        });
+        pulseUltTimer = Math.max(pulseUltTimer, PULSE_ULT_DURATION_SEC);
+        pendingAudioEvents.push('ult_pulse');
+        return true;
+      }
+
+      if (colorId === 'violet') {
+        umbraUltTimer = UMBRA_ULT_DURATION_SEC;
+        spawnEclipseCurtain(player.position, input.yaw, playerTeam, playerCasterId);
+        pendingAudioEvents.push('ult_umbra');
+        return true;
+      }
+
+      if (colorId === 'gold') {
+        voltUltTimer = VOLT_ULT_DURATION_SEC;
+        voltUltZapTimer = 0.12;
+        slideLockoutTimer = 0;
+        walkArmedForSlide = !input.walk;
+        bursts.push(createUltActivationRingVisual(player.position, AGENT_PALETTES.gold.hex, 8.5));
+        pendingAudioEvents.push('ult_volt');
+        return true;
+      }
+
+      return false;
+    }
 
     // Special Case 1: Umbra (violet) [Q] Void Shroud (2 charges + mid-air re-tap bloom)
     if (colorId === 'violet' && slot === 'q') {
@@ -1550,9 +1949,9 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
       return true;
     }
 
-    // Special Case 2: Volt (gold) [Q] Overdrive + Electric Power Slide
+    // Special Case 2: Volt (gold) [Q] Overdrive + Electric Power Slide (also rapid-slides during Thunderstorm!)
     if (colorId === 'gold' && slot === 'q') {
-      if (overdriveTimer > 0) {
+      if (overdriveTimer > 0 || voltUltTimer > 0) {
         if (player.grounded && slideTimer <= 0 && slideLockoutTimer <= 0) {
           triggerPlayerPowerSlide(player, input, pendingAudioEvents);
           return true;
@@ -1749,6 +2148,77 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
     aimPitch: number
   ): boolean {
     if (!bot.alive) {
+      return false;
+    }
+
+    // Signature [X] Ultimates for AI Bots (all 5 Agents)
+    if (slot === 'x') {
+      if (bot.colorId === 'red') {
+        botBlazeUlts.set(bot.id, {
+          combatant: bot,
+          timer: BLAZE_ULT_DURATION_SEC,
+        });
+        getOrInitBotCooldowns(bot.id).q = 0; // Immediate Dash refresh
+        bursts.push(createUltActivationRingVisual(bot.position, AGENT_PALETTES.red.hex, 5.5));
+        pendingAudioEvents.push('ult_blaze');
+        return true;
+      }
+
+      if (bot.colorId === 'blue') {
+        spawnProjectileFromOrigin(
+          'slow_orb',
+          'blue',
+          bot.team,
+          bot.position,
+          aimYaw,
+          aimPitch,
+          MIST_ULT_PROJ_SPEED,
+          MIST_ULT_PROJ_GRAVITY,
+          MIST_ULT_PROJ_RESTITUTION,
+          3.5,
+          true,
+          0.08,
+          bot.id,
+          false,
+          0,
+          true
+        );
+        pendingAudioEvents.push('ult_mist');
+        return true;
+      }
+
+      if (bot.colorId === 'green') {
+        activePulseUlts.push({
+          team: bot.team,
+          origin: { ...bot.position },
+          elapsed: 0,
+          remaining: PULSE_ULT_DURATION_SEC,
+          wavesSpawned: 0,
+        });
+        if (bot.team === playerTeam) {
+          pulseUltTimer = Math.max(pulseUltTimer, PULSE_ULT_DURATION_SEC);
+        }
+        pendingAudioEvents.push('ult_pulse');
+        return true;
+      }
+
+      if (bot.colorId === 'violet') {
+        spawnEclipseCurtain(bot.position, aimYaw, bot.team, bot.id);
+        pendingAudioEvents.push('ult_umbra');
+        return true;
+      }
+
+      if (bot.colorId === 'gold') {
+        botVoltUlts.set(bot.id, {
+          combatant: bot,
+          timer: VOLT_ULT_DURATION_SEC,
+          zapTimer: 0.15,
+        });
+        bursts.push(createUltActivationRingVisual(bot.position, AGENT_PALETTES.gold.hex, 8.5));
+        pendingAudioEvents.push('ult_volt');
+        return true;
+      }
+
       return false;
     }
 
@@ -1962,6 +2432,87 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
     return false;
   }
 
+  function notifyKill(killerColor: AgentColorId, isPlayer: boolean): void {
+    if (killerColor !== 'red') return;
+    if (isPlayer) {
+      if (blazeUltTimer > 0) {
+        cooldowns.red.q = 0; // Inferno Overdrive kill refreshes Crimson Dash!
+      }
+    } else {
+      for (const [botId, entry] of botBlazeUlts.entries()) {
+        if (entry.timer > 0 && entry.combatant.alive) {
+          getOrInitBotCooldowns(botId).q = 0;
+        }
+      }
+    }
+  }
+
+  function runVoltThunderstormZap(
+    casterPos: Vec3,
+    casterTeam: TeamId,
+    casterId: string,
+    colliders: AABB[],
+    targetsMgr: TargetsManager,
+    audioEvents: AbilityAudioEvent[],
+    allCombatants?: Combatant[]
+  ): void {
+    const casterChest: Vec3 = {
+      x: casterPos.x,
+      y: casterPos.y + 1.25,
+      z: casterPos.z,
+    };
+    let zappedAny = false;
+
+    if (allCombatants) {
+      for (const c of allCombatants) {
+        if (!c.alive || c.team === casterTeam || c.id === casterId) continue;
+        const targetChest: Vec3 = {
+          x: c.position.x,
+          y: c.position.y + 1.2,
+          z: c.position.z,
+        };
+        const dist = Math.hypot(
+          targetChest.x - casterChest.x,
+          targetChest.y - casterChest.y,
+          targetChest.z - casterChest.z
+        );
+        if (dist <= VOLT_ULT_ZAP_RADIUS_M && hasLineOfSight(casterChest, targetChest, colliders)) {
+          targetsMgr.applyDamage(c.id, VOLT_ULT_ZAP_DAMAGE, false);
+          c.concussTimer = Math.max(c.concussTimer ?? 0, VOLT_ULT_ZAP_CONCUSS_SEC);
+          if (c.isPlayer) {
+            playerConcussTimer = Math.max(playerConcussTimer, VOLT_ULT_ZAP_CONCUSS_SEC);
+          }
+          bursts.push(createChainLightningArcVisual(casterChest, targetChest));
+          zappedAny = true;
+        }
+      }
+    } else if (casterTeam === 'ally') {
+      for (const target of targetsMgr.targets) {
+        if (!target.alive) continue;
+        const targetChest: Vec3 = {
+          x: target.position.x,
+          y: target.position.y + 1.2,
+          z: target.position.z,
+        };
+        const dist = Math.hypot(
+          targetChest.x - casterChest.x,
+          targetChest.y - casterChest.y,
+          targetChest.z - casterChest.z
+        );
+        if (dist <= VOLT_ULT_ZAP_RADIUS_M && hasLineOfSight(casterChest, targetChest, colliders)) {
+          targetsMgr.applyDamage(target.id, VOLT_ULT_ZAP_DAMAGE, false);
+          target.concussTimer = Math.max(target.concussTimer ?? 0, VOLT_ULT_ZAP_CONCUSS_SEC);
+          bursts.push(createChainLightningArcVisual(casterChest, targetChest));
+          zappedAny = true;
+        }
+      }
+    }
+
+    if (zappedAny) {
+      audioEvents.push('relay_zap');
+    }
+  }
+
   function resetRound(): void {
     for (const entry of projectiles) {
       disposeObject3D(scene, entry.group);
@@ -1992,17 +2543,29 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
     smoothEyeHeightOffset = 0;
     playerConcussTimer = 0;
 
+    blazeUltTimer = 0;
+    mistUltTimer = 0;
+    pulseUltTimer = 0;
+    umbraUltTimer = 0;
+    voltUltTimer = 0;
+    voltUltZapTimer = 0;
+    activePulseUlts.length = 0;
+
     botDashes.clear();
     botSlides.clear();
     botVoidStates.clear();
+    botBlazeUlts.clear();
+    botVoltUlts.clear();
 
     for (const color of AGENT_ORDER) {
       cooldowns[color].q = 0;
       cooldowns[color].e = 0;
+      cooldowns[color].x = 0;
     }
     for (const cd of botCooldowns.values()) {
       cd.q = 0;
       cd.e = 0;
+      cd.x = 0;
     }
   }
 
@@ -2030,6 +2593,7 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
     for (const color of AGENT_ORDER) {
       cooldowns[color].q = Math.max(0, cooldowns[color].q - stepDt);
       cooldowns[color].e = Math.max(0, cooldowns[color].e - stepDt);
+      cooldowns[color].x = Math.max(0, cooldowns[color].x - stepDt);
     }
 
     voidRecastLockTimer = Math.max(0, voidRecastLockTimer - stepDt);
@@ -2047,6 +2611,7 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
     for (const cd of botCooldowns.values()) {
       cd.q = Math.max(0, cd.q - stepDt);
       cd.e = Math.max(0, cd.e - stepDt);
+      cd.x = Math.max(0, cd.x - stepDt);
     }
     for (const vState of botVoidStates.values()) {
       vState.recastLock = Math.max(0, vState.recastLock - stepDt);
@@ -2060,6 +2625,69 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
         vState.rechargeTimer = 0;
       }
     }
+
+    // Tick active AI bot Blaze & Volt Ultimates
+    for (const [botId, entry] of botBlazeUlts.entries()) {
+      if (!entry.combatant.alive || entry.timer <= 0) {
+        botBlazeUlts.delete(botId);
+        continue;
+      }
+      entry.timer = Math.max(0, entry.timer - stepDt);
+      if (entry.timer <= 0) {
+        botBlazeUlts.delete(botId);
+      }
+    }
+
+    for (const [botId, entry] of botVoltUlts.entries()) {
+      if (!entry.combatant.alive || entry.timer <= 0) {
+        botVoltUlts.delete(botId);
+        continue;
+      }
+      entry.timer = Math.max(0, entry.timer - stepDt);
+      entry.zapTimer -= stepDt;
+      if (entry.zapTimer <= 0) {
+        entry.zapTimer = VOLT_ULT_ZAP_INTERVAL_SEC;
+        runVoltThunderstormZap(
+          entry.combatant.position,
+          entry.combatant.team,
+          entry.combatant.id,
+          colliders,
+          targetsMgr,
+          audioEvents,
+          allCombatants
+        );
+      }
+      if (entry.timer <= 0) {
+        botVoltUlts.delete(botId);
+      }
+    }
+
+    // Tick active Pulse [X] Orbital Recon waves (3 arena-wide emerald sonar waves at t = 0s, 2.2s, 4.4s)
+    let teamPulseRemain = 0;
+    for (let i = activePulseUlts.length - 1; i >= 0; i--) {
+      const pu = activePulseUlts[i];
+      while (
+        pu.wavesSpawned < PULSE_ULT_WAVE_TIMES.length &&
+        pu.elapsed >= PULSE_ULT_WAVE_TIMES[pu.wavesSpawned]
+      ) {
+        bursts.push(createOrbitalSonarWaveVisual(pu.origin));
+        if (pu.wavesSpawned > 0) {
+          audioEvents.push('ult_pulse');
+        }
+        pu.wavesSpawned += 1;
+      }
+      pu.elapsed += stepDt;
+      pu.remaining -= stepDt;
+      if (pu.remaining <= 0) {
+        activePulseUlts.splice(i, 1);
+      } else if (pu.team === playerTeam) {
+        teamPulseRemain = Math.max(teamPulseRemain, pu.remaining);
+      }
+    }
+    pulseUltTimer = teamPulseRemain;
+
+    mistUltTimer = Math.max(0, mistUltTimer - stepDt);
+    umbraUltTimer = Math.max(0, umbraUltTimer - stepDt);
 
     if (!allCombatants) {
       for (const target of targetsMgr.targets) {
@@ -2113,19 +2741,22 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
       }
     }
 
-    // 2. Tick Crimson Dash & Volt Overdrive / Electric Power Slide
+    // 2. Tick Crimson Dash, Blaze Ult & Volt Overdrive / Electric Power Slide / Thunderstorm
     if (player.colorId !== 'red' || player.health <= 0) {
       dashTimer = 0;
+      blazeUltTimer = 0;
     }
     if (player.colorId !== 'gold' || player.health <= 0) {
       overdriveTimer = 0;
       slideTimer = 0;
       slideLockoutTimer = 0;
+      voltUltTimer = 0;
+      voltUltZapTimer = 0;
     }
 
     slideLockoutTimer = Math.max(0, slideLockoutTimer - stepDt);
 
-    if (overdriveTimer > 0) {
+    if (overdriveTimer > 0 || voltUltTimer > 0) {
       if (!input.walk) {
         walkArmedForSlide = true;
       } else if (
@@ -2191,10 +2822,44 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
       slideActive,
     };
 
-    if (overdriveTimer > 0) {
+    if (voltUltTimer > 0) {
+      movement.speedMultiplier *= VOLT_ULT_SPEED_MULT;
+      overdriveAlpha = Math.max(
+        overdriveAlpha,
+        clamp(voltUltTimer / 0.5, 0, 1) * (slideActive ? 1.0 : 0.85)
+      );
+      voltUltTimer = Math.max(0, voltUltTimer - stepDt);
+      voltUltZapTimer -= stepDt;
+      if (voltUltZapTimer <= 0) {
+        voltUltZapTimer = VOLT_ULT_ZAP_INTERVAL_SEC;
+        runVoltThunderstormZap(
+          player.position,
+          playerTeam,
+          playerCasterId,
+          colliders,
+          targetsMgr,
+          audioEvents,
+          allCombatants
+        );
+      }
+      if (overdriveTimer > 0) {
+        overdriveTimer = Math.max(0, overdriveTimer - stepDt);
+      }
+    } else if (overdriveTimer > 0) {
       movement.speedMultiplier *= OVERDRIVE_SPEED_MULT;
       overdriveAlpha = clamp(overdriveTimer / 0.5, 0, 1) * (slideActive ? 1.0 : 0.65);
       overdriveTimer = Math.max(0, overdriveTimer - stepDt);
+    }
+
+    const blazeUltActive = blazeUltTimer > 0;
+    if (blazeUltActive) {
+      movement.speedMultiplier *= BLAZE_ULT_SPEED_MULT;
+      dashAlpha = Math.max(dashAlpha, 0.36 * clamp(blazeUltTimer / 0.6, 0, 1));
+      blazeUltTimer = Math.max(0, blazeUltTimer - stepDt);
+    }
+
+    if (pulseUltTimer > 0) {
+      movement.speedMultiplier *= PULSE_ULT_TEAM_SPEED_MULT;
     }
 
     // 3. Step active projectiles with swept ray-AABB bounce physics
@@ -2309,8 +2974,9 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
     let fireRateMultiplier = 1.0;
     let recoilMultiplier = 1.0;
     let moveSpreadMultiplier = 1.0;
-    let stimActive = false;
+    let stimActive = pulseUltTimer > 0;
     let playerInSlow = false;
+    let playerInBlizzard = false;
     let playerInBeacon = false;
     let playerInVortex = false;
     let playerExtVelX = 0;
@@ -2456,18 +3122,27 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
         }
 
         const rSq = zone.radius * zone.radius;
+        const slowRefreshSec = entry.isBlizzard
+          ? MIST_ULT_SLOW_REFRESH_SEC
+          : SLOW_TARGET_STATUS_REFRESH_SEC;
         if (allCombatants) {
           for (const c of allCombatants) {
             if (!c.alive) continue;
+            // Glacial Whiteout spares caster's own allies from the harsh 75% blizzard slow
+            if (entry.isBlizzard && c.team === ownerTeam) continue;
             const dx = c.position.x - zone.center.x;
             const dz = c.position.z - zone.center.z;
             if (
               dx * dx + dz * dz <= rSq &&
               Math.abs(c.position.y - zone.center.y) <= ZONE_VERTICAL_TOLERANCE_M
             ) {
-              targetsMgr.applyStatus(c.id, 'slow', SLOW_TARGET_STATUS_REFRESH_SEC);
+              targetsMgr.applyStatus(c.id, 'slow', slowRefreshSec);
               if (c.isPlayer) {
-                playerInSlow = true;
+                if (entry.isBlizzard) {
+                  playerInBlizzard = true;
+                } else {
+                  playerInSlow = true;
+                }
               }
             }
           }
@@ -2480,17 +3155,19 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
               dx * dx + dz * dz <= rSq &&
               Math.abs(target.position.y - zone.center.y) <= ZONE_VERTICAL_TOLERANCE_M
             ) {
-              targetsMgr.applyStatus(target.id, 'slow', SLOW_TARGET_STATUS_REFRESH_SEC);
+              targetsMgr.applyStatus(target.id, 'slow', slowRefreshSec);
             }
           }
 
-          const pdx = player.position.x - zone.center.x;
-          const pdz = player.position.z - zone.center.z;
-          if (
-            pdx * pdx + pdz * pdz <= rSq &&
-            Math.abs(player.position.y - zone.center.y) <= ZONE_VERTICAL_TOLERANCE_M
-          ) {
-            playerInSlow = true;
+          if (!entry.isBlizzard) {
+            const pdx = player.position.x - zone.center.x;
+            const pdz = player.position.z - zone.center.z;
+            if (
+              pdx * pdx + pdz * pdz <= rSq &&
+              Math.abs(player.position.y - zone.center.y) <= ZONE_VERTICAL_TOLERANCE_M
+            ) {
+              playerInSlow = true;
+            }
           }
         }
       } else if (zone.kind === 'beacon') {
@@ -2707,7 +3384,10 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
       }
     }
 
-    if (playerInSlow) {
+    if (playerInBlizzard) {
+      movement.speedMultiplier *= MIST_ULT_PLAYER_SPEED_MULT;
+      movement.suppressJump = true;
+    } else if (playerInSlow) {
       movement.speedMultiplier *= SLOW_PLAYER_SPEED_MULT;
       movement.suppressJump = true;
     }
@@ -2734,8 +3414,13 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
       }
       stimActive = true;
       movement.speedMultiplier *= BEACON_SPEED_MULT;
-      fireRateMultiplier = BEACON_FIRE_RATE_MULT;
-      recoilMultiplier = BEACON_RECOIL_MULT;
+      fireRateMultiplier *= BEACON_FIRE_RATE_MULT;
+      recoilMultiplier *= BEACON_RECOIL_MULT;
+    }
+
+    if (blazeUltActive) {
+      fireRateMultiplier *= BLAZE_ULT_FIRE_RATE_MULT;
+      recoilMultiplier *= BLAZE_ULT_RECOIL_MULT;
     }
 
     if (slideActive) {
@@ -2757,7 +3442,7 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
       concussAlpha = clamp(activePlayerConcuss / 0.6, 0, 1) * 0.85;
     }
 
-    // 5. Update transient bursts (dash wind tunnel, smoke shockwave, slide sparks, flash starbursts)
+    // 5. Update transient bursts (dash wind tunnel, smoke shockwave, slide sparks, flash starbursts, ult FX)
     for (let i = bursts.length - 1; i >= 0; i--) {
       const burst = bursts[i];
       burst.age += stepDt;
@@ -2783,6 +3468,26 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
         const easeOut = 1 - Math.pow(1 - t, 3);
         burst.group.scale.setScalar(0.35 + easeOut * 4.45);
         (burst.materials[0] as THREE.MeshBasicMaterial).opacity = 0.85 * (1 - t);
+      } else if (burst.kind === 'ult_ring') {
+        const easeOut = 1 - Math.pow(1 - t, 2.5);
+        const targetR = burst.maxScale ?? 6.2;
+        const r = 0.45 + easeOut * (targetR - 0.45);
+        burst.group.scale.set(r, 1.0 + t * 0.5, r);
+        (burst.materials[0] as THREE.MeshBasicMaterial).opacity = 0.92 * (1 - t);
+        (burst.materials[1] as THREE.MeshBasicMaterial).opacity = 0.34 * (1 - t);
+      } else if (burst.kind === 'sonar_wave') {
+        const easeOut = 1 - Math.pow(1 - t, 1.8);
+        const targetR = burst.maxScale ?? PULSE_ULT_WAVE_MAX_RADIUS;
+        const r = 0.6 + easeOut * (targetR - 0.6);
+        burst.group.scale.set(r, 1.0, r);
+        const fade = Math.pow(1 - t, 1.25);
+        (burst.materials[0] as THREE.MeshBasicMaterial).opacity = 0.9 * fade;
+        (burst.materials[1] as THREE.MeshBasicMaterial).opacity = 0.28 * fade;
+      } else if (burst.kind === 'lightning_arc') {
+        const fade = 1 - t;
+        (burst.materials[0] as THREE.LineBasicMaterial).opacity = 0.98 * fade;
+        (burst.materials[1] as THREE.LineBasicMaterial).opacity = 0.82 * fade;
+        (burst.materials[2] as THREE.MeshBasicMaterial).opacity = 0.95 * fade;
       } else {
         // Pop-Flash detonation expands 3 orthogonal starbursts to 4.2m over 0.32s
         const easeOut = 1 - Math.pow(1 - t, 2.2);
@@ -2802,6 +3507,7 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
     // 7. Build HUD slot descriptors for the active agent palette
     const qSpec = AGENT_ABILITIES[player.colorId].q;
     const eSpec = AGENT_ABILITIES[player.colorId].e;
+    const xSpec = AGENT_ABILITIES[player.colorId].x;
     const qCd = cooldowns[player.colorId].q;
     const eCd = cooldowns[player.colorId].e;
 
@@ -2831,18 +3537,19 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
         maxCharges: VOID_MAX_CHARGES,
       };
     } else if (player.colorId === 'gold') {
-      const canSlideInOverdrive =
-        overdriveTimer > 0 &&
+      const canSlideNow =
+        (overdriveTimer > 0 || voltUltTimer > 0) &&
         player.grounded &&
         slideTimer <= 0 &&
         slideLockoutTimer <= 0;
+      const activeSprint = Math.max(overdriveTimer, voltUltTimer);
       qHud = {
         name: qSpec.name,
         shortTag: qSpec.shortTag,
-        cooldownRemaining: overdriveTimer > 0 ? 0 : qCd,
+        cooldownRemaining: activeSprint > 0 ? 0 : qCd,
         cooldownTotal: qSpec.cooldownSec,
-        ready: overdriveTimer > 0 ? canSlideInOverdrive : qCd <= 0,
-        activeTimer: overdriveTimer > 0 ? overdriveTimer : undefined,
+        ready: activeSprint > 0 ? canSlideNow : qCd <= 0,
+        activeTimer: activeSprint > 0 ? activeSprint : undefined,
       };
     } else {
       qHud = {
@@ -2862,6 +3569,27 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
       ready: eCd <= 0,
     };
 
+    const playerUltActiveRemain =
+      player.colorId === 'red'
+        ? blazeUltTimer
+        : player.colorId === 'blue'
+          ? mistUltTimer
+          : player.colorId === 'green'
+            ? pulseUltTimer
+            : player.colorId === 'violet'
+              ? umbraUltTimer
+              : voltUltTimer;
+    const xReq = xSpec.ultPointsRequired ?? 5;
+    const xReady = (pc?.ultPoints ?? 0) >= xReq;
+    const xHud: AbilityHudSlotState = {
+      name: xSpec.name,
+      shortTag: xSpec.shortTag,
+      cooldownRemaining: xReady ? 0 : Math.max(0, xReq - (pc?.ultPoints ?? 0)),
+      cooldownTotal: xReq,
+      ready: xReady,
+      activeTimer: playerUltActiveRemain > 0 ? playerUltActiveRemain : undefined,
+    };
+
     return {
       movement,
       fireRateMultiplier,
@@ -2879,12 +3607,15 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
       slideActive,
       qHud,
       eHud,
+      xHud,
+      ultRevealActive: pulseUltTimer > 0,
     };
   }
 
   return {
     cast,
     castForBot,
+    notifyKill,
     resetRound,
     update,
   };

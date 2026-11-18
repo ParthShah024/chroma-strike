@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { AABB, BombSiteId, BombSiteZone, Vec3 } from '../core/types';
 import {
   ARENA_DEPTH_M,
@@ -10,20 +11,22 @@ import {
   type TileChar,
   normalizeAsciiGrid,
 } from './skirmishAscii';
+import { TEXTURE_WORLD_SIZE_M, getArenaTexture, getBuyBarrierTexture, type ArenaTextureId } from './textures';
 
 /**
  * ============================================================================
- * 2-Site Search & Destroy Arena Builder:
+ * "Chroma Ascent" 2-Site Search & Destroy Arena Builder:
  * 2D Greedy Meshing, Single-Source-of-Truth Colliders, Windows & Archways,
- * Bomb Sites & Zone-Tagged Auto-Waypoint Graph
+ * Bomb Sites, Zone-Tagged Auto-Waypoint Graph, Procedural PBR Surfaces,
+ * Real-Time Sun Shadows, Spike Pedestal & Buy-Phase Energy Barriers
  * ============================================================================
  *
  * 1. **Single Source of Truth (`ARENA_COLLIDERS`)**:
- *    Every solid piece of geometry in the 48m x 56m map is generated from the
+ *    Every solid piece of geometry in the 72m x 80m map is generated from the
  *    same `string[]` ASCII grid (`skirmishAscii.ts`) and pushed into the live
  *    `ARENA_COLLIDERS` array. Physics (`movement.ts`), hitscan bullets
  *    (`weapons.ts`), AI line-of-sight (`botBrain.ts`), and Three.js meshes all
- *    read from these exact AABBs — guaranteeing zero physics/visual desync.
+ *    read from these exact AABBs â€” guaranteeing zero physics/visual desync.
  *
  *    IMPORTANT: `ARENA_COLLIDERS` is exported as a `const` array reference and
  *    is ALWAYS mutated in-place (`ARENA_COLLIDERS.length = 0; ARENA_COLLIDERS.push(...)`)
@@ -57,6 +60,20 @@ import {
  *      - **Diagonal edges** are added ONLY when the target AND BOTH shared
  *        orthogonal corner tiles are walkable within the step limit,
  *        preventing bots from clipping their `0.4m` body radius into corners.
+ *
+ * 4. **Regional PBR Theming (`./textures`)**:
+ *      Every block is skinned with cached procedural `map` + `bumpMap` canvas
+ *      textures using world-anchored UVs (so a 2m crate and a 30m perimeter
+ *      wall share the same texel density). Region is chosen by world X:
+ *        - `x < -12`        West Wing / Site A : warm sandstone ashlar + terracotta trims
+ *        - `-12 <= x <= 12` Mid Plaza          : slate concrete + dark steel channels
+ *        - `x > 12`         East Wing / Site B : ribbed cobalt-steel + hazard-striped trims
+ *      Long merged walls are split visually at the region seams (their single
+ *      collider is untouched).
+ *
+ * 5. **Real Shadows**: the sun `DirectionalLight` casts a 2048^2 PCF shadow map
+ *    over the whole compound; walls / crates / decks cast + receive. (The
+ *    renderer must have `renderer.shadowMap.enabled = true`.)
  */
 
 // ---------------------------------------------------------------------------
@@ -93,11 +110,24 @@ export interface ArenaSpawns {
   buyMaxDefenderZ: number;
 }
 
-const HALF_WIDTH_M = ARENA_WIDTH_M * 0.5; // 24m -> x in [-24, +24]
-const HALF_DEPTH_M = ARENA_DEPTH_M * 0.5; // 28m -> z in [-28, +28]
-const BUY_MIN_ALLY_Z = 20.0; // South spawn rows 24..26 (z +20..+26)
-const BUY_MAX_DEFENDER_Z = -20.0; // North spawn rows 1..3 (z -26..-20)
+const HALF_WIDTH_M = ARENA_WIDTH_M * 0.5; // 36m -> x in [-36, +36]
+const HALF_DEPTH_M = ARENA_DEPTH_M * 0.5; // 40m -> z in [-40, +40]
+/**
+ * South Attacker buy barrier: the row 28 / 29 seam, just North of the
+ * A-Lobby / Top-Mid / B-Lobby doors. Every door across it dog-legs 90 degrees.
+ */
+const BUY_MIN_ALLY_Z = 18.0;
+/**
+ * North Defender setup barrier: the row 12 / 13 seam (Site A, Mid Nest and
+ * Site B fronts), so Defenders may stage on-site before barriers drop.
+ */
+const BUY_MAX_DEFENDER_Z = -14.0;
 const MAX_STEP_HEIGHT_M = 0.5;
+/** Region seams for material theming (West/Site A | Mid Plaza | East/Site B). */
+const REGION_WEST_MAX_X = -12;
+const REGION_EAST_MIN_X = 12;
+/** Spike pedestal top surface (the dropped Spike rests here). */
+const SPIKE_PEDESTAL_TOP_Y = 0.05;
 
 // Architectural heights (meters)
 const PERIMETER_HEIGHT_M = 4.6;
@@ -122,7 +152,6 @@ const COLOR_FLOOR = 0x767f8c;
 const COLOR_FLOOR_GRID = 0x56606e;
 const COLOR_PERIMETER_WALL = 0x475161;
 const COLOR_PERIMETER_TRIM = 0x2c3440;
-const COLOR_RAFTER_STEEL = 0x343d4b;
 const COLOR_PLYWOOD_WALL = 0xa68966;
 const COLOR_STEEL_FRAME = 0x38414f;
 const COLOR_HEADGLITCH = 0x8c7355;
@@ -141,6 +170,16 @@ const COLOR_STAIR = 0x6e7887;
 const COLOR_BOLLARD = 0xd99b26;
 const COLOR_SITE_A = 0xff8a3d;
 const COLOR_SITE_B = 0x38bdf8;
+// Regional fallbacks (used verbatim when no DOM canvas -> textures are null)
+const COLOR_SANDSTONE = 0xc9a77a;
+const COLOR_TERRACOTTA = 0xb0603a;
+const COLOR_SLATE_WALL = 0x7a8492;
+const COLOR_COBALT_STEEL = 0x3f5f80;
+const COLOR_HAZARD = 0xd9a21b;
+const COLOR_RADIANITE = 0xff4d6d;
+const COLOR_GENERATOR_GLOW = 0xff9a3d;
+const COLOR_BARRIER_ATTACK = 0x4f9dff;
+const COLOR_BARRIER_DEFEND = 0xff4d5e;
 
 type MergeKind =
   | 'perimeter'
@@ -202,21 +241,38 @@ let cachedWaypoints: ArenaWaypoint[] = [];
 let cachedSites: Record<BombSiteId, BombSiteZone> = createFallbackSites();
 let cachedSpawns: ArenaSpawns = {
   allies: [
-    { x: -5, y: 0.1, z: 23 },
-    { x: 1, y: 0.1, z: 23 },
-    { x: 5, y: 0.1, z: 23 },
+    { x: -5, y: 0.1, z: 33 },
+    { x: 1, y: 0.1, z: 33 },
+    { x: 7, y: 0.1, z: 33 },
   ],
   enemies: [
-    { x: -5, y: 0.1, z: -23 },
-    { x: 1, y: 0.1, z: -23 },
-    { x: 5, y: 0.1, z: -23 },
+    { x: -7, y: 0.1, z: -35 },
+    { x: 1, y: 0.1, z: -35 },
+    { x: 7, y: 0.1, z: -35 },
   ],
   buyMinAllyZ: BUY_MIN_ALLY_Z,
   buyMaxDefenderZ: BUY_MAX_DEFENDER_Z,
 };
+const FALLBACK_SPIKE_POS: Vec3 = { x: 0, y: SPIKE_PEDESTAL_TOP_Y, z: 29 };
+let cachedSpikePos: Vec3 = { ...FALLBACK_SPIKE_POS };
+
+/** Site A landmark generator tower (extra collider on top of a `B` crate near Site A). */
+interface GeneratorTowerSpec {
+  x: number;
+  z: number;
+  baseY: number;
+  topY: number;
+  half: number;
+}
+let cachedGenerator: GeneratorTowerSpec | null = null;
+const GENERATOR_TOWER_TOP_Y = 4.1;
+const GENERATOR_TOWER_HALF = 0.5;
 
 /** Single root group holding all arena Three.js meshes/lights for clean disposal. */
 let arenaRoot: THREE.Group | null = null;
+/** Lazily-built buy-phase energy curtains (child of `arenaRoot`). */
+let barrierGroup: THREE.Group | null = null;
+let barriersVisible = false;
 
 // ---------------------------------------------------------------------------
 // Coordinate & Tile Classification Helpers
@@ -269,6 +325,7 @@ function classifyTileForMesh(ch: TileChar, row: number, col: number): MergeKind 
     case '1':
     case '2':
     case '.':
+    case 'S':
     case 'A':
     case 'E':
       return null;
@@ -281,6 +338,7 @@ function getWalkableSurfaceHeight(ch: TileChar | null): number | null {
     case 'O':
     case '1':
     case '2':
+    case 'S':
     case 'A':
     case 'E':
       return 0;
@@ -425,8 +483,8 @@ function makeSiteZone(site: BombSiteId, minX: number, maxX: number, minZ: number
 /** Safe default plant rectangles (match the default layout) for grids lacking `1` / `2` tiles. */
 function createFallbackSites(): Record<BombSiteId, BombSiteZone> {
   return {
-    A: makeSiteZone('A', -20, -14, -16, -10),
-    B: makeSiteZone('B', 14, 20, -16, -10),
+    A: makeSiteZone('A', -26, -18, -24, -16),
+    B: makeSiteZone('B', 22, 30, -24, -16),
   };
 }
 
@@ -473,12 +531,12 @@ function extractBombSites(grid: readonly string[]): Record<BombSiteId, BombSiteZ
 // Auto-Waypoint Graph Extraction (Zone-Tagged)
 // ---------------------------------------------------------------------------
 
-/** Central third of columns forms the Mid lane (`c = 8..15` on a 24-wide grid). */
+/** Central third of columns forms the Mid lane (`c = 12..23` on a 36-wide grid). */
 const MID_COL_MIN = Math.floor(GRID_COLS / 3);
 const MID_COL_MAX = GRID_COLS - Math.floor(GRID_COLS / 3) - 1;
-/** Spawn bands: rows `1..3` (North) and `24..26` (South). */
-const SPAWN_ROW_NORTH_MAX = 3;
-const SPAWN_ROW_SOUTH_MIN = GRID_ROWS - 4;
+/** Spawn bands: rows `1..4` (North CT sanctuary) and `34..38` (South T courtyard). */
+const SPAWN_ROW_NORTH_MAX = 4;
+const SPAWN_ROW_SOUTH_MIN = GRID_ROWS - 6;
 
 function classifyWaypointZone(
   ch: TileChar,
@@ -490,7 +548,7 @@ function classifyWaypointZone(
 ): ArenaZone {
   if (ch === '1') return 'site_a';
   if (ch === '2') return 'site_b';
-  if (ch === 'A' || ch === 'E') return 'spawn';
+  if (ch === 'A' || ch === 'E' || ch === 'S') return 'spawn';
 
   // Tiles hugging a plant cluster (1 tile margin) read as part of that site.
   const margin = TILE_SIZE_M;
@@ -680,14 +738,14 @@ function extractSpawns(grid: readonly string[]): ArenaSpawns {
   for (let r = 1; r <= GRID_ROWS - 2; r++) northRows.push(r);
 
   const allyFallbackTargets: ReadonlyArray<[number, number]> = [
-    [-5, 23],
-    [1, 23],
-    [5, 23],
+    [-5, 33],
+    [1, 33],
+    [7, 33],
   ];
   const enemyFallbackTargets: ReadonlyArray<[number, number]> = [
-    [-5, -23],
-    [1, -23],
-    [5, -23],
+    [-7, -35],
+    [1, -35],
+    [7, -35],
   ];
 
   const resolveTeamSpawns = (
@@ -753,6 +811,57 @@ function applyGridData(rawGrid?: readonly string[]): void {
   cachedSites = extractBombSites(normalized);
   cachedWaypoints = extractWaypoints(normalized, cachedSites);
   cachedSpawns = extractSpawns(normalized);
+  cachedSpikePos = extractSpikeSpawn(normalized);
+
+  // Site A landmark generator tower: its own collider keeps physics == visuals.
+  cachedGenerator = extractGeneratorTower(normalized, cachedSites.A);
+  if (cachedGenerator) {
+    const g = cachedGenerator;
+    ARENA_COLLIDERS.push({
+      min: { x: g.x - g.half, y: g.baseY, z: g.z - g.half },
+      max: { x: g.x + g.half, y: g.topY, z: g.z + g.half },
+      tag: 'cover',
+      color: COLOR_CRATE,
+    });
+  }
+}
+
+/** World center of the (first) `S` Spike Pedestal tile, or the default fallback. */
+function extractSpikeSpawn(grid: readonly string[]): Vec3 {
+  for (let r = 0; r < GRID_ROWS; r++) {
+    for (let c = 0; c < GRID_COLS; c++) {
+      if (grid[r][c] === 'S') {
+        return { x: tileCenterX(c), y: SPIKE_PEDESTAL_TOP_Y, z: tileCenterZ(r) };
+      }
+    }
+  }
+  return { ...FALLBACK_SPIKE_POS };
+}
+
+/**
+ * Picks the `B` crate tile inside (or 1 tile around) Site A that is closest to
+ * the plant-zone center to host the generator tower. `null` when none exists.
+ */
+function extractGeneratorTower(grid: readonly string[], siteA: BombSiteZone): GeneratorTowerSpec | null {
+  let best: GeneratorTowerSpec | null = null;
+  let bestD = Infinity;
+  const margin = TILE_SIZE_M;
+  for (let r = 1; r < GRID_ROWS - 1; r++) {
+    for (let c = 1; c < GRID_COLS - 1; c++) {
+      if (grid[r][c] !== 'B') continue;
+      const x = tileCenterX(c);
+      const z = tileCenterZ(r);
+      if (x < siteA.minX - margin || x > siteA.maxX + margin || z < siteA.minZ - margin || z > siteA.maxZ + margin) {
+        continue;
+      }
+      const d = (x - siteA.center.x) ** 2 + (z - siteA.center.z) ** 2;
+      if (d < bestD) {
+        bestD = d;
+        best = { x, z, baseY: CRATE_HEIGHT_M, topY: GENERATOR_TOWER_TOP_Y, half: GENERATOR_TOWER_HALF };
+      }
+    }
+  }
+  return best;
 }
 
 // Seed default colliders/waypoints/spawns/sites immediately at module import.
@@ -761,17 +870,26 @@ applyGridData(DEFAULT_KILLHOUSE_GRID);
 /** Default South (`+Z`) player spawn: the central Attacker pad of the default map. */
 export const PLAYER_SPAWN: Vec3 = cachedSpawns.allies[1]
   ? cloneVec3(cachedSpawns.allies[1])
-  : { x: 0, y: 0.1, z: 23 };
+  : { x: 1, y: 0.1, z: 33 };
 
 // ---------------------------------------------------------------------------
 // Public Accessors
 // ---------------------------------------------------------------------------
 
 /**
- * Returns a copy of the currently active `24 x 28` ASCII grid rows.
+ * Returns a copy of the currently active `36 x 40` ASCII grid rows.
  */
 export function getCurrentGrid(): string[] {
   return [...currentGrid];
+}
+
+/**
+ * World-space resting position of the round's single physical Spike: the
+ * center of the `S` pedestal tile in the active grid (top of the pedestal),
+ * falling back to `{ x: 0, y: 0.05, z: 29 }` when the grid has no `S` tile.
+ */
+export function getSpikeSpawnPos(): Vec3 {
+  return cloneVec3(cachedSpikePos);
 }
 
 /**
@@ -830,6 +948,12 @@ export function getBombSiteAt(x: number, z: number): BombSiteId | null {
 // 3D Scene Disposal & Architectural Construction
 // ---------------------------------------------------------------------------
 
+/**
+ * Frees every GPU resource under `root`: geometries, materials and EVERY
+ * texture slot (`map`, `bumpMap`, `alphaMap`, `emissiveMap`, ...) plus light
+ * shadow maps. Cached procedural textures are safe to dispose: Three.js
+ * re-uploads a disposed `CanvasTexture` the next time a material samples it.
+ */
 function disposeArenaRoot(root: THREE.Group): void {
   const geometries = new Set<THREE.BufferGeometry>();
   const materials = new Set<THREE.Material>();
@@ -837,8 +961,9 @@ function disposeArenaRoot(root: THREE.Group): void {
 
   const collectMaterial = (mat: THREE.Material) => {
     materials.add(mat);
-    const mapped = mat as THREE.Material & { map?: THREE.Texture | null };
-    if (mapped.map) textures.add(mapped.map);
+    for (const value of Object.values(mat)) {
+      if (value instanceof THREE.Texture) textures.add(value);
+    }
   };
 
   root.traverse((obj) => {
@@ -852,6 +977,8 @@ function disposeArenaRoot(root: THREE.Group): void {
     } else if (obj instanceof THREE.Sprite) {
       // Sprite geometry is a Three.js shared singleton: dispose material + texture only.
       collectMaterial(obj.material);
+    } else if (obj instanceof THREE.DirectionalLight) {
+      obj.shadow.dispose();
     }
   });
 
@@ -859,6 +986,56 @@ function disposeArenaRoot(root: THREE.Group): void {
   for (const tex of textures) tex.dispose();
   for (const mat of materials) mat.dispose();
   root.removeFromParent();
+}
+
+/**
+ * UV layout for box meshes:
+ * - `'world'`: world-anchored planar UVs, one texture repeat per
+ *   `TEXTURE_WORLD_SIZE_M` (4m) on every face -> uniform texel density across
+ *   walls / floors of any size, and seamless continuation between blocks.
+ * - `'tile'` : horizontal axes repeat every 2m tile, vertical side-face V is
+ *   normalized to the box height -> one full crate / cargo / trim pattern per
+ *   tile segment.
+ */
+type UvMode = 'world' | 'tile';
+
+function applyBoxUVs(
+  geo: THREE.BufferGeometry,
+  cx: number,
+  cy: number,
+  cz: number,
+  minY: number,
+  maxY: number,
+  mode: UvMode
+): void {
+  const pos = geo.getAttribute('position');
+  const nor = geo.getAttribute('normal');
+  const uv = geo.getAttribute('uv');
+  if (!pos || !nor || !uv) return;
+  const s = mode === 'world' ? TEXTURE_WORLD_SIZE_M : TILE_SIZE_M;
+  const hY = Math.max(1e-4, maxY - minY);
+
+  for (let i = 0; i < pos.count; i++) {
+    const px = pos.getX(i) + cx;
+    const py = pos.getY(i) + cy;
+    const pz = pos.getZ(i) + cz;
+    const nx = nor.getX(i);
+    const ny = nor.getY(i);
+    const nz = nor.getZ(i);
+    let u: number;
+    let v: number;
+    if (Math.abs(ny) > 0.5) {
+      u = px / s;
+      v = pz / s;
+    } else {
+      // Right-handed "along the wall" axis as seen from outside the face.
+      const along = Math.abs(nx) > 0.5 ? pz * -Math.sign(nx) : px * Math.sign(nz);
+      u = along / s;
+      v = mode === 'tile' ? (py - minY) / hY : py / s;
+    }
+    uv.setXY(i, u, v);
+  }
+  uv.needsUpdate = true;
 }
 
 function addBoxMesh(
@@ -870,11 +1047,16 @@ function addBoxMesh(
   minZ: number,
   maxZ: number,
   material: THREE.Material,
-  edgeMaterial?: THREE.LineBasicMaterial
+  edgeMaterial?: THREE.LineBasicMaterial,
+  uvMode: UvMode = 'world'
 ): THREE.Mesh {
   const geo = new THREE.BoxGeometry(maxX - minX, maxY - minY, maxZ - minZ);
+  const cx = (minX + maxX) * 0.5;
+  const cy = (minY + maxY) * 0.5;
+  const cz = (minZ + maxZ) * 0.5;
+  applyBoxUVs(geo, cx, cy, cz, minY, maxY, uvMode);
   const mesh = new THREE.Mesh(geo, material);
-  mesh.position.set((minX + maxX) * 0.5, (minY + maxY) * 0.5, (minZ + maxZ) * 0.5);
+  mesh.position.set(cx, cy, cz);
   parent.add(mesh);
 
   if (edgeMaterial) {
@@ -896,6 +1078,37 @@ function solidMat(color: number, roughness: number, metalness: number): THREE.Me
   });
 }
 
+/**
+ * Procedurally textured PBR material. `tint` multiplies the albedo map; when
+ * no DOM canvas exists (headless) the flat `fallback` color is used instead.
+ * Solid bodies get `polygonOffset(1, 1)`; proud trims pass `offset = false`.
+ */
+function pbrMat(
+  texId: ArenaTextureId,
+  tint: number,
+  fallback: number,
+  roughness: number,
+  metalness: number,
+  bumpScale = 1,
+  offset = true
+): THREE.MeshStandardMaterial {
+  const tex = getArenaTexture(texId);
+  const mat = new THREE.MeshStandardMaterial({
+    color: tex.map ? tint : fallback,
+    roughness,
+    metalness,
+    polygonOffset: offset,
+    polygonOffsetFactor: offset ? 1 : 0,
+    polygonOffsetUnits: offset ? 1 : 0,
+  });
+  if (tex.map) mat.map = tex.map;
+  if (tex.bumpMap) {
+    mat.bumpMap = tex.bumpMap;
+    mat.bumpScale = bumpScale;
+  }
+  return mat;
+}
+
 /** Flat translucent floor decal material (never writes depth -> zero Z-fighting with floor). */
 function decalMat(color: number, opacity: number): THREE.MeshBasicMaterial {
   return new THREE.MeshBasicMaterial({
@@ -908,6 +1121,148 @@ function decalMat(color: number, opacity: number): THREE.MeshBasicMaterial {
     polygonOffsetUnits: -1,
     toneMapped: false,
   });
+}
+
+/** Unlit glowing material for emitters / light strips (never casts shadows). */
+function glowMat(color: number, opacity = 1, additive = false): THREE.MeshBasicMaterial {
+  return new THREE.MeshBasicMaterial({
+    color,
+    transparent: opacity < 1 || additive,
+    opacity,
+    depthWrite: !(opacity < 1 || additive),
+    blending: additive ? THREE.AdditiveBlending : THREE.NormalBlending,
+    side: additive ? THREE.DoubleSide : THREE.FrontSide,
+    toneMapped: false,
+  });
+}
+
+function nowSeconds(): number {
+  return (typeof performance !== 'undefined' ? performance.now() : Date.now()) / 1000;
+}
+
+// ---------------------------------------------------------------------------
+// Regional Theming (West Sandstone | Mid Slate | East Cobalt-Steel)
+// ---------------------------------------------------------------------------
+
+type Region = 'west' | 'mid' | 'east';
+
+function regionOfX(x: number): Region {
+  if (x < REGION_WEST_MAX_X) return 'west';
+  if (x > REGION_EAST_MIN_X) return 'east';
+  return 'mid';
+}
+
+/** Splits `[minX, maxX]` at region seams so long merged walls switch skins cleanly. */
+function splitByRegion(minX: number, maxX: number): Array<{ x0: number; x1: number; region: Region }> {
+  const cuts = [minX];
+  for (const seam of [REGION_WEST_MAX_X, REGION_EAST_MIN_X]) {
+    if (seam > minX + 1e-6 && seam < maxX - 1e-6) cuts.push(seam);
+  }
+  cuts.push(maxX);
+  const out: Array<{ x0: number; x1: number; region: Region }> = [];
+  for (let i = 0; i < cuts.length - 1; i++) {
+    out.push({ x0: cuts[i], x1: cuts[i + 1], region: regionOfX((cuts[i] + cuts[i + 1]) * 0.5) });
+  }
+  return out;
+}
+
+interface RegionMaterials {
+  /** Interior partitions, window walls, low-cover bodies, deck skirts. */
+  wall: THREE.MeshStandardMaterial;
+  perimeter: THREE.MeshStandardMaterial;
+  /** Proud caps / baseboards / caprails (tile UVs, no polygon offset). */
+  trim: THREE.MeshStandardMaterial;
+  /** Vertical posts & pilasters. */
+  post: THREE.MeshStandardMaterial;
+  /** Keystones & small accents. */
+  accent: THREE.MeshStandardMaterial;
+  archStone: THREE.MeshStandardMaterial;
+  /** Inset top plate on wall caps (keeps wide wall tops from reading as one giant trim). */
+  coping: THREE.MeshStandardMaterial;
+  floor: THREE.MeshStandardMaterial;
+}
+
+function createRegionMaterials(): Record<Region, RegionMaterials> {
+  return {
+    west: {
+      wall: pbrMat('sandstone_ashlar', 0xffffff, COLOR_SANDSTONE, 0.9, 0.02, 1.4),
+      perimeter: pbrMat('sandstone_ashlar', 0xe2d3bd, 0xb8956a, 0.92, 0.02, 1.4),
+      trim: pbrMat('terracotta_trim', 0xffffff, COLOR_TERRACOTTA, 0.82, 0.04, 1.0, false),
+      post: pbrMat('terracotta_trim', 0xf0d8cc, COLOR_TERRACOTTA, 0.82, 0.04, 1.0, false),
+      accent: new THREE.MeshStandardMaterial({ color: COLOR_TERRACOTTA, roughness: 0.6, metalness: 0.1 }),
+      archStone: pbrMat('sandstone_ashlar', 0xf6ead8, COLOR_SANDSTONE, 0.88, 0.02, 1.2),
+      coping: pbrMat('sandstone_ashlar', 0xd9c7ad, COLOR_SANDSTONE, 0.9, 0.02, 1.0, false),
+      floor: pbrMat('plaza_concrete', 0xf2e2ca, 0x8c8172, 0.94, 0.02, 0.9),
+    },
+    mid: {
+      wall: pbrMat('plaza_concrete', 0xbfc6d0, COLOR_SLATE_WALL, 0.88, 0.05, 1.1),
+      perimeter: pbrMat('plaza_concrete', 0x9fa9b7, COLOR_PERIMETER_WALL, 0.9, 0.06, 1.1),
+      trim: new THREE.MeshStandardMaterial({ color: COLOR_PERIMETER_TRIM, roughness: 0.6, metalness: 0.4 }),
+      post: new THREE.MeshStandardMaterial({ color: COLOR_STEEL_FRAME, roughness: 0.55, metalness: 0.42 }),
+      accent: new THREE.MeshStandardMaterial({ color: COLOR_BOLLARD, roughness: 0.45, metalness: 0.25 }),
+      archStone: pbrMat('plaza_concrete', 0xd3d8df, COLOR_ARCH_STONE, 0.82, 0.06, 1.0),
+      coping: pbrMat('plaza_concrete', 0xa9b2be, COLOR_SLATE_WALL, 0.9, 0.05, 1.0, false),
+      floor: pbrMat('plaza_concrete', 0xffffff, COLOR_FLOOR, 0.92, 0.04, 0.9),
+    },
+    east: {
+      wall: pbrMat('cobalt_steel', 0xffffff, COLOR_COBALT_STEEL, 0.58, 0.22, 1.3),
+      perimeter: pbrMat('cobalt_steel', 0xc2ccd8, 0x34506c, 0.62, 0.2, 1.3),
+      trim: pbrMat('hazard_trim', 0xffffff, COLOR_HAZARD, 0.55, 0.3, 1.0, false),
+      post: new THREE.MeshStandardMaterial({ color: 0x2c3746, roughness: 0.5, metalness: 0.35 }),
+      accent: new THREE.MeshStandardMaterial({ color: COLOR_HAZARD, roughness: 0.45, metalness: 0.3 }),
+      archStone: pbrMat('cobalt_steel', 0xd5dde8, COLOR_ARCH_PILASTER, 0.6, 0.22, 1.2),
+      coping: pbrMat('cobalt_steel', 0xaab6c6, COLOR_COBALT_STEEL, 0.62, 0.2, 1.0, false),
+      floor: pbrMat('plaza_concrete', 0xd4dfec, 0x6f7f92, 0.88, 0.08, 0.9),
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Floor, Tactical Grid & Buy-Fence Floor Lines
+// ---------------------------------------------------------------------------
+
+function buildFloorAndGrid(root: THREE.Group, regions: Record<Region, RegionMaterials>): void {
+  // Three region slabs (one physics collider) with world-anchored 2m concrete slabs.
+  for (const seg of splitByRegion(-HALF_WIDTH_M, HALF_WIDTH_M)) {
+    const slab = addBoxMesh(root, seg.x0, seg.x1, -0.5, 0, -HALF_DEPTH_M, HALF_DEPTH_M, regions[seg.region].floor);
+    slab.userData.shadowMode = 'receive';
+  }
+
+  // Exact 72m x 80m 2m tactical grid lines clipped cleanly to arena bounds.
+  const linePoints: number[] = [];
+  const y = 0.006;
+  for (let x = -HALF_WIDTH_M; x <= HALF_WIDTH_M + 1e-4; x += TILE_SIZE_M) {
+    linePoints.push(x, y, -HALF_DEPTH_M, x, y, HALF_DEPTH_M);
+  }
+  for (let z = -HALF_DEPTH_M; z <= HALF_DEPTH_M + 1e-4; z += TILE_SIZE_M) {
+    linePoints.push(-HALF_WIDTH_M, y, z, HALF_WIDTH_M, y, z);
+  }
+
+  const gridGeo = new THREE.BufferGeometry();
+  gridGeo.setAttribute('position', new THREE.Float32BufferAttribute(linePoints, 3));
+  const gridMat = new THREE.LineBasicMaterial({
+    color: COLOR_FLOOR_GRID,
+    transparent: true,
+    opacity: 0.14,
+    depthWrite: false,
+  });
+  const gridLines = new THREE.LineSegments(gridGeo, gridMat);
+  gridLines.renderOrder = 2;
+  root.add(gridLines);
+
+  // Buy-phase fences: Attackers (South) fenced at buyMinAllyZ, Defenders (North) at buyMaxDefenderZ.
+  const addZoneLine = (zPos: number, hex: number, opacity: number) => {
+    const geo = new THREE.BufferGeometry();
+    const xEdge = HALF_WIDTH_M - TILE_SIZE_M;
+    geo.setAttribute('position', new THREE.Float32BufferAttribute([-xEdge, 0.01, zPos, xEdge, 0.01, zPos], 3));
+    const mat = new THREE.LineBasicMaterial({ color: hex, transparent: true, opacity, depthWrite: false });
+    const line = new THREE.LineSegments(geo, mat);
+    line.renderOrder = 3;
+    root.add(line);
+  };
+
+  addZoneLine(cachedSpawns.buyMinAllyZ, COLOR_BARRIER_ATTACK, 0.55);
+  addZoneLine(cachedSpawns.buyMaxDefenderZ, COLOR_BARRIER_DEFEND, 0.5);
 }
 
 /** Builds a single horizontal BufferGeometry of axis-aligned quads at height `y`. */
@@ -965,48 +1320,6 @@ function createSiteLetterTexture(letter: string, color: number, ring: boolean): 
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.anisotropy = 4;
   return tex;
-}
-
-function buildFloorAndGrid(root: THREE.Group): void {
-  // Polygon offset pushes solid floor depth back slightly so grid/overlay lines never Z-fight.
-  const floorMat = solidMat(COLOR_FLOOR, 0.92, 0.04);
-  addBoxMesh(root, -HALF_WIDTH_M, HALF_WIDTH_M, -0.5, 0, -HALF_DEPTH_M, HALF_DEPTH_M, floorMat);
-
-  // Exact 48m x 56m 2m tactical grid lines clipped cleanly to arena bounds.
-  const linePoints: number[] = [];
-  const y = 0.006;
-  for (let x = -HALF_WIDTH_M; x <= HALF_WIDTH_M + 1e-4; x += TILE_SIZE_M) {
-    linePoints.push(x, y, -HALF_DEPTH_M, x, y, HALF_DEPTH_M);
-  }
-  for (let z = -HALF_DEPTH_M; z <= HALF_DEPTH_M + 1e-4; z += TILE_SIZE_M) {
-    linePoints.push(-HALF_WIDTH_M, y, z, HALF_WIDTH_M, y, z);
-  }
-
-  const gridGeo = new THREE.BufferGeometry();
-  gridGeo.setAttribute('position', new THREE.Float32BufferAttribute(linePoints, 3));
-  const gridMat = new THREE.LineBasicMaterial({
-    color: COLOR_FLOOR_GRID,
-    transparent: true,
-    opacity: 0.42,
-    depthWrite: false,
-  });
-  const gridLines = new THREE.LineSegments(gridGeo, gridMat);
-  gridLines.renderOrder = 2;
-  root.add(gridLines);
-
-  // Buy-phase fences: Attackers (South) fenced at buyMinAllyZ, Defenders (North) at buyMaxDefenderZ.
-  const addZoneLine = (zPos: number, hex: number, opacity: number) => {
-    const geo = new THREE.BufferGeometry();
-    const xEdge = HALF_WIDTH_M - TILE_SIZE_M;
-    geo.setAttribute('position', new THREE.Float32BufferAttribute([-xEdge, 0.01, zPos, xEdge, 0.01, zPos], 3));
-    const mat = new THREE.LineBasicMaterial({ color: hex, transparent: true, opacity, depthWrite: false });
-    const line = new THREE.LineSegments(geo, mat);
-    line.renderOrder = 3;
-    root.add(line);
-  };
-
-  addZoneLine(cachedSpawns.buyMinAllyZ, 0x3b82f6, 0.5);
-  addZoneLine(cachedSpawns.buyMaxDefenderZ, 0xef4444, 0.42);
 }
 
 /**
@@ -1083,28 +1396,11 @@ function buildSiteMarkings(root: THREE.Group, grid: readonly string[]): void {
         toneMapped: false,
       });
       const sprite = new THREE.Sprite(spriteMat);
-      sprite.scale.set(1.5, 1.5, 1);
-      sprite.position.set(zone.center.x, 3.35, zone.center.z);
+      sprite.scale.set(1.6, 1.6, 1);
+      sprite.position.set(zone.center.x, 4.6, zone.center.z);
       sprite.renderOrder = 5;
       root.add(sprite);
     }
-  }
-}
-
-function buildWarehouseRafters(root: THREE.Group): void {
-  const rafterMat = new THREE.MeshStandardMaterial({
-    color: COLOR_RAFTER_STEEL,
-    roughness: 0.55,
-    metalness: 0.45,
-  });
-
-  // Overhead steel trusses spanning across X just above the 4.6m perimeter wall.
-  for (let zPos = -24; zPos <= 24; zPos += 6) {
-    addBoxMesh(root, -HALF_WIDTH_M, HALF_WIDTH_M, 4.64, 4.86, zPos - 0.14, zPos + 0.14, rafterMat);
-  }
-  // Longitudinal purlins above the trusses (no coplanar Y faces; ends inset 0.02m).
-  for (const xPos of [-16, -8, 0, 8, 16]) {
-    addBoxMesh(root, xPos - 0.1, xPos + 0.1, 4.865, 5.005, -HALF_DEPTH_M + 0.02, HALF_DEPTH_M - 0.02, rafterMat);
   }
 }
 
@@ -1178,8 +1474,7 @@ function buildWindowOrArchway(
     box(a0, a1, 2.594, 3.596, d0, d1, m.windowWall, m.edge);
     box(a0 + 0.008, a1 - 0.008, WINDOW_LINTEL_BOTTOM_M, 2.598, d0 - 0.012, d1 + 0.012, m.frame);
 
-    // Jamb casings recessed inside the host walls, proud +0.02m of the wall faces
-    // (fully enclosing the 0.012m wall posts so nothing is coplanar).
+    // Jamb casings recessed inside the host walls, proud +0.02m of the wall faces.
     if (hostStart) box(a0 - 0.14, a0 - 0.006, 1.04, 2.63, d0 - 0.02, d1 + 0.02, m.frame);
     if (hostEnd) box(a1 + 0.006, a1 + 0.14, 1.04, 2.63, d0 - 0.02, d1 + 0.02, m.frame);
 
@@ -1209,7 +1504,7 @@ function buildWindowOrArchway(
 }
 
 /**
- * Olive-slate double-stacked crates (`D`, 1.72m): two tiers per merged block,
+ * Olive braced cargo (`D`, 1.72m): two stenciled timber tiers per merged block,
  * a proud seam band, a proud top cap, and diagonal bracing on every outer face
  * of every tile segment (alternating per tier for an X-brace feel).
  */
@@ -1223,10 +1518,10 @@ function buildDoubleBox(
 ): void {
   const { min, max } = block.box;
   const p = 0.008;
-  addBoxMesh(root, min.x, max.x, 0, 0.84, min.z, max.z, bodyMat, edgeMat);
-  addBoxMesh(root, min.x, max.x, 0.88, 1.68, min.z, max.z, bodyMat, edgeMat);
-  addBoxMesh(root, min.x - p, max.x + p, 0.836, 0.884, min.z - p, max.z + p, trimMat);
-  addBoxMesh(root, min.x - p, max.x + p, 1.676, DOUBLE_BOX_HEIGHT_M, min.z - p, max.z + p, trimMat);
+  addBoxMesh(root, min.x, max.x, 0, 0.84, min.z, max.z, bodyMat, edgeMat, 'tile');
+  addBoxMesh(root, min.x, max.x, 0.88, 1.68, min.z, max.z, bodyMat, edgeMat, 'tile');
+  addBoxMesh(root, min.x - p, max.x + p, 0.836, 0.884, min.z - p, max.z + p, trimMat, undefined, 'tile');
+  addBoxMesh(root, min.x - p, max.x + p, 1.676, DOUBLE_BOX_HEIGHT_M, min.z - p, max.z + p, trimMat, undefined, 'tile');
 
   const tiers: ReadonlyArray<readonly [number, number]> = [
     [0.0, 0.836],
@@ -1253,14 +1548,12 @@ function buildDoubleBox(
   tiers.forEach(([y0, y1], tierIdx) => {
     const cy = (y0 + y1) * 0.5;
     const tierH = y1 - y0 - 0.06;
-    // +-Z faces: one brace per tile column
     for (let dc = 0; dc < block.colsSpan; dc++) {
       const cx = min.x + (dc + 0.5) * TILE_SIZE_M;
       const flip = (dc + tierIdx) % 2 === 1;
       addBrace(cx, cy, min.z - braceOffset, TILE_SIZE_M, tierH, 'z', flip);
       addBrace(cx, cy, max.z + braceOffset, TILE_SIZE_M, tierH, 'z', !flip);
     }
-    // +-X faces: one brace per tile row
     for (let dr = 0; dr < block.rowsSpan; dr++) {
       const cz = min.z + (dr + 0.5) * TILE_SIZE_M;
       const flip = (dr + tierIdx) % 2 === 1;
@@ -1270,34 +1563,25 @@ function buildDoubleBox(
   });
 }
 
-function buildArchitecturalBlocks(root: THREE.Group, grid: readonly string[]): void {
-  const mats = {
-    perimeter: solidMat(COLOR_PERIMETER_WALL, 0.88, 0.08),
-    wall_interior: solidMat(COLOR_PLYWOOD_WALL, 0.86, 0.04),
-    low_cover: solidMat(COLOR_HEADGLITCH, 0.82, 0.06),
-    double_box: solidMat(COLOR_DOUBLE_BOX, 0.78, 0.12),
-    crate: solidMat(COLOR_CRATE, 0.72, 0.22),
-    platform: solidMat(COLOR_WATCHTOWER, 0.54, 0.38),
-    stair: solidMat(COLOR_STAIR, 0.68, 0.24),
-  };
+function buildArchitecturalBlocks(root: THREE.Group, grid: readonly string[], regions: Record<Region, RegionMaterials>): void {
+  const cargoMat = pbrMat('olive_cargo', 0xffffff, COLOR_DOUBLE_BOX, 0.8, 0.1, 1.2);
+  const crateMat = pbrMat('radianite_crate', 0xffffff, COLOR_CRATE, 0.6, 0.22, 1.3);
+  const deckMat = pbrMat('steel_grate', 0xffffff, COLOR_WATCHTOWER, 0.55, 0.3, 1.6);
+  const stairMat = pbrMat('steel_grate', 0xe6ebf2, COLOR_STAIR, 0.58, 0.28, 1.6);
 
-  const trimMat = new THREE.MeshStandardMaterial({ color: COLOR_PERIMETER_TRIM, roughness: 0.75, metalness: 0.25 });
-  const frameSteelMat = new THREE.MeshStandardMaterial({ color: COLOR_STEEL_FRAME, roughness: 0.55, metalness: 0.42 });
   const caprailMat = new THREE.MeshStandardMaterial({ color: COLOR_CAPRAIL, roughness: 0.65, metalness: 0.3 });
-  const crateTrimMat = new THREE.MeshStandardMaterial({ color: COLOR_CRATE_TRIM, roughness: 0.62, metalness: 0.35 });
+  const crateTrimMat = new THREE.MeshStandardMaterial({ color: COLOR_CRATE_TRIM, roughness: 0.5, metalness: 0.55 });
   const doubleBoxTrimMat = new THREE.MeshStandardMaterial({ color: COLOR_DOUBLE_BOX_TRIM, roughness: 0.6, metalness: 0.3 });
   const doubleBoxBraceMat = new THREE.MeshStandardMaterial({ color: COLOR_DOUBLE_BOX_BRACE, roughness: 0.7, metalness: 0.15 });
   const bollardMat = new THREE.MeshStandardMaterial({ color: COLOR_BOLLARD, roughness: 0.45, metalness: 0.2 });
+  const windowFrameMat = new THREE.MeshStandardMaterial({ color: COLOR_WINDOW_FRAME, roughness: 0.5, metalness: 0.5 });
 
-  const edgeMat = new THREE.LineBasicMaterial({ color: 0x2a323d, transparent: true, opacity: 0.38 });
+  const edgeMat = new THREE.LineBasicMaterial({ color: 0x2a323d, transparent: true, opacity: 0.22 });
 
-  const frameMats: FrameMaterials = {
-    windowWall: solidMat(COLOR_WINDOW_WALL, 0.84, 0.05),
-    archStone: solidMat(COLOR_ARCH_STONE, 0.8, 0.08),
-    frame: new THREE.MeshStandardMaterial({ color: COLOR_WINDOW_FRAME, roughness: 0.5, metalness: 0.5 }),
-    pilaster: new THREE.MeshStandardMaterial({ color: COLOR_ARCH_PILASTER, roughness: 0.7, metalness: 0.2 }),
-    accent: new THREE.MeshStandardMaterial({ color: COLOR_BOLLARD, roughness: 0.45, metalness: 0.25 }),
-    edge: edgeMat,
+  const frameMatsByRegion: Record<Region, FrameMaterials> = {
+    west: { windowWall: regions.west.wall, archStone: regions.west.archStone, frame: windowFrameMat, pilaster: regions.west.post, accent: regions.west.accent, edge: edgeMat },
+    mid: { windowWall: regions.mid.wall, archStone: regions.mid.archStone, frame: windowFrameMat, pilaster: regions.mid.post, accent: regions.mid.accent, edge: edgeMat },
+    east: { windowWall: regions.east.wall, archStone: regions.east.archStone, frame: windowFrameMat, pilaster: regions.east.post, accent: regions.east.accent, edge: edgeMat },
   };
 
   // Trim/post extrusion reliefs eliminate coplanar Z-fighting with base wall/cover meshes.
@@ -1307,53 +1591,97 @@ function buildArchitecturalBlocks(root: THREE.Group, grid: readonly string[]): v
   for (const block of cachedMergedBlocks) {
     const { box, kind } = block;
     const { min, max } = box;
+    const blockRegion = regionOfX((min.x + max.x) * 0.5);
 
-    if (kind === 'perimeter') {
-      // Base concrete wall (0..4.6m) + proud dark baseboard/top trims overlapping by 0.004m
-      addBoxMesh(root, min.x, max.x, 0.22, 4.5, min.z, max.z, mats.perimeter, edgeMat);
-      addBoxMesh(root, min.x - trimProud, max.x + trimProud, 0, 0.224, min.z - trimProud, max.z + trimProud, trimMat);
-      addBoxMesh(root, min.x - trimProud, max.x + trimProud, 4.496, PERIMETER_HEIGHT_M, min.z - trimProud, max.z + trimProud, trimMat);
-    } else if (kind === 'wall_interior') {
-      // Plywood partition (0..3.6m) with proud top steel channel & proud vertical steel posts
-      addBoxMesh(root, min.x, max.x, 0, 3.5, min.z, max.z, mats.wall_interior, edgeMat);
-      addBoxMesh(root, min.x - trimProud, max.x + trimProud, 3.496, INTERIOR_WALL_HEIGHT_M, min.z - trimProud, max.z + trimProud, frameSteelMat);
-
-      const postW = 0.11;
-      const postMinY = 0.004;
-      const postMaxY = 3.496;
-      for (let dc = 0; dc <= block.colsSpan; dc++) {
-        const px = Math.min(
-          Math.max(min.x + dc * TILE_SIZE_M, min.x + postW * 0.5 + postProud),
-          max.x - postW * 0.5 - postProud
-        );
-        addBoxMesh(root, px - postW * 0.5, px + postW * 0.5, postMinY, postMaxY, min.z - postProud, max.z + postProud, frameSteelMat);
-      }
-      if (block.rowsSpan > 1) {
-        for (let dr = 0; dr <= block.rowsSpan; dr++) {
-          const pz = Math.min(
-            Math.max(min.z + dr * TILE_SIZE_M, min.z + postW * 0.5 + postProud),
-            max.z - postW * 0.5 - postProud
-          );
-          addBoxMesh(root, min.x - postProud, max.x + postProud, postMinY, postMaxY, pz - postW * 0.5, pz + postW * 0.5, frameSteelMat);
+    if (kind === 'perimeter' || kind === 'wall_interior') {
+      const isPerimeter = kind === 'perimeter';
+      for (const seg of splitByRegion(min.x, max.x)) {
+        const rm = regions[seg.region];
+        // Proud trims only overhang the block's TRUE ends (never at internal region seams).
+        const tx0 = Math.abs(seg.x0 - min.x) < 1e-6 ? seg.x0 - trimProud : seg.x0;
+        const tx1 = Math.abs(seg.x1 - max.x) < 1e-6 ? seg.x1 + trimProud : seg.x1;
+        // Inset coping plate 6mm proud above the cap (inset only at TRUE block ends).
+        const copingInset = 0.12;
+        const cx0 = Math.abs(seg.x0 - min.x) < 1e-6 ? seg.x0 + copingInset : seg.x0;
+        const cx1 = Math.abs(seg.x1 - max.x) < 1e-6 ? seg.x1 - copingInset : seg.x1;
+        const capTop = isPerimeter ? PERIMETER_HEIGHT_M : INTERIOR_WALL_HEIGHT_M;
+        addBoxMesh(root, cx0, cx1, capTop - 0.002, capTop + 0.006, min.z + copingInset, max.z - copingInset, rm.coping);
+        if (isPerimeter) {
+          // Base wall (0..4.6m) + proud baseboard/top coping overlapping by 0.004m.
+          addBoxMesh(root, seg.x0, seg.x1, 0.22, 4.5, min.z, max.z, rm.perimeter, edgeMat);
+          addBoxMesh(root, tx0, tx1, 0, 0.224, min.z - trimProud, max.z + trimProud, rm.trim, undefined, 'tile');
+          addBoxMesh(root, tx0, tx1, 4.496, PERIMETER_HEIGHT_M, min.z - trimProud, max.z + trimProud, rm.trim, undefined, 'tile');
+        } else {
+          // Partition (0..3.6m) + proud regional top cap.
+          addBoxMesh(root, seg.x0, seg.x1, 0, 3.5, min.z, max.z, rm.wall, edgeMat);
+          addBoxMesh(root, tx0, tx1, 3.496, INTERIOR_WALL_HEIGHT_M, min.z - trimProud, max.z + trimProud, rm.trim, undefined, 'tile');
         }
       }
+      if (isPerimeter) continue;
+
+      // Proud vertical posts / pilasters at tile seams (regional material), built
+      // as THIN face strips (<= 3cm inside the body) + L-shaped corner posts, so
+      // no large post face ever sits just behind a polygon-offset wall face.
+      const postW = 0.11;
+      const embed = 0.03;
+      const postMinY = 0.004;
+      const postMaxY = 3.496;
+      const strip = (x0: number, x1: number, z0: number, z1: number, region: Region) =>
+        addBoxMesh(root, x0, x1, postMinY, postMaxY, z0, z1, regions[region].post, undefined, 'tile');
+
+      for (let dc = 0; dc <= block.colsSpan; dc++) {
+        const sx = min.x + dc * TILE_SIZE_M;
+        const region = regionOfX(dc === 0 ? sx + 0.01 : sx - 0.01);
+        let x0: number;
+        let x1: number;
+        if (dc === 0) {
+          x0 = min.x - postProud;
+          x1 = min.x + postW;
+        } else if (dc === block.colsSpan) {
+          x0 = max.x - postW;
+          x1 = max.x + postProud;
+        } else {
+          x0 = sx - postW * 0.5;
+          x1 = sx + postW * 0.5;
+        }
+        strip(x0, x1, min.z - postProud, min.z + embed, region); // North face
+        strip(x0, x1, max.z - embed, max.z + postProud, region); // South face
+      }
+      // East / West faces: corner returns (complete the L) + interior row seams.
+      for (let dr = 0; dr <= block.rowsSpan; dr++) {
+        const sz = min.z + dr * TILE_SIZE_M;
+        let z0: number;
+        let z1: number;
+        if (dr === 0) {
+          z0 = min.z + embed;
+          z1 = min.z + postW;
+        } else if (dr === block.rowsSpan) {
+          z0 = max.z - postW;
+          z1 = max.z - embed;
+        } else {
+          z0 = sz - postW * 0.5;
+          z1 = sz + postW * 0.5;
+        }
+        strip(min.x - postProud, min.x + embed, z0, z1, regionOfX(min.x + 0.01)); // West face
+        strip(max.x - embed, max.x + postProud, z0, z1, regionOfX(max.x - 0.01)); // East face
+      }
     } else if (kind === 'window' || kind === 'archway') {
-      buildWindowOrArchway(root, block, grid, frameMats);
+      buildWindowOrArchway(root, block, grid, frameMatsByRegion[blockRegion]);
     } else if (kind === 'low_cover') {
-      // Head-glitch barrier (1.26m) with proud dark top caprail (1.166..1.26m)
-      addBoxMesh(root, min.x, max.x, 0, 1.17, min.z, max.z, mats.low_cover, edgeMat);
-      addBoxMesh(root, min.x - trimProud, max.x + trimProud, 1.166, LOW_COVER_HEIGHT_M, min.z - trimProud, max.z + trimProud, caprailMat);
+      // Head-glitch barrier (1.26m): regional masonry/steel body + proud regional caprail.
+      addBoxMesh(root, min.x, max.x, 0, 1.17, min.z, max.z, regions[blockRegion].wall, edgeMat);
+      addBoxMesh(root, min.x - trimProud, max.x + trimProud, 1.166, LOW_COVER_HEIGHT_M, min.z - trimProud, max.z + trimProud, regions[blockRegion].trim, undefined, 'tile');
     } else if (kind === 'double_box') {
-      buildDoubleBox(root, block, mats.double_box, doubleBoxTrimMat, doubleBoxBraceMat, edgeMat);
+      buildDoubleBox(root, block, cargoMat, doubleBoxTrimMat, doubleBoxBraceMat, edgeMat);
     } else if (kind === 'crate') {
-      // Tall industrial crate (2.25m) with proud dark steel base/top frame bands
-      addBoxMesh(root, min.x, max.x, 0.14, 2.11, min.z, max.z, mats.crate, edgeMat);
+      // Radianite crate (2.25m): stenciled body + proud dark steel base/top frame bands.
+      addBoxMesh(root, min.x, max.x, 0.14, 2.11, min.z, max.z, crateMat, edgeMat, 'tile');
       addBoxMesh(root, min.x - trimProud, max.x + trimProud, 0, 0.144, min.z - trimProud, max.z + trimProud, crateTrimMat);
       addBoxMesh(root, min.x - trimProud, max.x + trimProud, 2.106, CRATE_HEIGHT_M, min.z - trimProud, max.z + trimProud, crateTrimMat);
     } else if (kind === 'platform') {
-      // Steel-grate deck (0.90m) + slightly inset dark skirt (no coplanar join) + corner bollards
-      addBoxMesh(root, min.x + trimProud, max.x - trimProud, 0, 0.784, min.z + trimProud, max.z - trimProud, frameSteelMat);
-      addBoxMesh(root, min.x, max.x, 0.78, PLATFORM_HEIGHT_M, min.z, max.z, mats.platform, edgeMat);
+      // Diamond-plate deck (0.90m) over an inset regional skirt + corner bollards.
+      addBoxMesh(root, min.x + trimProud, max.x - trimProud, 0, 0.784, min.z + trimProud, max.z - trimProud, regions[blockRegion].wall);
+      addBoxMesh(root, min.x, max.x, 0.78, PLATFORM_HEIGHT_M, min.z, max.z, deckMat, edgeMat, 'tile');
 
       const inset = 0.16;
       const bHalf = 0.055;
@@ -1367,12 +1695,11 @@ function buildArchitecturalBlocks(root: THREE.Group, grid: readonly string[]): v
         addBoxMesh(root, bx - bHalf, bx + bHalf, PLATFORM_HEIGHT_M, 1.08, bz - bHalf, bz + bHalf, bollardMat);
       }
     } else if (kind === 'stair') {
-      // 0.45m step-up platform
-      addBoxMesh(root, min.x, max.x, 0, STAIR_HEIGHT_M, min.z, max.z, mats.stair, edgeMat);
+      addBoxMesh(root, min.x, max.x, 0, STAIR_HEIGHT_M, min.z, max.z, stairMat, edgeMat, 'tile');
     }
   }
 
-  // Per-tile anti-slip tread bars on `^` and `v` stairs so step direction is obvious
+  // Per-tile anti-slip tread bars on `^` and `v` stairs so step direction is obvious.
   for (let r = 0; r < GRID_ROWS; r++) {
     for (let c = 0; c < GRID_COLS; c++) {
       const ch = grid[r][c] as TileChar;
@@ -1382,7 +1709,7 @@ function buildArchitecturalBlocks(root: THREE.Group, grid: readonly string[]): v
       const x1 = -HALF_WIDTH_M + (c + 1) * TILE_SIZE_M - 0.14;
       const zTileMin = -HALF_DEPTH_M + r * TILE_SIZE_M;
 
-      // 3 grip cleats along Z, raised proud (0.448..0.462) above the 0.45m step top face
+      // 3 grip cleats along Z, raised proud (0.448..0.462) above the 0.45m step top face.
       const offsets = ch === '^' ? [0.35, 0.95, 1.55] : [0.45, 1.05, 1.65];
       for (const off of offsets) {
         addBoxMesh(root, x0, x1, 0.448, 0.462, zTileMin + off - 0.06, zTileMin + off + 0.06, caprailMat);
@@ -1391,10 +1718,386 @@ function buildArchitecturalBlocks(root: THREE.Group, grid: readonly string[]): v
   }
 }
 
+// ---------------------------------------------------------------------------
+// Landmarks: Radianite Spike Pedestal & Site A Generator Tower
+// ---------------------------------------------------------------------------
+
 /**
- * Populates `scene` with the daylight 2-Site S&D compound built from
+ * Low hexagonal Radianite pedestal centered on the `S` tile. Purely visual
+ * (5cm tall, no collider): the dropped Spike rests on its top at
+ * `SPIKE_PEDESTAL_TOP_Y`, with a glowing inset hex ring, core disc, corner
+ * studs and a faint pulsing light column.
+ */
+function buildSpikePedestal(root: THREE.Group, pos: Vec3): void {
+  const group = new THREE.Group();
+  group.name = 'spike-pedestal';
+  group.position.set(pos.x, 0, pos.z);
+
+  const steel = solidMat(0x343c48, 0.42, 0.45);
+  const radianiteDark = new THREE.MeshStandardMaterial({
+    color: 0x3a1622,
+    roughness: 0.32,
+    metalness: 0.6,
+    emissive: COLOR_RADIANITE,
+    emissiveIntensity: 0.2,
+  });
+
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(0.98, 1.04, 0.03, 6), steel);
+  base.position.y = 0.015;
+  group.add(base);
+
+  const tier = new THREE.Mesh(new THREE.CylinderGeometry(0.74, 0.8, SPIKE_PEDESTAL_TOP_Y - 0.03, 6), radianiteDark);
+  tier.position.y = 0.03 + (SPIKE_PEDESTAL_TOP_Y - 0.03) * 0.5;
+  group.add(tier);
+
+  const ringMat = decalMat(COLOR_RADIANITE, 0.95);
+  const ring = new THREE.Mesh(new THREE.RingGeometry(0.5, 0.62, 6, 1, Math.PI / 6), ringMat);
+  ring.rotation.x = -Math.PI / 2;
+  ring.position.y = SPIKE_PEDESTAL_TOP_Y + 0.0015;
+  ring.renderOrder = 4;
+  ring.userData.shadowMode = 'none';
+  group.add(ring);
+
+  const coreMat = decalMat(0xff9fb2, 0.4);
+  const core = new THREE.Mesh(new THREE.CircleGeometry(0.44, 6, Math.PI / 6), coreMat);
+  core.rotation.x = -Math.PI / 2;
+  core.position.y = SPIKE_PEDESTAL_TOP_Y + 0.001;
+  core.renderOrder = 3;
+  core.userData.shadowMode = 'none';
+  group.add(core);
+
+  const studMat = glowMat(COLOR_RADIANITE);
+  for (let k = 0; k < 6; k++) {
+    const a = (Math.PI / 3) * k;
+    const sx = Math.sin(a) * 0.88;
+    const sz = Math.cos(a) * 0.88;
+    const stud = addBoxMesh(group, sx - 0.045, sx + 0.045, 0.03, 0.046, sz - 0.045, sz + 0.045, studMat);
+    stud.userData.shadowMode = 'none';
+  }
+
+  const beamMat = glowMat(COLOR_RADIANITE, 0.1, true);
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.62, 1.4, 6, 1, true), beamMat);
+  beam.position.y = SPIKE_PEDESTAL_TOP_Y + 0.7;
+  beam.renderOrder = 6;
+  beam.userData.shadowMode = 'none';
+  beam.onBeforeRender = () => {
+    const t = nowSeconds();
+    beamMat.opacity = 0.07 + 0.05 * (0.5 + 0.5 * Math.sin(t * 2.6));
+    ringMat.opacity = 0.75 + 0.2 * (0.5 + 0.5 * Math.sin(t * 2.6 + 1.1));
+  };
+  group.add(beam);
+
+  root.add(group);
+}
+
+/**
+ * Industrial A-Site Generator Tower standing on a Site A `B` crate. Every
+ * visual part stays inside its own collider (`|dx|,|dz| <= 0.5`,
+ * `y in [2.25, 4.10]`) pushed into `ARENA_COLLIDERS` by `applyGridData`.
+ */
+function buildGeneratorTower(root: THREE.Group, spec: GeneratorTowerSpec): void {
+  const group = new THREE.Group();
+  group.name = 'site-a-generator-tower';
+  group.position.set(spec.x, 0, spec.z);
+
+  const y0 = spec.baseY;
+  const y1 = spec.topY;
+  const steel = solidMat(0x4a5361, 0.45, 0.4);
+  const pipeMat = new THREE.MeshStandardMaterial({ color: COLOR_STEEL_FRAME, roughness: 0.55, metalness: 0.42 });
+  const hazard = pbrMat('hazard_trim', 0xffffff, COLOR_HAZARD, 0.5, 0.3, 1.0, false);
+  const coilMat = new THREE.MeshStandardMaterial({
+    color: 0x40210c,
+    roughness: 0.35,
+    metalness: 0.4,
+    emissive: COLOR_GENERATOR_GLOW,
+    emissiveIntensity: 1.6,
+  });
+
+  // Base plate (sits on the crate top band).
+  addBoxMesh(group, -0.48, 0.48, y0, y0 + 0.08, -0.48, 0.48, steel);
+
+  // Tapered generator core.
+  const coreH = y1 - 0.5 - (y0 + 0.08);
+  const core = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.42, coreH, 16), steel);
+  core.position.y = y0 + 0.08 + coreH * 0.5;
+  group.add(core);
+
+  // Hazard collar near the base.
+  const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.435, 0.435, 0.18, 20, 1, true), hazard);
+  collar.position.y = y0 + 0.22;
+  group.add(collar);
+
+  // Glowing induction coils.
+  for (let k = 0; k < 3; k++) {
+    const t = 0.38 + k * 0.22;
+    const radius = 0.42 - 0.08 * t + 0.01; // core radius at height fraction t, +1cm proud
+    const coil = new THREE.Mesh(new THREE.TorusGeometry(radius, 0.04, 8, 28), coilMat);
+    coil.rotation.x = Math.PI / 2;
+    coil.position.y = y0 + 0.08 + coreH * t;
+    group.add(coil);
+  }
+
+  // Four coolant pipes at the plate corners.
+  for (const [px, pz] of [
+    [0.4, 0.4],
+    [-0.4, 0.4],
+    [0.4, -0.4],
+    [-0.4, -0.4],
+  ] as const) {
+    const pipeH = y1 - 0.44 - (y0 + 0.08);
+    const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, pipeH, 8), pipeMat);
+    pipe.position.set(px, y0 + 0.08 + pipeH * 0.5, pz);
+    group.add(pipe);
+  }
+
+  // Hex cap + pulsing beacon (top of beacon == collider top).
+  const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.47, 0.47, 0.12, 6), steel);
+  cap.position.y = y1 - 0.44;
+  group.add(cap);
+  const beaconMat = glowMat(COLOR_GENERATOR_GLOW);
+  const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.14, 16, 12), beaconMat);
+  beacon.position.y = y1 - 0.15;
+  beacon.userData.shadowMode = 'none';
+  const baseBeacon = new THREE.Color(COLOR_GENERATOR_GLOW);
+  beacon.onBeforeRender = () => {
+    const pulse = 0.55 + 0.45 * (0.5 + 0.5 * Math.sin(nowSeconds() * 4.2));
+    beaconMat.color.copy(baseBeacon).multiplyScalar(pulse);
+    coilMat.emissiveIntensity = 1.1 + pulse * 0.9;
+  };
+  group.add(beacon);
+  const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.2, 8), steel);
+  mast.position.y = y1 - 0.34;
+  group.add(mast);
+
+  root.add(group);
+}
+
+// ---------------------------------------------------------------------------
+// Buy-Phase Energy Barrier Curtains
+// ---------------------------------------------------------------------------
+
+interface BarrierSpan {
+  x0: number;
+  x1: number;
+  baseY: number;
+  height: number;
+}
+
+/**
+ * Finds the walkable openings crossing the barrier line `z = zLine`: a column
+ * is open when the tiles on both sides of the line are walkable. Adjacent open
+ * columns merge into one curtain span (headroom clamps under archway headers).
+ */
+function findBarrierSpans(grid: readonly string[], zLine: number): BarrierSpan[] {
+  const rNorth = worldToRow(zLine - 0.05);
+  const rSouth = worldToRow(zLine + 0.05);
+  const spans: BarrierSpan[] = [];
+  let current: BarrierSpan | null = null;
+
+  for (let c = 1; c < GRID_COLS - 1; c++) {
+    const chN = tileAt(grid, rNorth, c);
+    const chS = tileAt(grid, rSouth, c);
+    const hN = getWalkableSurfaceHeight(chN);
+    const hS = getWalkableSurfaceHeight(chS);
+    if (hN === null || hS === null) {
+      current = null;
+      continue;
+    }
+    const cap = chN === 'O' || chS === 'O' ? ARCH_HEADER_BOTTOM_M - 0.04 : INTERIOR_WALL_HEIGHT_M - 0.1;
+    const base = Math.max(hN, hS);
+    const x0 = -HALF_WIDTH_M + c * TILE_SIZE_M;
+    if (current && Math.abs(current.baseY - base) < 1e-6) {
+      current.x1 = x0 + TILE_SIZE_M;
+      current.height = Math.min(current.height, cap - base);
+    } else {
+      current = { x0, x1: x0 + TILE_SIZE_M, baseY: base, height: cap - base };
+      spans.push(current);
+    }
+  }
+
+  if (spans.length === 0) {
+    spans.push({ x0: -HALF_WIDTH_M + TILE_SIZE_M, x1: HALF_WIDTH_M - TILE_SIZE_M, baseY: 0, height: 3.2 });
+  }
+  return spans;
+}
+
+/**
+ * Builds translucent, animated hex-grid energy curtains across every opening
+ * on the South Attacker barrier (`buyMinAllyZ`, blue) and the North Defender
+ * setup barrier (`buyMaxDefenderZ`, red), each framed by glowing emitter rails.
+ */
+function buildBuyBarriers(grid: readonly string[]): THREE.Group {
+  const group = new THREE.Group();
+  group.name = 'buy-phase-barriers';
+  const hex = getBuyBarrierTexture();
+  const uvRepeatM = 1.6;
+
+  const defs: ReadonlyArray<{ z: number; color: number; phase: number }> = [
+    { z: cachedSpawns.buyMinAllyZ, color: COLOR_BARRIER_ATTACK, phase: 0 },
+    { z: cachedSpawns.buyMaxDefenderZ, color: COLOR_BARRIER_DEFEND, phase: 1.7 },
+  ];
+
+  for (const def of defs) {
+    const baseOpacity = hex.map ? 0.62 : 0.3;
+    const curtainMat = new THREE.MeshBasicMaterial({
+      color: def.color,
+      transparent: true,
+      opacity: baseOpacity,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+      toneMapped: false,
+    });
+    if (hex.map) curtainMat.map = hex.map;
+    if (hex.alphaMap) curtainMat.alphaMap = hex.alphaMap;
+    const railMat = glowMat(def.color);
+
+    for (const span of findBarrierSpans(grid, def.z)) {
+      const w = span.x1 - span.x0 - 0.04;
+      const h = span.height;
+      const cx = (span.x0 + span.x1) * 0.5;
+
+      const geo = new THREE.PlaneGeometry(w, h);
+      const uv = geo.getAttribute('uv');
+      for (let i = 0; i < uv.count; i++) {
+        uv.setXY(i, (uv.getX(i) * w) / uvRepeatM, (uv.getY(i) * h) / uvRepeatM);
+      }
+      uv.needsUpdate = true;
+
+      const curtain = new THREE.Mesh(geo, curtainMat);
+      curtain.position.set(cx, span.baseY + h * 0.5, def.z);
+      curtain.renderOrder = 7;
+      curtain.onBeforeRender = () => {
+        const t = nowSeconds();
+        curtainMat.opacity = baseOpacity * (0.8 + 0.2 * Math.sin(t * 2.4 + def.phase));
+        if (hex.map) hex.map.offset.set((t * 0.015) % 1, (t * 0.11) % 1);
+        if (hex.alphaMap && hex.map) hex.alphaMap.offset.copy(hex.map.offset);
+      };
+      group.add(curtain);
+
+      // Glowing floor emitter + top rail + side posts framing the curtain.
+      const x0 = span.x0 + 0.02;
+      const x1 = span.x1 - 0.02;
+      const y0 = span.baseY + 0.002;
+      addBoxMesh(group, x0, x1, y0, y0 + 0.05, def.z - 0.07, def.z + 0.07, railMat);
+      addBoxMesh(group, x0, x1, span.baseY + h - 0.05, span.baseY + h, def.z - 0.05, def.z + 0.05, railMat);
+      addBoxMesh(group, x0, x0 + 0.07, y0, span.baseY + h, def.z - 0.06, def.z + 0.06, railMat);
+      addBoxMesh(group, x1 - 0.07, x1, y0, span.baseY + h, def.z - 0.06, def.z + 0.06, railMat);
+    }
+  }
+  return group;
+}
+
+/**
+ * Shows / hides the translucent 3D buy-phase energy curtains (built lazily for
+ * the active grid). Safe to call before `buildArenaScene`: the requested state
+ * is remembered and applied when the arena is built.
+ */
+export function setArenaBuyBarriersVisible(visible: boolean): void {
+  barriersVisible = visible;
+  if (!arenaRoot) return;
+  if (!barrierGroup) {
+    barrierGroup = buildBuyBarriers(currentGrid);
+    arenaRoot.add(barrierGroup);
+  }
+  barrierGroup.visible = visible;
+}
+
+/**
+ * Static draw-call batching: bakes every opaque, non-animated mesh (and every
+ * edge-line overlay) under `root` into world space and merges them into ONE
+ * mesh per `(material, castShadow, receiveShadow)` bucket. Turns ~1000 tiny
+ * box meshes into a few dozen draw calls (and the same for the shadow pass)
+ * with zero visual change. Animated parts (`onBeforeRender` hooks),
+ * transparent decals and sprites are left untouched.
+ */
+function mergeStaticMeshes(root: THREE.Group): void {
+  root.updateMatrixWorld(true);
+  const toRoot = new THREE.Matrix4().copy(root.matrixWorld).invert();
+  const defaultHook = THREE.Object3D.prototype.onBeforeRender;
+
+  interface Bucket {
+    mat: THREE.Material;
+    geos: THREE.BufferGeometry[];
+    cast: boolean;
+    receive: boolean;
+    lines: boolean;
+  }
+  const buckets = new Map<string, Bucket>();
+  const consumed: THREE.Object3D[] = [];
+
+  root.traverse((obj) => {
+    if (obj.onBeforeRender !== defaultHook) return;
+    const isLine = obj instanceof THREE.LineSegments;
+    const isMesh = obj instanceof THREE.Mesh;
+    if (!isLine && !isMesh) return;
+    const mesh = obj as THREE.Mesh | THREE.LineSegments;
+    if (Array.isArray(mesh.material) || mesh.material.transparent) return;
+    const geo = mesh.geometry;
+    if (isMesh && (!geo.index || !geo.getAttribute('normal') || !geo.getAttribute('uv'))) return;
+    if (isLine && geo.index) return;
+
+    const key = `${isLine ? 'L' : 'M'}:${mesh.material.uuid}:${mesh.castShadow ? 1 : 0}${mesh.receiveShadow ? 1 : 0}`;
+    let bucket = buckets.get(key);
+    if (!bucket) {
+      bucket = { mat: mesh.material, geos: [], cast: mesh.castShadow, receive: mesh.receiveShadow, lines: isLine };
+      buckets.set(key, bucket);
+    }
+    const baked = (isLine ? new THREE.BufferGeometry().setAttribute('position', geo.getAttribute('position').clone()) : geo.clone());
+    baked.applyMatrix4(new THREE.Matrix4().multiplyMatrices(toRoot, mesh.matrixWorld));
+    bucket.geos.push(baked);
+    consumed.push(mesh);
+  });
+
+  // Detach consumed objects (re-homing any non-consumed children) and free their geometry.
+  const consumedSet = new Set(consumed);
+  for (const obj of consumed) {
+    for (const child of [...obj.children]) {
+      if (!consumedSet.has(child)) root.attach(child);
+    }
+    obj.removeFromParent();
+    (obj as THREE.Mesh).geometry.dispose();
+  }
+
+  for (const bucket of buckets.values()) {
+    const merged = bucket.geos.length === 1 ? bucket.geos[0] : mergeGeometries(bucket.geos, false);
+    const outputs = merged ? [merged] : bucket.geos;
+    for (const g of outputs) {
+      const obj = bucket.lines
+        ? new THREE.LineSegments(g, bucket.mat)
+        : new THREE.Mesh(g, bucket.mat);
+      obj.castShadow = bucket.cast;
+      obj.receiveShadow = bucket.receive;
+      root.add(obj);
+    }
+    if (merged && bucket.geos.length > 1) {
+      for (const g of bucket.geos) g.dispose();
+    }
+  }
+}
+
+/** Applies cast/receive shadow flags to every opaque mesh under `root`. */
+function applyShadowFlags(root: THREE.Object3D): void {
+  root.traverse((obj) => {
+    if (!(obj instanceof THREE.Mesh)) return;
+    const mode = obj.userData.shadowMode as 'none' | 'receive' | undefined;
+    const mat = obj.material as THREE.Material | THREE.Material[];
+    const transparent = Array.isArray(mat) ? mat.some((m) => m.transparent) : mat.transparent;
+    const unlit = !Array.isArray(mat) && mat instanceof THREE.MeshBasicMaterial;
+    if (mode === 'none' || transparent || unlit) {
+      obj.castShadow = false;
+      obj.receiveShadow = false;
+      return;
+    }
+    obj.castShadow = mode !== 'receive';
+    obj.receiveShadow = true;
+  });
+}
+
+/**
+ * Populates `scene` with the daylight "Chroma Ascent" S&D compound built from
  * `customGrid` (or `DEFAULT_KILLHOUSE_GRID`), updating `ARENA_COLLIDERS`,
- * `getArenaWaypoints()`, `getArenaSpawns()`, and `getBombSites()`.
+ * `getArenaWaypoints()`, `getArenaSpawns()`, `getBombSites()` and
+ * `getSpikeSpawnPos()`.
  *
  * Safe to call multiple times: disposes any prior arena meshes/materials first.
  */
@@ -1402,33 +2105,64 @@ export function buildArenaScene(scene: THREE.Scene, customGrid?: string[]): void
   if (arenaRoot) {
     disposeArenaRoot(arenaRoot);
     arenaRoot = null;
+    barrierGroup = null;
   }
 
   applyGridData(customGrid ?? DEFAULT_KILLHOUSE_GRID);
 
   scene.background = new THREE.Color(COLOR_SKY_BG);
-  scene.fog = new THREE.Fog(COLOR_SKY_BG, 48, 120);
+  // Fog starts beyond the 50m A-Long lane so long sightlines stay crystal sharp.
+  scene.fog = new THREE.Fog(COLOR_SKY_BG, 82, 190);
 
   const root = new THREE.Group();
-  root.name = 'killhouse-arena-root';
+  root.name = 'chroma-ascent-arena-root';
 
-  // Bright overcast skylight + warm sun key light so agent colors POP
-  const hemiLight = new THREE.HemisphereLight(0xeef4ff, 0x4a5568, 1.15);
+  // Bright overcast skylight + warm shadow-casting sun key light so agent colors POP.
+  const hemiLight = new THREE.HemisphereLight(0xeef4ff, 0x4a5568, 1.1);
   root.add(hemiLight);
 
-  const sunLight = new THREE.DirectionalLight(0xfff6e8, 1.55);
-  sunLight.position.set(20, 32, 22);
+  const sunLight = new THREE.DirectionalLight(0xfff3e0, 1.75);
+  sunLight.position.set(26, 44, 20);
+  sunLight.target.position.set(0, 0, 0);
+  sunLight.castShadow = true;
+  sunLight.shadow.mapSize.set(2048, 2048);
+  const shadowCam = sunLight.shadow.camera;
+  shadowCam.left = -46;
+  shadowCam.right = 46;
+  shadowCam.top = 46;
+  shadowCam.bottom = -46;
+  shadowCam.near = 2;
+  shadowCam.far = 110;
+  shadowCam.updateProjectionMatrix();
+  sunLight.shadow.bias = -0.0004;
+  sunLight.shadow.normalBias = 0.02;
   root.add(sunLight);
+  root.add(sunLight.target);
 
-  // Subtle cool back-fill keeps north-facing cover faces legible
-  const fillLight = new THREE.DirectionalLight(0xdbeafe, 0.45);
+  // Subtle cool back-fill keeps north-facing cover faces legible (no shadows).
+  const fillLight = new THREE.DirectionalLight(0xdbeafe, 0.42);
   fillLight.position.set(-18, 20, -20);
   root.add(fillLight);
 
-  buildFloorAndGrid(root);
+  const regions = createRegionMaterials();
+  buildFloorAndGrid(root, regions);
   buildSiteMarkings(root, currentGrid);
-  buildArchitecturalBlocks(root, currentGrid);
-  buildWarehouseRafters(root);
+  buildArchitecturalBlocks(root, currentGrid, regions);
+
+  if (currentGrid.some((row) => row.includes('S'))) {
+    buildSpikePedestal(root, cachedSpikePos);
+  }
+  if (cachedGenerator) {
+    buildGeneratorTower(root, cachedGenerator);
+  }
+
+  applyShadowFlags(root);
+  mergeStaticMeshes(root);
+
+  // Buy-phase curtains (unlit, never cast shadows); visibility follows the last request.
+  barrierGroup = buildBuyBarriers(currentGrid);
+  barrierGroup.visible = barriersVisible;
+  root.add(barrierGroup);
 
   scene.add(root);
   arenaRoot = root;
@@ -1436,8 +2170,9 @@ export function buildArenaScene(scene: THREE.Scene, customGrid?: string[]): void
 
 /**
  * Live-rebuilds the 3D arena, greedy-meshed `ARENA_COLLIDERS`, AI waypoints,
- * team spawns, and bomb sites from a user-edited ASCII grid, cleanly disposing
- * old GPU geometries, materials, and textures without disturbing combatants.
+ * team spawns, bomb sites and the Spike pedestal from a user-edited ASCII
+ * grid, cleanly disposing old GPU geometries, materials, and textures without
+ * disturbing combatants.
  */
 export function rebuildArenaScene(scene: THREE.Scene, customGrid: string[]): void {
   buildArenaScene(scene, customGrid);

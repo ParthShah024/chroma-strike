@@ -34,6 +34,15 @@ export const AGENT_ABILITIES: Record<AgentColorId, Record<AbilitySlot, AbilitySp
       cooldownSec: 10.0,
       description: 'Bouncing molotov fire zone (35 DPS)',
     },
+    x: {
+      slot: 'x',
+      keyLabel: 'X',
+      name: 'Inferno Overdrive',
+      shortTag: 'EMPRESS',
+      cooldownSec: 0,
+      ultPointsRequired: 5,
+      description: '8s combat frenzy: 1.35x fire rate & kills reset Dash',
+    },
   },
   blue: {
     q: {
@@ -52,6 +61,15 @@ export const AGENT_ABILITIES: Record<AgentColorId, Record<AbilitySlot, AbilitySp
       cooldownSec: 10.0,
       description: '4.5m cryo zone (70% target slow)',
     },
+    x: {
+      slot: 'x',
+      keyLabel: 'X',
+      name: 'Glacial Whiteout',
+      shortTag: 'BLIZZARD',
+      cooldownSec: 0,
+      ultPointsRequired: 5,
+      description: '9m freezing whiteout dome slowing & blinding sightlines',
+    },
   },
   green: {
     q: {
@@ -69,6 +87,15 @@ export const AGENT_ABILITIES: Record<AgentColorId, Record<AbilitySlot, AbilitySp
       shortTag: 'STIM',
       cooldownSec: 12.0,
       description: '+20 HP/s heal + 1.28x combat stim',
+    },
+    x: {
+      slot: 'x',
+      keyLabel: 'X',
+      name: 'Orbital Recon',
+      shortTag: 'SONAR',
+      cooldownSec: 0,
+      ultPointsRequired: 5,
+      description: '3 arena-wide sonar pulses revealing all foes on Minimap',
     },
   },
   violet: {
@@ -89,6 +116,15 @@ export const AGENT_ABILITIES: Record<AgentColorId, Record<AbilitySlot, AbilitySp
       cooldownSec: 13.0,
       description: 'Gravity well pulling foes inward + 1.25x Fragile',
     },
+    x: {
+      slot: 'x',
+      keyLabel: 'X',
+      name: 'Eclipse Curtain',
+      shortTag: 'ECLIPSE',
+      cooldownSec: 0,
+      ultPointsRequired: 5,
+      description: 'Slices a 28m opaque Void Curtain wall across the map',
+    },
   },
   gold: {
     q: {
@@ -106,6 +142,15 @@ export const AGENT_ABILITIES: Record<AgentColorId, Record<AbilitySlot, AbilitySp
       shortTag: 'RELAY',
       cooldownSec: 10.0,
       description: '1-bounce lightning bolt creating twin concuss shockzones',
+    },
+    x: {
+      slot: 'x',
+      keyLabel: 'X',
+      name: 'Thunderstorm',
+      shortTag: 'STORM',
+      cooldownSec: 0,
+      ultPointsRequired: 5,
+      description: '7.5s high-voltage sprint, rapid slides & chain-lightning arcs',
     },
   },
 };

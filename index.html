@@ -886,11 +886,11 @@
       }
 
       .map-card {
-        width: 820px;
+        width: 890px;
         max-width: calc(100vw - 24px);
         max-height: calc(100vh - 24px);
-        overflow-y: auto;
-        padding: 16px 18px;
+        overflow: auto;
+        padding: 14px 16px;
         border-radius: 14px;
         background: rgba(18, 23, 32, 0.96);
         border: 1px solid var(--border-glass);
@@ -930,7 +930,9 @@
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 6px;
+        gap: 5px;
+        max-width: 100%;
+        overflow: auto;
       }
 
       .map-axis-label {
@@ -942,8 +944,8 @@
 
       #map-editor-grid {
         display: grid;
-        grid-template-columns: repeat(24, 17px);
-        grid-template-rows: repeat(28, 17px);
+        grid-template-columns: repeat(36, 12px);
+        grid-template-rows: repeat(40, 12px);
         gap: 1.5px;
         padding: 6px;
         border-radius: 10px;
@@ -952,11 +954,12 @@
       }
 
       .map-cell {
-        width: 17px;
-        height: 17px;
-        border-radius: 3px;
+        width: 12px;
+        height: 12px;
+        border-radius: 2px;
         border: 1px solid rgba(255, 255, 255, 0.08);
-        font-size: 9px;
+        font-size: 8px;
+        line-height: 1;
         font-weight: 800;
         display: flex;
         align-items: center;
@@ -1026,6 +1029,12 @@
       .tile-site-b {
         background: #0284c7;
         color: #ffffff;
+      }
+
+      .me-tile-S {
+        background: linear-gradient(135deg, #f59e0b, #facc15);
+        color: #1c1917;
+        border-color: rgba(253, 224, 71, 0.8);
       }
 
       .tile-floor {
@@ -1189,6 +1198,52 @@
         color: #fff;
         border-color: #fff;
         box-shadow: 0 0 14px var(--accent), inset 0 0 8px rgba(255, 255, 255, 0.25);
+      }
+
+      .ability-slot.ult-slot {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        min-width: 108px;
+        padding: 4px 8px;
+      }
+
+      .ult-pips {
+        display: inline-flex;
+        align-items: center;
+        gap: 2.5px;
+      }
+
+      .ult-pip {
+        width: 5px;
+        height: 8px;
+        border-radius: 1.5px;
+        background: rgba(255, 255, 255, 0.16);
+        border: 1px solid rgba(255, 255, 255, 0.26);
+        transition: background 120ms ease, box-shadow 120ms ease;
+      }
+
+      .ult-pip.lit {
+        background: #facc15;
+        border-color: #fef08a;
+        box-shadow: 0 0 5px rgba(250, 204, 21, 0.75);
+      }
+
+      .ability-slot.ult-slot.ready,
+      .ability-slot.ult-slot.ult-ready {
+        border-color: #facc15;
+        box-shadow: 0 0 14px rgba(250, 204, 21, 0.75), inset 0 0 8px rgba(250, 204, 21, 0.28);
+        animation: ultReadyPulse 0.9s ease-in-out infinite alternate;
+      }
+
+      @keyframes ultReadyPulse {
+        from {
+          box-shadow: 0 0 8px rgba(250, 204, 21, 0.55), inset 0 0 6px rgba(250, 204, 21, 0.18);
+        }
+        to {
+          box-shadow: 0 0 18px rgba(250, 204, 21, 0.95), inset 0 0 12px rgba(250, 204, 21, 0.42);
+        }
       }
 
       @keyframes abPulse {
@@ -1491,8 +1546,8 @@
         min-width: 0;
         display: flex;
         flex-direction: column;
-        gap: 12px;
-        padding: 18px 20px 16px;
+        gap: 8px;
+        padding: 14px 18px 12px;
         overflow-y: auto;
       }
 
@@ -1520,7 +1575,7 @@
       #agent-card-list {
         display: flex;
         flex-direction: column;
-        gap: 7px;
+        gap: 5px;
         min-height: 0;
       }
 
@@ -1564,8 +1619,8 @@
         flex: 1;
         display: flex;
         flex-direction: column;
-        gap: 3px;
-        padding: 8px 12px 9px;
+        gap: 2px;
+        padding: 6px 10px 7px;
         min-width: 0;
       }
 
@@ -1627,9 +1682,9 @@
       .agent-ability-row {
         display: flex;
         align-items: baseline;
-        gap: 7px;
-        font-size: 11px;
-        line-height: 1.3;
+        gap: 6px;
+        font-size: 10.5px;
+        line-height: 1.25;
         color: var(--text-muted);
       }
 
@@ -1642,6 +1697,24 @@
         color: #fff;
         border: 1px solid color-mix(in srgb, var(--card-accent) 65%, transparent);
         background: color-mix(in srgb, var(--card-accent) 22%, transparent);
+      }
+
+      .agent-ability-chip.ult {
+        color: #fef08a;
+        border-color: rgba(250, 204, 21, 0.8);
+        background: rgba(250, 204, 21, 0.2);
+      }
+
+      .agent-ult-cost {
+        display: inline-block;
+        margin-right: 4px;
+        padding: 0 4px;
+        border-radius: 3px;
+        font-size: 9px;
+        font-weight: 800;
+        color: #facc15;
+        background: rgba(250, 204, 21, 0.14);
+        border: 1px solid rgba(250, 204, 21, 0.35);
       }
 
       .agent-ability-text b {
@@ -1822,8 +1895,8 @@
 
       #minimap-canvas {
         display: block;
-        width: 168px;
-        height: 196px;
+        width: 180px;
+        height: 200px;
         border-radius: 6px;
         border: 1px solid rgba(255, 255, 255, 0.1);
       }
@@ -2454,7 +2527,7 @@
         <span>RADAR • S&amp;D</span>
         <span class="minimap-sites"><b class="site-a">A</b><b class="site-b">B</b></span>
       </div>
-      <canvas id="minimap-canvas" width="168" height="196"></canvas>
+      <canvas id="minimap-canvas" width="180" height="200"></canvas>
     </div>
 
     <!-- Top Center 3v3 Round Scoreboard & Side Indicator -->
@@ -2519,8 +2592,9 @@
       <div id="kill-medal-streak"></div>
     </div>
     <div id="control-strip">
-      <b>[B]</b> Buy Shop &bull; <b>[H]</b> Agents &bull; <b>[F]</b> Plant/Defuse &bull;
-      <b>[G]</b> Drop Spike &bull; <b>[Space]</b> Skip Buy
+      <b>[Q / E]</b> Abilities &bull; <b>[X]</b> Ultimate &bull; <b>[B]</b> Buy Shop &bull;
+      <b>[H]</b> Agents &bull; <b>[F]</b> Plant/Defuse &bull; <b>[G]</b> Drop Spike &bull;
+      <b>[Space]</b> Skip Buy
     </div>
 
     <!-- Minimalist Bottom HUD -->
@@ -2541,6 +2615,7 @@
       <div class="ability-blocks">
         <div class="ability-slot ready" id="ability-q"><span class="ab-key">[Q]</span>DASH</div>
         <div class="ability-slot ready" id="ability-e"><span class="ab-key">[E]</span>FIRE</div>
+        <div class="ability-slot ult-slot" id="ability-x"><span class="ab-key">[X]</span>EMPRESS<span class="ult-pips"></span></div>
       </div>
       <div class="hud-sep"></div>
       <div class="weapon-pills">
@@ -2633,7 +2708,7 @@
     <div id="map-editor-modal" class="hidden">
       <div class="map-card">
         <div class="map-header">
-          <div class="map-title">KILLHOUSE MAP MAKER <span>24 × 28 GRID (48m × 56m S&amp;D)</span></div>
+          <div class="map-title">CHROMA ASCENT MAP MAKER <span>36 × 40 GRID (72m × 80m S&amp;D)</span></div>
           <button type="button" class="xhair-close" id="map-close-btn">CLOSE [M]</button>
         </div>
 
@@ -2682,6 +2757,9 @@
               </button>
               <button type="button" class="map-brush-btn" data-tile-brush="2">
                 <span class="brush-swatch tile-site-b">2</span> Bomb Site B
+              </button>
+              <button type="button" class="map-brush-btn" data-tile-brush="S">
+                <span class="brush-swatch me-tile-S">S</span> Spike Pedestal
               </button>
               <button type="button" class="map-brush-btn" data-tile-brush="A">
                 <span class="brush-swatch tile-ally">A</span> Attacker Spawn
@@ -2884,6 +2962,7 @@
           <div class="ctrl-item"><span class="key">H / F1-F5</span> Agent Select / Switch</div>
           <div class="ctrl-item"><span class="key">F / G</span> Plant &amp; Defuse / Drop Spike</div>
           <div class="ctrl-item"><span class="key">Q / E</span> Tactical Abilities</div>
+          <div class="ctrl-item"><span class="key">X</span> Ultimate Ability (5 Pts)</div>
           <div class="ctrl-item"><span class="key">C</span> Crosshair Customizer</div>
           <div class="ctrl-item"><span class="key">M</span> Live Map Maker</div>
           <div class="ctrl-item"><span class="key">V</span> 1st/3rd-Person Model View</div>

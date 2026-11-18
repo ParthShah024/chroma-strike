@@ -22,7 +22,7 @@ import {
   raycastSphere,
   updatePlayerMovement,
 } from '../physics/movement';
-import { ArenaWaypoint, getArenaWaypoints } from '../arena/map';
+import { ArenaWaypoint, getArenaSpawns, getArenaWaypoints } from '../arena/map';
 import { WEAPON_SPECS, computeWeaponDamage } from '../combat/arsenal';
 import { AbilitySystem } from '../abilities/system';
 import { WeaponSystem } from '../combat/weapons';
@@ -80,6 +80,7 @@ export interface BotSdContext {
   attackerTeam: TeamId;
   spike: SpikeHudState;
   sites: Record<BombSiteId, BombSiteZone>;
+  buyTimeRemainingSec?: number;
   onBotPlantTick?: (bot: Combatant, dt: number) => void;
   onBotDefuseTick?: (bot: Combatant, dt: number) => void;
 }
@@ -162,6 +163,9 @@ const BOT_RECOVERY_HP_THRESHOLD = 68;
 const BOT_DEFUSE_RANGE_M = 2.6;
 const BOT_URGENT_DEFUSE_TIMER_SEC = 7.5;
 const BOT_PLANT_THREAT_DIST_M = 13.5;
+const MAX_ULT_POINTS = 5;
+const BOT_ULT_ACTIVE_SEC = 7.5;
+const BUY_SPIKE_BOT_PICKUP_WINDOW_SEC = 7.5;
 
 function slideDrop(c: Combatant): number {
   return (c.slideTimer ?? 0) > 0 ? SLIDE_HITBOX_DROP_M : 0;
@@ -258,7 +262,8 @@ function findClosestWaypointInSubset(
 function findShortestPath(
   startId: string,
   goalId: string,
-  waypointById: Map<string, ArenaWaypoint>
+  waypointById: Map<string, ArenaWaypoint>,
+  isNodeAllowed?: (wp: ArenaWaypoint) => boolean
 ): string[] {
   if (startId === goalId) return [goalId];
 
@@ -275,6 +280,10 @@ function findShortestPath(
 
     for (const nextId of node.neighbors) {
       if (!parent.has(nextId)) {
+        const nextNode = waypointById.get(nextId);
+        if (isNodeAllowed && nextNode && nextId !== goalId && !isNodeAllowed(nextNode)) {
+          continue;
+        }
         parent.set(nextId, curr);
         queue.push(nextId);
       }
@@ -576,6 +585,136 @@ function chooseSdObjectiveGoal(
 }
 
 /**
+ * Buy-Phase Staging & Spike Pickup Goal Selector:
+ * - Defenders walk via BFS out of CT-Spawn to `anchor_a`, `mid_watch`, and
+ *   `anchor_b` staging points strictly inside `spawns.buyMaxDefenderZ`.
+ * - Attackers let the human player grab the T-Spawn `'S'` Pedestal Spike for
+ *   the first 4.5s (`buyTimeRemainingSec >= 7.5s`); below 7.5s (or when the
+ *   enemy team is attacking), the designated carrier walks to `spike.position`
+ *   to pick it up while Attackers stage neatly behind `spawns.buyMinAllyZ`.
+ */
+function chooseBuyPhaseGoal(
+  bot: Combatant,
+  mem: BotMemory,
+  waypoints: ArenaWaypoint[],
+  sdContext: BotSdContext,
+  botSlotIndex: number,
+  designatedBuyCarrierId: string | null,
+  hasHumanAttacker: boolean
+): {
+  goalId: string | null;
+  directTargetPos: Vec3 | null;
+  lookPos: Vec3;
+  isAllowedNode: (wp: ArenaWaypoint) => boolean;
+} {
+  const spawns = getArenaSpawns();
+  const { attackerTeam, spike, sites } = sdContext;
+  const isAttacker = bot.team === attackerTeam;
+
+  if (!isAttacker) {
+    const defMaxZ = spawns.buyMaxDefenderZ;
+    const isAllowedNode = (wp: ArenaWaypoint): boolean => wp.pos.z <= defMaxZ - 0.35;
+    const defPoolRaw = waypoints.filter(isAllowedNode);
+    const defPool =
+      defPoolRaw.length > 0
+        ? defPoolRaw
+        : waypoints.filter((wp) => wp.pos.z <= defMaxZ + 0.25);
+    const pool = defPool.length > 0 ? defPool : waypoints;
+
+    if (mem.role === 'anchor_a') {
+      const siteA = sites.A;
+      const targetZ = Math.min(siteA.center.z - 1.2, defMaxZ - 1.2);
+      const siteAPool = pool.filter((wp) => wp.zone === 'site_a');
+      return {
+        goalId: findClosestWaypointInSubset(
+          siteAPool.length > 0 ? siteAPool : pool,
+          siteA.center.x,
+          targetZ
+        ),
+        directTargetPos: null,
+        lookPos: { x: siteA.center.x, y: 0, z: siteA.center.z + 16 },
+        isAllowedNode,
+      };
+    }
+
+    if (mem.role === 'anchor_b') {
+      const siteB = sites.B;
+      const targetZ = Math.min(siteB.center.z - 1.2, defMaxZ - 1.2);
+      const siteBPool = pool.filter((wp) => wp.zone === 'site_b');
+      return {
+        goalId: findClosestWaypointInSubset(
+          siteBPool.length > 0 ? siteBPool : pool,
+          siteB.center.x,
+          targetZ
+        ),
+        directTargetPos: null,
+        lookPos: { x: siteB.center.x, y: 0, z: siteB.center.z + 16 },
+        isAllowedNode,
+      };
+    }
+
+    // 'mid_watch': stage at Mid Window / CT-Mid looking South
+    const midPool = pool.filter(
+      (wp) => wp.zone === 'mid' || (Math.abs(wp.pos.x) <= 8 && wp.pos.z <= defMaxZ)
+    );
+    const targetZ = Math.min(-6.0, defMaxZ - 1.2);
+    return {
+      goalId: findClosestWaypointInSubset(
+        midPool.length > 0 ? midPool : pool,
+        0,
+        targetZ
+      ),
+      directTargetPos: null,
+      lookPos: { x: 0, y: 0, z: 16 },
+      isAllowedNode,
+    };
+  }
+
+  // Attacker Buy Phase
+  const atkMinZ = spawns.buyMinAllyZ;
+  const isAllowedNode = (wp: ArenaWaypoint): boolean => wp.pos.z >= atkMinZ + 0.35;
+  const atkPoolRaw = waypoints.filter(isAllowedNode);
+  const atkPool =
+    atkPoolRaw.length > 0
+      ? atkPoolRaw
+      : waypoints.filter((wp) => wp.pos.z >= atkMinZ - 0.25);
+  const pool = atkPool.length > 0 ? atkPool : waypoints;
+
+  const buyRemaining = sdContext.buyTimeRemainingSec ?? 0;
+  const shouldClaimSpike =
+    spike.status === 'dropped' &&
+    bot.id === designatedBuyCarrierId &&
+    (!hasHumanAttacker || buyRemaining < BUY_SPIKE_BOT_PICKUP_WINDOW_SEC);
+
+  if (shouldClaimSpike) {
+    const distToSpike = horizDist2D(bot.position, spike.position);
+    return {
+      goalId: findClosestWaypointInSubset(pool, spike.position.x, spike.position.z),
+      directTargetPos: distToSpike < 7.5 ? spike.position : null,
+      lookPos: spike.position,
+      isAllowedNode,
+    };
+  }
+
+  // Stage neatly behind `buyMinAllyZ` facing West / Mid / East barrier exits
+  const stageX =
+    mem.role === 'lurker'
+      ? 0
+      : botSlotIndex % 3 === 0
+        ? -12
+        : botSlotIndex % 3 === 1
+          ? 0
+          : 12;
+  const stageZ = atkMinZ + 1.4;
+  return {
+    goalId: findClosestWaypointInSubset(pool, stageX, stageZ),
+    directTargetPos: null,
+    lookPos: { x: stageX, y: 0, z: atkMinZ - 16 },
+    isAllowedNode,
+  };
+}
+
+/**
  * Computes yaw/pitch facing from `origin` toward `target` matching Three.js's
  * `'YXZ'` convention (`forward = (-sin(yaw)*cos(pitch), sin(pitch), -cos(yaw)*cos(pitch))`).
  */
@@ -717,6 +856,7 @@ export function createBotBrainSystem(): BotBrainSystem {
   let difficulty: AiDifficulty = 'casual';
   let roundExecuteSite: BombSiteId = 'A';
   let rolesAssignedForAttackerTeam: TeamId | null = null;
+  let lastCombatActive = false;
 
   function setDifficulty(diff: AiDifficulty): void {
     if (diff in DIFFICULTY_PROFILES) difficulty = diff;
@@ -804,6 +944,7 @@ export function createBotBrainSystem(): BotBrainSystem {
     memories.clear();
     roundExecuteSite = Math.random() < 0.5 ? 'A' : 'B';
     rolesAssignedForAttackerTeam = null;
+    lastCombatActive = false;
 
     for (const c of combatants) {
       getOrCreateMemory(c);
@@ -831,7 +972,9 @@ export function createBotBrainSystem(): BotBrainSystem {
     onDamage: BotDamageCallback,
     onFire: BotFireCallback,
     sdContext: BotSdContext | undefined,
-    primaryDefuserId: string | null
+    primaryDefuserId: string | null,
+    designatedBuyCarrierId: string | null,
+    hasHumanAttacker: boolean
   ): void {
     const mem = getOrCreateMemory(bot);
     const spec = WEAPON_SPECS[bot.weaponId];
@@ -839,6 +982,12 @@ export function createBotBrainSystem(): BotBrainSystem {
     const concussed = (bot.concussTimer ?? 0) > 0;
     const sliding = (bot.slideTimer ?? 0) > 0;
     const slewPenalty = concussed ? CONCUSS_SPREAD_SLEW_PENALTY : 1.0;
+
+    const blazeUltActive = bot.colorId === 'red' && (bot.ultActiveTimer ?? 0) > 0;
+    const voltUltActive = bot.colorId === 'gold' && (bot.ultActiveTimer ?? 0) > 0;
+    const teamPulseUltActive = allCombatants.some(
+      (c) => c.alive && c.team === bot.team && c.colorId === 'green' && (c.ultActiveTimer ?? 0) > 0
+    );
 
     if (mem.ammo > spec.maxAmmo) {
       mem.ammo = spec.maxAmmo;
@@ -874,20 +1023,24 @@ export function createBotBrainSystem(): BotBrainSystem {
       colorId: bot.colorId,
     };
 
+    const slowSpeedMult = bot.slowTimer > 0.35 ? 0.25 : bot.slowTimer > 0 ? 0.5 : 1.0;
     const modifiers: MovementModifiers = {
       dashActive: false,
       dashVelocity: { x: 0, y: 0, z: 0 },
       speedMultiplier:
         spec.moveSpeedMult *
-        (bot.slowTimer > 0 ? 0.5 : 1.0) *
+        slowSpeedMult *
         (concussed ? CONCUSS_SPEED_MULT : 1.0) *
-        (sliding ? SLIDE_SPEED_MULT : 1.0),
+        (sliding ? SLIDE_SPEED_MULT : 1.0) *
+        (blazeUltActive ? 1.2 : 1.0) *
+        (voltUltActive ? 1.5 : 1.0) *
+        (teamPulseUltActive ? 1.15 : 1.0),
       suppressJump: bot.slowTimer > 0,
     };
 
-    // During Buy Phase, remain grounded in spawn
+    // Buy-Phase Site Setup & T-Spawn Spike Pedestal Pickup (strictly barrier-clamped)
     if (!isCombatActive) {
-      const idleInput: InputState = {
+      const buyInput: InputState = {
         forward: false,
         backward: false,
         left: false,
@@ -899,7 +1052,95 @@ export function createBotBrainSystem(): BotBrainSystem {
         yaw: bot.yaw,
         pitch: 0,
       };
-      updatePlayerMovement(botPhysics, idleInput, colliders, dt, modifiers);
+
+      if (sdContext && waypoints.length > 0) {
+        const spawns = getArenaSpawns();
+        const isAttacker = bot.team === sdContext.attackerTeam;
+        const buyObj = chooseBuyPhaseGoal(
+          bot,
+          mem,
+          waypoints,
+          sdContext,
+          botSlotIndex,
+          designatedBuyCarrierId,
+          hasHumanAttacker
+        );
+
+        let desiredYaw = bot.yaw;
+
+        if (buyObj.directTargetPos) {
+          const dx = buyObj.directTargetPos.x - bot.position.x;
+          const dz = buyObj.directTargetPos.z - bot.position.z;
+          const dist = Math.hypot(dx, dz);
+          if (dist > 0.35) {
+            desiredYaw = Math.atan2(-dx, -dz);
+            buyInput.forward = true;
+          }
+        } else if (buyObj.goalId) {
+          const goalWp = waypointById.get(buyObj.goalId);
+          const distToGoal = goalWp ? horizDist2D(bot.position, goalWp.pos) : Infinity;
+
+          if (distToGoal <= 1.2) {
+            // Staged cleanly at Buy-Phase position: face barrier / choke approach!
+            mem.route = [];
+            desiredYaw = Math.atan2(
+              -(buyObj.lookPos.x - bot.position.x),
+              -(buyObj.lookPos.z - bot.position.z)
+            );
+          } else {
+            if (
+              mem.route.length === 0 ||
+              mem.goalId !== buyObj.goalId ||
+              !waypointById.has(mem.route[0])
+            ) {
+              const startId = findNearestWaypointId(bot.position, waypoints);
+              mem.route = startId
+                ? findShortestPath(startId, buyObj.goalId, waypointById, buyObj.isAllowedNode)
+                : [];
+              mem.goalId = buyObj.goalId;
+            }
+
+            const nextWp = mem.route.length > 0 ? waypointById.get(mem.route[0]) : undefined;
+            if (nextWp) {
+              const dx = nextWp.pos.x - bot.position.x;
+              const dz = nextWp.pos.z - bot.position.z;
+              const horizDist = Math.hypot(dx, dz);
+              if (horizDist < 1.15) {
+                mem.route.shift();
+              }
+              if (horizDist > 0.15) {
+                desiredYaw = Math.atan2(-dx, -dz);
+                buyInput.forward = true;
+              }
+            }
+          }
+        }
+
+        const maxStep = prof.slewRadPerSec * dt;
+        const yawDiff = wrapAngleRad(desiredYaw - bot.yaw);
+        bot.yaw = wrapAngleRad(bot.yaw + clamp(yawDiff, -maxStep, maxStep));
+        bot.pitch = 0;
+        buyInput.yaw = bot.yaw;
+
+        updatePlayerMovement(botPhysics, buyInput, colliders, dt, modifiers);
+        bot.grounded = botPhysics.grounded;
+
+        // Strictly clamp every bot inside its Buy-Phase Barrier fence!
+        if (!isAttacker) {
+          if (bot.position.z > spawns.buyMaxDefenderZ) {
+            bot.position.z = spawns.buyMaxDefenderZ;
+            if (bot.velocity.z > 0) bot.velocity.z = 0;
+          }
+        } else {
+          if (bot.position.z < spawns.buyMinAllyZ) {
+            bot.position.z = spawns.buyMinAllyZ;
+            if (bot.velocity.z < 0) bot.velocity.z = 0;
+          }
+        }
+        return;
+      }
+
+      updatePlayerMovement(botPhysics, buyInput, colliders, dt, modifiers);
       bot.grounded = botPhysics.grounded;
       return;
     }
@@ -1006,7 +1247,7 @@ export function createBotBrainSystem(): BotBrainSystem {
       mem.fsm = 'advance';
     }
 
-    // 4. Tactical Ability Casting (role-driven)
+    // 4. Tactical Ability & Signature [X] Ultimate Casting (role-driven)
     if (
       mem.fsm !== 'blinded' &&
       mem.fsm !== 'plant' &&
@@ -1016,7 +1257,85 @@ export function createBotBrainSystem(): BotBrainSystem {
       mem.abilityCheckTimer = 0.65;
       const botEye: Vec3 = { x: bot.position.x, y: bot.position.y + BOT_EYE_HEIGHT, z: bot.position.z };
 
-      if (bot.colorId === 'blue') {
+      // Bot Signature [X] Ultimate when charged (ultPoints >= 5) and engaged or executing/retaking
+      let castUltimate = false;
+      if ((bot.ultPoints ?? 0) >= MAX_ULT_POINTS) {
+        const isExecutingOrRetaking = Boolean(
+          sdContext &&
+            (sdContext.spike.status === 'planted' ||
+              (bot.team === sdContext.attackerTeam && Math.abs(bot.position.z) < 20))
+        );
+        const engaged = spottedTarget !== null;
+        let shouldCastUlt = false;
+        let ultYaw = bot.yaw;
+        let ultPitch = bot.pitch;
+
+        if (bot.colorId === 'red') {
+          shouldCastUlt = engaged || isExecutingOrRetaking;
+        } else if (bot.colorId === 'blue') {
+          if (spottedTarget && spottedDist > 6 && spottedDist < 32) {
+            const aim = computeAimAngles(botEye, {
+              x: spottedTarget.position.x,
+              y: spottedTarget.position.y + 0.5,
+              z: spottedTarget.position.z,
+            });
+            ultYaw = aim.yaw;
+            ultPitch = aim.pitch;
+            shouldCastUlt = true;
+          } else if (
+            sdContext?.spike.status === 'planted' &&
+            horizDist2D(bot.position, sdContext.spike.position) < 26
+          ) {
+            const aim = computeAimAngles(botEye, {
+              x: sdContext.spike.position.x,
+              y: sdContext.spike.position.y + 0.6,
+              z: sdContext.spike.position.z,
+            });
+            ultYaw = aim.yaw;
+            ultPitch = aim.pitch;
+            shouldCastUlt = true;
+          }
+        } else if (bot.colorId === 'green') {
+          shouldCastUlt = engaged || isExecutingOrRetaking;
+        } else if (bot.colorId === 'violet') {
+          if (spottedTarget && spottedDist > 6) {
+            const aim = computeAimAngles(botEye, {
+              x: spottedTarget.position.x,
+              y: spottedTarget.position.y + 1.0,
+              z: spottedTarget.position.z,
+            });
+            ultYaw = aim.yaw;
+            ultPitch = 0;
+            shouldCastUlt = true;
+          } else if (isExecutingOrRetaking && sdContext) {
+            const siteTarget =
+              sdContext.spike.status === 'planted'
+                ? sdContext.spike.position
+                : sdContext.sites[roundExecuteSite].center;
+            const aim = computeAimAngles(botEye, {
+              x: siteTarget.x,
+              y: siteTarget.y + 1.0,
+              z: siteTarget.z,
+            });
+            ultYaw = aim.yaw;
+            ultPitch = 0;
+            shouldCastUlt = true;
+          }
+        } else if (bot.colorId === 'gold') {
+          shouldCastUlt = (engaged && spottedDist < 22) || isExecutingOrRetaking;
+        }
+
+        if (shouldCastUlt && abilities.castForBot('x', bot, ultYaw, ultPitch)) {
+          bot.ultPoints = 0;
+          bot.ultActiveTimer = BOT_ULT_ACTIVE_SEC;
+          sfx.playUltimateActivate(bot.colorId);
+          castUltimate = true;
+        }
+      }
+
+      if (castUltimate) {
+        // Let signature ultimate breathe before casting secondary utility
+      } else if (bot.colorId === 'blue') {
         if (spottedTarget && spottedDist > 8 && spottedDist < 30) {
           const aim = computeAimAngles(botEye, {
             x: spottedTarget.position.x,
@@ -1337,8 +1656,9 @@ export function createBotBrainSystem(): BotBrainSystem {
           bot.weaponId === 'pistol'
             ? Math.max(spec.fireIntervalSec, 0.28)
             : spec.fireIntervalSec * (bot.weaponId === 'sniper' ? 1.15 : 1.08);
-        mem.fireTimer =
-          (baseInterval * prof.fireIntervalScale) / (concussed ? CONCUSS_FIRE_RATE_MULT : 1.0);
+        const fireRateMult =
+          (concussed ? CONCUSS_FIRE_RATE_MULT : 1.0) * (blazeUltActive ? 1.35 : 1.0);
+        mem.fireTimer = (baseInterval * prof.fireIntervalScale) / fireRateMult;
 
         if (mem.burstShotsLeft <= 0) {
           const rawCooldown = bot.weaponId === 'sniper' ? 0.35 : 0.26 + Math.random() * 0.2;
@@ -1366,7 +1686,8 @@ export function createBotBrainSystem(): BotBrainSystem {
 
         const baseDir = getLookDirection(bot.yaw, bot.pitch + mem.recoilAccum * 0.04);
         const shotDir = applyBotSpread(baseDir, totalSpread);
-        mem.recoilAccum = Math.min(1.0, mem.recoilAccum + spec.recoilPerShot * 0.85);
+        const recoilScale = blazeUltActive ? 0.65 : 1.0;
+        mem.recoilAccum = Math.min(1.0, mem.recoilAccum + spec.recoilPerShot * 0.85 * recoilScale);
 
         onFire(bot);
 
@@ -1375,7 +1696,7 @@ export function createBotBrainSystem(): BotBrainSystem {
           origin.y - cameraPos.y,
           origin.z - cameraPos.z
         );
-        sfx.playWeaponShot(bot.weaponId, false, listenerDist);
+        sfx.playWeaponShot(bot.weaponId, blazeUltActive, listenerDist);
 
         // Raycast static colliders first (bullets pass cleanly through open 'W' windows!)
         let closestWallDist = BOT_MAX_RAY_DIST;
@@ -1481,8 +1802,18 @@ export function createBotBrainSystem(): BotBrainSystem {
       assignRoles(combatants, sdContext.attackerTeam, sdContext.spike.carrierId);
     }
 
-    // Build waypoint lookup once per tick across all bots for O(1) lookups
-    const waypoints = isCombatActive ? getArenaWaypoints() : [];
+    // Clear buy-phase staging routes the moment barriers drop so bots launch into combat immediately
+    if (isCombatActive && !lastCombatActive) {
+      for (const mem of memories.values()) {
+        mem.route = [];
+        mem.goalId = null;
+        mem.holdTimer = 0;
+      }
+    }
+    lastCombatActive = isCombatActive;
+
+    // Build waypoint lookup once per tick across all bots for O(1) lookups (used in BOTH Buy & Combat)
+    const waypoints = getArenaWaypoints();
     const waypointById = new Map<string, ArenaWaypoint>();
     for (const wp of waypoints) {
       waypointById.set(wp.id, wp);
@@ -1498,6 +1829,30 @@ export function createBotBrainSystem(): BotBrainSystem {
         if (d < bestDist) {
           bestDist = d;
           primaryDefuserId = c.id;
+        }
+      }
+    }
+
+    // Determine designated Attacker bot for Buy-Phase T-Spawn Spike Pedestal pickup
+    let designatedBuyCarrierId: string | null = null;
+    const hasHumanAttacker = Boolean(
+      sdContext && combatants.some((c) => c.isPlayer && c.alive && c.team === sdContext.attackerTeam)
+    );
+    if (!isCombatActive && sdContext && sdContext.spike.status === 'dropped') {
+      const attackerBots = combatants.filter(
+        (c) => !c.isPlayer && c.alive && c.team === sdContext.attackerTeam
+      );
+      const executeBot = attackerBots.find((b) => getOrCreateMemory(b).role === 'execute');
+      if (executeBot) {
+        designatedBuyCarrierId = executeBot.id;
+      } else if (attackerBots.length > 0) {
+        let bestDist = Infinity;
+        for (const b of attackerBots) {
+          const d = horizDist2D(b.position, sdContext.spike.position);
+          if (d < bestDist) {
+            bestDist = d;
+            designatedBuyCarrierId = b.id;
+          }
         }
       }
     }
@@ -1522,7 +1877,9 @@ export function createBotBrainSystem(): BotBrainSystem {
         onDamage,
         onFire,
         sdContext,
-        primaryDefuserId
+        primaryDefuserId,
+        designatedBuyCarrierId,
+        hasHumanAttacker
       );
     }
   }

@@ -10,19 +10,20 @@ import {
   GRID_COLS,
   GRID_ROWS,
 } from '../arena/skirmishAscii';
-import { getBombSites, getCurrentGrid } from '../arena/map';
+import { getArenaSpawns, getBombSites, getCurrentGrid } from '../arena/map';
 
 export interface MinimapController {
   update(
     hud: MatchHudState,
     combatants: readonly Combatant[],
     player: PlayerState,
-    playerYaw: number
+    playerYaw: number,
+    ultRevealActive?: boolean
   ): void;
 }
 
-const MINIMAP_W = 168;
-const MINIMAP_H = 196;
+const MINIMAP_W = 180;
+const MINIMAP_H = 200;
 const HALF_W = ARENA_WIDTH_M * 0.5;
 const HALF_D = ARENA_DEPTH_M * 0.5;
 
@@ -36,7 +37,7 @@ function worldToY(z: number): number {
 
 /**
  * Creates the cached 2D tactical minimap controller managing `<canvas id="minimap-canvas">`.
- * Rebuilds the static `24x28` architectural offscreen cache only when the active ASCII grid changes.
+ * Rebuilds the static `36x40` architectural offscreen cache only when the active ASCII grid changes.
  */
 export function createMinimapController(): MinimapController {
   const canvas = document.getElementById('minimap-canvas') as HTMLCanvasElement | null;
@@ -136,6 +137,14 @@ export function createMinimapController(): MinimapController {
         } else if (ch === '2') {
           offCtx.fillStyle = 'rgba(56, 189, 248, 0.28)';
           offCtx.fillRect(x, y, cellW, cellH);
+        } else if (ch === 'S') {
+          offCtx.fillStyle = 'rgba(250, 204, 21, 0.24)';
+          offCtx.fillRect(x, y, cellW, cellH);
+          offCtx.strokeStyle = 'rgba(250, 204, 21, 0.75)';
+          offCtx.lineWidth = 0.85;
+          offCtx.strokeRect(x + 0.6, y + 0.6, cellW - 1.2, cellH - 1.2);
+          offCtx.fillStyle = '#facc15';
+          offCtx.fillRect(x + cellW * 0.3, y + cellH * 0.3, cellW * 0.4, cellH * 0.4);
         } else if (ch === 'A') {
           offCtx.fillStyle = 'rgba(16, 185, 129, 0.18)';
           offCtx.fillRect(x, y, cellW, cellH);
@@ -180,7 +189,8 @@ export function createMinimapController(): MinimapController {
     hud: MatchHudState,
     combatants: readonly Combatant[],
     player: PlayerState,
-    playerYaw: number
+    playerYaw: number,
+    ultRevealActive?: boolean
   ): void {
     if (!canvas || !ctx) return;
 
@@ -196,6 +206,47 @@ export function createMinimapController(): MinimapController {
 
     const nowSec = performance.now() * 0.001;
     const spike = hud.spike;
+
+    // 0. Glowing cyan/teal Buy-Phase Barrier lines
+    if (hud.phase === 'buy') {
+      const spawns = getArenaSpawns();
+      const barrierYs = [worldToY(spawns.buyMinAllyZ), worldToY(spawns.buyMaxDefenderZ)];
+      ctx.save();
+      ctx.strokeStyle = 'rgba(34, 211, 238, 0.88)';
+      ctx.shadowColor = '#22d3ee';
+      ctx.shadowBlur = 6;
+      ctx.lineWidth = 1.6;
+      ctx.setLineDash([5, 3]);
+      for (const by of barrierYs) {
+        ctx.beginPath();
+        ctx.moveTo(0, by);
+        ctx.lineTo(MINIMAP_W, by);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // 0b. Pulse [X] Orbital Recon emerald sonar sweep ring
+    if (ultRevealActive) {
+      const rx = worldToX(player.position.x);
+      const ry = worldToY(player.position.z);
+      const maxR = Math.hypot(MINIMAP_W, MINIMAP_H) * 0.85;
+      const waveA = (nowSec * 0.85) % 1;
+      const waveB = (waveA + 0.5) % 1;
+      ctx.save();
+      for (const w of [waveA, waveB]) {
+        const radius = 6 + w * maxR;
+        const alpha = (1 - w) * 0.75;
+        ctx.strokeStyle = `rgba(46, 204, 113, ${alpha.toFixed(3)})`;
+        ctx.shadowColor = '#2ecc71';
+        ctx.shadowBlur = 5;
+        ctx.lineWidth = 2.0;
+        ctx.beginPath();
+        ctx.arc(rx, ry, radius, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
 
     // 1. Spike icon (planted pulsing crimson beacon or dropped amber diamond)
     if (spike) {

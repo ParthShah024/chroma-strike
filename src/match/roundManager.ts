@@ -7,6 +7,7 @@ import {
   AiDifficulty,
   BombSiteId,
   Combatant,
+  InputState,
   KillFeedEntry,
   MatchHudState,
   MinimapContact,
@@ -27,6 +28,7 @@ import {
   getArenaSpawns,
   getBombSiteAt,
   getBombSites,
+  getSpikeSpawnPos,
 } from '../arena/map';
 import { raycastAABB, raycastSphere } from '../physics/movement';
 import { WEAPON_SPECS } from '../combat/arsenal';
@@ -81,6 +83,7 @@ export interface MatchManager {
   refundCurrentRoundWeapon(): boolean;
   buyShield(tier: ShieldTier): boolean;
   swapSides(): void;
+  tryCastPlayerUltimate(player: PlayerState, input: InputState): boolean;
   syncPlayerFromPhysics(
     player: PlayerState,
     yaw: number,
@@ -94,12 +97,16 @@ export interface MatchManager {
     dt: number,
     player: PlayerState,
     cameraPos: Vec3,
-    activeSmokes: SmokeSphere[]
+    activeSmokes: SmokeSphere[],
+    ultRevealAll?: boolean
   ): MatchHudState;
 }
 
 const WINS_TO_WIN_MATCH = 6;
 const HALFTIME_AFTER_ROUND = 5;
+const MAX_ULT_POINTS = 5;
+const INITIAL_ULT_POINTS = 2;
+const PLAYER_ULT_ACTIVE_SEC = 7.5;
 const BUY_PHASE_DURATION_SEC = 12.0;
 const COMBAT_PHASE_DURATION_SEC = 85.0;
 const POST_PLANT_DURATION_SEC = 45.0;
@@ -328,6 +335,8 @@ export function createMatchManager(
       maxArmor: 0,
       credits: 800,
       shieldTier: 'none',
+      ultPoints: INITIAL_ULT_POINTS,
+      ultActiveTimer: 0,
       alive: true,
       respawnTimer: 0,
       strafeSpeed: 0,
@@ -378,18 +387,40 @@ export function createMatchManager(
     rigById.set(c.id, rig);
   }
 
+  function addUltPoint(c: Combatant | null | undefined, amount = 1): void {
+    if (!c) return;
+    c.ultPoints = Math.min(MAX_ULT_POINTS, (c.ultPoints ?? 0) + amount);
+  }
+
+  function resetUltimatesForHalf(): void {
+    for (const c of combatants) {
+      c.ultPoints = INITIAL_ULT_POINTS;
+      c.ultActiveTimer = 0;
+    }
+  }
+
   function resetSpikeForRound(): void {
     const attackerTeam = getAttackerTeam();
-    const playerCombatant = getPlayerCombatant();
-    const carrier =
-      attackerTeam === 'ally'
-        ? playerCombatant
-        : combatants.find((c) => c.team === attackerTeam && c.alive) ?? combatants[3];
+    const attackerSample = combatants.find((c) => c.team === attackerTeam);
+    const spawns = getArenaSpawns();
 
-    spikeStatus = 'carried';
-    spikeCarrierId = carrier ? carrier.id : null;
+    // Spawn ONE physical dropped Spike on the Attacker Spawn Spike Pedestal (never pre-equipped!)
+    let pedestalPos: Vec3;
+    if (!attackerSample || attackerSample.position.z >= 0) {
+      pedestalPos = getSpikeSpawnPos();
+    } else {
+      const northPad = spawns.enemies[1] ?? spawns.enemies[0];
+      pedestalPos = { x: northPad.x, y: Math.max(0, northPad.y), z: northPad.z + 2.5 };
+    }
+
+    spikeStatus = 'dropped';
+    spikeCarrierId = null;
     spikePlantedSite = null;
-    spikePosition = carrier ? { ...carrier.position } : { x: 0, y: 0, z: 0 };
+    spikePosition = {
+      x: pedestalPos.x,
+      y: Math.max(0, pedestalPos.y),
+      z: pedestalPos.z,
+    };
     spikeTimerSec = POST_PLANT_DURATION_SEC;
     spikePlantProgress = 0;
     spikeDefuseProgress = 0;
@@ -565,9 +596,14 @@ export function createMatchManager(
         dropSpikeAt(victim.position, null);
       }
 
+      // Valorant-style Ult Economy: +1 Ult Point to victim on death; +1 & notifyKill to killer
+      addUltPoint(victim, 1);
+
       if (attacker) {
         if (attacker.team !== victim.team) {
           economy.onKill(attacker.id, combatants);
+          addUltPoint(attacker, 1);
+          abilities.notifyKill(attacker.colorId, attacker.isPlayer);
         }
         pushKillFeed(
           formatCombatantLabel(attacker),
@@ -662,6 +698,7 @@ export function createMatchManager(
       halftimeSwapped = true;
       playerSide = playerSide === 'attacker' ? 'defender' : 'attacker';
       economy.resetForHalftime(combatants);
+      resetUltimatesForHalf();
       isHalftimeRound = true;
     }
 
@@ -714,6 +751,7 @@ export function createMatchManager(
       c.vulnerableTimer = 0;
       c.concussTimer = 0;
       c.slideTimer = 0;
+      c.ultActiveTimer = 0;
       c.yaw = def.yaw;
       c.pitch = 0;
 
@@ -956,7 +994,21 @@ export function createMatchManager(
         ? 'PLANT THE SPIKE AT SITE A OR B'
         : 'DEFEND SITES A & B';
     transientBannerTimer = 1.6;
+    sfx.playBarrierDrop();
     sfx.playRoundCue('fight');
+  }
+
+  function tryCastPlayerUltimate(player: PlayerState, input: InputState): boolean {
+    const pc = getPlayerCombatant();
+    if (phase !== 'combat' || !pc.alive || (pc.ultPoints ?? 0) < MAX_ULT_POINTS) {
+      return false;
+    }
+    const castOk = abilities.cast('x', player, input);
+    if (!castOk) return false;
+    pc.ultPoints = 0;
+    pc.ultActiveTimer = PLAYER_ULT_ACTIVE_SEC;
+    sfx.playUltimateActivate(pc.colorId);
+    return true;
   }
 
   function restartMatch(): void {
@@ -967,6 +1019,7 @@ export function createMatchManager(
     killFeed.length = 0;
     ownedPrimaryById.clear();
     economy.resetForNewMatch(combatants);
+    resetUltimatesForHalf();
     setupRound(1);
     sfx.playRoundCue('buy');
   }
@@ -1035,6 +1088,7 @@ export function createMatchManager(
 
     if (pc.health <= 0 && pc.alive) {
       pc.alive = false;
+      addUltPoint(pc, 1);
       if (spikeStatus === 'carried' && spikeCarrierId === pc.id) {
         dropSpikeAt(pc.position, null);
       }
@@ -1132,6 +1186,7 @@ export function createMatchManager(
       spikeDefuseCuePlayed = false;
 
       economy.onPlant(getAttackerTeam(), combatants);
+      addUltPoint(planter, 1);
       sfx.playSpikePlanted();
       roundBannerTitle = `SPIKE PLANTED — SITE ${site}`;
       roundBannerSubtitle = '45 SECONDS UNTIL DETONATION';
@@ -1173,6 +1228,7 @@ export function createMatchManager(
     if (spikeDefuseProgress >= 1) {
       spikeStatus = 'defused';
       spikeDefuseProgress = 1;
+      addUltPoint(defuser, 1);
       sfx.playSpikeDefused();
       transitionToRoundEnd(getDefenderTeam(), 'SPIKE DEFUSED', true);
     }
@@ -1242,8 +1298,8 @@ export function createMatchManager(
       }
     }
 
-    // Living Attacker within 1.8m auto-picks up dropped Spike
-    if (spikeStatus === 'dropped') {
+    // Living Attacker within 1.8m auto-picks up dropped Spike during BOTH 'buy' AND 'combat'
+    if (spikeStatus === 'dropped' && (phase === 'buy' || phase === 'combat')) {
       const attackerTeam = getAttackerTeam();
       for (const c of combatants) {
         if (c.team !== attackerTeam || !c.alive) continue;
@@ -1262,7 +1318,23 @@ export function createMatchManager(
     }
   }
 
-  function computeMinimapEnemies(activeSmokes: SmokeSphere[]): MinimapContact[] {
+  function computeMinimapEnemies(
+    activeSmokes: SmokeSphere[],
+    ultRevealAll = false
+  ): MinimapContact[] {
+    if (ultRevealAll) {
+      const contacts: MinimapContact[] = [];
+      for (const enemy of combatants) {
+        if (enemy.team !== 'enemy' || !enemy.alive) continue;
+        contacts.push({
+          x: enemy.position.x,
+          z: enemy.position.z,
+          colorId: enemy.colorId,
+        });
+      }
+      return contacts;
+    }
+
     const allies = combatants.filter((c) => c.team === 'ally' && c.alive && c.blindTimer <= 0);
     if (allies.length === 0) return [];
 
@@ -1291,12 +1363,13 @@ export function createMatchManager(
     dt: number,
     player: PlayerState,
     cameraPos: Vec3,
-    activeSmokes: SmokeSphere[]
+    activeSmokes: SmokeSphere[],
+    ultRevealAll = false
   ): MatchHudState {
     playerStateRef = player;
     const playerCombatant = getPlayerCombatant();
 
-    // 1. Age out kill feed & decay status timers
+    // 1. Age out kill feed & decay status / ultimate timers
     for (let i = killFeed.length - 1; i >= 0; i--) {
       killFeed[i].age += dt;
       if (killFeed[i].age >= KILLFEED_MAX_AGE_SEC) {
@@ -1310,6 +1383,7 @@ export function createMatchManager(
       c.vulnerableTimer = Math.max(0, (c.vulnerableTimer ?? 0) - dt);
       c.concussTimer = Math.max(0, (c.concussTimer ?? 0) - dt);
       c.slideTimer = Math.max(0, (c.slideTimer ?? 0) - dt);
+      c.ultActiveTimer = Math.max(0, (c.ultActiveTimer ?? 0) - dt);
       const flashCd = dotFlashCooldownById.get(c.id) ?? 0;
       if (flashCd > 0) {
         dotFlashCooldownById.set(c.id, Math.max(0, flashCd - dt));
@@ -1329,10 +1403,18 @@ export function createMatchManager(
     const attackerTeam = getAttackerTeam();
     const defenderTeam = getDefenderTeam();
     const sites = getBombSites();
+    let channelingCombatantId: string | null = null;
 
     // 2. Step Round State Machine
     if (phase === 'buy') {
       phaseTimerSec = Math.max(0, phaseTimerSec - dt);
+
+      const buySdContext: BotSdContext = {
+        attackerTeam,
+        spike: buildSpikeHudState(playerCombatant),
+        sites,
+        buyTimeRemainingSec: phaseTimerSec,
+      };
 
       botBrain.update(
         dt,
@@ -1345,8 +1427,12 @@ export function createMatchManager(
         weaponSystem,
         sfx,
         () => {},
-        () => {}
+        () => {},
+        buySdContext
       );
+
+      // Re-check proximity pickup immediately after Buy-Phase bot movement
+      handleDropAndPickup(0, playerCombatant);
 
       if (phaseTimerSec <= 0) {
         skipBuyPhase();
@@ -1378,8 +1464,10 @@ export function createMatchManager(
       if (playerInteractHeld && playerCombatant.alive) {
         if (spikeStatus === 'carried' && spikeCarrierId === playerCombatant.id) {
           plantedThisFrame = tickSpikePlant(playerCombatant, dt);
+          if (plantedThisFrame) channelingCombatantId = playerCombatant.id;
         } else if (spikeStatus === 'planted' && playerCombatant.team === defenderTeam) {
           defusedThisFrame = tickSpikeDefuse(playerCombatant, dt);
+          if (defusedThisFrame) channelingCombatantId = playerCombatant.id;
         }
       }
 
@@ -1390,11 +1478,13 @@ export function createMatchManager(
         onBotPlantTick: (bot, stepDt) => {
           if (tickSpikePlant(bot, stepDt)) {
             plantedThisFrame = true;
+            channelingCombatantId = bot.id;
           }
         },
         onBotDefuseTick: (bot, stepDt) => {
           if (tickSpikeDefuse(bot, stepDt)) {
             defusedThisFrame = true;
+            channelingCombatantId = bot.id;
           }
         },
       };
@@ -1525,6 +1615,9 @@ export function createMatchManager(
           occludedBySmoke,
           slideTimer: c.slideTimer,
           concussTimer: c.concussTimer,
+          hasSpike: spikeStatus === 'carried' && spikeCarrierId === c.id,
+          channelingSpike: channelingCombatantId === c.id,
+          ultActive: (c.ultActiveTimer ?? 0) > 0,
         },
         cameraPos
       );
@@ -1536,7 +1629,7 @@ export function createMatchManager(
     player.maxArmor = playerCombatant.maxArmor ?? 0;
     lastSyncedPlayerHealth = playerCombatant.health;
 
-    // 4. Project Full Read-Only MatchHudState (including Economy, Spike & Minimap Contacts)
+    // 4. Project Full Read-Only MatchHudState (including Economy, Spike, Ult & Minimap Contacts)
     const allyStates = combatants
       .filter((c) => c.team === 'ally')
       .map((c) => ({
@@ -1569,7 +1662,7 @@ export function createMatchManager(
         };
       });
 
-    const minimapEnemies = computeMinimapEnemies(activeSmokes);
+    const minimapEnemies = computeMinimapEnemies(activeSmokes, ultRevealAll);
 
     return {
       phase,
@@ -1601,6 +1694,8 @@ export function createMatchManager(
       allyEconomy,
       spike: spikeHud,
       minimapEnemies,
+      ultPoints: playerCombatant.ultPoints ?? 0,
+      maxUltPoints: MAX_ULT_POINTS,
     };
   }
 
@@ -1623,6 +1718,7 @@ export function createMatchManager(
     refundCurrentRoundWeapon,
     buyShield,
     swapSides,
+    tryCastPlayerUltimate,
     syncPlayerFromPhysics,
     update,
   };

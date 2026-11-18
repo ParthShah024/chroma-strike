@@ -180,7 +180,7 @@ export interface ShotResult {
 //    `dashAlpha`, `insideSmokeFactor`, and `qHud`/`eHud`. This keeps module
 //    dependencies acyclic (DAG) and deterministic.
 
-export type AbilitySlot = 'q' | 'e';
+export type AbilitySlot = 'q' | 'e' | 'x';
 
 export type AbilityAudioEvent =
   | 'dash'
@@ -197,16 +197,22 @@ export type AbilityAudioEvent =
   | 'overdrive_on'
   | 'power_slide'
   | 'relay_bounce'
-  | 'relay_zap';
+  | 'relay_zap'
+  | 'ult_blaze'
+  | 'ult_mist'
+  | 'ult_pulse'
+  | 'ult_umbra'
+  | 'ult_volt';
 
 /** Immutable static specification for one agent ability slot. */
 export interface AbilitySpec {
   slot: AbilitySlot;
-  keyLabel: 'Q' | 'E';
+  keyLabel: 'Q' | 'E' | 'X';
   name: string;
   shortTag: string;
   cooldownSec: number;
   maxCharges?: number;
+  ultPointsRequired?: number;
   description: string;
 }
 
@@ -299,6 +305,8 @@ export interface AbilityFrameFeedback {
   slideActive: boolean;
   qHud: AbilityHudSlotState;
   eHud: AbilityHudSlotState;
+  xHud?: AbilityHudSlotState;
+  ultRevealActive?: boolean;
 }
 
 // ============================================================================
@@ -367,6 +375,8 @@ export interface Combatant extends TargetDummy {
   maxArmor?: number;
   credits?: number;
   shieldTier?: ShieldTier;
+  ultPoints?: number;
+  ultActiveTimer?: number;
 }
 
 /** Persistent user-customizable crosshair configuration saved to localStorage. */
@@ -431,6 +441,8 @@ export interface MatchHudState {
   }>;
   spike?: SpikeHudState;
   minimapEnemies?: MinimapContact[];
+  ultPoints?: number;
+  maxUltPoints?: number;
 }
 
 // ============================================================================

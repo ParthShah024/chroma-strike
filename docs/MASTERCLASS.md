@@ -235,3 +235,25 @@ $$C_{t+1} = \min\!\Big(9000,\; C_t + R_{\text{round}}(L) + 200\,K + 300\,B_{\tex
 
 - Survivors keep weapons and remaining armor (`100 / 125 / 150` EHP sequential shield absorption); `[B]` Buyout Shop supports 100% same-round refunds (`[R]`), smart Light (`400¤`) -> Heavy (`1000¤`) `600¤` delta upgrades, and Attack/Defend side swap (`[P]`).
 - **Cached 2D Minimap (`168 × 196`)** caches the `24 × 28` layout offscreen and overlays player FOV cone, allies, Spike carrier/drop/plant alerts, and LoS-spotted `minimapEnemies`, paired with Execute/Lurk/Anchor/Retake AI in [src/ai/botBrain.ts](../src/ai/botBrain.ts).
+
+---
+
+# Chapter 7 — Engine Tradeoffs (Blender / Godot), "Chroma Ascent" (`72m × 80m`), PBR Shadows & `[X]` Ultimates
+
+## 7.1 Blender `.glb` + `GLTFLoader` vs. TrenchBroom CSG vs. Godot 4 ([src/entities/glbOverride.ts](../src/entities/glbOverride.ts), [src/entities/characterModel.ts](../src/entities/characterModel.ts))
+- **Adopted Hybrid Pipeline (`loadOptionalGlbAsset`)**: Keeps Three.js FPS physics, bots, shaders, and Vite zero-download startup intact while allowing drop-in Blender `glTF 2.0 (.glb)` overrides at `/public/models/agent_<id>.glb`. Probes `HEAD` `Content-Type` + 4-byte binary `"glTF"` magic bytes (`0x67 0x6C 0x54 0x46`) to avoid Vite SPA HTML fallback parse errors, clones once-parsed assets via `SkeletonUtils`, and auto-normalizes scale by `1.82 / size.y` to preserve exact head/body hitboxes.
+- **TrenchBroom CSG (`.map -> .glb`)**: Ideal next step if non-orthogonal ramps/sloped halls are added via BVH colliders. **Godot 4** trades a full rewrite of physics/GLSL/WebAudio + heavy WASM exports for native editor tooling.
+
+## 7.2 "Chroma Ascent" (`72 m × 80 m`) & Proven Zero Opening LoS ([src/arena/skirmishAscii.ts](../src/arena/skirmishAscii.ts), [src/arena/map.ts](../src/arena/map.ts))
+- Expanded to `36 × 40` tiles (`72 m × 80 m` at `2.0 m/tile`, `120` greedy-meshed AABBs, `895 / 895` BFS-reachable waypoints): **West Wing Site A** (warm sandstone, `50 m` A-Long, `0.90 m` A-Heaven deck, A-Tree `W` Window, central Generator Tower), **Mid Plaza** (slate concrete, Nest `WW`, Catwalk `P`, West/East Lurk corridors), and **East Wing Site B** (`48 m` separation, cobalt steel, B-Tunnels, B-Main `OO`, `B-Hookah` `P`/`WW`).
+- Translucent animated Buy-Phase Setup Barriers fence T-Spawn (`z ≥ +18.0 m`) and CT-Spawn (`z ≤ -14.0 m`); $90^\circ$ dog-leg exits yield **`0` opening LoS pairs across `63,054`** `(south, north)` tile pairs at `1.62 m` eye height.
+
+## 7.3 Procedural PBR `CanvasTexture` + `bumpMap` & `PCFSoftShadowMap` ([src/arena/textures.ts](../src/arena/textures.ts))
+- Synthesizes 8 tiled sRGB albedo + linear height `bumpMap` texture sets (`anisotropy = 8`) via periodic fBm noise + hex-grid barrier alpha curtains (`getBuyBarrierTexture()`).
+- `sunLight.castShadow = true` uses a `2048 × 2048` frustum over `[-46, +46]²` (~`4.5 cm/texel`) with `THREE.PCFSoftShadowMap` and `camera.far = 260`.
+
+## 7.4 Single T-Spawn Spike Pedestal, Agent V3 & 5 Signature `[X]` Ultimates ([src/match/roundManager.ts](../src/match/roundManager.ts), [src/combat/weapons.ts](../src/combat/weapons.ts), [src/abilities/system.ts](../src/abilities/system.ts))
+- **Single Physical Spike (`'S'` Pedestal):** Spawns dropped at T-Spawn Pedestal (North CT mirror on halftime), auto-picked up within `1.8 m` in `'buy'` & `'combat'`, dropped with `[G]`, rendered on carrier back (`hasSpike`).
+- **1P Hands & 3P Kneel/Ult Polish:** Articulated gloves & Agent-colored gauntlets hold all 4 weapons (`setAgentColor`); `[F]` plant/defuse triggers a `-0.42 m` one-knee tactical crouch (`left: +1.5/-1.4`, `right: -0.05/-1.42`) + 12-key holo keypad; Ult casting triggers twin aura rings + `8` rising orbit motes.
+- **5 Signature `[X]` Ultimates (`5` Pts, `2/5` per Half):** **Blaze** *Inferno Overdrive* (`1.35x` RoF + kill Dash resets via `notifyKill`), **Mist** *Glacial Whiteout* (`8.5 m` 75% blizzard + Frost Smoke), **Pulse** *Orbital Recon* (`3` sonar waves revealing all foes on `180 × 200` Minimap), **Umbra** *Eclipse Curtain* (`~26 m` wall of 5 Void spheres), and **Volt** *Thunderstorm* (`1.50x` sprint, rapid slides & `8.5 m` chain-lightning zaps).
+

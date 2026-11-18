@@ -7,7 +7,7 @@ import {
 } from '../arena/skirmishAscii';
 import { getCurrentGrid, rebuildArenaScene } from '../arena/map';
 
-const STORAGE_KEY = 'chroma_strike_custom_map_sd_v2';
+const STORAGE_KEY = 'chroma_strike_custom_map_ascent_v3';
 
 const VALID_TILES = new Set<string>([
   '#',
@@ -21,6 +21,7 @@ const VALID_TILES = new Set<string>([
   'v',
   '1',
   '2',
+  'S',
   'A',
   'E',
   '.',
@@ -38,6 +39,7 @@ const TILE_CSS_CLASS: Record<TileChar, string> = {
   v: 'tile-stair',
   '1': 'tile-site-a',
   '2': 'tile-site-b',
+  S: 'me-tile-S',
   A: 'tile-ally',
   E: 'tile-enemy',
   '.': 'tile-floor',
@@ -55,6 +57,7 @@ const TILE_LABELS: Record<TileChar, string> = {
   v: 'South Stairs (0.45m)',
   '1': 'Bomb Site A',
   '2': 'Bomb Site B',
+  S: 'Spike Pedestal',
   A: 'Attacker Spawn',
   E: 'Defender Spawn',
   '.': 'Open Floor',
@@ -147,8 +150,8 @@ function fallbackCopy(text: string): boolean {
 }
 
 /**
- * Creates the interactive `[M]` Killhouse Map Maker modal controller.
- * Renders a 24x28 drag-paintable tile grid synced 1:1 with `skirmishAscii.ts`,
+ * Creates the interactive `[M]` Ascent Map Maker modal controller.
+ * Renders a 36x40 (72m × 80m) drag-paintable tile grid synced 1:1 with `skirmishAscii.ts`,
  * rebuilds the 3D Three.js arena & physics colliders live, and exports TypeScript code.
  */
 export function createMapEditorController(
@@ -181,6 +184,16 @@ export function createMapEditorController(
     if (isPerimeterCell(row, col)) return;
     const prev = draftGrid[row];
     if (prev[col] === ch) return;
+    if (ch === 'S') {
+      // Keep a single Spike Pedestal tile across the entire map when relocating 'S'.
+      for (let r = 0; r < GRID_ROWS; r++) {
+        const idx = draftGrid[r].indexOf('S');
+        if (idx !== -1 && (r !== row || idx !== col)) {
+          draftGrid[r] = draftGrid[r].slice(0, idx) + '.' + draftGrid[r].slice(idx + 1);
+          updateCellElement(r, idx);
+        }
+      }
+    }
     draftGrid[row] = prev.slice(0, col) + ch + prev.slice(col + 1);
     statusOverride = null;
     updateCellElement(row, col);
@@ -220,6 +233,7 @@ export function createMapEditorController(
     let enemyCount = 0;
     let siteACount = 0;
     let siteBCount = 0;
+    let spikeCount = 0;
     for (const row of draftGrid) {
       for (let i = 0; i < row.length; i++) {
         const ch = row[i];
@@ -227,14 +241,15 @@ export function createMapEditorController(
         else if (ch === 'E') enemyCount++;
         else if (ch === '1') siteACount++;
         else if (ch === '2') siteBCount++;
+        else if (ch === 'S') spikeCount++;
       }
     }
 
-    const spawnNote =
-      allyCount === 0 || enemyCount === 0
-        ? ' • Missing A/E spawns will use fallbacks'
-        : '';
-    statusEl.textContent = `Brush: ${TILE_LABELS[activeBrush]} • Spawns A:${allyCount}/E:${enemyCount} • Sites 1:${siteACount}/2:${siteBCount}${spawnNote}`;
+    const warnings: string[] = [];
+    if (allyCount === 0 || enemyCount === 0) warnings.push('Missing A/E spawns will use fallbacks');
+    if (spikeCount !== 1) warnings.push('Place 1 S pedestal');
+    const warnNote = warnings.length > 0 ? ` • ${warnings.join(' • ')}` : '';
+    statusEl.textContent = `Brush: ${TILE_LABELS[activeBrush]} • Spawns A:${allyCount}/E:${enemyCount} • Sites 1:${siteACount}/2:${siteBCount} • Spike S:${spikeCount}${warnNote}`;
   }
 
   function syncBrushButtons(): void {
@@ -244,7 +259,7 @@ export function createMapEditorController(
     updateStatusText();
   }
 
-  // Build 14x17 grid cells once
+  // Build 36x40 grid cells once
   if (gridEl) {
     gridEl.replaceChildren();
     gridEl.addEventListener('contextmenu', (e: MouseEvent) => e.preventDefault());
@@ -307,7 +322,14 @@ export function createMapEditorController(
 
   resetBtn?.addEventListener('click', () => {
     draftGrid = normalizeGrid(DEFAULT_KILLHOUSE_GRID);
-    statusOverride = 'Loaded Default Killhouse — click Apply Live to rebuild.';
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // Ignore storage errors cleanly.
+    }
+    rebuildArenaScene(scene, draftGrid);
+    onApplied();
+    statusOverride = 'Reset to Default 36×40 (72m × 80m) Arena & rebuilt live!';
     renderAllCells();
   });
 

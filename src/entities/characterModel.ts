@@ -1,5 +1,21 @@
 import * as THREE from 'three';
+import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js';
 import { AgentColorId, TeamId, Vec3, WeaponId } from '../core/types';
+import { loadOptionalGlbAsset } from './glbOverride';
+
+/** Optional per-frame rig state (all fields optional => fully backward compatible). */
+export interface CharacterRigExtraState {
+  /** Seconds of Power-Slide remaining (> 0 = sliding). Optional for older callers. */
+  slideTimer?: number;
+  /** Seconds of concussion remaining (> 0 = gold-white electric shimmer). */
+  concussTimer?: number;
+  /** Carrying the Spike: shows the Mini-Radianite canister slung across the upper back. */
+  hasSpike?: boolean;
+  /** Planting / defusing: blends into a one-knee crouch with a holo-keypad projection. */
+  channelingSpike?: boolean;
+  /** Ultimate active: pulsing overcharge ring, orbiting glow motes, boosted trims. */
+  ultActive?: boolean;
+}
 
 /**
  * Public handle for an articulated 3D humanoid combatant rig.
@@ -31,6 +47,12 @@ export interface CharacterRig {
       slideTimer?: number;
       /** Seconds of concussion remaining (> 0 = gold-white electric shimmer). */
       concussTimer?: number;
+      /** Carrying the Spike (dorsal canister visible while alive). */
+      hasSpike?: boolean;
+      /** Planting / defusing (one-knee crouch + holo-keypad). */
+      channelingSpike?: boolean;
+      /** Ultimate active (overcharge ring + aura). */
+      ultActive?: boolean;
     },
     cameraPos: Vec3
   ): void;
@@ -96,6 +118,34 @@ const SLIDE_TRAIL_HIP_RAD = -0.8;
 const SLIDE_TRAIL_KNEE_RAD = -0.2;
 const SLIDE_TORSO_LEAN_RAD = 0.25; // +X tips the torso toward +Z = leaning BACK
 const SLIDE_DROP_M = -0.35;
+
+// Spike plant / defuse one-knee crouch (radians / metres). With the pelvis
+// dropped 0.42 m (hips at ~0.46 m) these angles put the RIGHT knee on the
+// floor with the shin trailing back, and the LEFT thigh level with the foot
+// planted flat ahead — a geometrically grounded tactical kneel.
+const PLANT_DROP_M = -0.42;
+const PLANT_KNEEL_HIP_RAD = -0.05; // right thigh ~vertical => knee touches floor
+const PLANT_KNEEL_KNEE_RAD = -1.42; // right shin folds back along the floor
+const PLANT_LEAD_HIP_RAD = 1.5; // left thigh swings forward ~level
+const PLANT_LEAD_KNEE_RAD = -1.4; // left shin ~vertical, foot planted
+const PLANT_TORSO_LEAN_RAD = -0.2; // lean forward over the device
+const PLANT_HEAD_PITCH_RAD = -0.42; // look down at the keypad
+const PLANT_WEAPON_PITCH_RAD = -0.6; // weapon lowered while working
+const PLANT_BLEND_RATE = 12;
+
+/**
+ * How far behind the spine the carried Spike canister sits per archetype so it
+ * clears each agent's own dorsal gear (Pulse backpack, Umbra vials, Volt coils).
+ */
+const SPIKE_BACK_Z: Record<AgentColorId, number> = {
+  red: 0.215,
+  blue: 0.2,
+  green: 0.33,
+  violet: 0.26,
+  gold: 0.26,
+};
+
+const ULT_MOTE_COUNT = 8;
 
 // Volt's pooled electric arc: heelL -> coilL -> coilR -> heelR, 3 legs.
 const ARC_SEGMENTS_PER_LEG = 8;
@@ -369,8 +419,53 @@ function addMesh(
 ): THREE.Mesh {
   const mesh = new THREE.Mesh(geometry, material);
   mesh.position.set(x, y, z);
+  // Solid armour / suit / helmet / weapon surfaces cast + receive shadows;
+  // translucent FX planes, halos, bars and unlit glow parts never do.
+  const isFx = material.transparent || material instanceof THREE.MeshBasicMaterial;
+  mesh.castShadow = !isFx;
+  mesh.receiveShadow = !isFx;
   parent.add(mesh);
   return mesh;
+}
+
+// ---------------------------------------------------------------------------
+// Optional Blender `.glb` agent overrides (public/models/agent_<colorId>.glb).
+// One probe + parse per URL; every rig receives its own SkeletonUtils clone.
+// Clones share geometry/material with the cached template, so they are tagged
+// `userData.sharedGlb` and skipped by `dispose()`.
+// ---------------------------------------------------------------------------
+type GlbWaiter = (root: THREE.Object3D) => void;
+interface GlbCacheEntry {
+  template: THREE.Object3D | null;
+  waiters: Set<GlbWaiter>;
+}
+const agentGlbCache = new Map<string, GlbCacheEntry>();
+
+/** Requests a clone of the optional `.glb` at `url`; returns a cancel function. */
+function requestAgentGlb(url: string, onReady: GlbWaiter): () => void {
+  let entry = agentGlbCache.get(url);
+  if (!entry) {
+    const created: GlbCacheEntry = { template: null, waiters: new Set() };
+    agentGlbCache.set(url, created);
+    entry = created;
+    loadOptionalGlbAsset(url, (glbRoot) => {
+      created.template = glbRoot;
+      const pending = Array.from(created.waiters);
+      created.waiters.clear();
+      for (const waiter of pending) {
+        waiter(cloneSkinned(glbRoot));
+      }
+    });
+  }
+  if (entry.template) {
+    onReady(cloneSkinned(entry.template));
+    return () => undefined;
+  }
+  const pendingEntry = entry;
+  pendingEntry.waiters.add(onReady);
+  return () => {
+    pendingEntry.waiters.delete(onReady);
+  };
 }
 
 interface WeaponProp {
@@ -1337,7 +1432,172 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
   blindHalo.rotation.x = Math.PI * 0.42;
   blindHalo.visible = false;
 
+  // -------------------------------------------------------------------------
+  // V3: carried Mini-Radianite Spike canister (slung diagonally across the back)
+  // -------------------------------------------------------------------------
+  const spikeShellMat = new THREE.MeshStandardMaterial({ color: 0x2a303d, metalness: 0.7, roughness: 0.32 });
+  const spikeCapMat = new THREE.MeshStandardMaterial({ color: 0x151922, metalness: 0.55, roughness: 0.45 });
+  const spikeCoreMat = new THREE.MeshStandardMaterial({
+    color: 0xffb347,
+    emissive: 0xff9a1f,
+    emissiveIntensity: 1.6,
+    roughness: 0.25,
+    metalness: 0.1,
+  });
+  const spikeBeaconMat = new THREE.MeshBasicMaterial({ color: 0xff5a2a });
+
+  const spikeGroup = new THREE.Group();
+  spikeGroup.position.set(0, U(1.14), SPIKE_BACK_Z[colorId]);
+  spikeGroup.rotation.set(0.12, 0, 0.78); // diagonal shoulder-to-hip sling
+  spikeGroup.visible = false;
+  upperBody.add(spikeGroup);
+
+  addMesh(spikeGroup, new THREE.CylinderGeometry(0.042, 0.042, 0.24, 14), spikeShellMat);
+  for (const y of [-0.135, 0.135]) {
+    addMesh(spikeGroup, new THREE.CylinderGeometry(0.05, 0.047, 0.045, 14), spikeCapMat, 0, y, 0);
+  }
+  addMesh(spikeGroup, new THREE.CylinderGeometry(0.0445, 0.0445, 0.09, 14), spikeCoreMat); // glowing amber core band
+  for (let k = 0; k < 4; k++) {
+    const a = k * (Math.PI / 2) + Math.PI / 4;
+    const rib = addMesh(spikeGroup, new THREE.BoxGeometry(0.012, 0.1, 0.014), spikeCapMat, Math.sin(a) * 0.047, 0, Math.cos(a) * 0.047);
+    rib.rotation.y = a;
+  }
+  addMesh(spikeGroup, new THREE.ConeGeometry(0.032, 0.08, 6), spikeShellMat, 0, 0.197, 0); // radianite prong
+  addMesh(spikeGroup, new THREE.CylinderGeometry(0.03, 0.02, 0.03, 12), spikeCapMat, 0, -0.172, 0);
+  for (const y of [-0.075, 0.075]) {
+    const strap = addMesh(spikeGroup, new THREE.TorusGeometry(0.046, 0.006, 6, 18), suitMat, 0, y, 0);
+    strap.rotation.x = Math.PI / 2;
+  }
+  const spikeBeacon = addMesh(spikeGroup, new THREE.SphereGeometry(0.012, 10, 8), spikeBeaconMat, 0, 0.135, 0.052);
+  const spikeTipGlow = addMesh(spikeGroup, new THREE.SphereGeometry(0.009, 8, 6), spikeBeaconMat, 0, 0.24, 0);
+
+  // -------------------------------------------------------------------------
+  // V3: holo-keypad projection shown while planting / defusing
+  // -------------------------------------------------------------------------
+  const keypadPanelMat = new THREE.MeshBasicMaterial({
+    color: agent.trim,
+    transparent: true,
+    opacity: 0,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+  });
+  const keypadKeyMat = keypadPanelMat.clone();
+  const keypadActiveKeyMat = keypadPanelMat.clone();
+  keypadActiveKeyMat.color.setHex(0xffffff);
+  const keypadEdgeMat = new THREE.LineBasicMaterial({ color: agent.trim, transparent: true, opacity: 0, depthWrite: false });
+
+  const keypadGroup = new THREE.Group();
+  // bodyTiltGroup-local: dropped with the kneel, ends up ~0.6 m high in front of the chest.
+  keypadGroup.position.set(-0.05, 1.0, -0.42);
+  keypadGroup.rotation.x = -0.85; // face up toward the kneeling agent's visor
+  keypadGroup.visible = false;
+  bodyTiltGroup.add(keypadGroup);
+
+  addMesh(keypadGroup, new THREE.PlaneGeometry(0.22, 0.16), keypadPanelMat);
+  const keypadOutlineSrc = new THREE.PlaneGeometry(0.235, 0.175);
+  const keypadOutline = new THREE.LineSegments(new THREE.EdgesGeometry(keypadOutlineSrc), keypadEdgeMat);
+  keypadOutlineSrc.dispose();
+  keypadGroup.add(keypadOutline);
+  const keypadKeys: THREE.Mesh[] = [];
+  for (let row = 0; row < 4; row++) {
+    for (let col = 0; col < 3; col++) {
+      keypadKeys.push(
+        addMesh(
+          keypadGroup,
+          new THREE.PlaneGeometry(0.05, 0.026),
+          keypadKeyMat,
+          (col - 1) * 0.062,
+          0.051 - row * 0.034,
+          0.002
+        )
+      );
+    }
+  }
+  const keypadScan = addMesh(keypadGroup, new THREE.PlaneGeometry(0.21, 0.005), keypadActiveKeyMat, 0, 0, 0.004);
+
+  // -------------------------------------------------------------------------
+  // V3: Ultimate Overcharge aura — orbiting ring + rising glow motes
+  // -------------------------------------------------------------------------
+  const ultRingMat = new THREE.MeshBasicMaterial({
+    color: agent.trim,
+    transparent: true,
+    opacity: 0,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+  });
+  const ultInnerRingMat = ultRingMat.clone();
+  ultInnerRingMat.color.setHex(agent.primary);
+
+  const ultGroup = new THREE.Group();
+  ultGroup.position.set(0, U(1.2), 0);
+  ultGroup.visible = false;
+  upperBody.add(ultGroup);
+  const ULT_RING_R = 0.46;
+  const ultRingOuter = addMesh(ultGroup, new THREE.TorusGeometry(ULT_RING_R, 0.011, 8, 56), ultRingMat);
+  ultRingOuter.rotation.x = Math.PI / 2;
+  for (let k = 0; k < 3; k++) {
+    const a = (k / 3) * Math.PI * 2;
+    addMesh(ultRingOuter, new THREE.OctahedronGeometry(0.026, 0), ultRingMat, Math.cos(a) * ULT_RING_R, Math.sin(a) * ULT_RING_R, 0);
+  }
+  const ultRingInner = addMesh(ultGroup, new THREE.TorusGeometry(0.39, 0.007, 6, 48), ultInnerRingMat);
+  ultRingInner.rotation.x = Math.PI / 2;
+
+  const ultMotesGroup = new THREE.Group();
+  ultMotesGroup.visible = false;
+  bodyTiltGroup.add(ultMotesGroup);
+  const ultMotes: THREE.Mesh[] = [];
+  for (let i = 0; i < ULT_MOTE_COUNT; i++) {
+    ultMotes.push(addMesh(ultMotesGroup, new THREE.OctahedronGeometry(0.02, 0), i % 2 === 0 ? ultRingMat : ultInnerRingMat));
+  }
+
+  // -------------------------------------------------------------------------
+  // Optional `.glb` override holder (procedural rig stays 100% intact if absent)
+  // -------------------------------------------------------------------------
+  const glbHolder = new THREE.Group();
+  bodyTiltGroup.add(glbHolder);
+  let disposed = false;
+
   scene.add(root);
+
+  /**
+   * Swaps the procedural body for a Blender-exported agent mesh: auto-fit to
+   * the 1.82 m hitbox height, feet on the floor, centred on the root. The
+   * weapon, Spike, keypad, ult aura and overhead UI remain procedural.
+   */
+  function applyGlbOverride(glb: THREE.Object3D): void {
+    if (disposed) return;
+    glb.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(glb);
+    const size = box.getSize(new THREE.Vector3());
+    if (!Number.isFinite(size.y) || size.y < 1e-4) return;
+    glb.scale.multiplyScalar(1.82 / size.y);
+    glb.updateMatrixWorld(true);
+    box.setFromObject(glb);
+    const center = box.getCenter(new THREE.Vector3());
+    glb.position.x -= center.x;
+    glb.position.z -= center.z;
+    glb.position.y -= box.min.y;
+    glb.traverse((node) => {
+      node.userData.sharedGlb = true;
+      if (node instanceof THREE.Mesh) {
+        node.castShadow = true;
+        node.receiveShadow = true;
+      }
+    });
+    glbHolder.add(glb);
+
+    const keepBody = new Set<THREE.Object3D>([upperBody, glbHolder, keypadGroup, ultMotesGroup]);
+    const keepUpper = new Set<THREE.Object3D>([aimPivot, spikeGroup, ultGroup]);
+    for (const child of bodyTiltGroup.children) {
+      if (!keepBody.has(child) && !(child instanceof THREE.Line)) child.visible = false;
+    }
+    for (const child of upperBody.children) {
+      if (!keepUpper.has(child)) child.visible = false;
+    }
+  }
+
+  const cancelGlbRequest = requestAgentGlb(`/models/agent_${colorId}.glb`, applyGlbOverride);
 
   // -------------------------------------------------------------------------
   // Animation & visual state
@@ -1352,6 +1612,8 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
   let wasAlive = true;
   let ghostRatio = 1;
   let slideBlend = 0; // 0 = normal gait .. 1 = full Power-Slide pose
+  let plantBlend = 0; // 0 = standing .. 1 = full one-knee plant/defuse crouch
+  let ultBlend = 0; // 0 = off .. 1 = full Ultimate Overcharge aura
 
   const _shimmerColor = new THREE.Color();
   const _shimmerTarget = new THREE.Color(CONCUSS_SHIMMER_HEX);
@@ -1480,6 +1742,9 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
       occludedBySmoke: boolean;
       slideTimer?: number;
       concussTimer?: number;
+      hasSpike?: boolean;
+      channelingSpike?: boolean;
+      ultActive?: boolean;
     },
     cameraPos: Vec3
   ): void {
@@ -1491,6 +1756,15 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
     root.position.set(state.position.x, state.position.y, state.position.z);
     root.rotation.y = state.yaw;
 
+    // Carried Spike canister: only on a living carrier.
+    spikeGroup.visible = state.alive && Boolean(state.hasSpike);
+    if (spikeGroup.visible) {
+      spikeCoreMat.emissiveIntensity = 1.3 + Math.sin(time * 4.2) * 0.6;
+      const blinkOn = time % 1 < 0.5;
+      spikeBeacon.visible = blinkOn;
+      spikeTipGlow.visible = !blinkOn;
+    }
+
     // Death collapse: exponential smoothing `θ += (target - θ)(1 - e^(-k dt))`
     // around the sole pivot topples the whole rig forward, frame-rate independent.
     if (!state.alive) {
@@ -1499,7 +1773,22 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
       bodyTiltGroup.rotation.x += (DEATH_TILT_TARGET_RAD - bodyTiltGroup.rotation.x) * collapseAlpha;
       // Let any slide crouch rise back out so the corpse doesn't sink into the floor.
       slideBlend *= Math.exp(-14 * stepDt);
-      bodyTiltGroup.position.y = SLIDE_DROP_M * slideBlend;
+      // Killed mid-plant: unfold the kneel smoothly as the body collapses.
+      if (plantBlend > 1e-3) {
+        const relax = Math.exp(-10 * stepDt);
+        leftLeg.hip.rotation.x *= relax;
+        rightLeg.hip.rotation.x *= relax;
+        leftLeg.knee.rotation.x *= relax;
+        rightLeg.knee.rotation.x *= relax;
+      }
+      plantBlend *= Math.exp(-14 * stepDt);
+      if (plantBlend < 1e-4) plantBlend = 0;
+      ultBlend = 0;
+      const slideY = SLIDE_DROP_M * slideBlend;
+      bodyTiltGroup.position.y = slideY + (PLANT_DROP_M - slideY) * plantBlend;
+      keypadGroup.visible = false;
+      ultGroup.visible = false;
+      ultMotesGroup.visible = false;
       healthBarGroup.visible = false;
       blindHalo.visible = false;
       teamRing.visible = false;
@@ -1511,6 +1800,8 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
       bodyTiltGroup.rotation.x = 0;
       bodyTiltGroup.position.y = 0;
       slideBlend = 0;
+      plantBlend = 0;
+      ultBlend = 0;
       gaitPhase = 0;
       strideAmpSmoothed = 0;
       airBlend = 0;
@@ -1582,6 +1873,22 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
     bodyTiltGroup.position.y = SLIDE_DROP_M * sb;
 
     // -----------------------------------------------------------------------
+    // Spike plant / defuse: blend (on top of gait + slide) into a one-knee
+    // tactical crouch with `b += (target - b)(1 - e^(-12 dt))`. Cancelling,
+    // standing up or finishing simply drives the target back to 0.
+    // -----------------------------------------------------------------------
+    plantBlend += ((state.channelingSpike ? 1 : 0) - plantBlend) * (1 - Math.exp(-PLANT_BLEND_RATE * stepDt));
+    if (plantBlend < 1e-4) plantBlend = 0;
+    const pb = plantBlend;
+    if (pb > 0) {
+      leftLeg.hip.rotation.x += (PLANT_LEAD_HIP_RAD - leftLeg.hip.rotation.x) * pb;
+      leftLeg.knee.rotation.x += (PLANT_LEAD_KNEE_RAD - leftLeg.knee.rotation.x) * pb;
+      rightLeg.hip.rotation.x += (PLANT_KNEEL_HIP_RAD - rightLeg.hip.rotation.x) * pb;
+      rightLeg.knee.rotation.x += (PLANT_KNEEL_KNEE_RAD - rightLeg.knee.rotation.x) * pb;
+      bodyTiltGroup.position.y += (PLANT_DROP_M - bodyTiltGroup.position.y) * pb;
+    }
+
+    // -----------------------------------------------------------------------
     // Upper body: bladed stance twist, stride counter-rotation, bob & breathing
     // -----------------------------------------------------------------------
     const hold = WEAPON_HOLD[activeWeapon];
@@ -1590,15 +1897,18 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
     const twist = hold.twist + Math.sin(gaitPhase) * 0.05 * motion;
     upperBody.position.y = WAIST_Y + bob + breathe;
     const gaitLean = -0.07 * motion - airBlend * 0.05;
+    const slideLean = gaitLean + (SLIDE_TORSO_LEAN_RAD - gaitLean) * sb;
     upperBody.rotation.set(
-      gaitLean + (SLIDE_TORSO_LEAN_RAD - gaitLean) * sb,
+      slideLean + (PLANT_TORSO_LEAN_RAD - slideLean) * pb,
       twist,
       Math.sin(gaitPhase) * 0.025 * motion * (1 - sb)
     );
 
-    // Head counter-yaws so the visor always faces the aim direction.
+    // Head counter-yaws so the visor always faces the aim direction
+    // (and tips down toward the holo-keypad while planting / defusing).
     const aimPitch = clamp(state.pitch, -1.1, 1.1);
-    headGroup.rotation.set(aimPitch * 0.45, -twist, 0);
+    headGroup.rotation.set(aimPitch * 0.45 + (PLANT_HEAD_PITCH_RAD - aimPitch * 0.45) * pb, -twist, 0);
+    const weaponPitch = aimPitch + (PLANT_WEAPON_PITCH_RAD - aimPitch) * pb;
 
     // Aim pivot: place in a "world-forward" frame by undoing the torso twist,
     // then pitch with the aim + decaying recoil kick + idle sway.
@@ -1606,7 +1916,7 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
     _aimBase.set(0.05, U(1.27), -0.02).applyAxisAngle(UP, -twist);
     aimPivot.position.copy(_aimBase);
     aimPivot.rotation.set(
-      aimPitch + recoilKick * 0.9 + Math.sin(time * 1.3) * 0.012 * idle,
+      weaponPitch + recoilKick * 0.9 + Math.sin(time * 1.3) * 0.012 * idle,
       -twist + Math.sin(time * 0.9) * 0.01 * idle,
       0
     );
@@ -1624,8 +1934,48 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
       animate(time, stepDt, motion);
     }
 
-    // Gentle neon breathing on trims.
-    trimMat.emissiveIntensity = 1.15 + Math.sin(time * 3.1) * 0.2;
+    // Gentle neon breathing on trims (+ overcharge boost while the ult is live).
+    ultBlend += ((state.ultActive ? 1 : 0) - ultBlend) * (1 - Math.exp(-8 * stepDt));
+    if (ultBlend < 1e-3) ultBlend = 0;
+    const ultPulse = 0.5 + 0.5 * Math.sin(time * 6);
+    trimMat.emissiveIntensity = 1.15 + Math.sin(time * 3.1) * 0.2 + ultBlend * (1.3 + 0.6 * ultPulse);
+
+    // Holo-keypad projection (fades/scales in with the kneel).
+    keypadGroup.visible = pb > 0.02;
+    if (keypadGroup.visible) {
+      keypadGroup.scale.setScalar(0.35 + 0.65 * pb);
+      keypadPanelMat.opacity = 0.2 * pb;
+      keypadKeyMat.opacity = 0.6 * pb;
+      keypadActiveKeyMat.opacity = 0.95 * pb;
+      keypadEdgeMat.opacity = 0.9 * pb;
+      const activeKey = Math.floor(time * 7) % keypadKeys.length;
+      for (let i = 0; i < keypadKeys.length; i++) {
+        keypadKeys[i].material = i === activeKey ? keypadActiveKeyMat : keypadKeyMat;
+      }
+      keypadScan.position.y = Math.sin(time * 3.4) * 0.07;
+      keypadGroup.position.y = 1.0 + Math.sin(time * 2.2) * 0.008;
+    }
+
+    // Ultimate Overcharge ring + rising/orbiting glow motes.
+    const ultOn = ultBlend > 0.01;
+    ultGroup.visible = ultOn;
+    ultMotesGroup.visible = ultOn;
+    if (ultOn) {
+      ultRingMat.opacity = ultBlend * (0.55 + 0.35 * ultPulse);
+      ultInnerRingMat.opacity = ultBlend * (0.35 + 0.3 * (1 - ultPulse));
+      ultGroup.scale.setScalar((0.8 + 0.2 * ultBlend) * (1 + 0.05 * Math.sin(time * 6)));
+      ultRingOuter.rotation.set(Math.PI / 2 + Math.sin(time * 1.7) * 0.16, Math.cos(time * 1.3) * 0.12, time * 2.4);
+      ultRingInner.rotation.set(Math.PI / 2 + Math.cos(time * 2.1) * 0.22, Math.sin(time * 1.1) * 0.18, -time * 3.1);
+      for (let i = 0; i < ultMotes.length; i++) {
+        const phase = (time * 0.45 + i / ultMotes.length) % 1;
+        const angle = (i / ultMotes.length) * Math.PI * 2 + time * 1.6;
+        const r = 0.34 + 0.06 * Math.sin(time * 2.3 + i);
+        const mote = ultMotes[i];
+        mote.position.set(Math.cos(angle) * r, 0.25 + phase * 1.45, Math.sin(angle) * r);
+        mote.scale.setScalar(Math.max(0.001, Math.sin(Math.PI * phase)) * (0.6 + 0.6 * ultBlend));
+        mote.rotation.y += stepDt * 4;
+      }
+    }
 
     // Hit flash (0.10 s white) -> cryo slow (frost) -> base self-illumination.
     if (hitFlashTimer > 0) {
@@ -1663,6 +2013,13 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
       suitMat.emissiveIntensity = teamStyle.suitEmissiveIntensity;
     }
 
+    // Ultimate overcharge: armour self-illumination swells with the ring pulse.
+    if (ultBlend > 0 && hitFlashTimer <= 0) {
+      const boost = ultBlend * (0.18 + 0.14 * ultPulse);
+      armorMat.emissiveIntensity += boost;
+      helmetMat.emissiveIntensity += boost;
+    }
+
     // Overhead health bar & blind halo (hidden when occluded by smoke).
     const showOverhead = !state.occludedBySmoke;
     healthBarGroup.visible = showOverhead;
@@ -1690,8 +2047,12 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
   }
 
   function dispose(targetScene: THREE.Scene): void {
+    disposed = true;
+    cancelGlbRequest();
     targetScene.remove(root);
     root.traverse((node) => {
+      // GLB clones share geometry/materials with the cached template: never dispose them here.
+      if (node.userData.sharedGlb) return;
       if (
         node instanceof THREE.Mesh ||
         node instanceof THREE.LineSegments ||

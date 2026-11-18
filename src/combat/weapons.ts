@@ -87,6 +87,210 @@ interface WeaponModelRig {
 }
 
 /**
+ * First-person glove/gauntlet colours. Matches `AGENT_STYLE` in
+ * `entities/characterModel.ts` so the forearms you see in 1st person are the
+ * same vivid armour hue + neon trim your 3rd-person agent wears.
+ */
+const VIEWMODEL_GLOVE_STYLE: Record<AgentColorId, { primary: number; trim: number }> = {
+  red: { primary: 0xff2244, trim: 0xff6b85 }, // Blaze
+  blue: { primary: 0x00a8ff, trim: 0x6ce8ff }, // Mist
+  green: { primary: 0x10d464, trim: 0x7dffb3 }, // Pulse
+  violet: { primary: 0xa23cff, trim: 0xdcb0ff }, // Umbra
+  gold: { primary: 0xffbf00, trim: 0xfff27a }, // Volt
+};
+
+interface HandMaterials {
+  /** Dark carbon-fibre glove shell. */
+  glove: THREE.Material;
+  /** Slightly lighter armoured knuckle caps / finger segments. */
+  knuckle: THREE.Material;
+  /** Agent-coloured gauntlet armour (`handArmorMat`). */
+  armor: THREE.Material;
+  /** Neon cuff / strip trim (`handTrimMat`). */
+  trim: THREE.Material;
+}
+
+function addPart(
+  parent: THREE.Object3D,
+  geometry: THREE.BufferGeometry,
+  material: THREE.Material,
+  x: number,
+  y: number,
+  z: number,
+): THREE.Mesh {
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.position.set(x, y, z);
+  parent.add(mesh);
+  return mesh;
+}
+
+/**
+ * Hand wrapped around a vertical grip (pistol grip or vertical foregrip).
+ * Frame: grip axis = local +Y, barrel = -Z, grip centred at the origin.
+ * `side = +1` builds a RIGHT hand (back of hand on +X, thumb wrapping the -X
+ * face); `side = -1` mirrors it into a LEFT hand.
+ */
+function buildGripHand(
+  mats: HandMaterials,
+  side: 1 | -1,
+  halfWidth: number,
+  halfDepth: number,
+): THREE.Group {
+  const hand = new THREE.Group();
+  const w = halfWidth;
+  const d = halfDepth;
+
+  // Back of the hand on the outer face + armoured knuckle guard.
+  addPart(hand, new THREE.BoxGeometry(0.02, 0.074, 0.06), mats.glove, side * (w + 0.01), -0.006, 0.004);
+  addPart(hand, new THREE.BoxGeometry(0.007, 0.062, 0.024), mats.armor, side * (w + 0.022), -0.004, -0.014);
+  // Palm heel wrapping the backstrap + thumb web on the top-rear.
+  addPart(hand, new THREE.BoxGeometry(2 * w + 0.016, 0.064, 0.018), mats.glove, side * 0.004, -0.01, d + 0.008);
+  const web = addPart(hand, new THREE.SphereGeometry(0.015, 10, 8), mats.glove, -side * w * 0.3, 0.03, d + 0.004);
+  web.scale.set(1.25, 0.8, 1.0);
+
+  // Four curled fingers wrapping across the front strap, index on top.
+  const fingerSpan = [0.96, 1.0, 0.95, 0.8];
+  for (let i = 0; i < 4; i++) {
+    const y = 0.02 - i * 0.0185;
+    const span = (2 * w + 0.012) * fingerSpan[i];
+    const finger = addPart(
+      hand,
+      new THREE.CapsuleGeometry(0.0085, span, 3, 8),
+      mats.glove,
+      side * (w + 0.008 - span / 2),
+      y,
+      -(d + 0.008),
+    );
+    finger.rotation.z = Math.PI / 2;
+    // Fingertip segment curling back along the far face.
+    const tip = addPart(
+      hand,
+      new THREE.CapsuleGeometry(0.0078, 0.012, 3, 8),
+      mats.glove,
+      side * (w + 0.006 - span),
+      y,
+      -d + 0.004,
+    );
+    tip.rotation.x = Math.PI / 2;
+    // Armoured knuckle cap where the finger leaves the back of the hand.
+    addPart(hand, new THREE.BoxGeometry(0.012, 0.014, 0.013), mats.knuckle, side * (w + 0.013), y, -(d + 0.003));
+  }
+
+  // Thumb wrapping the inner face, angled forward-down.
+  const thumb = addPart(hand, new THREE.CapsuleGeometry(0.0095, 0.034, 3, 8), mats.glove, -side * (w + 0.008), 0.024, 0.002);
+  thumb.rotation.x = Math.PI / 2 + 0.35;
+  addPart(hand, new THREE.BoxGeometry(0.004, 0.01, 0.022), mats.trim, -side * (w + 0.018), 0.022, 0.0);
+
+  return hand;
+}
+
+/**
+ * Support hand cradling a horizontal handguard from below.
+ * Frame: handguard axis = local Z, handguard centred at the origin.
+ * `side = -1` = LEFT hand (thumb along the -X face, fingers curling up +X).
+ */
+function buildCradleHand(
+  mats: HandMaterials,
+  side: 1 | -1,
+  halfWidth: number,
+  halfHeight: number,
+): THREE.Group {
+  const hand = new THREE.Group();
+  const w = halfWidth;
+  const h = halfHeight;
+
+  // Palm under the handguard + armoured back-of-hand plate below it.
+  addPart(hand, new THREE.BoxGeometry(2 * w + 0.014, 0.018, 0.074), mats.glove, 0, -h - 0.009, 0.004);
+  addPart(hand, new THREE.BoxGeometry(2 * w * 0.8, 0.006, 0.05), mats.armor, 0, -h - 0.021, 0.008);
+  const thumbBase = addPart(hand, new THREE.SphereGeometry(0.016, 10, 8), mats.glove, side * (w + 0.002), -h - 0.004, 0.026);
+  thumbBase.scale.set(0.9, 0.8, 1.3);
+
+  // Fingers curl up the far face.
+  for (let i = 0; i < 4; i++) {
+    const z = -0.03 + i * 0.019;
+    const len = i === 3 ? 0.02 : 0.026;
+    const finger = addPart(
+      hand,
+      new THREE.CapsuleGeometry(0.0082, len, 3, 8),
+      mats.glove,
+      -side * (w + 0.008),
+      -h + 0.008,
+      z,
+    );
+    finger.rotation.z = side * 0.18; // tips curl in toward the handguard
+    addPart(hand, new THREE.BoxGeometry(0.013, 0.012, 0.012), mats.knuckle, -side * (w + 0.006), -h - 0.008, z);
+  }
+
+  // Thumb laid forward along the near face.
+  const thumb = addPart(hand, new THREE.CapsuleGeometry(0.0092, 0.04, 3, 8), mats.glove, side * (w + 0.008), -h * 0.3, -0.008);
+  thumb.rotation.x = Math.PI / 2 - 0.2;
+  addPart(hand, new THREE.BoxGeometry(0.004, 0.009, 0.026), mats.trim, side * (w + 0.018), -h * 0.3, -0.006);
+
+  return hand;
+}
+
+/**
+ * Armoured forearm gauntlet running from `wrist` to `elbow` (weapon-local
+ * space): carbon undersleeve, Agent-coloured shell + dorsal ridge, and neon
+ * cuff rings / side strip.
+ */
+function buildForearm(
+  mats: HandMaterials,
+  side: 1 | -1,
+  wrist: THREE.Vector3,
+  elbow: THREE.Vector3,
+): THREE.Group {
+  const arm = new THREE.Group();
+  arm.position.copy(wrist);
+  const dir = new THREE.Vector3().subVectors(elbow, wrist);
+  const len = Math.max(0.12, dir.length());
+  dir.normalize();
+  arm.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), dir); // local +Z = toward elbow
+
+  // CylinderGeometry axis is +Y; rotateX(+PI/2) maps +Y -> +Z, so radiusTop sits at the elbow end.
+  const cuffGeo = new THREE.CylinderGeometry(0.031, 0.03, 0.04, 14);
+  cuffGeo.rotateX(Math.PI / 2);
+  addPart(arm, cuffGeo, mats.glove, 0, 0, 0.012);
+
+  const sleeveGeo = new THREE.CylinderGeometry(0.041, 0.032, len, 14);
+  sleeveGeo.rotateX(Math.PI / 2);
+  addPart(arm, sleeveGeo, mats.glove, 0, 0, len / 2);
+
+  // Partial shell covering top + outer flanks (theta centred on PI = local +Y after rotation).
+  const shellLen = len * 0.72;
+  const shellGeo = new THREE.CylinderGeometry(0.047, 0.038, shellLen, 16, 1, false, Math.PI - 1.45, 2.9);
+  shellGeo.rotateX(Math.PI / 2);
+  addPart(arm, shellGeo, mats.armor, 0, 0, 0.05 + shellLen / 2);
+  addPart(arm, new THREE.BoxGeometry(0.016, 0.01, len * 0.55), mats.armor, 0, 0.046, 0.06 + len * 0.3);
+
+  // Neon cuff rings (TorusGeometry lies in XY = wraps the local Z axis) + side strip.
+  addPart(arm, new THREE.TorusGeometry(0.04, 0.005, 6, 20), mats.trim, 0, 0, 0.05);
+  addPart(arm, new THREE.TorusGeometry(0.047, 0.004, 6, 20), mats.trim, 0, 0, 0.05 + shellLen);
+  addPart(arm, new THREE.BoxGeometry(0.004, 0.006, len * 0.5), mats.trim, side * 0.043, 0.002, 0.08 + len * 0.25);
+
+  return arm;
+}
+
+/**
+ * Attaches a hand (already positioned/rotated in weapon-local space) plus its
+ * forearm gauntlet. `wristLocal` is the wrist point in the hand's own frame;
+ * it is transformed into weapon space so the gauntlet meets the glove exactly.
+ */
+function attachArm(
+  weapon: THREE.Group,
+  hand: THREE.Group,
+  mats: HandMaterials,
+  side: 1 | -1,
+  wristLocal: THREE.Vector3,
+  elbow: THREE.Vector3,
+): void {
+  weapon.add(hand);
+  hand.updateMatrix();
+  const wrist = wristLocal.clone().applyMatrix4(hand.matrix);
+  weapon.add(buildForearm(mats, side, wrist, elbow));
+}
+
+/**
  * Builds the 4-weapon hitscan controller (`pistol`, `smg`, `ar`, `sniper`),
  * distinct first-person procedural 3D viewmodels, optical ADS/scope logic, and
  * shared 3D tracer/impact pool (used by both the player and AI combatants).
@@ -174,6 +378,49 @@ export function createWeaponSystem(
     emissiveIntensity: 0.9,
     roughness: 0.25,
     metalness: 0.2,
+  });
+
+  // Tactician glove + gauntlet materials (recoloured live in setAgentColor).
+  const initialGlove = VIEWMODEL_GLOVE_STYLE[activeColorId];
+  const gloveMat = new THREE.MeshStandardMaterial({
+    color: 0x151922,
+    roughness: 0.62,
+    metalness: 0.38,
+  });
+  const gloveKnuckleMat = new THREE.MeshStandardMaterial({
+    color: 0x262d3b,
+    roughness: 0.45,
+    metalness: 0.55,
+  });
+  const handArmorMat = new THREE.MeshStandardMaterial({
+    color: initialGlove.primary,
+    emissive: initialGlove.primary,
+    emissiveIntensity: 0.25,
+    roughness: 0.34,
+    metalness: 0.3,
+    side: THREE.DoubleSide, // partial gauntlet shell reads solid from inside
+  });
+  const handTrimMat = new THREE.MeshStandardMaterial({
+    color: initialGlove.trim,
+    emissive: initialGlove.trim,
+    emissiveIntensity: 1.25,
+    roughness: 0.2,
+    metalness: 0.1,
+  });
+  const handMats: HandMaterials = {
+    glove: gloveMat,
+    knuckle: gloveKnuckleMat,
+    armor: handArmorMat,
+    trim: handTrimMat,
+  };
+  // Illuminated holo/reflex sight ring + faint tinted lens (SMG & AR).
+  const holoRingMat = new THREE.MeshBasicMaterial({ color: AGENT_PALETTES[activeColorId].hex });
+  const holoLensMat = new THREE.MeshBasicMaterial({
+    color: AGENT_PALETTES[activeColorId].hex,
+    transparent: true,
+    opacity: 0.16,
+    depthWrite: false,
+    side: THREE.DoubleSide,
   });
 
   // 1) Pistol sub-group: compact slide + angled grip + trigger guard
@@ -293,6 +540,112 @@ export function createWeaponSystem(
   const sniperAccent = new THREE.Mesh(new THREE.BoxGeometry(0.068, 0.012, 0.42), accentMat);
   sniperAccent.position.set(0, 0.024, -0.16);
   sniperGroup.add(sniperAccent);
+
+  // --- V3 viewmodel finish: pistol grips, trigger guards, holo rings, fluted rail barrel ---
+  const addTriggerGuard = (group: THREE.Group, y: number, z: number, length: number): void => {
+    addPart(group, new THREE.BoxGeometry(0.008, 0.006, length), gunSteelMat, 0, y, z);
+    addPart(group, new THREE.BoxGeometry(0.008, 0.024, 0.006), gunSteelMat, 0, y + 0.012, z - length / 2);
+  };
+  addTriggerGuard(pistolGroup, -0.042, -0.006, 0.042);
+
+  const smgGrip = addPart(smgGroup, new THREE.BoxGeometry(0.03, 0.09, 0.04), gunDarkMat, 0, -0.075, 0.085);
+  smgGrip.rotation.x = -0.22;
+  addTriggerGuard(smgGroup, -0.052, 0.052, 0.036);
+
+  const arGrip = addPart(arGroup, new THREE.BoxGeometry(0.032, 0.095, 0.045), gunDarkMat, 0, -0.085, 0.11);
+  arGrip.rotation.x = -0.24;
+  addTriggerGuard(arGroup, -0.058, 0.058, 0.05);
+  addPart(arGroup, new THREE.BoxGeometry(0.052, 0.05, 0.2), gunDarkMat, 0, 0.008, -0.27); // handguard
+  for (let i = 0; i < 4; i++) {
+    for (const s of [-1, 1]) {
+      // glowing handguard cooling vents
+      addPart(arGroup, new THREE.BoxGeometry(0.002, 0.008, 0.026), accentMat, s * 0.0265, 0.012, -0.33 + i * 0.04);
+    }
+  }
+
+  const sniperGrip = addPart(sniperGroup, new THREE.BoxGeometry(0.032, 0.095, 0.045), gunDarkMat, 0, -0.088, 0.13);
+  sniperGrip.rotation.x = -0.24;
+  addTriggerGuard(sniperGroup, -0.06, 0.076, 0.05);
+
+  // Holo/reflex sights: illuminated ring + tinted lens + reticle dot on top of each optic.
+  const addHoloSight = (group: THREE.Group, y: number, z: number, radius: number): void => {
+    addPart(group, new THREE.BoxGeometry(radius * 2.4, 0.008, 0.012), gunDarkMat, 0, y - radius - 0.002, z);
+    addPart(group, new THREE.TorusGeometry(radius, 0.0028, 8, 24), holoRingMat, 0, y, z);
+    addPart(group, new THREE.CircleGeometry(radius * 0.95, 20), holoLensMat, 0, y, z);
+    addPart(group, new THREE.SphereGeometry(0.0022, 6, 6), holoRingMat, 0, y, z - 0.001);
+  };
+  addHoloSight(smgGroup, 0.077, -0.005, 0.014);
+  addHoloSight(arGroup, 0.091, 0.0, 0.017);
+
+  // Sniper: fluted barrel grooves, slotted muzzle brake, top rail + glowing chassis vents.
+  for (const s of [-1, 1]) {
+    for (const dy of [-0.006, 0.006]) {
+      addPart(sniperGroup, new THREE.BoxGeometry(0.003, 0.004, 0.42), gunDarkMat, s * 0.0145, 0.016 + dy, -0.47);
+    }
+  }
+  addPart(sniperGroup, new THREE.BoxGeometry(0.04, 0.036, 0.05), gunDarkMat, 0, 0.016, -0.745);
+  for (let i = 0; i < 3; i++) {
+    for (const s of [-1, 1]) {
+      addPart(sniperGroup, new THREE.BoxGeometry(0.002, 0.026, 0.006), accentMat, s * 0.0205, 0.016, -0.76 + i * 0.014);
+    }
+  }
+  for (let i = 0; i < 7; i++) {
+    addPart(sniperGroup, new THREE.BoxGeometry(0.046, 0.005, 0.012), gunSteelMat, 0, 0.0465, -0.18 + i * 0.05);
+  }
+  for (const z of [-0.12, 0.04]) {
+    addPart(sniperGroup, new THREE.BoxGeometry(0.03, 0.02, 0.02), gunSteelMat, 0, 0.056, z); // scope rings
+  }
+  for (let i = 0; i < 4; i++) {
+    for (const s of [-1, 1]) {
+      addPart(sniperGroup, new THREE.BoxGeometry(0.002, 0.006, 0.028), accentMat, s * 0.0315, -0.012, -0.18 + i * 0.04);
+    }
+  }
+
+  // --- 5) 1st-person Tactician hands + Agent-coloured forearm gauntlets ---
+  // Right hand: wraps the pistol grip; forearm exits toward the lower-right.
+  // Left hand: foregrip / handguard (or cups the right hand on the pistol);
+  // forearm exits toward the lower-left (-X, -Y, +Z) like Valorant / CS2.
+  const placeGripHand = (
+    group: THREE.Group,
+    side: 1 | -1,
+    halfWidth: number,
+    halfDepth: number,
+    pos: THREE.Vector3,
+    tiltX: number,
+    elbow: THREE.Vector3,
+  ): void => {
+    const hand = buildGripHand(handMats, side, halfWidth, halfDepth);
+    hand.position.copy(pos);
+    hand.rotation.x = tiltX;
+    attachArm(group, hand, handMats, side, new THREE.Vector3(side * 0.01, -0.04, halfDepth + 0.006), elbow);
+  };
+  const placeCradleHand = (
+    group: THREE.Group,
+    halfWidth: number,
+    halfHeight: number,
+    pos: THREE.Vector3,
+    elbow: THREE.Vector3,
+  ): void => {
+    const hand = buildCradleHand(handMats, -1, halfWidth, halfHeight);
+    hand.position.copy(pos);
+    attachArm(group, hand, handMats, -1, new THREE.Vector3(-halfWidth * 0.5, -halfHeight - 0.012, 0.045), elbow);
+  };
+
+  // Pistol: right hand on the raked grip, left hand cupped around it (thumbs-forward grip).
+  placeGripHand(pistolGroup, 1, 0.017, 0.026, new THREE.Vector3(0, -0.056, 0.032), -0.24, new THREE.Vector3(0.1, -0.36, 0.4));
+  placeGripHand(pistolGroup, -1, 0.029, 0.042, new THREE.Vector3(-0.004, -0.072, 0.036), -0.24, new THREE.Vector3(-0.3, -0.36, 0.34));
+
+  // SMG: right hand on the new pistol grip, left hand on the vertical foregrip.
+  placeGripHand(smgGroup, 1, 0.015, 0.02, new THREE.Vector3(0, -0.064, 0.083), -0.22, new THREE.Vector3(0.11, -0.37, 0.46));
+  placeGripHand(smgGroup, -1, 0.015, 0.017, new THREE.Vector3(0, -0.062, -0.09), -0.1, new THREE.Vector3(-0.42, -0.34, 0.16));
+
+  // AR: right hand on the grip, left hand cradling the vented handguard.
+  placeGripHand(arGroup, 1, 0.016, 0.0225, new THREE.Vector3(0, -0.074, 0.107), -0.24, new THREE.Vector3(0.11, -0.38, 0.5));
+  placeCradleHand(arGroup, 0.026, 0.025, new THREE.Vector3(0, 0.008, -0.27), new THREE.Vector3(-0.44, -0.34, 0.14));
+
+  // Sniper: right hand on the grip, left hand cradling the chassis forend.
+  placeGripHand(sniperGroup, 1, 0.016, 0.0225, new THREE.Vector3(0, -0.077, 0.127), -0.24, new THREE.Vector3(0.11, -0.38, 0.52));
+  placeCradleHand(sniperGroup, 0.031, 0.044, new THREE.Vector3(0, 0.0, -0.15), new THREE.Vector3(-0.44, -0.34, 0.2));
 
   const weaponRigs: Record<WeaponId, WeaponModelRig> = {
     pistol: {
@@ -458,8 +811,8 @@ export function createWeaponSystem(
   }
 
   /**
-   * Switches the active agent color on both the weapon's glowing accent rail
-   * and subsequent player bullet tracers.
+   * Switches the active agent color on the weapon's glowing accent rail, holo
+   * sights, 1st-person gauntlet armour + glove trim, and subsequent tracers.
    */
   function setAgentColor(colorId: AgentColorId): void {
     activeColorId = colorId;
@@ -467,6 +820,13 @@ export function createWeaponSystem(
     accentMat.color.setHex(hex);
     accentMat.emissive.setHex(hex);
     muzzleFlashMat.color.setHex(hex);
+    holoRingMat.color.setHex(hex);
+    holoLensMat.color.setHex(hex);
+    const glove = VIEWMODEL_GLOVE_STYLE[colorId];
+    handArmorMat.color.setHex(glove.primary);
+    handArmorMat.emissive.setHex(glove.primary);
+    handTrimMat.color.setHex(glove.trim);
+    handTrimMat.emissive.setHex(glove.trim);
   }
 
   /**
@@ -698,6 +1058,7 @@ export function createWeaponSystem(
 
     // Highlight weapon accent rail when Bio-Stim overdrive is active.
     accentMat.emissiveIntensity = fireRateMultiplier > 1.05 ? 2.1 : 0.9;
+    handTrimMat.emissiveIntensity = fireRateMultiplier > 1.05 ? 2.0 : 1.25;
 
     // 1. Advance fire cooldown and reload progress (scaled by active stim multiplier)
     state.fireTimer = Math.max(0, state.fireTimer - dt);

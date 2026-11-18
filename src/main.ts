@@ -27,9 +27,12 @@ import {
   PLAYER_SPAWN,
   buildArenaScene,
   getArenaSpawns,
+  setArenaBuyBarriersVisible,
 } from './arena/map';
+import { ARENA_WIDTH_M } from './arena/skirmishAscii';
 import { WEAPON_SPECS } from './combat/arsenal';
 import { createWeaponSystem } from './combat/weapons';
+import { AGENT_ABILITIES } from './abilities/definitions';
 import { createAbilitySystem } from './abilities/system';
 import { createSoundEngine } from './audio/sfx';
 import { createMatchManager } from './match/roundManager';
@@ -64,11 +67,12 @@ const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(
   BASE_FOV_DEG,
   window.innerWidth / window.innerHeight,
-  0.1,
-  150
+  0.05,
+  260
 );
-// Tight near plane so first-person viewmodels and low slide-cam geometry never clip.
+// Tight near plane so first-person viewmodels/slide-cam never clip; far=260 covers 72x80m diagonals.
 camera.near = 0.05;
+camera.far = 260;
 camera.updateProjectionMatrix();
 // YXZ Euler order applies yaw (around world Y) before pitch (around local X),
 // preventing camera roll/tilt when looking diagonally in an FPS.
@@ -82,6 +86,8 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.12;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
@@ -186,6 +192,7 @@ const hpEl = document.getElementById('hud-hp') as HTMLDivElement;
 const spikeBadgeEl = document.getElementById('hud-spike-badge') as HTMLDivElement;
 const abilityQEl = document.getElementById('ability-q') as HTMLDivElement;
 const abilityEEl = document.getElementById('ability-e') as HTMLDivElement;
+const abilityXEl = document.getElementById('ability-x') as HTMLDivElement;
 const ammoEl = document.getElementById('hud-ammo') as HTMLDivElement;
 const speedEl = document.getElementById('hud-speed') as HTMLDivElement;
 const hintBuyEl = document.getElementById('hint-buy') as HTMLDivElement;
@@ -267,6 +274,8 @@ syncLocalPlayerFromCombatant();
 const mapEditor = createMapEditorController(scene, () => {
   match.onMapRebuilt();
   syncLocalPlayerFromCombatant();
+  frozenDrawn = false;
+  setArenaBuyBarriersVisible(lastHudPhase === 'buy');
 });
 
 // ---------------------------------------------------------------------------
@@ -705,12 +714,14 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
         match.skipBuyPhase();
       }
 
-      // [Q] / [E] Cast tactical abilities when alive
+      // [Q] / [E] / [X] Cast tactical abilities & Ultimate when alive
       if (match.getPlayerCombatant().alive) {
         if (e.code === 'KeyQ') {
           abilities.cast('q', player, input);
         } else if (e.code === 'KeyE') {
           abilities.cast('e', player, input);
+        } else if (e.code === 'KeyX') {
+          match.tryCastPlayerUltimate(player, input);
         }
       }
     }
@@ -752,6 +763,36 @@ function syncAbilitySlot(
   if (el.dataset.html !== html) {
     el.dataset.html = html;
     el.innerHTML = html;
+  }
+}
+
+function syncAbilityXSlot(hud: MatchHudState, xHud?: AbilityHudSlotState): void {
+  const maxPts = hud.maxUltPoints ?? xHud?.cooldownTotal ?? 5;
+  const pts = clamp(hud.ultPoints ?? 0, 0, maxPts);
+  const activeTimer = xHud?.activeTimer ?? 0;
+  const isReady = xHud?.ready ?? pts >= maxPts;
+  const shortTag = xHud?.shortTag ?? AGENT_ABILITIES[player.colorId].x.shortTag;
+
+  abilityXEl.classList.toggle('ready', isReady);
+  abilityXEl.classList.toggle('ult-ready', isReady);
+  abilityXEl.classList.toggle('active-fx', activeTimer > 0);
+  const pct = activeTimer > 0 ? 100 : clamp((pts / Math.max(maxPts, 1)) * 100, 0, 100);
+  abilityXEl.style.setProperty('--cd-pct', `${pct.toFixed(1)}%`);
+
+  let pipsHtml = '<span class="ult-pips">';
+  for (let i = 0; i < maxPts; i++) {
+    pipsHtml += `<span class="ult-pip${i < pts ? ' lit' : ''}"></span>`;
+  }
+  pipsHtml += '</span>';
+
+  const timerHtml =
+    activeTimer > 0
+      ? `<span class="ab-charges timer">${activeTimer.toFixed(1)}s</span>`
+      : '';
+  const html = `<span class="ab-key">[X]</span>${shortTag}${pipsHtml}${timerHtml}`;
+  if (abilityXEl.dataset.html !== html) {
+    abilityXEl.dataset.html = html;
+    abilityXEl.innerHTML = html;
   }
 }
 
@@ -1068,8 +1109,10 @@ function tick(now: number): void {
       camera.rotation.x = 0;
       camera.rotation.z = 0;
       const frozenHud = match.update(0, player, camera.position, []);
+      setArenaBuyBarriersVisible(frozenHud.phase === 'buy');
       syncMatchHud(frozenHud);
-      minimap.update(frozenHud, match.combatants, player, pc.yaw);
+      syncAbilityXSlot(frozenHud, lastAbilityFeedback?.xHud);
+      minimap.update(frozenHud, match.combatants, player, pc.yaw, false);
       renderer.render(scene, camera);
       frozenDrawn = true;
     }
@@ -1132,7 +1175,7 @@ function tick(now: number): void {
           if (player.velocity.z < 0) player.velocity.z = 0;
         }
       }
-      const maxBuyX = 23.0;
+      const maxBuyX = ARENA_WIDTH_M * 0.5 - 1.5;
       if (player.position.x < -maxBuyX) {
         player.position.x = -maxBuyX;
         if (player.velocity.x < 0) player.velocity.x = 0;
@@ -1303,7 +1346,9 @@ function tick(now: number): void {
     dropSpikePressed
   );
   dropSpikePressed = false;
-  const hud = match.update(dt, player, camera.position, feedback.activeSmokes);
+  const ultRevealActive = Boolean(lastAbilityFeedback?.ultRevealActive);
+  const hud = match.update(dt, player, camera.position, feedback.activeSmokes, ultRevealActive);
+  setArenaBuyBarriersVisible(hud.phase === 'buy');
 
   // When a new round begins, snap local orientation & UI highlights cleanly to the spawned agent.
   if (hud.roundNumber !== lastRoundNumber || (lastHudPhase === 'match_over' && hud.phase === 'buy')) {
@@ -1325,7 +1370,7 @@ function tick(now: number): void {
       buyMenu.sync(hud);
     }
   }
-  minimap.update(hud, match.combatants, player, input.yaw);
+  minimap.update(hud, match.combatants, player, input.yaw, ultRevealActive);
 
   // Update health, abilities, screen FX, match scoreboard, killfeed & banners.
   const isHealing =
@@ -1340,6 +1385,7 @@ function tick(now: number): void {
 
   syncAbilitySlot(abilityQEl, 'Q', feedback.qHud);
   syncAbilitySlot(abilityEEl, 'E', feedback.eHud);
+  syncAbilityXSlot(hud, feedback.xHud);
   syncScreenFx(feedback);
   syncMatchHud(hud);
   syncKillMedal(hud);

@@ -1,4 +1,4 @@
-import type { AbilityAudioEvent, WeaponId } from '../core/types';
+import type { AbilityAudioEvent, AgentColorId, WeaponId } from '../core/types';
 
 /**
  * Procedural zero-dependency Web Audio API synthesizer for Chroma Strike.
@@ -33,6 +33,8 @@ export interface SoundEngine {
   playLowAmmoClick(): void;
   playUiLockIn(): void;
   playAbility(event: AbilityAudioEvent): void;
+  playUltimateActivate(colorId: AgentColorId): void;
+  playBarrierDrop(): void;
   playRoundCue(cue: 'buy' | 'fight' | 'win' | 'lose'): void;
   playBuyPurchase(): void;
   playBuyError(): void;
@@ -891,7 +893,289 @@ export function createSoundEngine(): SoundEngine {
         zapOsc.stop(now + 0.26);
         break;
       }
+
+      case 'ult_blaze': {
+        // Blaze Inferno Overdrive: deep flame roar + aggressive rising sawtooth frenzy swell
+        const roarSrc = context.createBufferSource();
+        roarSrc.buffer = noise;
+        const bp = context.createBiquadFilter();
+        bp.type = 'bandpass';
+        bp.Q.setValueAtTime(1.1, now);
+        bp.frequency.setValueAtTime(320, now);
+        bp.frequency.exponentialRampToValueAtTime(1600, now + 0.16);
+        bp.frequency.exponentialRampToValueAtTime(480, now + 0.55);
+        const roarGain = context.createGain();
+        roarGain.gain.setValueAtTime(0.02, now);
+        roarGain.gain.linearRampToValueAtTime(0.38, now + 0.08);
+        roarGain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + 0.56);
+        roarSrc.connect(bp);
+        bp.connect(roarGain);
+        roarGain.connect(out);
+        roarSrc.start(now);
+        roarSrc.stop(now + 0.58);
+
+        for (const freq of [110, 164.81, 220]) {
+          const osc = context.createOscillator();
+          const gain = context.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(freq * 0.88, now);
+          osc.frequency.exponentialRampToValueAtTime(freq * 1.12, now + 0.42);
+          gain.gain.setValueAtTime(0.005, now);
+          gain.gain.linearRampToValueAtTime(0.14, now + 0.05);
+          gain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + 0.48);
+          osc.connect(gain);
+          gain.connect(out);
+          osc.start(now);
+          osc.stop(now + 0.5);
+        }
+        break;
+      }
+
+      case 'ult_mist': {
+        // Mist Glacial Whiteout: freezing blizzard howl + shimmering crystalline chime cluster
+        const windSrc = context.createBufferSource();
+        windSrc.buffer = noise;
+        const hp = context.createBiquadFilter();
+        hp.type = 'bandpass';
+        hp.Q.setValueAtTime(1.8, now);
+        hp.frequency.setValueAtTime(2200, now);
+        hp.frequency.exponentialRampToValueAtTime(640, now + 0.65);
+        const windGain = context.createGain();
+        windGain.gain.setValueAtTime(0.02, now);
+        windGain.gain.linearRampToValueAtTime(0.3, now + 0.1);
+        windGain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + 0.66);
+        windSrc.connect(hp);
+        hp.connect(windGain);
+        windGain.connect(out);
+        windSrc.start(now);
+        windSrc.stop(now + 0.68);
+
+        const frostFreqs = [1046.5, 1318.51, 1567.98, 2093.0];
+        frostFreqs.forEach((freq, idx) => {
+          const t0 = now + idx * 0.028;
+          const osc = context.createOscillator();
+          const gain = context.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, t0);
+          osc.frequency.exponentialRampToValueAtTime(freq * 0.985, t0 + 0.45);
+          gain.gain.setValueAtTime(0.005, t0);
+          gain.gain.linearRampToValueAtTime(0.14, t0 + 0.02);
+          gain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, t0 + 0.5);
+          osc.connect(gain);
+          gain.connect(out);
+          osc.start(t0);
+          osc.stop(t0 + 0.52);
+        });
+        break;
+      }
+
+      case 'ult_pulse': {
+        // Pulse Orbital Recon: sweeping tactical sonar ping + harmonic echo decay
+        const pings = [
+          { delay: 0, freq: 880, peak: 0.24 },
+          { delay: 0.14, freq: 1320, peak: 0.18 },
+        ];
+        for (const p of pings) {
+          const t0 = now + p.delay;
+          const osc = context.createOscillator();
+          const gain = context.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(p.freq, t0);
+          osc.frequency.exponentialRampToValueAtTime(p.freq * 1.04, t0 + 0.34);
+          gain.gain.setValueAtTime(0.005, t0);
+          gain.gain.linearRampToValueAtTime(p.peak, t0 + 0.015);
+          gain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, t0 + 0.45);
+          osc.connect(gain);
+          gain.connect(out);
+          osc.start(t0);
+          osc.stop(t0 + 0.47);
+        }
+        break;
+      }
+
+      case 'ult_umbra': {
+        // Umbra Eclipse Curtain: deep void rift slice + dark resonant harmonic shimmer
+        const subOsc = context.createOscillator();
+        const subGain = context.createGain();
+        subOsc.type = 'sine';
+        subOsc.frequency.setValueAtTime(140, now);
+        subOsc.frequency.exponentialRampToValueAtTime(38, now + 0.62);
+        subGain.gain.setValueAtTime(0.45, now);
+        subGain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + 0.64);
+        subOsc.connect(subGain);
+        subGain.connect(out);
+        subOsc.start(now);
+        subOsc.stop(now + 0.66);
+
+        const sliceSrc = context.createBufferSource();
+        sliceSrc.buffer = noise;
+        const bp = context.createBiquadFilter();
+        bp.type = 'bandpass';
+        bp.Q.setValueAtTime(3.0, now);
+        bp.frequency.setValueAtTime(1600, now);
+        bp.frequency.exponentialRampToValueAtTime(190, now + 0.5);
+        const sliceGain = context.createGain();
+        sliceGain.gain.setValueAtTime(0.28, now);
+        sliceGain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + 0.52);
+        sliceSrc.connect(bp);
+        bp.connect(sliceGain);
+        sliceGain.connect(out);
+        sliceSrc.start(now);
+        sliceSrc.stop(now + 0.54);
+        break;
+      }
+
+      case 'ult_volt': {
+        // Volt Thunderstorm: thunderclap sub-impact + crackling high-voltage arc surge
+        const thunderOsc = context.createOscillator();
+        const thunderGain = context.createGain();
+        thunderOsc.type = 'sawtooth';
+        thunderOsc.frequency.setValueAtTime(115, now);
+        thunderOsc.frequency.exponentialRampToValueAtTime(34, now + 0.48);
+        thunderGain.gain.setValueAtTime(0.36, now);
+        thunderGain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + 0.5);
+        thunderOsc.connect(thunderGain);
+        thunderGain.connect(out);
+        thunderOsc.start(now);
+        thunderOsc.stop(now + 0.52);
+
+        const arcSrc = context.createBufferSource();
+        arcSrc.buffer = noise;
+        const hp = context.createBiquadFilter();
+        hp.type = 'highpass';
+        hp.frequency.setValueAtTime(1900, now);
+        const arcGain = context.createGain();
+        arcGain.gain.setValueAtTime(0.4, now);
+        arcGain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + 0.28);
+        arcSrc.connect(hp);
+        hp.connect(arcGain);
+        arcGain.connect(out);
+        arcSrc.start(now);
+        arcSrc.stop(now + 0.3);
+
+        const surgeOsc = context.createOscillator();
+        const surgeGain = context.createGain();
+        surgeOsc.type = 'triangle';
+        surgeOsc.frequency.setValueAtTime(330, now);
+        surgeOsc.frequency.exponentialRampToValueAtTime(1320, now + 0.24);
+        surgeGain.gain.setValueAtTime(0.01, now);
+        surgeGain.gain.linearRampToValueAtTime(0.2, now + 0.04);
+        surgeGain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + 0.32);
+        surgeOsc.connect(surgeGain);
+        surgeGain.connect(out);
+        surgeOsc.start(now);
+        surgeOsc.stop(now + 0.34);
+        break;
+      }
     }
+  }
+
+  /**
+   * Dramatic brass & sub-bass ultimate activation sting tuned to each agent's archetype.
+   */
+  function playUltimateActivate(colorId: AgentColorId): void {
+    const nodes = getReadyNodes();
+    if (!nodes) return;
+    const { context, out } = nodes;
+    const now = context.currentTime;
+
+    const archetypeConfigs: Record<
+      AgentColorId,
+      { subStart: number; subEnd: number; chord: number[]; filterStart: number; filterPeak: number }
+    > = {
+      red: { subStart: 120, subEnd: 38, chord: [110, 164.81, 220], filterStart: 420, filterPeak: 2400 },
+      blue: { subStart: 135, subEnd: 44, chord: [130.81, 196.0, 293.66], filterStart: 600, filterPeak: 3000 },
+      green: { subStart: 125, subEnd: 42, chord: [146.83, 220.0, 293.66], filterStart: 520, filterPeak: 2600 },
+      violet: { subStart: 110, subEnd: 34, chord: [98.0, 138.59, 196.0], filterStart: 360, filterPeak: 1900 },
+      gold: { subStart: 140, subEnd: 45, chord: [164.81, 246.94, 369.99], filterStart: 700, filterPeak: 3400 },
+    };
+
+    const cfg = archetypeConfigs[colorId];
+
+    // Deep sub-bass impact drop
+    const subOsc = context.createOscillator();
+    const subGain = context.createGain();
+    subOsc.type = 'sine';
+    subOsc.frequency.setValueAtTime(cfg.subStart, now);
+    subOsc.frequency.exponentialRampToValueAtTime(cfg.subEnd, now + 0.55);
+    subGain.gain.setValueAtTime(0.48, now);
+    subGain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + 0.58);
+    subOsc.connect(subGain);
+    subGain.connect(out);
+    subOsc.start(now);
+    subOsc.stop(now + 0.6);
+
+    // Filtered sawtooth brass swell
+    const brassFilter = context.createBiquadFilter();
+    brassFilter.type = 'lowpass';
+    brassFilter.Q.setValueAtTime(1.8, now);
+    brassFilter.frequency.setValueAtTime(cfg.filterStart, now);
+    brassFilter.frequency.exponentialRampToValueAtTime(cfg.filterPeak, now + 0.16);
+    brassFilter.frequency.exponentialRampToValueAtTime(cfg.filterStart * 1.4, now + 0.62);
+    brassFilter.connect(out);
+
+    cfg.chord.forEach((freq, idx) => {
+      const osc = context.createOscillator();
+      const gain = context.createGain();
+      osc.type = idx === 0 ? 'sawtooth' : 'triangle';
+      osc.frequency.setValueAtTime(freq * 0.985, now);
+      osc.frequency.exponentialRampToValueAtTime(freq, now + 0.08);
+      gain.gain.setValueAtTime(0.005, now);
+      gain.gain.linearRampToValueAtTime(idx === 0 ? 0.2 : 0.15, now + 0.07);
+      gain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + 0.62);
+      osc.connect(gain);
+      gain.connect(brassFilter);
+      osc.start(now);
+      osc.stop(now + 0.65);
+    });
+  }
+
+  /**
+   * Shimmering crystalline buy-phase barrier power-down sweep.
+   */
+  function playBarrierDrop(): void {
+    const nodes = getReadyNodes();
+    if (!nodes) return;
+    const { context, out, noise } = nodes;
+    const now = context.currentTime;
+
+    const partials = [
+      { fStart: 1567.98, fEnd: 783.99, delay: 0, dur: 0.34, peak: 0.16 },
+      { fStart: 1174.66, fEnd: 587.33, delay: 0.03, dur: 0.38, peak: 0.14 },
+      { fStart: 783.99, fEnd: 392.0, delay: 0.06, dur: 0.42, peak: 0.16 },
+    ];
+    for (const p of partials) {
+      const t0 = now + p.delay;
+      const osc = context.createOscillator();
+      const gain = context.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(p.fStart, t0);
+      osc.frequency.exponentialRampToValueAtTime(p.fEnd, t0 + p.dur);
+      gain.gain.setValueAtTime(0.005, t0);
+      gain.gain.linearRampToValueAtTime(p.peak, t0 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, t0 + p.dur);
+      osc.connect(gain);
+      gain.connect(out);
+      osc.start(t0);
+      osc.stop(t0 + p.dur + 0.02);
+    }
+
+    const sweepSrc = context.createBufferSource();
+    sweepSrc.buffer = noise;
+    const bp = context.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.Q.setValueAtTime(2.6, now);
+    bp.frequency.setValueAtTime(3400, now);
+    bp.frequency.exponentialRampToValueAtTime(460, now + 0.36);
+    const sweepGain = context.createGain();
+    sweepGain.gain.setValueAtTime(0.01, now);
+    sweepGain.gain.linearRampToValueAtTime(0.2, now + 0.04);
+    sweepGain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + 0.38);
+    sweepSrc.connect(bp);
+    bp.connect(sweepGain);
+    sweepGain.connect(out);
+    sweepSrc.start(now);
+    sweepSrc.stop(now + 0.4);
   }
 
   /**
@@ -1308,6 +1592,8 @@ export function createSoundEngine(): SoundEngine {
     playLowAmmoClick,
     playUiLockIn,
     playAbility,
+    playUltimateActivate,
+    playBarrierDrop,
     playRoundCue,
     playBuyPurchase,
     playBuyError,

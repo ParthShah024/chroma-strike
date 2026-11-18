@@ -142,6 +142,10 @@ export function createAgentSelectController(options: AgentSelectOptions): AgentS
           <span class="agent-ability-chip">E</span>
           <span class="agent-ability-text"><b>${abilities.e.name}</b> ${abilities.e.description}</span>
         </span>
+        <span class="agent-ability-row agent-ability-ult">
+          <span class="agent-ability-chip ult">X</span>
+          <span class="agent-ability-text"><b>${abilities.x.name}</b> <span class="agent-ult-cost">${abilities.x.ultPointsRequired ?? 5} PTS</span> ${abilities.x.description}</span>
+        </span>
       </span>`;
     card.addEventListener('click', () => selectAgent(id, true));
     card.addEventListener('dblclick', () => lockIn());
