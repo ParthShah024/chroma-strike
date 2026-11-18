@@ -886,11 +886,11 @@
       }
 
       .map-card {
-        width: 720px;
-        max-width: calc(100vw - 28px);
-        max-height: calc(100vh - 28px);
+        width: 820px;
+        max-width: calc(100vw - 24px);
+        max-height: calc(100vh - 24px);
         overflow-y: auto;
-        padding: 18px 20px;
+        padding: 16px 18px;
         border-radius: 14px;
         background: rgba(18, 23, 32, 0.96);
         border: 1px solid var(--border-glass);
@@ -942,9 +942,9 @@
 
       #map-editor-grid {
         display: grid;
-        grid-template-columns: repeat(14, 22px);
-        grid-template-rows: repeat(17, 22px);
-        gap: 2px;
+        grid-template-columns: repeat(24, 17px);
+        grid-template-rows: repeat(28, 17px);
+        gap: 1.5px;
         padding: 6px;
         border-radius: 10px;
         background: rgba(10, 14, 20, 0.9);
@@ -952,11 +952,11 @@
       }
 
       .map-cell {
-        width: 22px;
-        height: 22px;
+        width: 17px;
+        height: 17px;
         border-radius: 3px;
         border: 1px solid rgba(255, 255, 255, 0.08);
-        font-size: 10px;
+        font-size: 9px;
         font-weight: 800;
         display: flex;
         align-items: center;
@@ -982,9 +982,25 @@
         color: #fff3e0;
       }
 
+      .tile-window {
+        background: #0ea5e9;
+        color: #062536;
+      }
+
+      .tile-arch {
+        background: #64748b;
+        color: #f8fafc;
+        border-style: dashed;
+      }
+
       .tile-low {
         background: #b8945a;
         color: #141820;
+      }
+
+      .tile-dbox {
+        background: #5f6b4e;
+        color: #fef08a;
       }
 
       .tile-crate {
@@ -1000,6 +1016,16 @@
       .tile-stair {
         background: #06b6d4;
         color: #082f49;
+      }
+
+      .tile-site-a {
+        background: #f97316;
+        color: #ffffff;
+      }
+
+      .tile-site-b {
+        background: #0284c7;
+        color: #ffffff;
       }
 
       .tile-floor {
@@ -1019,7 +1045,7 @@
 
       .map-sidebar {
         flex: 1;
-        min-width: 230px;
+        min-width: 265px;
         display: flex;
         flex-direction: column;
         gap: 10px;
@@ -1027,8 +1053,8 @@
 
       #map-editor-palette {
         display: grid;
-        grid-template-columns: 1fr;
-        gap: 6px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 5px;
       }
 
       .map-brush-btn {
@@ -1753,6 +1779,661 @@
           gap: 9px;
         }
       }
+
+      /* ================= Wave 3: S&D Minimap, Buy Shop & Spike HUD ================= */
+      #minimap-wrap {
+        position: fixed;
+        top: 14px;
+        left: 16px;
+        padding: 6px;
+        border-radius: 10px;
+        background: var(--bg-glass);
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--border-glass);
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4);
+        pointer-events: none;
+        z-index: 10;
+      }
+
+      .minimap-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 3px 4px;
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        color: var(--text-muted);
+      }
+
+      .minimap-sites {
+        display: flex;
+        gap: 6px;
+        font-size: 9px;
+      }
+
+      .minimap-sites .site-a {
+        color: #ff8a3d;
+      }
+
+      .minimap-sites .site-b {
+        color: #38bdf8;
+      }
+
+      #minimap-canvas {
+        display: block;
+        width: 168px;
+        height: 196px;
+        border-radius: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      #side-badge {
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-size: 10.5px;
+        font-weight: 900;
+        letter-spacing: 0.14em;
+        border: 1px solid transparent;
+      }
+
+      #side-badge.atk {
+        color: #ff9a76;
+        background: rgba(255, 123, 84, 0.18);
+        border-color: rgba(255, 123, 84, 0.55);
+      }
+
+      #side-badge.def {
+        color: #7ee7ff;
+        background: rgba(56, 189, 248, 0.18);
+        border-color: rgba(56, 189, 248, 0.55);
+      }
+
+      #hud-top.spike-planted {
+        border-color: rgba(255, 59, 92, 0.68);
+        box-shadow: 0 0 22px rgba(255, 59, 92, 0.3);
+      }
+
+      #hud-top.spike-planted #round-clock {
+        color: #ff4d6d;
+        animation: spikeClockPulse 0.65s ease-in-out infinite alternate;
+      }
+
+      #spike-top-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 2px 7px;
+        border-radius: 999px;
+        font-size: 9.5px;
+        font-weight: 900;
+        letter-spacing: 0.1em;
+        color: #fff;
+        background: rgba(255, 59, 92, 0.28);
+        border: 1px solid #ff3b5c;
+        animation: spikeClockPulse 0.65s ease-in-out infinite alternate;
+      }
+
+      #spike-top-pill.hidden {
+        display: none;
+      }
+
+      .spike-diamond {
+        width: 7px;
+        height: 7px;
+        background: #ff3b5c;
+        transform: rotate(45deg);
+        box-shadow: 0 0 8px #ff3b5c;
+      }
+
+      @keyframes spikeClockPulse {
+        from {
+          opacity: 0.72;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      /* Center Spike Plant / Defuse Prompt & 50% Halfway Progress Bar */
+      #spike-interact-hud {
+        position: fixed;
+        top: calc(50% - 98px);
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 14px;
+        border-radius: 9px;
+        background: rgba(13, 17, 23, 0.84);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        backdrop-filter: blur(8px);
+        pointer-events: none;
+        z-index: 11;
+        min-width: 240px;
+      }
+
+      #spike-interact-hud.hidden {
+        display: none;
+      }
+
+      #spike-interact-label {
+        font-size: 11.5px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        color: #ffffff;
+        white-space: nowrap;
+      }
+
+      #spike-interact-hud.plant #spike-interact-label {
+        color: #ffb454;
+      }
+
+      #spike-interact-hud.defuse #spike-interact-label {
+        color: #38bdf8;
+      }
+
+      #spike-progress-track {
+        position: relative;
+        width: 220px;
+        height: 8px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.12);
+        overflow: visible;
+      }
+
+      #spike-progress-track.hidden {
+        display: none;
+      }
+
+      #spike-progress-fill {
+        height: 100%;
+        width: 0%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #ff8a3d, #ffd166);
+        transition: width 35ms linear;
+      }
+
+      #spike-interact-hud.defuse #spike-progress-fill {
+        background: linear-gradient(90deg, #0ea5e9, #7ee7ff);
+      }
+
+      #spike-halfway-notch {
+        position: absolute;
+        top: -3px;
+        bottom: -3px;
+        left: 50%;
+        width: 2px;
+        transform: translateX(-50%);
+        background: rgba(255, 255, 255, 0.85);
+        box-shadow: 0 0 6px rgba(255, 255, 255, 0.65);
+      }
+
+      #spike-halfway-notch.hidden {
+        display: none;
+      }
+
+      #spike-halfway-tag {
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        color: #7ee7ff;
+      }
+
+      #spike-halfway-tag.hidden {
+        display: none;
+      }
+
+      /* Bottom HUD Economy, Armor, Spike & Unowned Weapon states */
+      #hud-bottom {
+        gap: 9px;
+        padding: 7px 12px;
+      }
+
+      .pill,
+      .wpn-pill {
+        padding: 4px 6px;
+        font-size: 10px;
+      }
+
+      .wpn-pill.unowned {
+        opacity: 0.34;
+        border-style: dashed;
+      }
+
+      .hud-credits {
+        font-size: 13px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        color: #facc15;
+        min-width: 56px;
+        text-align: center;
+      }
+
+      .hud-armor {
+        font-size: 12.5px;
+        font-weight: 800;
+        color: #7ee7ff;
+        min-width: 44px;
+        text-align: center;
+      }
+
+      .hud-armor.empty {
+        color: var(--text-muted);
+      }
+
+      .hud-spike-badge {
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-size: 10px;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        color: #0d1117;
+        background: #facc15;
+        box-shadow: 0 0 12px rgba(250, 204, 21, 0.45);
+      }
+
+      .hud-spike-badge.hidden {
+        display: none;
+      }
+
+      /* Buyout Shop Modal [B] */
+      #buy-menu-modal {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        background: rgba(6, 9, 14, 0.74);
+        backdrop-filter: blur(8px);
+        z-index: 33;
+      }
+
+      #buy-menu-modal.hidden {
+        display: none;
+      }
+
+      .buy-card {
+        width: 780px;
+        max-width: calc(100vw - 24px);
+        max-height: calc(100vh - 24px);
+        overflow-y: auto;
+        padding: 18px 20px;
+        border-radius: 14px;
+        background: rgba(14, 19, 27, 0.96);
+        border: 1px solid var(--border-glass);
+        box-shadow: 0 26px 70px rgba(0, 0, 0, 0.72);
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .buy-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--border-glass);
+        flex-wrap: wrap;
+      }
+
+      .buy-title-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .buy-title {
+        font-size: 16px;
+        font-weight: 900;
+        letter-spacing: 0.14em;
+        color: #fff;
+      }
+
+      #buy-role-badge {
+        padding: 3px 9px;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 900;
+        letter-spacing: 0.12em;
+        border: 1px solid transparent;
+      }
+
+      #buy-role-badge.atk {
+        color: #ff9a76;
+        background: rgba(255, 123, 84, 0.18);
+        border-color: rgba(255, 123, 84, 0.55);
+      }
+
+      #buy-role-badge.def {
+        color: #7ee7ff;
+        background: rgba(56, 189, 248, 0.18);
+        border-color: rgba(56, 189, 248, 0.55);
+      }
+
+      .buy-econ-summary {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+
+      #buy-credits {
+        font-size: 20px;
+        font-weight: 900;
+        color: #facc15;
+        text-shadow: 0 0 12px rgba(250, 204, 21, 0.35);
+      }
+
+      #buy-min-next {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        color: var(--text-muted);
+      }
+
+      .buy-loss-wrap {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 10.5px;
+        font-weight: 700;
+        color: var(--text-muted);
+      }
+
+      #buy-loss-pips {
+        display: flex;
+        gap: 3px;
+      }
+
+      .loss-pip {
+        width: 8px;
+        height: 8px;
+        border-radius: 2px;
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      .loss-pip.lit {
+        background: #ff6b81;
+        border-color: #ff3b5c;
+        box-shadow: 0 0 6px rgba(255, 59, 92, 0.6);
+      }
+
+      #buy-clock {
+        padding: 4px 10px;
+        border-radius: 7px;
+        font-size: 13px;
+        font-weight: 900;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        color: #fff;
+      }
+
+      .buy-columns {
+        display: grid;
+        grid-template-columns: 1.35fr 1fr;
+        gap: 14px;
+      }
+
+      .buy-col {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .buy-col-label {
+        font-size: 10.5px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        color: var(--text-muted);
+        text-transform: uppercase;
+      }
+
+      .buy-item-btn {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 9px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.035);
+        color: var(--text-main);
+        font: inherit;
+        cursor: pointer;
+        text-align: left;
+        transition: border-color 110ms ease, background 110ms ease, transform 90ms ease;
+      }
+
+      .buy-item-btn:hover:not(.locked) {
+        border-color: rgba(255, 255, 255, 0.36);
+        background: rgba(255, 255, 255, 0.075);
+      }
+
+      .buy-item-btn.equipped {
+        border-color: var(--accent);
+        background: color-mix(in srgb, var(--accent) 16%, rgba(14, 19, 27, 0.9));
+        box-shadow: 0 0 14px color-mix(in srgb, var(--accent) 30%, transparent);
+      }
+
+      .buy-item-btn.owned {
+        border-color: #2ecc71;
+        background: rgba(46, 204, 113, 0.1);
+      }
+
+      .buy-item-btn.locked {
+        opacity: 0.45;
+      }
+
+      .buy-item-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .buy-item-key {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 22px;
+        height: 22px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 800;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: #fff;
+      }
+
+      .buy-item-name {
+        font-size: 13px;
+        font-weight: 800;
+        color: #fff;
+      }
+
+      .buy-item-meta {
+        font-size: 10.5px;
+        font-weight: 600;
+        color: var(--text-muted);
+      }
+
+      .buy-item-right {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 2px;
+      }
+
+      .buy-item-cost {
+        font-size: 12.5px;
+        font-weight: 800;
+        color: #facc15;
+      }
+
+      .buy-item-state {
+        font-size: 9.5px;
+        font-weight: 900;
+        letter-spacing: 0.1em;
+        color: var(--text-muted);
+      }
+
+      .buy-item-btn.equipped .buy-item-state {
+        color: var(--accent);
+      }
+
+      .buy-item-btn.owned .buy-item-state {
+        color: #2ecc71;
+      }
+
+      #buy-refund-btn {
+        margin-top: 2px;
+        padding: 9px 12px;
+        border-radius: 8px;
+        border: 1px solid rgba(250, 204, 21, 0.5);
+        background: rgba(250, 204, 21, 0.14);
+        color: #fde047;
+        font: inherit;
+        font-size: 11.5px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        cursor: pointer;
+      }
+
+      #buy-refund-btn:hover {
+        background: rgba(250, 204, 21, 0.24);
+      }
+
+      #buy-refund-btn.hidden {
+        display: none;
+      }
+
+      .buy-squad-section {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding-top: 4px;
+        border-top: 1px solid var(--border-glass);
+      }
+
+      #buy-squad-strip {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .buy-squad-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+        padding: 7px 10px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        font-size: 11px;
+      }
+
+      .buy-squad-left,
+      .buy-squad-right {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .buy-squad-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--ally-accent);
+        box-shadow: 0 0 8px var(--ally-accent);
+      }
+
+      .buy-squad-name {
+        font-weight: 800;
+        color: #fff;
+      }
+
+      .buy-squad-spike {
+        padding: 1px 5px;
+        border-radius: 4px;
+        font-size: 9px;
+        font-weight: 900;
+        color: #0d1117;
+        background: #facc15;
+      }
+
+      .buy-squad-wpn {
+        padding: 1px 5px;
+        border-radius: 4px;
+        font-size: 9.5px;
+        font-weight: 800;
+        background: rgba(255, 255, 255, 0.08);
+        color: #e2e8f0;
+      }
+
+      .buy-squad-armor {
+        font-weight: 700;
+        color: #7ee7ff;
+      }
+
+      .buy-squad-credits {
+        font-weight: 800;
+        color: #facc15;
+      }
+
+      .buy-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding-top: 6px;
+        border-top: 1px solid var(--border-glass);
+      }
+
+      .buy-footer-left {
+        display: flex;
+        gap: 8px;
+      }
+
+      .buy-foot-btn {
+        padding: 9px 14px;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        background: rgba(255, 255, 255, 0.06);
+        color: #fff;
+        font: inherit;
+        font-size: 11.5px;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        cursor: pointer;
+      }
+
+      .buy-foot-btn:hover {
+        border-color: var(--accent);
+      }
+
+      .buy-foot-btn.primary {
+        background: var(--accent);
+        color: #0d1117;
+        border-color: transparent;
+      }
+
+      .buy-foot-btn.primary:hover {
+        filter: brightness(1.08);
+      }
+
+      @media (max-width: 680px) {
+        .buy-columns,
+        #buy-squad-strip {
+          grid-template-columns: 1fr;
+        }
+      }
     </style>
   </head>
   <body>
@@ -1767,7 +2448,16 @@
       <div class="scope-dot"></div>
     </div>
 
-    <!-- Top Center 3v3 Round Scoreboard -->
+    <!-- Top Left Cached 2D Tactical Minimap -->
+    <div id="minimap-wrap">
+      <div class="minimap-head">
+        <span>RADAR • S&amp;D</span>
+        <span class="minimap-sites"><b class="site-a">A</b><b class="site-b">B</b></span>
+      </div>
+      <canvas id="minimap-canvas" width="168" height="196"></canvas>
+    </div>
+
+    <!-- Top Center 3v3 Round Scoreboard & Side Indicator -->
     <div id="hud-top">
       <div class="team-dots" id="ally-dots">
         <div class="agent-dot is-player" data-team="ally" data-color="red" title="Ally Red"></div>
@@ -1775,9 +2465,14 @@
         <div class="agent-dot" data-team="ally" data-color="green" title="Ally Green"></div>
       </div>
       <div class="team-score ally" id="ally-score">0</div>
-      <div class="match-clock-box">
+      <div id="side-badge" class="atk">ATK</div>
+      <div class="match-clock-box" id="match-top">
         <div id="round-phase-label">ROUND 1 • BUY</div>
-        <div id="round-clock">07.0</div>
+        <div id="round-clock">12.0s</div>
+      </div>
+      <div id="spike-top-pill" class="hidden">
+        <span class="spike-diamond"></span>
+        <span id="spike-top-site">SITE A</span>
       </div>
       <div class="team-score enemy" id="enemy-score">0</div>
       <div class="team-dots" id="enemy-dots">
@@ -1794,6 +2489,16 @@
     <div id="round-banner" class="hidden">
       <div id="round-banner-title">ROUND 1 — BUY PHASE</div>
       <div id="round-banner-sub">PRESS [SPACE] TO START</div>
+    </div>
+
+    <!-- Center Contextual Spike Plant / Defuse Prompt & 50% Halfway Bar -->
+    <div id="spike-interact-hud" class="hidden">
+      <div id="spike-interact-label">[F] PLANT SPIKE — SITE A</div>
+      <div id="spike-progress-track" class="hidden">
+        <div id="spike-progress-fill"></div>
+        <div id="spike-halfway-notch" class="hidden"></div>
+      </div>
+      <div id="spike-halfway-tag" class="hidden">50% HALFWAY LOCKED</div>
     </div>
 
     <!-- Dynamic Reactive Crosshair -->
@@ -1814,8 +2519,8 @@
       <div id="kill-medal-streak"></div>
     </div>
     <div id="control-strip">
-      <b>[B]</b> Agents &bull; <b>[Space]</b> Skip Buy &bull; <b>[Q/E]</b> Abilities &bull;
-      <b>[Shift]</b> Slide (Volt) &bull; <b>[M]</b> Map
+      <b>[B]</b> Buy Shop &bull; <b>[H]</b> Agents &bull; <b>[F]</b> Plant/Defuse &bull;
+      <b>[G]</b> Drop Spike &bull; <b>[Space]</b> Skip Buy
     </div>
 
     <!-- Minimalist Bottom HUD -->
@@ -1828,7 +2533,10 @@
         <div class="pill" data-color="gold">[F5] GOLD</div>
       </div>
       <div class="hud-sep"></div>
+      <div class="hud-credits" id="hud-credits">¤ 800</div>
+      <div class="hud-armor empty" id="hud-armor">🛡 0</div>
       <div class="hud-hp" id="hud-hp">100 HP</div>
+      <div class="hud-spike-badge hidden" id="hud-spike-badge">SPIKE [G] Drop</div>
       <div class="hud-sep"></div>
       <div class="ability-blocks">
         <div class="ability-slot ready" id="ability-q"><span class="ab-key">[Q]</span>DASH</div>
@@ -1837,17 +2545,18 @@
       <div class="hud-sep"></div>
       <div class="weapon-pills">
         <div class="wpn-pill" data-weapon="pistol">[1] PISTOL</div>
-        <div class="wpn-pill" data-weapon="smg">[2] SMG</div>
-        <div class="wpn-pill active" data-weapon="ar">[3] AR</div>
-        <div class="wpn-pill" data-weapon="sniper">[4] SNIPER</div>
+        <div class="wpn-pill unowned" data-weapon="smg">[2] SMG</div>
+        <div class="wpn-pill unowned" data-weapon="ar">[3] AR</div>
+        <div class="wpn-pill unowned" data-weapon="sniper">[4] SNIPER</div>
       </div>
       <div class="hud-sep"></div>
-      <div class="hud-ammo" id="hud-ammo">25 <span class="muted">/ 25</span></div>
+      <div class="hud-ammo" id="hud-ammo">12 <span class="muted">/ 12</span></div>
       <div class="hud-sep"></div>
       <div class="hud-speed accurate" id="hud-speed">0.0 m/s</div>
       <div class="hud-sep"></div>
       <div class="hud-hints">
-        <div class="hint-chip" id="hint-agents">[B] AGENTS</div>
+        <div class="hint-chip" id="hint-buy">[B] SHOP</div>
+        <div class="hint-chip" id="hint-agents">[H] AGENTS</div>
         <div class="hint-chip" id="hint-3p">[V] 3P</div>
         <div class="hint-chip" id="hint-xhair">[C] XHAIR</div>
         <div class="hint-chip" id="hint-map">[M] MAP</div>
@@ -1924,43 +2633,61 @@
     <div id="map-editor-modal" class="hidden">
       <div class="map-card">
         <div class="map-header">
-          <div class="map-title">KILLHOUSE MAP MAKER <span>14 × 17 GRID (28m × 34m)</span></div>
+          <div class="map-title">KILLHOUSE MAP MAKER <span>24 × 28 GRID (48m × 56m S&amp;D)</span></div>
           <button type="button" class="xhair-close" id="map-close-btn">CLOSE [M]</button>
         </div>
 
         <div class="map-body">
           <div class="map-grid-wrap">
-            <div class="map-axis-label">NORTH — ENEMY SIDE (-Z)</div>
+            <div class="map-axis-label">NORTH — DEFENDER SIDE (-Z)</div>
             <div id="map-editor-grid"></div>
-            <div class="map-axis-label">SOUTH — ALLY SIDE (+Z)</div>
+            <div class="map-axis-label">SOUTH — ATTACKER SIDE (+Z)</div>
           </div>
 
           <div class="map-sidebar">
             <div class="xhair-section-label">Tile Brushes (Drag to Paint • Right-Click Erase)</div>
             <div id="map-editor-palette">
               <button type="button" class="map-brush-btn active" data-tile-brush="#">
-                <span class="brush-swatch tile-wall">#</span> Tall Wall (3.2m)
+                <span class="brush-swatch tile-wall">#</span> Tall Wall (3.6m)
+              </button>
+              <button type="button" class="map-brush-btn" data-tile-brush="W">
+                <span class="brush-swatch tile-window">W</span> Window (1.1-2.5m)
+              </button>
+              <button type="button" class="map-brush-btn" data-tile-brush="O">
+                <span class="brush-swatch tile-arch">O</span> Archway
               </button>
               <button type="button" class="map-brush-btn" data-tile-brush="=">
-                <span class="brush-swatch tile-low">=</span> Low Cover (1.28m Head-Glitch)
+                <span class="brush-swatch tile-low">=</span> Low Cover (1.26m)
+              </button>
+              <button type="button" class="map-brush-btn" data-tile-brush="D">
+                <span class="brush-swatch tile-dbox">D</span> Double Box (1.72m)
               </button>
               <button type="button" class="map-brush-btn" data-tile-brush="B">
-                <span class="brush-swatch tile-crate">B</span> Tall Crate (2.2m)
+                <span class="brush-swatch tile-crate">B</span> Tall Crate (2.25m)
               </button>
               <button type="button" class="map-brush-btn" data-tile-brush="P">
-                <span class="brush-swatch tile-deck">P</span> Watchtower Deck (0.90m)
+                <span class="brush-swatch tile-deck">P</span> Heaven Deck (0.90m)
               </button>
               <button type="button" class="map-brush-btn" data-tile-brush="^">
-                <span class="brush-swatch tile-stair">^</span> Stairs (0.45m)
+                <span class="brush-swatch tile-stair">^</span> North Stairs (0.45m)
+              </button>
+              <button type="button" class="map-brush-btn" data-tile-brush="v">
+                <span class="brush-swatch tile-stair">v</span> South Stairs (0.45m)
               </button>
               <button type="button" class="map-brush-btn" data-tile-brush=".">
                 <span class="brush-swatch tile-floor">.</span> Open Floor
               </button>
+              <button type="button" class="map-brush-btn" data-tile-brush="1">
+                <span class="brush-swatch tile-site-a">1</span> Bomb Site A
+              </button>
+              <button type="button" class="map-brush-btn" data-tile-brush="2">
+                <span class="brush-swatch tile-site-b">2</span> Bomb Site B
+              </button>
               <button type="button" class="map-brush-btn" data-tile-brush="A">
-                <span class="brush-swatch tile-ally">A</span> Ally Spawn
+                <span class="brush-swatch tile-ally">A</span> Attacker Spawn
               </button>
               <button type="button" class="map-brush-btn" data-tile-brush="E">
-                <span class="brush-swatch tile-enemy">E</span> Enemy Spawn
+                <span class="brush-swatch tile-enemy">E</span> Defender Spawn
               </button>
             </div>
 
@@ -1982,6 +2709,135 @@
       </div>
     </div>
 
+    <!-- Tactical Buyout Shop Modal [B] -->
+    <div id="buy-menu-modal" class="hidden" role="dialog" aria-label="Tactical Buyout Shop">
+      <div class="buy-card">
+        <div class="buy-header">
+          <div class="buy-title-group">
+            <div class="buy-title">BUYOUT SHOP</div>
+            <div id="buy-role-badge" class="atk">ATTACKER</div>
+          </div>
+          <div class="buy-econ-summary">
+            <div>
+              <div id="buy-credits">¤ 800</div>
+              <div id="buy-min-next">MIN NEXT: ¤ 2700</div>
+            </div>
+            <div class="buy-loss-wrap">
+              <span id="buy-loss-label">LOSS STREAK: x0</span>
+              <div id="buy-loss-pips">
+                <span class="loss-pip"></span>
+                <span class="loss-pip"></span>
+                <span class="loss-pip"></span>
+              </div>
+            </div>
+            <div id="buy-clock">12.0s</div>
+          </div>
+        </div>
+
+        <div class="buy-columns">
+          <div class="buy-col">
+            <div class="buy-col-label">Weapons [1–4]</div>
+            <button type="button" class="buy-item-btn" data-buy-weapon="pistol">
+              <span class="buy-item-left">
+                <span class="buy-item-key">1</span>
+                <span>
+                  <span class="buy-item-name">Sidearm</span><br />
+                  <span class="buy-item-meta">HD 115 • BD 36</span>
+                </span>
+              </span>
+              <span class="buy-item-right">
+                <span class="buy-item-cost">FREE</span>
+                <span class="buy-item-state">EQUIPPED</span>
+              </span>
+            </button>
+            <button type="button" class="buy-item-btn" data-buy-weapon="smg">
+              <span class="buy-item-left">
+                <span class="buy-item-key">2</span>
+                <span>
+                  <span class="buy-item-name">Spectre SMG</span><br />
+                  <span class="buy-item-meta">HD 78 • BD 24</span>
+                </span>
+              </span>
+              <span class="buy-item-right">
+                <span class="buy-item-cost">¤ 1600</span>
+                <span class="buy-item-state">BUY</span>
+              </span>
+            </button>
+            <button type="button" class="buy-item-btn" data-buy-weapon="ar">
+              <span class="buy-item-left">
+                <span class="buy-item-key">3</span>
+                <span>
+                  <span class="buy-item-name">Pulse Rifle AR</span><br />
+                  <span class="buy-item-meta">HD 160 • BD 40</span>
+                </span>
+              </span>
+              <span class="buy-item-right">
+                <span class="buy-item-cost">¤ 2900</span>
+                <span class="buy-item-state">BUY</span>
+              </span>
+            </button>
+            <button type="button" class="buy-item-btn" data-buy-weapon="sniper">
+              <span class="buy-item-left">
+                <span class="buy-item-key">4</span>
+                <span>
+                  <span class="buy-item-name">Rail Sniper</span><br />
+                  <span class="buy-item-meta">HD 255 • BD 150</span>
+                </span>
+              </span>
+              <span class="buy-item-right">
+                <span class="buy-item-cost">¤ 4700</span>
+                <span class="buy-item-state">BUY</span>
+              </span>
+            </button>
+            <button type="button" class="hidden" id="buy-refund-btn">[R] REFUND (+¤0)</button>
+          </div>
+
+          <div class="buy-col">
+            <div class="buy-col-label">Shields [5–6]</div>
+            <button type="button" class="buy-item-btn" data-buy-shield="light">
+              <span class="buy-item-left">
+                <span class="buy-item-key">5</span>
+                <span>
+                  <span class="buy-item-name">Light Shield</span><br />
+                  <span class="buy-item-meta">+25 Armor Absorption</span>
+                </span>
+              </span>
+              <span class="buy-item-right">
+                <span class="buy-item-cost">¤ 400</span>
+                <span class="buy-item-state">BUY</span>
+              </span>
+            </button>
+            <button type="button" class="buy-item-btn" data-buy-shield="heavy">
+              <span class="buy-item-left">
+                <span class="buy-item-key">6</span>
+                <span>
+                  <span class="buy-item-name">Heavy Shield</span><br />
+                  <span class="buy-item-meta">+50 Armor (Smart Upgrade)</span>
+                </span>
+              </span>
+              <span class="buy-item-right">
+                <span class="buy-item-cost">¤ 1000</span>
+                <span class="buy-item-state">BUY</span>
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <div class="buy-squad-section">
+          <div class="buy-col-label">Squad Economy</div>
+          <div id="buy-squad-strip"></div>
+        </div>
+
+        <div class="buy-footer">
+          <div class="buy-footer-left">
+            <button type="button" class="buy-foot-btn" id="buy-agent-btn">[H] Change Agent</button>
+            <button type="button" class="buy-foot-btn" id="buy-swap-btn">[P] Swap Sides (Atk/Def)</button>
+          </div>
+          <button type="button" class="buy-foot-btn primary" id="buy-ready-btn">[B / Esc] Ready</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Agent Select: live 3D turntable stage + roster + AI difficulty -->
     <div id="agent-select-modal" class="hidden" role="dialog" aria-label="Agent Select">
       <div class="agent-shell">
@@ -1997,7 +2853,7 @@
         <div class="agent-panel">
           <div class="agent-panel-head">
             <div class="agent-panel-title">CHOOSE YOUR <span>AGENT</span></div>
-            <button type="button" class="xhair-close hidden" id="agent-select-close">CLOSE [B]</button>
+            <button type="button" class="xhair-close hidden" id="agent-select-close">CLOSE [H]</button>
           </div>
           <div id="agent-card-list"></div>
           <div class="agent-diff-block">
@@ -2018,14 +2874,16 @@
     <div id="overlay">
       <div class="overlay-card">
         <div class="overlay-title">CHROMA <span>STRIKE</span></div>
-        <div class="overlay-sub">3v3 Tactical Arena — Counter-strafe for 100% first-shot accuracy</div>
+        <div class="overlay-sub">3v3 Search &amp; Destroy — Counter-strafe for 100% first-shot accuracy</div>
         <div class="controls-grid">
           <div class="ctrl-item"><span class="key">WASD / Shift</span> Move / Walk (Slide: Volt)</div>
           <div class="ctrl-item"><span class="key">Space</span> Jump / Skip Buy</div>
-          <div class="ctrl-item"><span class="key">1-4 / Wheel</span> Weapons</div>
+          <div class="ctrl-item"><span class="key">1-4 / Wheel</span> Sidearm / Owned Primary</div>
           <div class="ctrl-item"><span class="key">Right Click</span> Scope / ADS</div>
-          <div class="ctrl-item"><span class="key">Q / E</span> Abilities</div>
-          <div class="ctrl-item"><span class="key">B / F1-F5</span> Agent Select / Switch</div>
+          <div class="ctrl-item"><span class="key">B</span> Buyout Shop (Buy Phase)</div>
+          <div class="ctrl-item"><span class="key">H / F1-F5</span> Agent Select / Switch</div>
+          <div class="ctrl-item"><span class="key">F / G</span> Plant &amp; Defuse / Drop Spike</div>
+          <div class="ctrl-item"><span class="key">Q / E</span> Tactical Abilities</div>
           <div class="ctrl-item"><span class="key">C</span> Crosshair Customizer</div>
           <div class="ctrl-item"><span class="key">M</span> Live Map Maker</div>
           <div class="ctrl-item"><span class="key">V</span> 1st/3rd-Person Model View</div>

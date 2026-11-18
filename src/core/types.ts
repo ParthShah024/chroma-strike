@@ -91,6 +91,8 @@ export interface InputState {
   /** True when aiming down sights / scoping. */
   ads?: boolean;
   reload: boolean;
+  interact?: boolean;
+  dropSpike?: boolean;
   yaw: number;
   pitch: number;
 }
@@ -101,6 +103,8 @@ export interface PlayerState {
   grounded: boolean;
   health: number;
   maxHealth: number;
+  armor?: number;
+  maxArmor?: number;
   colorId: AgentColorId;
 }
 
@@ -127,6 +131,8 @@ export interface TargetDummy {
   colorId: AgentColorId;
   health: number;
   maxHealth: number;
+  armor?: number;
+  maxArmor?: number;
   alive: boolean;
   respawnTimer: number;
   strafeSpeed: number;
@@ -341,6 +347,8 @@ export interface WeaponSpec {
   moveSpeedMult: number;
   adsFovDeg: number | null;
   tracerWidthScale: number;
+  cost: number;
+  killReward: number;
 }
 
 /**
@@ -355,6 +363,10 @@ export interface Combatant extends TargetDummy {
   velocity: Vec3;
   grounded: boolean;
   weaponId: WeaponId;
+  armor?: number;
+  maxArmor?: number;
+  credits?: number;
+  shieldTier?: ShieldTier;
 }
 
 /** Persistent user-customizable crosshair configuration saved to localStorage. */
@@ -399,4 +411,62 @@ export interface MatchHudState {
   lastDamageAngleRad?: number | null;
   lastDamageSeq?: number;
   difficulty?: AiDifficulty;
+  playerSide?: TacticalSide;
+  halftimeSwapped?: boolean;
+  credits?: number;
+  nextRoundMinCredits?: number;
+  lossStreak?: number;
+  armor?: number;
+  maxArmor?: number;
+  shieldTier?: ShieldTier;
+  canRefundWeapon?: boolean;
+  refundableWeaponCost?: number;
+  allyEconomy?: Array<{
+    id: string;
+    colorId: AgentColorId;
+    credits: number;
+    weaponId: WeaponId;
+    armor: number;
+    hasSpike: boolean;
+  }>;
+  spike?: SpikeHudState;
+  minimapEnemies?: MinimapContact[];
+}
+
+// ============================================================================
+// Chapter 4: Search & Destroy (Spike) & Tactical Economy Contracts
+// ============================================================================
+
+export type TacticalSide = 'attacker' | 'defender';
+export type BombSiteId = 'A' | 'B';
+export type ShieldTier = 'none' | 'light' | 'heavy';
+export type SpikeStatus = 'carried' | 'dropped' | 'planted' | 'defused' | 'detonated';
+
+export interface BombSiteZone {
+  site: BombSiteId;
+  minX: number;
+  maxX: number;
+  minZ: number;
+  maxZ: number;
+  center: Vec3;
+}
+
+export interface SpikeHudState {
+  status: SpikeStatus;
+  carrierId: string | null;
+  playerHasSpike: boolean;
+  plantedSite: BombSiteId | null;
+  position: Vec3;
+  timerSec: number;
+  plantProgress: number;
+  defuseProgress: number;
+  halfwayCheckpoint: boolean;
+  canPlantNow: BombSiteId | null;
+  canDefuseNow: boolean;
+}
+
+export interface MinimapContact {
+  x: number;
+  z: number;
+  colorId: AgentColorId;
 }

@@ -8,12 +8,19 @@ A fast-paced, *Valorant*-inspired **3v3 Tactical 3D First-Person Shooter** built
 
 ## Key Features
 
-- **4-Weapon Tactical Arsenal (`[1]`–`[4]` & Scroll Wheel + Right-Click ADS/Scope):**
-  - **`[1]` Sidearm (Pistol):** Semi-auto trigger gating, `115` close-range headshot (`18–42 m` piecewise falloff), fastest `1.05x` mobility.
-  - **`[2]` Spectre SMG:** Rapid `0.062 s` fire interval, forgiving moving spread, `1.02x` mobility, `64°` ADS.
-  - **`[3]` Pulse Rifle (AR):** Pinpoint `160` 1-tap headshots when stationary/counter-strafed, `58°` ADS.
-  - **`[4]` Rail Sniper:** `150` body / `255` head damage, `3.2x` (`24°`) optical scope with **focal-length sensitivity scaling** $\tan(\text{FOV}/2)$, thick rail beam tracers, and mechanical bolt-rack audio.
-- **5 Color-Coded Agents & 10 Abilities (`[B]` Live 3D Agent Select during Buy Phase, `[F1]`–`[F5]` Quick Swap, `[Q]` & `[E]` to Cast):**
+- **2-Site Search & Destroy Mode (`First to 6` + Halftime Role Swap + Live Minimap):**
+  - Classic *Valorant* / *CS* **Attack vs. Defend** bomb loop across **Site A** and **Site B**: Drop Spike (`[G]`), auto-pickup, hold **`[F]` (`3.0 s`)** on Site `A`/`B` to plant (`45 s` detonation clock with accelerating pitch beeps), and hold **`[F]` (`5.0 s`)** as Defender to defuse with a **permanent `50%` halfway checkpoint**!
+  - **Halftime after Round 5** swaps Attacker (South `+Z`) and Defender (North `-Z`) sides and resets credits to `800¤`.
+  - Offscreen-cached **2D Tactical Minimap** displays your FOV cone, teammates, Spike location, and LoS-spotted enemies; Attack bots **Execute + Lurk**, Defender bots **Anchor A / Watch Mid / Anchor B** and **BFS Retake** on plant!
+- **Valorant / CS Financial Economy & `[B]` Buyout Shop:**
+  - Start at **`800¤`** (`9000¤` cap), earn **`+3000¤`** win / **`1900 / 2400 / 2900¤`** loss-streak bonus, **`+200¤`** per kill, and **`+300¤`** team plant/defuse bonuses. Survivors carry over weapons and remaining shield armor!
+  - Press **`[B]`** during the `12 s` Buy Phase to buy **Sidearm (`0¤`)**, **Spectre SMG (`1600¤`)**, **Pulse Rifle AR (`2900¤`)**, **Rail Sniper (`4700¤`)**, **Light Shield (`400¤`, `+25` Armor)**, or **Heavy Shield (`1000¤`, `+50` Armor)** with smart delta upgrades, **100% same-round `[R]` refunds**, squad economy strip, and `[P]` Attack/Defend side swap.
+- **4-Weapon Tactical Arsenal (`[1]`–`[4]` Purchased Loadout & Wheel + Right-Click ADS/Scope):**
+  - **`[1]` Sidearm (Pistol — `0¤`):** Semi-auto trigger gating, `115` close-range headshot (`18–42 m` piecewise falloff), fastest `1.05x` mobility.
+  - **`[2]` Spectre SMG (`1600¤`):** Rapid `0.062 s` fire interval, forgiving moving spread, `1.02x` mobility, `64°` ADS.
+  - **`[3]` Pulse Rifle AR (`2900¤`):** Pinpoint `160` 1-tap headshots against full `150` EHP Heavy armor, `58°` ADS.
+  - **`[4]` Rail Sniper (`4700¤`):** `150` body / `255` head damage, `3.2x` (`24°`) optical scope with **focal-length sensitivity scaling** $\tan(\text{FOV}/2)$, thick rail beam tracers, and mechanical bolt-rack audio.
+- **5 Color-Coded Agents & 10 Abilities (`[H]` Live 3D Agent Select during Buy Phase, `[F1]`–`[F5]` Quick Swap, `[Q]` & `[E]` to Cast):**
   - **Red — Blaze (Duelist):** **`[Q]` Crimson Dash** (`30 -> 8.2 m/s` cubic ease-out burst + `90°` FOV warp + 3D wind streaks) & **`[E]` Inferno Orb** (Voronoi magma shader, `0.95 m` scrolling flame crown, `28` swirling embers, `45 DPS`).
   - **Blue — Mist (Controller):** **`[Q]` Smoke Dome** (100% opaque Z-buffered `DoubleSide` GLSL hollow sphere with Fresnel rim, `smoothstep` shell seam masking, and `discard` dissolve — **zero see-through**) & **`[E]` Cryo Field** (ice fracture shader, `14` erupting 3D crystal spikes, `80%` target slow + jump lock).
   - **Green — Pulse (Initiator):** **`[Q]` Pop-Flash** (wall-bouncing `0.65 s` orb with warning chirp, 3D starbursts, wall occlusion & *Valorant*-style turn-away dot-product counterplay) & **`[E]` Bio-Stim Beacon** (`+24 HP/s` heal, `1.25x` move speed, `1.35x` fire/reload rate, `0.65x` recoil & overdrive rifle glow).
@@ -45,13 +52,14 @@ A fast-paced, *Valorant*-inspired **3v3 Tactical 3D First-Person Shooter** built
 | **`Shift` / `Space`** | Silent Walk (or **Power-Slide** during Volt Overdrive) / Jump (or Skip Buy Phase) |
 | **`Left Click`** | Fire (Semi-auto click for Pistol/Sniper, Hold for SMG/AR) |
 | **`Right Click`** | Optical Scope / ADS (`SMG`, `AR`, `Sniper`) |
-| **`1` `2` `3` `4` / Wheel** | Equip Pistol / SMG / AR / Sniper |
-| **`R`** | Reload |
+| **`1` `2` `3` `4` / Wheel** | Equip Purchased Weapons (`Sidearm` / Owned Primary) — Buys Weapons in Shop |
+| **`R`** | Reload (or 100% Weapon Refund in `[B]` Buy Shop) |
 | **`Q` / `E`** | Cast Agent Ability 1 / Ability 2 (Re-tap `Q` mid-flight on Umbra to bloom early!) |
-| **`B`** | Open **Live 3D Agent Select & AI Difficulty** (during Buy Phase) |
+| **`F` / `G`** | Hold **`F`** to **Plant / Defuse Spike** (`3 s` / `5 s w/ 50% checkpoint`); Press **`G`** to **Drop Spike** |
+| **`B` / `H`** | Open **`[B]` Buyout Shop & Economy** / **`[H]` 3D Agent Select & AI Difficulty** (during Buy Phase) |
 | **`F1` – `F5`** | Quick Switch Agent (**Blaze** / **Mist** / **Pulse** / **Umbra** / **Volt**) |
 | **`V`** | Toggle **1st-Person FPS** <-> **3rd-Person 3D Person Model View** |
-| **`M`** | Open/Close **Killhouse Live Map Maker** (Paint & Export ASCII Maps) |
+| **`M`** | Open/Close **`24×28` S&D Map Maker** (Paint Windows `W`, Archways `O`, Sites `1`/`2` & Export ASCII) |
 | **`C`** | Open/Close **Crosshair Customizer** |
 | **`Tab`** | Take Over a Living Ally Bot (when eliminated) |
 
@@ -81,37 +89,41 @@ npm run build
 ```text
 chroma-strike/
 ├── docs/
-│   └── MASTERCLASS.md            # Complete Chapters 1–5 engineering & math handbook
+│   └── MASTERCLASS.md            # Complete Chapters 1–6 engineering & math handbook
 ├── src/
 │   ├── abilities/
 │   │   ├── definitions.ts        # Immutable 5-agent AGENT_ABILITIES spec table
 │   │   ├── shaders.ts            # Custom GLSL Smoke, Void, Singularity, Relay, Magma & Cryo shaders
 │   │   └── system.ts             # 10 abilities (5 agents), slide/vortex curves, bot cast & .dispose()
 │   ├── ai/
-│   │   └── botBrain.ts           # Casual/Tactical/Pro AI FSM, BFS routing & perception gates
+│   │   └── botBrain.ts           # S&D Execute, Lurk, Site-Anchor & BFS Retake AI (Casual/Tactical/Pro)
 │   ├── arena/
-│   │   ├── map.ts                # Z-fighting-free Killhouse 3D map, Greedy Meshing & waypoints
-│   │   └── skirmishAscii.ts      # 14x17 2m ASCII Killhouse grid format + normalization
+│   │   ├── map.ts                # Multi-band Greedy Meshing (W Windows, O Archways, Sites A/B)
+│   │   └── skirmishAscii.ts      # 24x28 (48x56m) 2-Site S&D ASCII grid format + normalization
 │   ├── audio/
-│   │   └── sfx.ts                # Zero-dependency procedural Web Audio synthesizer
+│   │   └── sfx.ts                # Zero-dependency procedural Web Audio synthesizer + Spike/Shop SFX
 │   ├── combat/
-│   │   ├── arsenal.ts            # WEAPON_SPECS & piecewise linear damage falloff
+│   │   ├── arsenal.ts            # WEAPON_SPECS (with buyout costs), SHIELD_SPECS & piecewise falloff
 │   │   ├── targets.ts            # Practice target module (Ch.1/2 sandbox)
 │   │   └── weapons.ts            # 4 viewmodels, wall-tuck, trigger gating, scope & tracers
 │   ├── core/
-│   │   └── types.ts              # Pure simulation contracts (zero Three.js coupling)
+│   │   └── types.ts              # Pure simulation, Economy & S&D Spike contracts
 │   ├── entities/
-│   │   └── characterModel.ts     # Opus sculpted 5-agent LatheGeometry rigs, FK gait, Slide & 2-bone IK
+│   │   ├── characterModel.ts     # Opus sculpted 5-agent LatheGeometry rigs, FK gait, Slide & 2-bone IK
+│   │   └── spikeModel.ts         # Procedural 3D Radianite Spike canister, dropped beam & blast
 │   ├── match/
-│   │   └── roundManager.ts       # Non-duplicate 3v3 round loop, killfeed, bot takeover & rig sync
+│   │   ├── economy.ts            # Valorant/CS credits, loss streak, delta shields & survivor carryover
+│   │   └── roundManager.ts       # 2-Site S&D loop, Halftime side swap, armor & Spike lifecycle
 │   ├── physics/
 │   │   └── movement.ts           # Counter-strafe, Power-Slide duck, externalVelocity & stair-stepping
 │   ├── ui/
 │   │   ├── agentSelect.ts        # Dual-renderer 3D Agent Select turntable & difficulty selector
+│   │   ├── buyMenu.ts            # Valorant/CS [B] Buyout Shop, Shield upgrades & Squad Economy
 │   │   ├── crosshair.ts          # CSS-variable reactive Crosshair Customizer
-│   │   └── mapEditor.ts          # Interactive [M] Killhouse Live Map Maker & TS exporter
-│   └── main.ts                   # Game loop, focal-length zoom, damage arcs, kill medals & HUD
-├── index.html                    # Minimalist color-driven HUD, #scope-overlay & modals
+│   │   ├── mapEditor.ts          # Interactive [M] 24x28 S&D Map Maker (Windows, Sites, Export)
+│   │   └── minimap.ts            # Offscreen-cached 2D Tactical Minimap & LoS contacts
+│   └── main.ts                   # Game loop, focal-length zoom, Spike/Economy HUD & input buffering
+├── index.html                    # Minimalist S&D HUD, Minimap, Buy Shop, #scope-overlay & modals
 ├── package.json
 ├── play.bat                      # Windows one-click dev launcher
 └── tsconfig.json

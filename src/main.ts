@@ -10,6 +10,8 @@ import {
   MatchHudState,
   MovementModifiers,
   RoundPhase,
+  SpikeHudState,
+  TacticalSide,
   WeaponId,
 } from './core/types';
 import {
@@ -33,6 +35,8 @@ import { createSoundEngine } from './audio/sfx';
 import { createMatchManager } from './match/roundManager';
 import { createCrosshairController } from './ui/crosshair';
 import { createAgentSelectController } from './ui/agentSelect';
+import { createBuyMenuController } from './ui/buyMenu';
+import { createMinimapController } from './ui/minimap';
 import {
   createMapEditorController,
   loadSavedCustomMapGrid,
@@ -97,6 +101,7 @@ const weapon = createWeaponSystem(camera, scene, player.colorId);
 const abilities = createAbilitySystem(scene);
 const match = createMatchManager(scene, abilities, weapon, sfx);
 const crosshair = createCrosshairController();
+const minimap = createMinimapController();
 
 // While Agent Select is up (or before the very first LOCK IN) the simulation is frozen
 // and the main scene is drawn only once (`frozenDrawn`), so the stage owns the GPU.
@@ -109,11 +114,16 @@ let jumpBufferTimer = 0;
 let fireBufferTimer = 0;
 let eyeOffsetSmoothed = 0;
 let slideTiltSmoothed = 0;
+let interactHeld = false;
+let dropSpikePressed = false;
+let unownedHintTimer = 0;
 
 let lastAbilityFeedback: AbilityFrameFeedback | null = null;
 let thirdPerson = false;
 let lastHudPhase: RoundPhase = 'buy';
 let lastRoundNumber = 1;
+let lastPlayerSide: TacticalSide = 'attacker';
+let lastSpikeHud: SpikeHudState | null = null;
 
 // Plain input snapshot polled each simulation tick.
 const input: InputState = {
@@ -127,6 +137,8 @@ const input: InputState = {
   fireJustPressed: false,
   ads: false,
   reload: false,
+  interact: false,
+  dropSpike: false,
   yaw: 0,
   pitch: 0,
 };
@@ -148,6 +160,10 @@ const headshotRingEl = document.getElementById('headshot-ring') as HTMLDivElemen
 
 const allyScoreEl = document.getElementById('ally-score') as HTMLDivElement;
 const enemyScoreEl = document.getElementById('enemy-score') as HTMLDivElement;
+const hudTopEl = document.getElementById('hud-top') as HTMLDivElement;
+const sideBadgeEl = document.getElementById('side-badge') as HTMLDivElement;
+const spikeTopPillEl = document.getElementById('spike-top-pill') as HTMLDivElement;
+const spikeTopSiteEl = document.getElementById('spike-top-site') as HTMLSpanElement;
 const roundPhaseLabelEl = document.getElementById('round-phase-label') as HTMLDivElement;
 const roundClockEl = document.getElementById('round-clock') as HTMLDivElement;
 const allyDotsEl = document.getElementById('ally-dots') as HTMLDivElement;
@@ -157,12 +173,22 @@ const killfeedEl = document.getElementById('killfeed') as HTMLDivElement;
 const roundBannerEl = document.getElementById('round-banner') as HTMLDivElement;
 const roundBannerTitleEl = document.getElementById('round-banner-title') as HTMLDivElement;
 const roundBannerSubEl = document.getElementById('round-banner-sub') as HTMLDivElement;
+const spikeInteractHudEl = document.getElementById('spike-interact-hud') as HTMLDivElement;
+const spikeInteractLabelEl = document.getElementById('spike-interact-label') as HTMLDivElement;
+const spikeProgressTrackEl = document.getElementById('spike-progress-track') as HTMLDivElement;
+const spikeProgressFillEl = document.getElementById('spike-progress-fill') as HTMLDivElement;
+const spikeHalfwayNotchEl = document.getElementById('spike-halfway-notch') as HTMLDivElement;
+const spikeHalfwayTagEl = document.getElementById('spike-halfway-tag') as HTMLDivElement;
 
+const creditsEl = document.getElementById('hud-credits') as HTMLDivElement;
+const armorEl = document.getElementById('hud-armor') as HTMLDivElement;
 const hpEl = document.getElementById('hud-hp') as HTMLDivElement;
+const spikeBadgeEl = document.getElementById('hud-spike-badge') as HTMLDivElement;
 const abilityQEl = document.getElementById('ability-q') as HTMLDivElement;
 const abilityEEl = document.getElementById('ability-e') as HTMLDivElement;
 const ammoEl = document.getElementById('hud-ammo') as HTMLDivElement;
 const speedEl = document.getElementById('hud-speed') as HTMLDivElement;
+const hintBuyEl = document.getElementById('hint-buy') as HTMLDivElement;
 const hint3pEl = document.getElementById('hint-3p') as HTMLDivElement;
 const hintXhairEl = document.getElementById('hint-xhair') as HTMLDivElement;
 const hintMapEl = document.getElementById('hint-map') as HTMLDivElement;
@@ -189,9 +215,27 @@ function switchAgentColor(colorId: AgentColorId): void {
 }
 
 function syncWeaponPills(weaponId: WeaponId): void {
+  const ownedPrimary = match.getPlayerOwnedPrimary();
   for (const pill of weaponPills) {
-    pill.classList.toggle('active', pill.dataset.weapon === weaponId);
+    const wpn = pill.dataset.weapon as WeaponId | undefined;
+    const isOwned = wpn === 'pistol' || wpn === ownedPrimary;
+    pill.classList.toggle('active', wpn === weaponId);
+    pill.classList.toggle('unowned', !isOwned);
   }
+}
+
+function tryEquipOwnedWeapon(weaponId: WeaponId): void {
+  if (!isPointerLocked() || isAnyModalOpen() || !match.getPlayerCombatant().alive) return;
+  if (weaponId !== 'pistol' && match.getPlayerOwnedPrimary() !== weaponId) {
+    sfx.playBuyError();
+    if (lastHudPhase === 'buy') {
+      unownedHintTimer = 1.4;
+    }
+    return;
+  }
+  weapon.equipWeapon(weaponId);
+  input.ads = weapon.isScoped;
+  syncWeaponPills(weapon.currentWeaponId);
 }
 
 function syncLocalPlayerFromCombatant(): void {
@@ -210,6 +254,7 @@ function syncLocalPlayerFromCombatant(): void {
   input.pitch = c.pitch;
 
   switchAgentColor(c.colorId);
+  lastPlayerSide = match.getPlayerSide();
   if (weapon.currentWeaponId !== c.weaponId) {
     weapon.equipWeapon(c.weaponId);
   }
@@ -232,12 +277,13 @@ function isPointerLocked(): boolean {
 }
 
 function isAnyModalOpen(): boolean {
-  return crosshair.isOpen() || mapEditor.isOpen() || agentSelect.isOpen();
+  return crosshair.isOpen() || mapEditor.isOpen() || agentSelect.isOpen() || buyMenu.isOpen();
 }
 
 function syncOverlayVisibility(): void {
   // Keep `#overlay` (Pause / Resume) hidden while playing (pointer locked) OR in any modal.
   overlayEl.classList.toggle('hidden', isPointerLocked() || isAnyModalOpen());
+  hintBuyEl.classList.toggle('active', buyMenu.isOpen());
   hintXhairEl.classList.toggle('active', crosshair.isOpen());
   hintMapEl.classList.toggle('active', mapEditor.isOpen());
   hintAgentsEl.classList.toggle('active', agentSelect.isOpen());
@@ -253,21 +299,72 @@ function clearHeldInputs(): void {
   input.fire = false;
   input.fireJustPressed = false;
   input.reload = false;
+  input.interact = false;
+  input.dropSpike = false;
+  interactHeld = false;
+  dropSpikePressed = false;
   jumpHeld = false;
   jumpBufferTimer = 0;
   fireBufferTimer = 0;
+}
+
+/** Opens Buyout Shop (releases pointer so cursor can click weapons/shields). */
+function openBuyMenu(): void {
+  if (lastHudPhase !== 'buy') return;
+  if (isPointerLocked()) document.exitPointerLock();
+  clearHeldInputs();
+  crosshair.close();
+  mapEditor.close();
+  buyMenu.open();
+  syncOverlayVisibility();
 }
 
 /** Opens Agent Select (releases the pointer so the cursor can click cards). */
 function openAgentSelect(): void {
   if (isPointerLocked()) document.exitPointerLock();
   clearHeldInputs();
-  crosshair.close();
-  mapEditor.close();
   frozenDrawn = false;
   agentSelect.open(match.getPlayerCombatant().colorId);
+  buyMenu.close();
+  crosshair.close();
+  mapEditor.close();
   syncOverlayVisibility();
 }
+
+const buyMenu = createBuyMenuController({
+  getCurrentWeaponId: () => weapon.currentWeaponId,
+  getOwnedPrimary: () => match.getPlayerOwnedPrimary(),
+  onBuyWeapon: (weaponId: WeaponId) => {
+    const ok = match.buyWeapon(weaponId);
+    if (ok) {
+      input.ads = weapon.isScoped;
+      syncWeaponPills(weapon.currentWeaponId);
+    }
+    return ok;
+  },
+  onRefundWeapon: () => {
+    const ok = match.refundCurrentRoundWeapon();
+    if (ok) {
+      input.ads = weapon.isScoped;
+      syncWeaponPills(weapon.currentWeaponId);
+    }
+    return ok;
+  },
+  onBuyShield: (tier) => match.buyShield(tier),
+  onOpenAgentSelect: () => {
+    openAgentSelect();
+  },
+  onSwapSides: () => {
+    match.swapSides();
+    syncLocalPlayerFromCombatant();
+  },
+  onClose: () => {
+    syncOverlayVisibility();
+    if (!isAnyModalOpen()) {
+      canvas.requestPointerLock();
+    }
+  },
+});
 
 const agentSelect = createAgentSelectController({
   getCurrentAgent: () => match.getPlayerCombatant().colorId,
@@ -406,9 +503,14 @@ window.addEventListener(
     if (!match.getPlayerCombatant().alive) return;
     const dir = Math.sign(e.deltaY);
     if (dir !== 0) {
-      weapon.cycleWeapon(dir);
-      input.ads = weapon.isScoped;
-      syncWeaponPills(weapon.currentWeaponId);
+      const ownedPrimary = match.getPlayerOwnedPrimary();
+      if (ownedPrimary) {
+        const nextWeapon: WeaponId =
+          weapon.currentWeaponId === 'pistol' ? ownedPrimary : 'pistol';
+        weapon.equipWeapon(nextWeapon);
+        input.ads = weapon.isScoped;
+        syncWeaponPills(weapon.currentWeaponId);
+      }
     }
   },
   { passive: true }
@@ -440,33 +542,21 @@ function handleKey(code: string, isDown: boolean): void {
     case 'KeyR':
       input.reload = isDown;
       break;
+    case 'KeyF':
+      interactHeld = isDown;
+      input.interact = isDown;
+      break;
     case 'Digit1':
-      if (isDown && isPointerLocked() && match.getPlayerCombatant().alive) {
-        weapon.equipWeapon('pistol');
-        input.ads = weapon.isScoped;
-        syncWeaponPills(weapon.currentWeaponId);
-      }
+      if (isDown) tryEquipOwnedWeapon('pistol');
       break;
     case 'Digit2':
-      if (isDown && isPointerLocked() && match.getPlayerCombatant().alive) {
-        weapon.equipWeapon('smg');
-        input.ads = weapon.isScoped;
-        syncWeaponPills(weapon.currentWeaponId);
-      }
+      if (isDown) tryEquipOwnedWeapon('smg');
       break;
     case 'Digit3':
-      if (isDown && isPointerLocked() && match.getPlayerCombatant().alive) {
-        weapon.equipWeapon('ar');
-        input.ads = weapon.isScoped;
-        syncWeaponPills(weapon.currentWeaponId);
-      }
+      if (isDown) tryEquipOwnedWeapon('ar');
       break;
     case 'Digit4':
-      if (isDown && isPointerLocked() && match.getPlayerCombatant().alive) {
-        weapon.equipWeapon('sniper');
-        input.ads = weapon.isScoped;
-        syncWeaponPills(weapon.currentWeaponId);
-      }
+      if (isDown) tryEquipOwnedWeapon('sniper');
       break;
   }
 }
@@ -474,7 +564,7 @@ function handleKey(code: string, isDown: boolean): void {
 window.addEventListener('keydown', (e: KeyboardEvent) => {
   sfx.unlock();
 
-  // Keys already consumed by Agent Select (1-5, Enter, arrows, Esc) never reach gameplay.
+  // Keys already consumed by Agent Select / Buy Menu never reach gameplay.
   if (e.defaultPrevented) return;
 
   if (
@@ -490,17 +580,40 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
   }
 
   if (agentSelect.isOpen()) {
-    // [B] closes Agent Select again (only once the match has started).
-    if (e.code === 'KeyB' && !e.repeat && gameStarted) {
+    // [H] closes Agent Select again; [B] hops back to Buyout Shop during Buy phase.
+    if (e.code === 'KeyH' && !e.repeat && gameStarted) {
       agentSelect.close();
       canvas.requestPointerLock();
+    } else if (e.code === 'KeyB' && !e.repeat && gameStarted && lastHudPhase === 'buy') {
+      agentSelect.close();
+      openBuyMenu();
     }
     return;
   }
 
   if (!e.repeat) {
-    // [B] opens Agent Select during the Buy phase.
-    if (e.code === 'KeyB' && gameStarted && lastHudPhase === 'buy') {
+    // [B] opens/closes Buyout Shop during the Buy phase (never overlaps Crosshair/MapMaker).
+    if (
+      e.code === 'KeyB' &&
+      gameStarted &&
+      lastHudPhase === 'buy' &&
+      !crosshair.isOpen() &&
+      !mapEditor.isOpen()
+    ) {
+      if (buyMenu.isOpen()) buyMenu.close();
+      else openBuyMenu();
+      return;
+    }
+
+    // [H] opens 3D Agent Select during the Buy phase.
+    if (
+      e.code === 'KeyH' &&
+      gameStarted &&
+      lastHudPhase === 'buy' &&
+      !crosshair.isOpen() &&
+      !mapEditor.isOpen() &&
+      !buyMenu.isOpen()
+    ) {
       openAgentSelect();
       return;
     }
@@ -508,10 +621,10 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
     // [C] Crosshair Customizer modal toggle
     if (e.code === 'KeyC') {
       const wasMapOpen = mapEditor.isOpen();
+      const wasBuyOpen = buyMenu.isOpen();
       const nowOpen = crosshair.toggle();
-      if (wasMapOpen) {
-        mapEditor.close();
-      }
+      if (wasMapOpen) mapEditor.close();
+      if (wasBuyOpen) buyMenu.close();
       if (nowOpen && isPointerLocked()) {
         document.exitPointerLock();
       }
@@ -522,10 +635,10 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
     // [M] Killhouse Map Maker modal toggle
     if (e.code === 'KeyM') {
       const wasCrosshairOpen = crosshair.isOpen();
+      const wasBuyOpen = buyMenu.isOpen();
       const nowOpen = mapEditor.toggle();
-      if (wasCrosshairOpen) {
-        crosshair.close();
-      }
+      if (wasCrosshairOpen) crosshair.close();
+      if (wasBuyOpen) buyMenu.close();
       if (nowOpen && isPointerLocked()) {
         document.exitPointerLock();
       }
@@ -536,6 +649,7 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
     if (e.code === 'Escape' && isAnyModalOpen()) {
       crosshair.close();
       mapEditor.close();
+      buyMenu.close();
       syncOverlayVisibility();
       return;
     }
@@ -573,6 +687,11 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
     }
 
     if (isPointerLocked()) {
+      // [G] Drop carried Spike
+      if (e.code === 'KeyG') {
+        dropSpikePressed = true;
+      }
+
       // [V] Toggle 1st-Person vs 3rd-Person over-the-shoulder camera
       if (e.code === 'KeyV') {
         thirdPerson = !thirdPerson;
@@ -772,6 +891,75 @@ function syncDamageArc(hud: MatchHudState, dt: number, health: number): void {
   }
 }
 
+function syncSpikeAndEconomyHud(hud: MatchHudState): void {
+  const side = hud.playerSide ?? 'attacker';
+  sideBadgeEl.textContent = side === 'attacker' ? 'ATK' : 'DEF';
+  sideBadgeEl.classList.toggle('atk', side === 'attacker');
+  sideBadgeEl.classList.toggle('def', side === 'defender');
+
+  const spike = hud.spike;
+  const planted = spike?.status === 'planted';
+  hudTopEl.classList.toggle('spike-planted', Boolean(planted));
+  spikeTopPillEl.classList.toggle('hidden', !planted);
+  if (planted && spike?.plantedSite) {
+    spikeTopSiteEl.textContent = `SITE ${spike.plantedSite}`;
+  }
+
+  const credits = hud.credits ?? 0;
+  const armor = hud.armor ?? 0;
+  creditsEl.textContent = `¤ ${credits}`;
+  armorEl.textContent = `🛡 ${armor}`;
+  armorEl.classList.toggle('empty', armor <= 0);
+  spikeBadgeEl.classList.toggle('hidden', !spike?.playerHasSpike);
+
+  // Contextual center [F] Plant / Defuse prompt + 50% halfway checkpoint bar
+  const canPlant = Boolean(
+    hud.phase === 'combat' &&
+      spike &&
+      spike.status === 'carried' &&
+      spike.playerHasSpike &&
+      spike.canPlantNow !== null
+  );
+  const canDefuse = Boolean(
+    hud.phase === 'combat' && spike && spike.status === 'planted' && spike.canDefuseNow
+  );
+
+  if (canPlant && spike) {
+    const pct = Math.round(spike.plantProgress * 100);
+    spikeInteractHudEl.classList.remove('hidden', 'defuse');
+    spikeInteractHudEl.classList.add('plant');
+    spikeInteractLabelEl.textContent =
+      spike.plantProgress > 0
+        ? `PLANTING SPIKE — SITE ${spike.canPlantNow} (${pct}%)`
+        : `[F] PLANT SPIKE — SITE ${spike.canPlantNow}`;
+    spikeProgressTrackEl.classList.toggle('hidden', spike.plantProgress <= 0);
+    spikeProgressFillEl.style.width = `${(spike.plantProgress * 100).toFixed(1)}%`;
+    spikeHalfwayNotchEl.classList.add('hidden');
+    spikeHalfwayTagEl.classList.add('hidden');
+  } else if (canDefuse && spike) {
+    const pct = Math.round(spike.defuseProgress * 100);
+    const activeDefuse = interactHeld && spike.defuseProgress > 0;
+    spikeInteractHudEl.classList.remove('hidden', 'plant');
+    spikeInteractHudEl.classList.add('defuse');
+    spikeInteractLabelEl.textContent = activeDefuse
+      ? `DEFUSING SPIKE (${pct}%)`
+      : '[F] DEFUSE SPIKE';
+    const showBar = spike.defuseProgress > 0 || spike.halfwayCheckpoint;
+    spikeProgressTrackEl.classList.toggle('hidden', !showBar);
+    spikeProgressFillEl.style.width = `${(spike.defuseProgress * 100).toFixed(1)}%`;
+    spikeHalfwayNotchEl.classList.toggle('hidden', !showBar);
+    spikeHalfwayTagEl.classList.toggle('hidden', !spike.halfwayCheckpoint);
+  } else if (unownedHintTimer > 0 && hud.phase === 'buy') {
+    spikeInteractHudEl.classList.remove('hidden', 'plant', 'defuse');
+    spikeInteractLabelEl.textContent = 'WEAPON NOT OWNED — PRESS [B] BUY SHOP';
+    spikeProgressTrackEl.classList.add('hidden');
+    spikeHalfwayNotchEl.classList.add('hidden');
+    spikeHalfwayTagEl.classList.add('hidden');
+  } else {
+    spikeInteractHudEl.classList.add('hidden');
+  }
+}
+
 function syncMatchHud(hud: MatchHudState): void {
   allyScoreEl.textContent = String(hud.allyScore);
   enemyScoreEl.textContent = String(hud.enemyScore);
@@ -787,6 +975,8 @@ function syncMatchHud(hud: MatchHudState): void {
   roundPhaseLabelEl.textContent = phaseText;
   roundClockEl.textContent =
     hud.phase === 'match_over' ? 'FINAL' : formatClock(hud.phase, hud.phaseTimerSec);
+
+  syncSpikeAndEconomyHud(hud);
 
   syncTeamDots(allyDotsEl, 'ally', hud.allyStates);
   syncTeamDots(enemyDotsEl, 'enemy', hud.enemyStates);
@@ -877,7 +1067,9 @@ function tick(now: number): void {
       camera.rotation.y = pc.yaw;
       camera.rotation.x = 0;
       camera.rotation.z = 0;
-      match.update(0, player, camera.position, []);
+      const frozenHud = match.update(0, player, camera.position, []);
+      syncMatchHud(frozenHud);
+      minimap.update(frozenHud, match.combatants, player, pc.yaw);
       renderer.render(scene, camera);
       frozenDrawn = true;
     }
@@ -885,6 +1077,10 @@ function tick(now: number): void {
     return;
   }
   frozenDrawn = false;
+
+  if (unownedHintTimer > 0) {
+    unownedHintTimer = Math.max(0, unownedHintTimer - dt);
+  }
 
   const playerCombatant = match.getPlayerCombatant();
   const isAlive = playerCombatant.alive;
@@ -894,30 +1090,55 @@ function tick(now: number): void {
   jumpBufferTimer = Math.max(0, jumpBufferTimer - dt);
   input.jump = jumpHeld || jumpBufferTimer > 0;
 
+  // Apply 0.25x movement speed multiplier while actively channeling Spike plant/defuse.
+  const canChannelSpike = Boolean(
+    lastHudPhase === 'combat' &&
+      lastSpikeHud &&
+      ((lastSpikeHud.status === 'carried' &&
+        lastSpikeHud.playerHasSpike &&
+        lastSpikeHud.canPlantNow !== null) ||
+        (lastSpikeHud.status === 'planted' && lastSpikeHud.canDefuseNow))
+  );
+  const isChannelingSpike = Boolean(isAlive && interactHeld && canChannelSpike);
+
   // Combine ability movement modifiers (Dash / Cryo Slow / Overdrive) with active weapon mobility.
   const baseMove = lastAbilityFeedback?.movement;
   const moveModifiers: MovementModifiers = {
     dashActive: baseMove?.dashActive ?? false,
     dashVelocity: baseMove?.dashVelocity ?? { x: 0, y: 0, z: 0 },
-    speedMultiplier: (baseMove?.speedMultiplier ?? 1.0) * activeSpec.moveSpeedMult,
+    speedMultiplier:
+      (baseMove?.speedMultiplier ?? 1.0) *
+      activeSpec.moveSpeedMult *
+      (isChannelingSpike ? 0.25 : 1.0),
     suppressJump: baseMove?.suppressJump,
     externalVelocity: baseMove?.externalVelocity,
     slideActive: baseMove?.slideActive,
   };
 
-  // Step player movement only while alive; clamp inside attacker spawn box during Buy phase.
+  // Step player movement only while alive; enforce side-aware Buy-Phase Spawn Fence.
   if (isAlive) {
     updatePlayerMovement(player, input, ARENA_COLLIDERS, dt, moveModifiers);
 
     if (lastHudPhase === 'buy') {
-      const minBuyZ = getArenaSpawns().buyMinAllyZ;
-      const maxBuyZ = 15.5;
-      if (player.position.z < minBuyZ) {
-        player.position.z = minBuyZ;
-        if (player.velocity.z < 0) player.velocity.z = 0;
-      } else if (player.position.z > maxBuyZ) {
-        player.position.z = maxBuyZ;
-        if (player.velocity.z > 0) player.velocity.z = 0;
+      const spawns = getArenaSpawns();
+      if (lastPlayerSide === 'defender') {
+        if (player.position.z > spawns.buyMaxDefenderZ) {
+          player.position.z = spawns.buyMaxDefenderZ;
+          if (player.velocity.z > 0) player.velocity.z = 0;
+        }
+      } else {
+        if (player.position.z < spawns.buyMinAllyZ) {
+          player.position.z = spawns.buyMinAllyZ;
+          if (player.velocity.z < 0) player.velocity.z = 0;
+        }
+      }
+      const maxBuyX = 23.0;
+      if (player.position.x < -maxBuyX) {
+        player.position.x = -maxBuyX;
+        if (player.velocity.x < 0) player.velocity.x = 0;
+      } else if (player.position.x > maxBuyX) {
+        player.position.x = maxBuyX;
+        if (player.velocity.x > 0) player.velocity.x = 0;
       }
     }
   } else if (weapon.isScoped) {
@@ -1071,14 +1292,17 @@ function tick(now: number): void {
     fireBufferTimer = 0;
   }
 
-  // Push local player physics/aim state into match manager & advance 3v3 bots/round clock.
+  // Push local player physics/aim/S&D state into match manager & advance 3v3 bots/round clock.
   match.syncPlayerFromPhysics(
     player,
     input.yaw,
     input.pitch,
     weapon.currentWeaponId,
-    firedThisFrame
+    firedThisFrame,
+    interactHeld,
+    dropSpikePressed
   );
+  dropSpikePressed = false;
   const hud = match.update(dt, player, camera.position, feedback.activeSmokes);
 
   // When a new round begins, snap local orientation & UI highlights cleanly to the spawned agent.
@@ -1091,6 +1315,17 @@ function tick(now: number): void {
   }
   lastHudPhase = hud.phase;
   lastRoundNumber = hud.roundNumber;
+  lastPlayerSide = hud.playerSide ?? 'attacker';
+  lastSpikeHud = hud.spike ?? null;
+
+  if (buyMenu.isOpen()) {
+    if (hud.phase !== 'buy') {
+      buyMenu.close();
+    } else {
+      buyMenu.sync(hud);
+    }
+  }
+  minimap.update(hud, match.combatants, player, input.yaw);
 
   // Update health, abilities, screen FX, match scoreboard, killfeed & banners.
   const isHealing =

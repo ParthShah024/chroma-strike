@@ -1,4 +1,4 @@
-import type { WeaponId, WeaponSpec } from '../core/types';
+import type { ShieldTier, WeaponId, WeaponSpec } from '../core/types';
 
 /**
  * Canonical slot ordering matching keys `[1]` through `[4]` and mouse-wheel cycling.
@@ -35,6 +35,8 @@ export const WEAPON_SPECS: Record<WeaponId, WeaponSpec> = {
     moveSpeedMult: 1.05,
     adsFovDeg: null,
     tracerWidthScale: 0.9,
+    cost: 0,
+    killReward: 200,
   },
   smg: {
     id: 'smg',
@@ -58,6 +60,8 @@ export const WEAPON_SPECS: Record<WeaponId, WeaponSpec> = {
     moveSpeedMult: 1.02,
     adsFovDeg: 64,
     tracerWidthScale: 0.85,
+    cost: 1600,
+    killReward: 200,
   },
   ar: {
     id: 'ar',
@@ -81,6 +85,8 @@ export const WEAPON_SPECS: Record<WeaponId, WeaponSpec> = {
     moveSpeedMult: 1.0,
     adsFovDeg: 58,
     tracerWidthScale: 1.0,
+    cost: 2900,
+    killReward: 200,
   },
   sniper: {
     id: 'sniper',
@@ -104,7 +110,18 @@ export const WEAPON_SPECS: Record<WeaponId, WeaponSpec> = {
     moveSpeedMult: 0.88,
     adsFovDeg: 24,
     tracerWidthScale: 1.8,
+    cost: 4700,
+    killReward: 200,
   },
+};
+
+/**
+ * Tactical armor shield tiers purchasable during the Buy Phase.
+ */
+export const SHIELD_SPECS: Record<ShieldTier, { id: ShieldTier; name: string; armor: number; cost: number }> = {
+  none: { id: 'none', name: 'No Shield', armor: 0, cost: 0 },
+  light: { id: 'light', name: 'Light Shield', armor: 25, cost: 400 },
+  heavy: { id: 'heavy', name: 'Heavy Shield', armor: 50, cost: 1000 },
 };
 
 /**

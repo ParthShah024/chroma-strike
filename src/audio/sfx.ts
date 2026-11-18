@@ -34,6 +34,15 @@ export interface SoundEngine {
   playUiLockIn(): void;
   playAbility(event: AbilityAudioEvent): void;
   playRoundCue(cue: 'buy' | 'fight' | 'win' | 'lose'): void;
+  playBuyPurchase(): void;
+  playBuyError(): void;
+  playSpikePickup(): void;
+  playSpikePlantTick(): void;
+  playSpikePlanted(): void;
+  playSpikeBeep(urgency01: number): void;
+  playSpikeDefuseCue(halfwayReached: boolean): void;
+  playSpikeDefused(): void;
+  playSpikeDetonate(): void;
 }
 
 const NOISE_BUFFER_DURATION_SEC = 1.0;
@@ -953,6 +962,342 @@ export function createSoundEngine(): SoundEngine {
     }
   }
 
+  /**
+   * Crisp two-tone ascending tactical shop confirmation chime + subtle latch click.
+   */
+  function playBuyPurchase(): void {
+    const nodes = getReadyNodes();
+    if (!nodes) return;
+    const { context, out, noise } = nodes;
+    const now = context.currentTime;
+
+    const clickSrc = context.createBufferSource();
+    clickSrc.buffer = noise;
+    const hp = context.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.setValueAtTime(2600, now);
+    const clickGain = context.createGain();
+    clickGain.gain.setValueAtTime(0.1, now);
+    clickGain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + 0.02);
+    clickSrc.connect(hp);
+    hp.connect(clickGain);
+    clickGain.connect(out);
+    clickSrc.start(now);
+    clickSrc.stop(now + 0.025);
+
+    const tones = [
+      { freq: 659.25, delay: 0, dur: 0.12, peak: 0.16, type: 'triangle' as OscillatorType },
+      { freq: 987.77, delay: 0.045, dur: 0.18, peak: 0.2, type: 'sine' as OscillatorType },
+    ];
+    for (const t of tones) {
+      const t0 = now + t.delay;
+      const osc = context.createOscillator();
+      const gain = context.createGain();
+      osc.type = t.type;
+      osc.frequency.setValueAtTime(t.freq, t0);
+      gain.gain.setValueAtTime(0.005, t0);
+      gain.gain.linearRampToValueAtTime(t.peak, t0 + 0.01);
+      gain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, t0 + t.dur);
+      osc.connect(gain);
+      gain.connect(out);
+      osc.start(t0);
+      osc.stop(t0 + t.dur + 0.015);
+    }
+  }
+
+  /**
+   * Short low dissonant double-buzz signaling insufficient credits or invalid purchase.
+   */
+  function playBuyError(): void {
+    const nodes = getReadyNodes();
+    if (!nodes) return;
+    const { context, out } = nodes;
+    const now = context.currentTime;
+
+    const pulses = [
+      { delay: 0, fStart: 175, fEnd: 140 },
+      { delay: 0.075, fStart: 150, fEnd: 110 },
+    ];
+    for (const p of pulses) {
+      const t0 = now + p.delay;
+      const osc = context.createOscillator();
+      const gain = context.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(p.fStart, t0);
+      osc.frequency.exponentialRampToValueAtTime(p.fEnd, t0 + 0.055);
+      gain.gain.setValueAtTime(0.18, t0);
+      gain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, t0 + 0.06);
+      osc.connect(gain);
+      gain.connect(out);
+      osc.start(t0);
+      osc.stop(t0 + 0.07);
+    }
+  }
+
+  /**
+   * Magnetic Spike pickup ping: brisk rising metallic sweep + crisp latch snap.
+   */
+  function playSpikePickup(): void {
+    const nodes = getReadyNodes();
+    if (!nodes) return;
+    const { context, out, noise } = nodes;
+    const now = context.currentTime;
+
+    const latchSrc = context.createBufferSource();
+    latchSrc.buffer = noise;
+    const bp = context.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.setValueAtTime(2800, now);
+    bp.Q.setValueAtTime(3.0, now);
+    const latchGain = context.createGain();
+    latchGain.gain.setValueAtTime(0.16, now);
+    latchGain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + 0.03);
+    latchSrc.connect(bp);
+    bp.connect(latchGain);
+    latchGain.connect(out);
+    latchSrc.start(now);
+    latchSrc.stop(now + 0.035);
+
+    const osc = context.createOscillator();
+    const gain = context.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(520, now);
+    osc.frequency.exponentialRampToValueAtTime(1040, now + 0.09);
+    gain.gain.setValueAtTime(0.2, now);
+    gain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + 0.14);
+    osc.connect(gain);
+    gain.connect(out);
+    osc.start(now);
+    osc.stop(now + 0.155);
+  }
+
+  /**
+   * Crisp electronic keypad tick emitted during Spike arming/planting input.
+   */
+  function playSpikePlantTick(): void {
+    const nodes = getReadyNodes();
+    if (!nodes) return;
+    const { context, out, noise } = nodes;
+    const now = context.currentTime;
+
+    const osc = context.createOscillator();
+    const gain = context.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(1760, now);
+    osc.frequency.exponentialRampToValueAtTime(1320, now + 0.028);
+    gain.gain.setValueAtTime(0.16, now);
+    gain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + 0.032);
+    osc.connect(gain);
+    gain.connect(out);
+    osc.start(now);
+    osc.stop(now + 0.04);
+
+    const keySrc = context.createBufferSource();
+    keySrc.buffer = noise;
+    const bp = context.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.setValueAtTime(3600, now);
+    bp.Q.setValueAtTime(4.5, now);
+    const keyGain = context.createGain();
+    keyGain.gain.setValueAtTime(0.12, now);
+    keyGain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + 0.018);
+    keySrc.connect(bp);
+    bp.connect(keyGain);
+    keyGain.connect(out);
+    keySrc.start(now);
+    keySrc.stop(now + 0.025);
+  }
+
+  /**
+   * Heavy sub-bass Spike plant drop + mechanical anchor lock + high arming ping.
+   */
+  function playSpikePlanted(): void {
+    const nodes = getReadyNodes();
+    if (!nodes) return;
+    const { context, out, noise } = nodes;
+    const now = context.currentTime;
+
+    const subOsc = context.createOscillator();
+    const subGain = context.createGain();
+    subOsc.type = 'sine';
+    subOsc.frequency.setValueAtTime(145, now);
+    subOsc.frequency.exponentialRampToValueAtTime(38, now + 0.38);
+    subGain.gain.setValueAtTime(0.5, now);
+    subGain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + 0.4);
+    subOsc.connect(subGain);
+    subGain.connect(out);
+    subOsc.start(now);
+    subOsc.stop(now + 0.42);
+
+    const thudSrc = context.createBufferSource();
+    thudSrc.buffer = noise;
+    const lp = context.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.setValueAtTime(950, now);
+    lp.frequency.exponentialRampToValueAtTime(220, now + 0.14);
+    const thudGain = context.createGain();
+    thudGain.gain.setValueAtTime(0.32, now);
+    thudGain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + 0.15);
+    thudSrc.connect(lp);
+    lp.connect(thudGain);
+    thudGain.connect(out);
+    thudSrc.start(now);
+    thudSrc.stop(now + 0.17);
+
+    const armOsc = context.createOscillator();
+    const armGain = context.createGain();
+    armOsc.type = 'triangle';
+    armOsc.frequency.setValueAtTime(880, now + 0.05);
+    armOsc.frequency.exponentialRampToValueAtTime(1320, now + 0.16);
+    armGain.gain.setValueAtTime(0.005, now + 0.05);
+    armGain.gain.linearRampToValueAtTime(0.22, now + 0.07);
+    armGain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + 0.34);
+    armOsc.connect(armGain);
+    armGain.connect(out);
+    armOsc.start(now + 0.05);
+    armOsc.stop(now + 0.36);
+  }
+
+  /**
+   * Pitch-scaling Spike countdown urgency beep (`880 -> 1320 Hz` as `urgency01` rises 0..1).
+   */
+  function playSpikeBeep(urgency01: number): void {
+    const nodes = getReadyNodes();
+    if (!nodes) return;
+    const { context, out } = nodes;
+    const now = context.currentTime;
+
+    const u = Math.min(1, Math.max(0, urgency01));
+    const freq = 880 + (1320 - 880) * u;
+    const dur = 0.095 - 0.035 * u;
+
+    const osc = context.createOscillator();
+    const gain = context.createGain();
+    osc.type = u > 0.65 ? 'triangle' : 'sine';
+    osc.frequency.setValueAtTime(freq, now);
+    gain.gain.setValueAtTime(0.005, now);
+    gain.gain.linearRampToValueAtTime(0.22 + 0.08 * u, now + 0.006);
+    gain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + dur);
+    osc.connect(gain);
+    gain.connect(out);
+    osc.start(now);
+    osc.stop(now + dur + 0.015);
+  }
+
+  /**
+   * Sci-fi defuse tether hum that steps up in pitch once the halfway checkpoint is reached.
+   */
+  function playSpikeDefuseCue(halfwayReached: boolean): void {
+    const nodes = getReadyNodes();
+    if (!nodes) return;
+    const { context, out } = nodes;
+    const now = context.currentTime;
+
+    const baseFreq = halfwayReached ? 440 : 330;
+    const fifthFreq = halfwayReached ? 660 : 495;
+
+    const partials = [
+      { freq: baseFreq, type: 'triangle' as OscillatorType, peak: 0.16 },
+      { freq: fifthFreq, type: 'sine' as OscillatorType, peak: 0.14 },
+    ];
+    for (const p of partials) {
+      const osc = context.createOscillator();
+      const gain = context.createGain();
+      osc.type = p.type;
+      osc.frequency.setValueAtTime(p.freq * 0.96, now);
+      osc.frequency.exponentialRampToValueAtTime(p.freq, now + 0.06);
+      gain.gain.setValueAtTime(0.005, now);
+      gain.gain.linearRampToValueAtTime(p.peak, now + 0.02);
+      gain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + 0.24);
+      osc.connect(gain);
+      gain.connect(out);
+      osc.start(now);
+      osc.stop(now + 0.26);
+    }
+  }
+
+  /**
+   * Clean major-fifth resolution chime signaling a successful Spike defusal.
+   */
+  function playSpikeDefused(): void {
+    const nodes = getReadyNodes();
+    if (!nodes) return;
+    const { context, out } = nodes;
+    const now = context.currentTime;
+
+    const notes = [
+      { freq: 523.25, delay: 0, dur: 0.22, peak: 0.18, type: 'triangle' as OscillatorType },
+      { freq: 783.99, delay: 0.065, dur: 0.28, peak: 0.2, type: 'triangle' as OscillatorType },
+      { freq: 1046.5, delay: 0.13, dur: 0.42, peak: 0.24, type: 'sine' as OscillatorType },
+    ];
+    for (const n of notes) {
+      const t0 = now + n.delay;
+      const osc = context.createOscillator();
+      const gain = context.createGain();
+      osc.type = n.type;
+      osc.frequency.setValueAtTime(n.freq, t0);
+      gain.gain.setValueAtTime(0.005, t0);
+      gain.gain.linearRampToValueAtTime(n.peak, t0 + 0.015);
+      gain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, t0 + n.dur);
+      osc.connect(gain);
+      gain.connect(out);
+      osc.start(t0);
+      osc.stop(t0 + n.dur + 0.02);
+    }
+  }
+
+  /**
+   * Layered sub-bass drop + saw rumble + lowpass-swept broadband noise blast for Spike detonation.
+   */
+  function playSpikeDetonate(): void {
+    const nodes = getReadyNodes();
+    if (!nodes) return;
+    const { context, out, noise } = nodes;
+    const now = context.currentTime;
+
+    // Deep sub-bass drop
+    const subOsc = context.createOscillator();
+    const subGain = context.createGain();
+    subOsc.type = 'sine';
+    subOsc.frequency.setValueAtTime(115, now);
+    subOsc.frequency.exponentialRampToValueAtTime(26, now + 0.85);
+    subGain.gain.setValueAtTime(0.65, now);
+    subGain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + 0.88);
+    subOsc.connect(subGain);
+    subGain.connect(out);
+    subOsc.start(now);
+    subOsc.stop(now + 0.9);
+
+    // Low sawtooth shockwave rumble
+    const rumbleOsc = context.createOscillator();
+    const rumbleGain = context.createGain();
+    rumbleOsc.type = 'sawtooth';
+    rumbleOsc.frequency.setValueAtTime(85, now);
+    rumbleOsc.frequency.exponentialRampToValueAtTime(28, now + 0.65);
+    rumbleGain.gain.setValueAtTime(0.32, now);
+    rumbleGain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + 0.68);
+    rumbleOsc.connect(rumbleGain);
+    rumbleGain.connect(out);
+    rumbleOsc.start(now);
+    rumbleOsc.stop(now + 0.7);
+
+    // Broadband explosion blast swept from crisp crack to deep thunder
+    const blastSrc = context.createBufferSource();
+    blastSrc.buffer = noise;
+    const lp = context.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.setValueAtTime(3400, now);
+    lp.frequency.exponentialRampToValueAtTime(160, now + 0.85);
+    const blastGain = context.createGain();
+    blastGain.gain.setValueAtTime(0.6, now);
+    blastGain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + 0.88);
+    blastSrc.connect(lp);
+    lp.connect(blastGain);
+    blastGain.connect(out);
+    blastSrc.start(now);
+    blastSrc.stop(now + 0.9);
+  }
+
   return {
     unlock,
     playShot,
@@ -964,5 +1309,14 @@ export function createSoundEngine(): SoundEngine {
     playUiLockIn,
     playAbility,
     playRoundCue,
+    playBuyPurchase,
+    playBuyError,
+    playSpikePickup,
+    playSpikePlantTick,
+    playSpikePlanted,
+    playSpikeBeep,
+    playSpikeDefuseCue,
+    playSpikeDefused,
+    playSpikeDetonate,
   };
 }

@@ -212,3 +212,26 @@ $$\Delta z_{\text{bias}} = \text{factor} \cdot \max\!\left(\left|\frac{\partial 
 ## 5.3 Live 3D Agent Select Stage, Opus Sculpted Rigs & Fair AI ([src/ui/agentSelect.ts](../src/ui/agentSelect.ts), [src/ai/botBrain.ts](../src/ai/botBrain.ts))
 - **Secondary-Renderer 3D Agent Select Stage (`[B]`)**: Dedicated `WebGLRenderer` with 3-point rim lights showcasing any of the 5 live spinning `CharacterRig`s (including **Umbra**'s `1.6π` hooded cowl + out-of-phase spine censer vials + rippling veils and **Volt**'s dorsal `TorusKnotGeometry` lightning coils + pooled `THREE.Line` sprint arcs + low Power-Slide 3rd-person pose) — rendering **only while open** for zero gameplay FPS overhead.
 - **Casual / Tactical / Pro AI + Non-Duplicate 5-Agent 3v3 Draft + Game Feel**: Default `Casual` AI (`0.45 s` reaction, `3.8 rad/s` slew, `+1.08 m` chest aim, forgiving bursts) keeps solo matches welcoming; non-duplicate 3v3 squads draft from all 5 agents every round; camera-relative `atan2` directional damage arcs, `x2`/`x3` Kill Medals, `140 ms` jump/trigger input buffers, and low-ammo magazine clicks complete the indie studio polish!
+
+---
+
+# Chapter 6 — Search & Destroy, *Valorant/CS* Economy & Multi-Band 2-Site Map
+
+## 6.1 Multi-Band Greedy Meshing (`W` Windows & `O` Archways) ([src/arena/skirmishAscii.ts](../src/arena/skirmishAscii.ts), [src/arena/map.ts](../src/arena/map.ts))
+Upgrading the arena to a `24 × 28` (`48 m × 56 m`) 2-Site Search & Destroy compound replaces single scalar wall heights with vertical collider bands (`TileColliderSpec.bands`):
+
+$$\text{Colliders}(k) = \Big\{ [x_0, x_1] \times [y_0, y_1] \times [z_0, z_1] \;\Big|\; [y_0, y_1] \in \text{MERGE\_SPECS}[k].\text{bands} \Big\}$$
+
+- **`W` Shoot-Through Windows (`[0..1.12m]` sill + `[2.55..3.60m]` lintel)**: Bullets, sniper scopes, flashes, smokes, and Relay Bolts fly cleanly across the open $1.43\text{ m}$ aperture.
+- **`O` Archways (`[2.65..3.60m]` overhead header)**, **`D` Double-Stacked Crates (`1.72 m`)**, **`=` Head-Glitches (`1.26 m`)**, and **`B` Tall Crates (`2.25 m`)** frame a `46 m` **A-Long** sightline, **Mid Window/Catwalk**, West & East **Lurk Connectors**, **Site A (`1`)**, and **Site B (`2`)** (`88` greedy-meshed AABBs, all `444` walkable tiles connected via BFS).
+
+## 6.2 Search & Destroy FSM & Permanent `50%` Defuse Checkpoint ([src/match/roundManager.ts](../src/match/roundManager.ts), [src/entities/spikeModel.ts](../src/entities/spikeModel.ts))
+- **`3.0 s` `[F]` Plant -> `45.0 s` Post-Plant**: Arms the 3D Radianite Spike on Site `A` or `B`, resets `phaseTimerSec = 45.0`, and forces retakes even if all Attackers fall (`aliveAttackers === 0 && spikeStatus !== 'planted'`). Beep cadence compresses via $\Delta t = \text{clamp}(t/45,\, 0.12,\, 1.0)$.
+- **`5.0 s` `[F]` Defuse w/ `50%` Checkpoint**: Crossing `0.50` locks `spikeHalfwayCheckpoint = true` permanently so Defenders can release to duel and stick the remaining half later.
+- **Halftime Side Swap (After Round 5)**: Swaps Attackers (South `+Z`, `z >= +20` buy fence) and Defenders (North `-Z`, `z <= -20` buy fence) cleanly and resets credits to `800¤`.
+
+## 6.3 *Valorant/CS* Financial Recurrence, Delta Shields & Minimap ([src/match/economy.ts](../src/match/economy.ts), [src/ui/buyMenu.ts](../src/ui/buyMenu.ts), [src/ui/minimap.ts](../src/ui/minimap.ts))
+$$C_{t+1} = \min\!\Big(9000,\; C_t + R_{\text{round}}(L) + 200\,K + 300\,B_{\text{obj}}\Big), \qquad R_{\text{round}} = \begin{cases} 3000 & \text{win} \\ 1900 + 500\cdot \min(2, L) & \text{loss} \end{cases}$$
+
+- Survivors keep weapons and remaining armor (`100 / 125 / 150` EHP sequential shield absorption); `[B]` Buyout Shop supports 100% same-round refunds (`[R]`), smart Light (`400¤`) -> Heavy (`1000¤`) `600¤` delta upgrades, and Attack/Defend side swap (`[P]`).
+- **Cached 2D Minimap (`168 × 196`)** caches the `24 × 28` layout offscreen and overlays player FOV cone, allies, Spike carrier/drop/plant alerts, and LoS-spotted `minimapEnemies`, paired with Execute/Lurk/Anchor/Retake AI in [src/ai/botBrain.ts](../src/ai/botBrain.ts).

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { AABB, Vec3 } from '../core/types';
+import type { AABB, BombSiteId, BombSiteZone, Vec3 } from '../core/types';
 import {
   ARENA_DEPTH_M,
   ARENA_WIDTH_M,
@@ -13,15 +13,16 @@ import {
 
 /**
  * ============================================================================
- * Killhouse Skirmish Arena Builder:
- * 2D Greedy Meshing, Single-Source-of-Truth Colliders & Auto-Waypoint Graph
+ * 2-Site Search & Destroy Arena Builder:
+ * 2D Greedy Meshing, Single-Source-of-Truth Colliders, Windows & Archways,
+ * Bomb Sites & Zone-Tagged Auto-Waypoint Graph
  * ============================================================================
  *
  * 1. **Single Source of Truth (`ARENA_COLLIDERS`)**:
- *    Every solid piece of geometry in the 28m x 34m Killhouse is generated from
- *    the same `string[]` ASCII grid (`skirmishAscii.ts`) and pushed into the
- *    live `ARENA_COLLIDERS` array. Both physics (`movement.ts`), hitscan bullets
- *    (`weapons.ts`), AI line-of-sight (`botBrain.ts`), and 3D Three.js meshes
+ *    Every solid piece of geometry in the 48m x 56m map is generated from the
+ *    same `string[]` ASCII grid (`skirmishAscii.ts`) and pushed into the live
+ *    `ARENA_COLLIDERS` array. Physics (`movement.ts`), hitscan bullets
+ *    (`weapons.ts`), AI line-of-sight (`botBrain.ts`), and Three.js meshes all
  *    read from these exact AABBs — guaranteeing zero physics/visual desync.
  *
  *    IMPORTANT: `ARENA_COLLIDERS` is exported as a `const` array reference and
@@ -30,48 +31,37 @@ import {
  *    immediately after `[M]` Map Maker live edits.
  *
  * 2. **How 2D Greedy Meshing Works**:
- *    A 14 x 17 grid has 238 tiles. Creating one AABB per solid tile would emit
- *    ~80+ tiny boxes, forcing physics sweeps and raycasts to test dozens of
- *    redundant faces (and potentially snag players on micro-seams between flush
- *    adjacent tiles!).
- *
- *    **2D Greedy Meshing** solves both problems in O(rows * cols) time:
  *      Step A: Classify each `(r, c)` cell into a `MergeKind` (cells with
- *              identical height, tag, and architectural role) or `null` for
- *              open walkable floor.
+ *              identical height profile, tag, and architectural role) or `null`
+ *              for open walkable floor (`.`, `O`, `1`, `2`, `A`, `E`).
  *      Step B: Scan left-to-right, top-to-bottom. At the first unvisited solid
- *              cell `(r, c)`, expand width `w` rightwards as far as contiguous
+ *              cell `(r, c)`, expand width `w` rightwards while contiguous
  *              unvisited cells share the same `MergeKind`.
- *      Step C: Expand height `h` downwards row-by-row as long as EVERY cell in
- *              the horizontal span `[c .. c + w - 1]` is unvisited and matches
- *              `MergeKind`.
- *      Step D: Mark the `w x h` rectangle visited and emit ONE combined `AABB`!
+ *      Step C: Expand height `h` downwards row-by-row while EVERY cell in the
+ *              span `[c .. c + w - 1]` is unvisited and matches `MergeKind`.
+ *      Step D: Mark the `w x h` rectangle visited and emit its collider(s):
+ *                - solid kinds -> ONE AABB `0 .. height`
+ *                - `window`    -> TWO AABBs: sill `0 .. 1.12m` + lintel
+ *                                 `2.55 .. 3.60m` (the `1.12 .. 2.55m` band is
+ *                                 OPEN for bullets, LoS, and thrown utility)
+ *                - `archway`   -> ONE overhead header AABB `2.65 .. 3.60m`
+ *                                 (the floor below stays walkable)
  *
- *    Result on `DEFAULT_KILLHOUSE_GRID`: ~85 raw solid tiles compress into ~25
- *    seamless AABB colliders — cutting raycast/physics cost by >3x and
- *    eliminating tile-seam snags along walls and the 2x3 Watchtower deck!
- *
- * 3. **How Auto-Waypoint Extraction Works (`getArenaWaypoints`)**:
- *    Hand-coded waypoint arrays break the moment a player edits a wall in the
- *    `[M]` Map Maker. Instead, we generate the AI navigation graph directly from
- *    the ASCII grid:
- *      - Every walkable tile (`.`, `A`, `E`, `^`, `v`, `P`) becomes a node at
- *        its world-space center `(x, surfaceY, z)`.
+ * 3. **Auto-Waypoint Extraction (`getArenaWaypoints`)**:
+ *      - Every walkable tile (`.`, `O`, `1`, `2`, `A`, `E`, `^`, `v`, `P`)
+ *        becomes a node at its world-space center `(x, surfaceY, z)` tagged
+ *        with a tactical `zone` (`site_a`, `site_b`, `spawn`, `mid`, `flank`).
+ *        `W` windows are NOT walkable.
  *      - **4-directional edges** connect adjacent walkable tiles iff the step
- *        height difference `|heightA - heightB| <= 0.50m`. This lets bots climb
- *        from floor (`0.00m`) -> stairs (`0.45m`) -> Watchtower (`0.90m`),
- *        while forbidding impossible `0.90m` vertical cliff jumps!
+ *        height difference `|heightA - heightB| <= 0.50m`.
  *      - **Diagonal edges** are added ONLY when the target AND BOTH shared
- *        orthogonal corner tiles are walkable within the `0.50m` step limit,
+ *        orthogonal corner tiles are walkable within the step limit,
  *        preventing bots from clipping their `0.4m` body radius into corners.
  */
 
 // ---------------------------------------------------------------------------
 // Public Contracts & Live Arena State
 // ---------------------------------------------------------------------------
-
-/** Default South (`+Z`) player spawn inside the Killhouse Ally zone. */
-export const PLAYER_SPAWN: Vec3 = { x: 0, y: 0.1, z: 14.0 };
 
 /**
  * Live static AABBs used by player/bot movement, bullet raycasts, and LoS.
@@ -80,30 +70,52 @@ export const PLAYER_SPAWN: Vec3 = { x: 0, y: 0.1, z: 14.0 };
  */
 export const ARENA_COLLIDERS: AABB[] = [];
 
+/** Tactical region a navigation node belongs to (used by S&D bot routing). */
+export type ArenaZone = 'site_a' | 'site_b' | 'mid' | 'flank' | 'spawn';
+
 /** Walkable navigation node automatically extracted from the active ASCII grid. */
 export interface ArenaWaypoint {
   id: string;
   pos: Vec3;
   neighbors: string[];
+  zone?: ArenaZone;
 }
 
-/** Team spawn positions and Ally buy-phase forward boundary (`+Z` side). */
+/**
+ * Team spawn positions plus buy-phase fences:
+ * - Attackers / Allies (South `+Z`) must stay at `z >= buyMinAllyZ`.
+ * - Defenders / Enemies (North `-Z`) must stay at `z <= buyMaxDefenderZ`.
+ */
 export interface ArenaSpawns {
   allies: [Vec3, Vec3, Vec3];
   enemies: [Vec3, Vec3, Vec3];
   buyMinAllyZ: number;
+  buyMaxDefenderZ: number;
 }
 
-const HALF_WIDTH_M = ARENA_WIDTH_M * 0.5;   // 14m -> x in [-14, +14]
-const HALF_DEPTH_M = ARENA_DEPTH_M * 0.5;   // 17m -> z in [-17, +17]
-const BUY_MIN_ALLY_Z = 11.2;
-const MAX_STEP_HEIGHT_M = 0.50;
+const HALF_WIDTH_M = ARENA_WIDTH_M * 0.5; // 24m -> x in [-24, +24]
+const HALF_DEPTH_M = ARENA_DEPTH_M * 0.5; // 28m -> z in [-28, +28]
+const BUY_MIN_ALLY_Z = 20.0; // South spawn rows 24..26 (z +20..+26)
+const BUY_MAX_DEFENDER_Z = -20.0; // North spawn rows 1..3 (z -26..-20)
+const MAX_STEP_HEIGHT_M = 0.5;
+
+// Architectural heights (meters)
+const PERIMETER_HEIGHT_M = 4.6;
+const INTERIOR_WALL_HEIGHT_M = 3.6;
+const LOW_COVER_HEIGHT_M = 1.26;
+const DOUBLE_BOX_HEIGHT_M = 1.72;
+const CRATE_HEIGHT_M = 2.25;
+const PLATFORM_HEIGHT_M = 0.9;
+const STAIR_HEIGHT_M = 0.45;
+const WINDOW_SILL_TOP_M = 1.12;
+const WINDOW_LINTEL_BOTTOM_M = 2.55;
+const ARCH_HEADER_BOTTOM_M = 2.65;
 
 // ---------------------------------------------------------------------------
-// Architectural Material Palette (Neutral Daylight Killhouse)
+// Architectural Material Palette (Neutral Daylight Compound)
 // ---------------------------------------------------------------------------
-// Kept deliberately warm/neutral so Red (#ff3b5c), Blue (#00d2ff), and
-// Green (#2ecc71) agent silhouettes pop at a glance in every lane.
+// Kept deliberately warm/neutral so Red, Blue, Green, Violet and Gold agent
+// silhouettes pop at a glance in every lane.
 
 const COLOR_SKY_BG = 0xcfdbe8;
 const COLOR_FLOOR = 0x767f8c;
@@ -117,36 +129,66 @@ const COLOR_HEADGLITCH = 0x8c7355;
 const COLOR_CAPRAIL = 0x3b4350;
 const COLOR_CRATE = 0x525d6b;
 const COLOR_CRATE_TRIM = 0x39424f;
+const COLOR_DOUBLE_BOX = 0x5f6b4e; // olive-slate
+const COLOR_DOUBLE_BOX_TRIM = 0x3b4430;
+const COLOR_DOUBLE_BOX_BRACE = 0x8a7b4c;
+const COLOR_WINDOW_WALL = 0x9a8262;
+const COLOR_WINDOW_FRAME = 0x2f3742;
+const COLOR_ARCH_STONE = 0x8f969f;
+const COLOR_ARCH_PILASTER = 0x5b636e;
 const COLOR_WATCHTOWER = 0x5c6675;
 const COLOR_STAIR = 0x6e7887;
 const COLOR_BOLLARD = 0xd99b26;
+const COLOR_SITE_A = 0xff8a3d;
+const COLOR_SITE_B = 0x38bdf8;
 
 type MergeKind =
   | 'perimeter'
   | 'wall_interior'
+  | 'window'
+  | 'archway'
   | 'low_cover'
+  | 'double_box'
   | 'crate'
   | 'platform'
   | 'stair';
 
-interface TileVisualSpec {
-  height: number;
+interface TileColliderSpec {
+  /** Vertical solid bands `[minY, maxY]` emitted as separate AABBs. */
+  bands: ReadonlyArray<readonly [number, number]>;
   tag: 'wall' | 'cover';
   color: number;
 }
 
-const MERGE_SPECS: Record<MergeKind, TileVisualSpec> = {
-  perimeter: { height: 4.2, tag: 'wall', color: COLOR_PERIMETER_WALL },
-  wall_interior: { height: 3.2, tag: 'wall', color: COLOR_PLYWOOD_WALL },
-  low_cover: { height: 1.28, tag: 'cover', color: COLOR_HEADGLITCH },
-  crate: { height: 2.2, tag: 'cover', color: COLOR_CRATE },
-  platform: { height: 0.9, tag: 'cover', color: COLOR_WATCHTOWER },
-  stair: { height: 0.45, tag: 'cover', color: COLOR_STAIR },
+const MERGE_SPECS: Record<MergeKind, TileColliderSpec> = {
+  perimeter: { bands: [[0, PERIMETER_HEIGHT_M]], tag: 'wall', color: COLOR_PERIMETER_WALL },
+  wall_interior: { bands: [[0, INTERIOR_WALL_HEIGHT_M]], tag: 'wall', color: COLOR_PLYWOOD_WALL },
+  window: {
+    bands: [
+      [0, WINDOW_SILL_TOP_M],
+      [WINDOW_LINTEL_BOTTOM_M, INTERIOR_WALL_HEIGHT_M],
+    ],
+    tag: 'wall',
+    color: COLOR_WINDOW_WALL,
+  },
+  archway: {
+    bands: [[ARCH_HEADER_BOTTOM_M, INTERIOR_WALL_HEIGHT_M]],
+    tag: 'wall',
+    color: COLOR_ARCH_STONE,
+  },
+  low_cover: { bands: [[0, LOW_COVER_HEIGHT_M]], tag: 'cover', color: COLOR_HEADGLITCH },
+  double_box: { bands: [[0, DOUBLE_BOX_HEIGHT_M]], tag: 'cover', color: COLOR_DOUBLE_BOX },
+  crate: { bands: [[0, CRATE_HEIGHT_M]], tag: 'cover', color: COLOR_CRATE },
+  platform: { bands: [[0, PLATFORM_HEIGHT_M]], tag: 'cover', color: COLOR_WATCHTOWER },
+  stair: { bands: [[0, STAIR_HEIGHT_M]], tag: 'cover', color: COLOR_STAIR },
 };
 
 interface MergedBlock {
   kind: MergeKind;
+  /** Full footprint bounds (`minY = 0`, `maxY` = top of the tallest band). */
   box: AABB;
+  /** Exact physics colliders emitted for this block (1 or 2 AABBs). */
+  colliders: AABB[];
   row: number;
   col: number;
   rowsSpan: number;
@@ -157,18 +199,20 @@ interface MergedBlock {
 let currentGrid: string[] = [];
 let cachedMergedBlocks: MergedBlock[] = [];
 let cachedWaypoints: ArenaWaypoint[] = [];
+let cachedSites: Record<BombSiteId, BombSiteZone> = createFallbackSites();
 let cachedSpawns: ArenaSpawns = {
   allies: [
-    { x: -4, y: 0.1, z: 14 },
-    { x: 0, y: 0.1, z: 14 },
-    { x: 4, y: 0.1, z: 14 },
+    { x: -5, y: 0.1, z: 23 },
+    { x: 1, y: 0.1, z: 23 },
+    { x: 5, y: 0.1, z: 23 },
   ],
   enemies: [
-    { x: -4, y: 0.1, z: -14 },
-    { x: 0, y: 0.1, z: -14 },
-    { x: 4, y: 0.1, z: -14 },
+    { x: -5, y: 0.1, z: -23 },
+    { x: 1, y: 0.1, z: -23 },
+    { x: 5, y: 0.1, z: -23 },
   ],
   buyMinAllyZ: BUY_MIN_ALLY_Z,
+  buyMaxDefenderZ: BUY_MAX_DEFENDER_Z,
 };
 
 /** Single root group holding all arena Three.js meshes/lights for clean disposal. */
@@ -186,16 +230,35 @@ function tileCenterZ(row: number): number {
   return -HALF_DEPTH_M + (row + 0.5) * TILE_SIZE_M;
 }
 
+function worldToCol(x: number): number {
+  return Math.floor((x + HALF_WIDTH_M) / TILE_SIZE_M);
+}
+
+function worldToRow(z: number): number {
+  return Math.floor((z + HALF_DEPTH_M) / TILE_SIZE_M);
+}
+
 function isPerimeterCell(row: number, col: number): boolean {
   return row === 0 || row === GRID_ROWS - 1 || col === 0 || col === GRID_COLS - 1;
+}
+
+function tileAt(grid: readonly string[], row: number, col: number): TileChar | null {
+  if (row < 0 || row >= GRID_ROWS || col < 0 || col >= GRID_COLS) return null;
+  return (grid[row]?.[col] ?? '.') as TileChar;
 }
 
 function classifyTileForMesh(ch: TileChar, row: number, col: number): MergeKind | null {
   switch (ch) {
     case '#':
       return isPerimeterCell(row, col) ? 'perimeter' : 'wall_interior';
+    case 'W':
+      return 'window';
+    case 'O':
+      return 'archway';
     case '=':
       return 'low_cover';
+    case 'D':
+      return 'double_box';
     case 'B':
       return 'crate';
     case 'P':
@@ -203,6 +266,8 @@ function classifyTileForMesh(ch: TileChar, row: number, col: number): MergeKind 
     case '^':
     case 'v':
       return 'stair';
+    case '1':
+    case '2':
     case '.':
     case 'A':
     case 'E':
@@ -210,24 +275,43 @@ function classifyTileForMesh(ch: TileChar, row: number, col: number): MergeKind 
   }
 }
 
-function getWalkableSurfaceHeight(ch: TileChar): number | null {
+function getWalkableSurfaceHeight(ch: TileChar | null): number | null {
   switch (ch) {
     case '.':
+    case 'O':
+    case '1':
+    case '2':
     case 'A':
     case 'E':
       return 0;
     case '^':
     case 'v':
-      return 0.45;
+      return STAIR_HEIGHT_M;
     case 'P':
-      return 0.9;
+      return PLATFORM_HEIGHT_M;
     default:
       return null;
   }
 }
 
+/** Full-height solid tiles that can host window jambs / archway pilasters. */
+function isTallSolid(ch: TileChar | null): boolean {
+  return ch === '#' || ch === 'W';
+}
+
 function cloneVec3(v: Vec3): Vec3 {
   return { x: v.x, y: v.y, z: v.z };
+}
+
+function cloneSite(site: BombSiteZone): BombSiteZone {
+  return {
+    site: site.site,
+    minX: site.minX,
+    maxX: site.maxX,
+    minZ: site.minZ,
+    maxZ: site.maxZ,
+    center: cloneVec3(site.center),
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -272,10 +356,7 @@ function greedyMeshGrid(grid: readonly string[]): MergedBlock[] {
       while (r + rowsSpan < GRID_ROWS) {
         let rowMatches = true;
         for (let dc = 0; dc < colsSpan; dc++) {
-          if (
-            visited[r + rowsSpan][c + dc] ||
-            kindGrid[r + rowsSpan][c + dc] !== targetKind
-          ) {
+          if (visited[r + rowsSpan][c + dc] || kindGrid[r + rowsSpan][c + dc] !== targetKind) {
             rowMatches = false;
             break;
           }
@@ -291,12 +372,20 @@ function greedyMeshGrid(grid: readonly string[]): MergedBlock[] {
         }
       }
 
-      // 4. Emit one combined world-space AABB for the entire w x h block.
+      // 4. Emit the collider band(s) for the entire w x h block.
       const spec = MERGE_SPECS[targetKind];
       const minX = -HALF_WIDTH_M + c * TILE_SIZE_M;
       const maxX = -HALF_WIDTH_M + (c + colsSpan) * TILE_SIZE_M;
       const minZ = -HALF_DEPTH_M + r * TILE_SIZE_M;
       const maxZ = -HALF_DEPTH_M + (r + rowsSpan) * TILE_SIZE_M;
+
+      const colliders: AABB[] = spec.bands.map(([y0, y1]) => ({
+        min: { x: minX, y: y0, z: minZ },
+        max: { x: maxX, y: y1, z: maxZ },
+        tag: spec.tag,
+        color: spec.color,
+      }));
+      const topY = spec.bands[spec.bands.length - 1][1];
 
       blocks.push({
         kind: targetKind,
@@ -304,9 +393,10 @@ function greedyMeshGrid(grid: readonly string[]): MergedBlock[] {
         col: c,
         rowsSpan,
         colsSpan,
+        colliders,
         box: {
           min: { x: minX, y: 0, z: minZ },
-          max: { x: maxX, y: spec.height, z: maxZ },
+          max: { x: maxX, y: topY, z: maxZ },
           tag: spec.tag,
           color: spec.color,
         },
@@ -318,10 +408,109 @@ function greedyMeshGrid(grid: readonly string[]): MergedBlock[] {
 }
 
 // ---------------------------------------------------------------------------
-// Auto-Waypoint Graph Extraction
+// Bomb Site Extraction
 // ---------------------------------------------------------------------------
 
-function extractWaypoints(grid: readonly string[]): ArenaWaypoint[] {
+function makeSiteZone(site: BombSiteId, minX: number, maxX: number, minZ: number, maxZ: number): BombSiteZone {
+  return {
+    site,
+    minX,
+    maxX,
+    minZ,
+    maxZ,
+    center: { x: (minX + maxX) * 0.5, y: 0, z: (minZ + maxZ) * 0.5 },
+  };
+}
+
+/** Safe default plant rectangles (match the default layout) for grids lacking `1` / `2` tiles. */
+function createFallbackSites(): Record<BombSiteId, BombSiteZone> {
+  return {
+    A: makeSiteZone('A', -20, -14, -16, -10),
+    B: makeSiteZone('B', 14, 20, -16, -10),
+  };
+}
+
+function extractBombSites(grid: readonly string[]): Record<BombSiteId, BombSiteZone> {
+  const fallback = createFallbackSites();
+  const bounds: Record<BombSiteId, { r0: number; r1: number; c0: number; c1: number } | null> = {
+    A: null,
+    B: null,
+  };
+
+  for (let r = 0; r < GRID_ROWS; r++) {
+    for (let c = 0; c < GRID_COLS; c++) {
+      const ch = grid[r][c];
+      const id: BombSiteId | null = ch === '1' ? 'A' : ch === '2' ? 'B' : null;
+      if (id === null) continue;
+      const b = bounds[id];
+      if (b === null) {
+        bounds[id] = { r0: r, r1: r, c0: c, c1: c };
+      } else {
+        b.r0 = Math.min(b.r0, r);
+        b.r1 = Math.max(b.r1, r);
+        b.c0 = Math.min(b.c0, c);
+        b.c1 = Math.max(b.c1, c);
+      }
+    }
+  }
+
+  const toZone = (id: BombSiteId): BombSiteZone => {
+    const b = bounds[id];
+    if (b === null) return fallback[id];
+    return makeSiteZone(
+      id,
+      -HALF_WIDTH_M + b.c0 * TILE_SIZE_M,
+      -HALF_WIDTH_M + (b.c1 + 1) * TILE_SIZE_M,
+      -HALF_DEPTH_M + b.r0 * TILE_SIZE_M,
+      -HALF_DEPTH_M + (b.r1 + 1) * TILE_SIZE_M
+    );
+  };
+
+  return { A: toZone('A'), B: toZone('B') };
+}
+
+// ---------------------------------------------------------------------------
+// Auto-Waypoint Graph Extraction (Zone-Tagged)
+// ---------------------------------------------------------------------------
+
+/** Central third of columns forms the Mid lane (`c = 8..15` on a 24-wide grid). */
+const MID_COL_MIN = Math.floor(GRID_COLS / 3);
+const MID_COL_MAX = GRID_COLS - Math.floor(GRID_COLS / 3) - 1;
+/** Spawn bands: rows `1..3` (North) and `24..26` (South). */
+const SPAWN_ROW_NORTH_MAX = 3;
+const SPAWN_ROW_SOUTH_MIN = GRID_ROWS - 4;
+
+function classifyWaypointZone(
+  ch: TileChar,
+  row: number,
+  col: number,
+  x: number,
+  z: number,
+  sites: Record<BombSiteId, BombSiteZone>
+): ArenaZone {
+  if (ch === '1') return 'site_a';
+  if (ch === '2') return 'site_b';
+  if (ch === 'A' || ch === 'E') return 'spawn';
+
+  // Tiles hugging a plant cluster (1 tile margin) read as part of that site.
+  const margin = TILE_SIZE_M;
+  for (const id of ['A', 'B'] as const) {
+    const s = sites[id];
+    if (x >= s.minX - margin && x <= s.maxX + margin && z >= s.minZ - margin && z <= s.maxZ + margin) {
+      return id === 'A' ? 'site_a' : 'site_b';
+    }
+  }
+
+  const inMidCols = col >= MID_COL_MIN && col <= MID_COL_MAX;
+  if (inMidCols && (row <= SPAWN_ROW_NORTH_MAX || row >= SPAWN_ROW_SOUTH_MIN)) return 'spawn';
+  if (row >= SPAWN_ROW_SOUTH_MIN) return 'spawn';
+  return inMidCols ? 'mid' : 'flank';
+}
+
+function extractWaypoints(
+  grid: readonly string[],
+  sites: Record<BombSiteId, BombSiteZone>
+): ArenaWaypoint[] {
   const heights: Array<Array<number | null>> = [];
   const ids: Array<Array<string | null>> = [];
 
@@ -398,14 +587,13 @@ function extractWaypoints(grid: readonly string[]): ArenaWaypoint[] {
         }
       }
 
+      const x = tileCenterX(c);
+      const z = tileCenterZ(r);
       waypoints.push({
         id: idSelf,
-        pos: {
-          x: tileCenterX(c),
-          y: hSelf,
-          z: tileCenterZ(r),
-        },
+        pos: { x, y: hSelf, z },
         neighbors,
+        zone: classifyWaypointZone(grid[r][c] as TileChar, r, c, x, z, sites),
       });
     }
   }
@@ -425,6 +613,7 @@ function findClosestWalkableSpawn(
   usedKeys: Set<string>
 ): Vec3 {
   let bestPos: Vec3 | null = null;
+  let bestKey = '';
   let bestDistSq = Infinity;
 
   for (const r of searchRowOrder) {
@@ -432,21 +621,22 @@ function findClosestWalkableSpawn(
       const key = `${r},${c}`;
       if (usedKeys.has(key)) continue;
 
+      // Only flat floor (no decks/stairs) so spawns never sit on elevated cover.
       const surfaceY = getWalkableSurfaceHeight(grid[r][c] as TileChar);
-      if (surfaceY === null) continue;
+      if (surfaceY === null || surfaceY > 0) continue;
 
       const wx = tileCenterX(c);
       const wz = tileCenterZ(r);
       const distSq = (wx - preferredX) ** 2 + (wz - preferredZ) ** 2;
       if (distSq < bestDistSq) {
         bestDistSq = distSq;
+        bestKey = key;
         bestPos = { x: wx, y: surfaceY + 0.1, z: wz };
       }
     }
     if (bestPos !== null) {
       // Mark the tile chosen so 2 bots never stack on the exact same fallback tile.
-      const col = Math.round((bestPos.x + HALF_WIDTH_M) / TILE_SIZE_M - 0.5);
-      usedKeys.add(`${r},${col}`);
+      usedKeys.add(bestKey);
       return bestPos;
     }
   }
@@ -455,10 +645,7 @@ function findClosestWalkableSpawn(
 }
 
 function isWorldCoordWalkable(grid: readonly string[], x: number, z: number): number | null {
-  const c = Math.floor((x + HALF_WIDTH_M) / TILE_SIZE_M);
-  const r = Math.floor((z + HALF_DEPTH_M) / TILE_SIZE_M);
-  if (r < 0 || r >= GRID_ROWS || c < 0 || c >= GRID_COLS) return null;
-  return getWalkableSurfaceHeight(grid[r][c] as TileChar);
+  return getWalkableSurfaceHeight(tileAt(grid, worldToRow(z), worldToCol(x)));
 }
 
 function extractSpawns(grid: readonly string[]): ArenaSpawns {
@@ -469,21 +656,23 @@ function extractSpawns(grid: readonly string[]): ArenaSpawns {
     for (let c = 0; c < GRID_COLS; c++) {
       const ch = grid[r][c] as TileChar;
       if (ch === 'A') {
-        allyTiles.push({
-          key: `${r},${c}`,
-          pos: { x: tileCenterX(c), y: 0.1, z: tileCenterZ(r) },
-        });
+        allyTiles.push({ key: `${r},${c}`, pos: { x: tileCenterX(c), y: 0.1, z: tileCenterZ(r) } });
       } else if (ch === 'E') {
-        enemyTiles.push({
-          key: `${r},${c}`,
-          pos: { x: tileCenterX(c), y: 0.1, z: tileCenterZ(r) },
-        });
+        enemyTiles.push({ key: `${r},${c}`, pos: { x: tileCenterX(c), y: 0.1, z: tileCenterZ(r) } });
       }
     }
   }
 
-  const usedAllyKeys = new Set<string>(allyTiles.slice(0, 3).map((t) => t.key));
-  const usedEnemyKeys = new Set<string>(enemyTiles.slice(0, 3).map((t) => t.key));
+  // Nearest-to-centerline pads first so allies[1] / enemies[1] are the central pads.
+  allyTiles.sort((a, b) => b.pos.z - a.pos.z || a.pos.x - b.pos.x);
+  enemyTiles.sort((a, b) => a.pos.z - b.pos.z || a.pos.x - b.pos.x);
+  const pickThree = (tiles: Array<{ pos: Vec3; key: string }>) =>
+    tiles.slice(0, 3).sort((a, b) => a.pos.x - b.pos.x);
+  const allyPicked = pickThree(allyTiles);
+  const enemyPicked = pickThree(enemyTiles);
+
+  const usedAllyKeys = new Set<string>(allyPicked.map((t) => t.key));
+  const usedEnemyKeys = new Set<string>(enemyPicked.map((t) => t.key));
 
   const southRows: number[] = [];
   for (let r = GRID_ROWS - 2; r >= 1; r--) southRows.push(r);
@@ -491,14 +680,14 @@ function extractSpawns(grid: readonly string[]): ArenaSpawns {
   for (let r = 1; r <= GRID_ROWS - 2; r++) northRows.push(r);
 
   const allyFallbackTargets: ReadonlyArray<[number, number]> = [
-    [-4, 14],
-    [0, 14],
-    [4, 14],
+    [-5, 23],
+    [1, 23],
+    [5, 23],
   ];
   const enemyFallbackTargets: ReadonlyArray<[number, number]> = [
-    [-4, -14],
-    [0, -14],
-    [4, -14],
+    [-5, -23],
+    [1, -23],
+    [5, -23],
   ];
 
   const resolveTeamSpawns = (
@@ -507,17 +696,15 @@ function extractSpawns(grid: readonly string[]): ArenaSpawns {
     rowOrder: readonly number[],
     usedKeys: Set<string>
   ): [Vec3, Vec3, Vec3] => {
-    const out: Vec3[] = explicit.slice(0, 3).map((t) => t.pos);
+    const out: Vec3[] = explicit.map((t) => t.pos);
     for (let i = out.length; i < 3; i++) {
       const [fx, fz] = fallbacks[i];
       const directSurface = isWorldCoordWalkable(grid, fx, fz);
-      const fc = Math.floor((fx + HALF_WIDTH_M) / TILE_SIZE_M);
-      const fr = Math.floor((fz + HALF_DEPTH_M) / TILE_SIZE_M);
-      const fKey = `${fr},${fc}`;
+      const fKey = `${worldToRow(fz)},${worldToCol(fx)}`;
 
-      if (directSurface !== null && !usedKeys.has(fKey)) {
+      if (directSurface === 0 && !usedKeys.has(fKey)) {
         usedKeys.add(fKey);
-        out.push({ x: fx, y: directSurface + 0.1, z: fz });
+        out.push({ x: fx, y: 0.1, z: fz });
       } else {
         out.push(findClosestWalkableSpawn(grid, fx, fz, rowOrder, usedKeys));
       }
@@ -525,10 +712,18 @@ function extractSpawns(grid: readonly string[]): ArenaSpawns {
     return [out[0], out[1], out[2]];
   };
 
+  const allies = resolveTeamSpawns(allyPicked, allyFallbackTargets, southRows, usedAllyKeys);
+  const enemies = resolveTeamSpawns(enemyPicked, enemyFallbackTargets, northRows, usedEnemyKeys);
+
+  // Buy fences adapt so custom spawn pads always sit inside their own buy zone.
+  const minAllyZ = Math.min(allies[0].z, allies[1].z, allies[2].z);
+  const maxEnemyZ = Math.max(enemies[0].z, enemies[1].z, enemies[2].z);
+
   return {
-    allies: resolveTeamSpawns(allyTiles, allyFallbackTargets, southRows, usedAllyKeys),
-    enemies: resolveTeamSpawns(enemyTiles, enemyFallbackTargets, northRows, usedEnemyKeys),
-    buyMinAllyZ: BUY_MIN_ALLY_Z,
+    allies,
+    enemies,
+    buyMinAllyZ: Math.min(BUY_MIN_ALLY_Z, minAllyZ - 1.0),
+    buyMaxDefenderZ: Math.max(BUY_MAX_DEFENDER_Z, maxEnemyZ + 1.0),
   };
 }
 
@@ -552,40 +747,48 @@ function applyGridData(rawGrid?: readonly string[]): void {
     color: COLOR_FLOOR,
   });
   for (const block of mergedBlocks) {
-    ARENA_COLLIDERS.push(block.box);
+    ARENA_COLLIDERS.push(...block.colliders);
   }
 
-  cachedWaypoints = extractWaypoints(normalized);
+  cachedSites = extractBombSites(normalized);
+  cachedWaypoints = extractWaypoints(normalized, cachedSites);
   cachedSpawns = extractSpawns(normalized);
 }
 
-// Seed default Killhouse colliders/waypoints/spawns immediately at module import.
+// Seed default colliders/waypoints/spawns/sites immediately at module import.
 applyGridData(DEFAULT_KILLHOUSE_GRID);
+
+/** Default South (`+Z`) player spawn: the central Attacker pad of the default map. */
+export const PLAYER_SPAWN: Vec3 = cachedSpawns.allies[1]
+  ? cloneVec3(cachedSpawns.allies[1])
+  : { x: 0, y: 0.1, z: 23 };
 
 // ---------------------------------------------------------------------------
 // Public Accessors
 // ---------------------------------------------------------------------------
 
 /**
- * Returns a copy of the currently active `14 x 17` ASCII grid rows.
+ * Returns a copy of the currently active `24 x 28` ASCII grid rows.
  */
 export function getCurrentGrid(): string[] {
   return [...currentGrid];
 }
 
 /**
- * Returns the auto-generated AI navigation waypoint graph for the active map.
+ * Returns the auto-generated, zone-tagged AI navigation waypoint graph.
  */
 export function getArenaWaypoints(): ArenaWaypoint[] {
   return cachedWaypoints.map((wp) => ({
     id: wp.id,
     pos: cloneVec3(wp.pos),
     neighbors: [...wp.neighbors],
+    zone: wp.zone,
   }));
 }
 
 /**
- * Returns extracted Ally/Enemy spawn pads (with safe fallbacks) and buy-zone Z.
+ * Returns extracted Attacker/Defender spawn pads (with safe fallbacks) and
+ * both buy-phase fences.
  */
 export function getArenaSpawns(): ArenaSpawns {
   return {
@@ -600,35 +803,66 @@ export function getArenaSpawns(): ArenaSpawns {
       cloneVec3(cachedSpawns.enemies[2]),
     ],
     buyMinAllyZ: cachedSpawns.buyMinAllyZ,
+    buyMaxDefenderZ: cachedSpawns.buyMaxDefenderZ,
   };
 }
 
+/**
+ * Returns both bomb-site plant zones (bounding boxes of the `1` / `2` tile
+ * clusters, with safe fallbacks) for the active grid.
+ */
+export function getBombSites(): Record<BombSiteId, BombSiteZone> {
+  return { A: cloneSite(cachedSites.A), B: cloneSite(cachedSites.B) };
+}
+
+/**
+ * Returns which bomb site plant zone contains world point `(x, z)`, or `null`.
+ */
+export function getBombSiteAt(x: number, z: number): BombSiteId | null {
+  for (const id of ['A', 'B'] as const) {
+    const s = cachedSites[id];
+    if (x >= s.minX && x <= s.maxX && z >= s.minZ && z <= s.maxZ) return id;
+  }
+  return null;
+}
+
 // ---------------------------------------------------------------------------
-// 3D Scene Disposal & Architectural Killhouse Construction
+// 3D Scene Disposal & Architectural Construction
 // ---------------------------------------------------------------------------
 
 function disposeArenaRoot(root: THREE.Group): void {
   const geometries = new Set<THREE.BufferGeometry>();
   const materials = new Set<THREE.Material>();
+  const textures = new Set<THREE.Texture>();
+
+  const collectMaterial = (mat: THREE.Material) => {
+    materials.add(mat);
+    const mapped = mat as THREE.Material & { map?: THREE.Texture | null };
+    if (mapped.map) textures.add(mapped.map);
+  };
 
   root.traverse((obj) => {
     if (obj instanceof THREE.Mesh || obj instanceof THREE.LineSegments) {
       geometries.add(obj.geometry);
       if (Array.isArray(obj.material)) {
-        for (const mat of obj.material) materials.add(mat);
+        for (const mat of obj.material) collectMaterial(mat);
       } else if (obj.material) {
-        materials.add(obj.material);
+        collectMaterial(obj.material);
       }
+    } else if (obj instanceof THREE.Sprite) {
+      // Sprite geometry is a Three.js shared singleton: dispose material + texture only.
+      collectMaterial(obj.material);
     }
   });
 
   for (const geo of geometries) geo.dispose();
+  for (const tex of textures) tex.dispose();
   for (const mat of materials) mat.dispose();
   root.removeFromParent();
 }
 
 function addBoxMesh(
-  parent: THREE.Group,
+  parent: THREE.Object3D,
   minX: number,
   maxX: number,
   minY: number,
@@ -638,16 +872,9 @@ function addBoxMesh(
   material: THREE.Material,
   edgeMaterial?: THREE.LineBasicMaterial
 ): THREE.Mesh {
-  const sizeX = maxX - minX;
-  const sizeY = maxY - minY;
-  const sizeZ = maxZ - minZ;
-  const geo = new THREE.BoxGeometry(sizeX, sizeY, sizeZ);
+  const geo = new THREE.BoxGeometry(maxX - minX, maxY - minY, maxZ - minZ);
   const mesh = new THREE.Mesh(geo, material);
-  mesh.position.set(
-    (minX + maxX) * 0.5,
-    (minY + maxY) * 0.5,
-    (minZ + maxZ) * 0.5
-  );
+  mesh.position.set((minX + maxX) * 0.5, (minY + maxY) * 0.5, (minZ + maxZ) * 0.5);
   parent.add(mesh);
 
   if (edgeMaterial) {
@@ -657,19 +884,95 @@ function addBoxMesh(
   return mesh;
 }
 
-function buildFloorAndGrid(root: THREE.Group): void {
-  // Polygon offset pushes solid floor depth back slightly so grid/overlay lines never Z-fight.
-  const floorMat = new THREE.MeshStandardMaterial({
-    color: COLOR_FLOOR,
-    roughness: 0.92,
-    metalness: 0.04,
+/** Solid block material with polygon offset so EdgesGeometry lines never stipple-flicker. */
+function solidMat(color: number, roughness: number, metalness: number): THREE.MeshStandardMaterial {
+  return new THREE.MeshStandardMaterial({
+    color,
+    roughness,
+    metalness,
     polygonOffset: true,
     polygonOffsetFactor: 1,
     polygonOffsetUnits: 1,
   });
+}
+
+/** Flat translucent floor decal material (never writes depth -> zero Z-fighting with floor). */
+function decalMat(color: number, opacity: number): THREE.MeshBasicMaterial {
+  return new THREE.MeshBasicMaterial({
+    color,
+    transparent: true,
+    opacity,
+    depthWrite: false,
+    polygonOffset: true,
+    polygonOffsetFactor: -1,
+    polygonOffsetUnits: -1,
+    toneMapped: false,
+  });
+}
+
+/** Builds a single horizontal BufferGeometry of axis-aligned quads at height `y`. */
+function buildFlatQuadGeometry(
+  quads: ReadonlyArray<readonly [number, number, number, number]>,
+  y: number
+): THREE.BufferGeometry {
+  const positions: number[] = [];
+  const indices: number[] = [];
+  for (const [x0, x1, z0, z1] of quads) {
+    const base = positions.length / 3;
+    positions.push(x0, y, z0, x0, y, z1, x1, y, z1, x1, y, z0);
+    indices.push(base, base + 1, base + 2, base, base + 2, base + 3);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geo.setIndex(indices);
+  geo.computeVertexNormals();
+  return geo;
+}
+
+/** Renders a glowing site letter into a CanvasTexture (null when no DOM is available). */
+function createSiteLetterTexture(letter: string, color: number, ring: boolean): THREE.CanvasTexture | null {
+  if (typeof document === 'undefined') return null;
+  const canvas = document.createElement('canvas');
+  canvas.width = 256;
+  canvas.height = 256;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return null;
+
+  const css = `#${color.toString(16).padStart(6, '0')}`;
+  ctx.clearRect(0, 0, 256, 256);
+  if (ring) {
+    ctx.fillStyle = 'rgba(10, 14, 22, 0.55)';
+    ctx.beginPath();
+    ctx.arc(128, 128, 108, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.lineWidth = 12;
+    ctx.strokeStyle = css;
+    ctx.shadowColor = css;
+    ctx.shadowBlur = 18;
+    ctx.beginPath();
+    ctx.arc(128, 128, 104, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.shadowColor = css;
+  ctx.shadowBlur = 22;
+  ctx.fillStyle = ring ? '#ffffff' : css;
+  ctx.font = 'bold 170px "Segoe UI", Arial, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(letter, 128, 138);
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  return tex;
+}
+
+function buildFloorAndGrid(root: THREE.Group): void {
+  // Polygon offset pushes solid floor depth back slightly so grid/overlay lines never Z-fight.
+  const floorMat = solidMat(COLOR_FLOOR, 0.92, 0.04);
   addBoxMesh(root, -HALF_WIDTH_M, HALF_WIDTH_M, -0.5, 0, -HALF_DEPTH_M, HALF_DEPTH_M, floorMat);
 
-  // Exact 28m x 34m 2m tactical grid lines clipped cleanly to arena bounds.
+  // Exact 48m x 56m 2m tactical grid lines clipped cleanly to arena bounds.
   const linePoints: number[] = [];
   const y = 0.006;
   for (let x = -HALF_WIDTH_M; x <= HALF_WIDTH_M + 1e-4; x += TILE_SIZE_M) {
@@ -687,26 +990,105 @@ function buildFloorAndGrid(root: THREE.Group): void {
     opacity: 0.42,
     depthWrite: false,
   });
-  root.add(new THREE.LineSegments(gridGeo, gridMat));
+  const gridLines = new THREE.LineSegments(gridGeo, gridMat);
+  gridLines.renderOrder = 2;
+  root.add(gridLines);
 
-  // Subtle buy-phase boundary lines so Ally/Enemy spawn zones read instantly.
+  // Buy-phase fences: Attackers (South) fenced at buyMinAllyZ, Defenders (North) at buyMaxDefenderZ.
   const addZoneLine = (zPos: number, hex: number, opacity: number) => {
     const geo = new THREE.BufferGeometry();
-    geo.setAttribute(
-      'position',
-      new THREE.Float32BufferAttribute([-12, 0.010, zPos, 12, 0.010, zPos], 3)
-    );
-    const mat = new THREE.LineBasicMaterial({
-      color: hex,
-      transparent: true,
-      opacity,
-      depthWrite: false,
-    });
-    root.add(new THREE.LineSegments(geo, mat));
+    const xEdge = HALF_WIDTH_M - TILE_SIZE_M;
+    geo.setAttribute('position', new THREE.Float32BufferAttribute([-xEdge, 0.01, zPos, xEdge, 0.01, zPos], 3));
+    const mat = new THREE.LineBasicMaterial({ color: hex, transparent: true, opacity, depthWrite: false });
+    const line = new THREE.LineSegments(geo, mat);
+    line.renderOrder = 3;
+    root.add(line);
   };
 
-  addZoneLine(BUY_MIN_ALLY_Z, 0x3b82f6, 0.48);
-  addZoneLine(-BUY_MIN_ALLY_Z, 0xef4444, 0.36);
+  addZoneLine(cachedSpawns.buyMinAllyZ, 0x3b82f6, 0.5);
+  addZoneLine(cachedSpawns.buyMaxDefenderZ, 0xef4444, 0.42);
+}
+
+/**
+ * High-visibility bomb-site floor paint (per `1` / `2` tile), glowing perimeter
+ * stripes around each plant zone, a painted floor letter, and a floating
+ * holographic `A` / `B` marker above each site center.
+ *
+ * All decals use `depthWrite: false` + negative polygon offset + staggered
+ * heights / renderOrder so they never Z-fight the floor, grid, or each other.
+ */
+function buildSiteMarkings(root: THREE.Group, grid: readonly string[]): void {
+  const siteDefs: ReadonlyArray<{ id: BombSiteId; ch: string; color: number }> = [
+    { id: 'A', ch: '1', color: COLOR_SITE_A },
+    { id: 'B', ch: '2', color: COLOR_SITE_B },
+  ];
+
+  for (const def of siteDefs) {
+    const zone = cachedSites[def.id];
+
+    // 1. Floor paint on every plant tile.
+    const tileQuads: Array<[number, number, number, number]> = [];
+    for (let r = 0; r < GRID_ROWS; r++) {
+      for (let c = 0; c < GRID_COLS; c++) {
+        if (grid[r][c] !== def.ch) continue;
+        const x0 = -HALF_WIDTH_M + c * TILE_SIZE_M;
+        const z0 = -HALF_DEPTH_M + r * TILE_SIZE_M;
+        tileQuads.push([x0, x0 + TILE_SIZE_M, z0, z0 + TILE_SIZE_M]);
+      }
+    }
+    if (tileQuads.length === 0) continue;
+
+    const paint = new THREE.Mesh(buildFlatQuadGeometry(tileQuads, 0.004), decalMat(def.color, 0.2));
+    paint.renderOrder = 1;
+    root.add(paint);
+
+    // 2. Glowing perimeter stripes hugging the plant-zone bounding box.
+    const w = 0.16;
+    const inset = 0.06;
+    const x0 = zone.minX + inset;
+    const x1 = zone.maxX - inset;
+    const z0 = zone.minZ + inset;
+    const z1 = zone.maxZ - inset;
+    const stripeQuads: Array<[number, number, number, number]> = [
+      [x0, x1, z0, z0 + w],
+      [x0, x1, z1 - w, z1],
+      [x0, x0 + w, z0 + w, z1 - w],
+      [x1 - w, x1, z0 + w, z1 - w],
+    ];
+    const stripes = new THREE.Mesh(buildFlatQuadGeometry(stripeQuads, 0.008), decalMat(def.color, 0.92));
+    stripes.renderOrder = 3;
+    root.add(stripes);
+
+    // 3. Painted floor letter at the site center.
+    const floorTex = createSiteLetterTexture(def.id, def.color, false);
+    if (floorTex) {
+      const letterMat = decalMat(0xffffff, 0.72);
+      letterMat.map = floorTex;
+      const letterSize = Math.min(zone.maxX - zone.minX, zone.maxZ - zone.minZ, 4.2) * 0.9;
+      const letter = new THREE.Mesh(new THREE.PlaneGeometry(letterSize, letterSize), letterMat);
+      letter.rotation.x = -Math.PI / 2;
+      letter.position.set(zone.center.x, 0.011, zone.center.z);
+      letter.renderOrder = 4;
+      root.add(letter);
+    }
+
+    // 4. Floating holographic tactical marker (always faces the camera).
+    const holoTex = createSiteLetterTexture(def.id, def.color, true);
+    if (holoTex) {
+      const spriteMat = new THREE.SpriteMaterial({
+        map: holoTex,
+        transparent: true,
+        opacity: 0.9,
+        depthWrite: false,
+        toneMapped: false,
+      });
+      const sprite = new THREE.Sprite(spriteMat);
+      sprite.scale.set(1.5, 1.5, 1);
+      sprite.position.set(zone.center.x, 3.35, zone.center.z);
+      sprite.renderOrder = 5;
+      root.add(sprite);
+    }
+  }
 }
 
 function buildWarehouseRafters(root: THREE.Group): void {
@@ -716,109 +1098,207 @@ function buildWarehouseRafters(root: THREE.Group): void {
     metalness: 0.45,
   });
 
-  // Overhead steel trusses spanning across X at y = 4.24..4.46m
-  for (const zPos of [-12, -6, 0, 6, 12]) {
-    addBoxMesh(root, -HALF_WIDTH_M, HALF_WIDTH_M, 4.24, 4.46, zPos - 0.14, zPos + 0.14, rafterMat);
+  // Overhead steel trusses spanning across X just above the 4.6m perimeter wall.
+  for (let zPos = -24; zPos <= 24; zPos += 6) {
+    addBoxMesh(root, -HALF_WIDTH_M, HALF_WIDTH_M, 4.64, 4.86, zPos - 0.14, zPos + 0.14, rafterMat);
   }
-  // Longitudinal purlins tying the roof trusses together cleanly above trusses (no coplanar Y or Z ends)
-  for (const xPos of [-7, 7]) {
-    addBoxMesh(
-      root,
-      xPos - 0.1,
-      xPos + 0.1,
-      4.465,
-      4.605,
-      -HALF_DEPTH_M + 0.02,
-      HALF_DEPTH_M - 0.02,
-      rafterMat
-    );
+  // Longitudinal purlins above the trusses (no coplanar Y faces; ends inset 0.02m).
+  for (const xPos of [-16, -8, 0, 8, 16]) {
+    addBoxMesh(root, xPos - 0.1, xPos + 0.1, 4.865, 5.005, -HALF_DEPTH_M + 0.02, HALF_DEPTH_M - 0.02, rafterMat);
   }
 }
 
-function buildArchitecturalBlocks(root: THREE.Group, grid: readonly string[]): void {
-  // Polygon offset keeps all solid block faces slightly behind EdgesGeometry lines to prevent stipple-flicker.
-  const mats: Record<MergeKind, THREE.MeshStandardMaterial> = {
-    perimeter: new THREE.MeshStandardMaterial({
-      color: COLOR_PERIMETER_WALL,
-      roughness: 0.88,
-      metalness: 0.08,
-      polygonOffset: true,
-      polygonOffsetFactor: 1,
-      polygonOffsetUnits: 1,
-    }),
-    wall_interior: new THREE.MeshStandardMaterial({
-      color: COLOR_PLYWOOD_WALL,
-      roughness: 0.86,
-      metalness: 0.04,
-      polygonOffset: true,
-      polygonOffsetFactor: 1,
-      polygonOffsetUnits: 1,
-    }),
-    low_cover: new THREE.MeshStandardMaterial({
-      color: COLOR_HEADGLITCH,
-      roughness: 0.82,
-      metalness: 0.06,
-      polygonOffset: true,
-      polygonOffsetFactor: 1,
-      polygonOffsetUnits: 1,
-    }),
-    crate: new THREE.MeshStandardMaterial({
-      color: COLOR_CRATE,
-      roughness: 0.72,
-      metalness: 0.22,
-      polygonOffset: true,
-      polygonOffsetFactor: 1,
-      polygonOffsetUnits: 1,
-    }),
-    platform: new THREE.MeshStandardMaterial({
-      color: COLOR_WATCHTOWER,
-      roughness: 0.54,
-      metalness: 0.38,
-      polygonOffset: true,
-      polygonOffsetFactor: 1,
-      polygonOffsetUnits: 1,
-    }),
-    stair: new THREE.MeshStandardMaterial({
-      color: COLOR_STAIR,
-      roughness: 0.68,
-      metalness: 0.24,
-      polygonOffset: true,
-      polygonOffsetFactor: 1,
-      polygonOffsetUnits: 1,
-    }),
+/**
+ * Decides whether a merged window / archway block runs along X (opening faces
+ * +-Z) or along Z (opening faces +-X), using span shape then wall neighbors.
+ */
+function runsAlongX(block: MergedBlock, grid: readonly string[]): boolean {
+  if (block.colsSpan > block.rowsSpan) return true;
+  if (block.rowsSpan > block.colsSpan) return false;
+  const { row, col } = block;
+  const lr = isTallSolid(tileAt(grid, row, col - 1)) || isTallSolid(tileAt(grid, row, col + block.colsSpan));
+  if (lr) return true;
+  const ud = isTallSolid(tileAt(grid, row - 1, col)) || isTallSolid(tileAt(grid, row + block.rowsSpan, col));
+  return !ud;
+}
+
+interface FrameMaterials {
+  windowWall: THREE.MeshStandardMaterial;
+  archStone: THREE.MeshStandardMaterial;
+  frame: THREE.MeshStandardMaterial;
+  pilaster: THREE.MeshStandardMaterial;
+  accent: THREE.MeshStandardMaterial;
+  edge: THREE.LineBasicMaterial;
+}
+
+/**
+ * Window (`W`) / Archway (`O`) geometry in "run space": `a` runs along the wall
+ * line, `d` is wall depth. Every trim is either inset or proud by >= 0.006m so
+ * no visible faces are ever coplanar.
+ */
+function buildWindowOrArchway(
+  root: THREE.Group,
+  block: MergedBlock,
+  grid: readonly string[],
+  m: FrameMaterials
+): void {
+  const alongX = runsAlongX(block, grid);
+  const { min, max } = block.box;
+  const a0 = alongX ? min.x : min.z;
+  const a1 = alongX ? max.x : max.z;
+  const d0 = alongX ? min.z : min.x;
+  const d1 = alongX ? max.z : max.x;
+
+  const box = (
+    pa0: number,
+    pa1: number,
+    y0: number,
+    y1: number,
+    pd0: number,
+    pd1: number,
+    mat: THREE.Material,
+    edge?: THREE.LineBasicMaterial
+  ) =>
+    alongX
+      ? addBoxMesh(root, pa0, pa1, y0, y1, pd0, pd1, mat, edge)
+      : addBoxMesh(root, pd0, pd1, y0, y1, pa0, pa1, mat, edge);
+
+  // Neighbor tiles just beyond each end of the run (only full walls host casings/pilasters).
+  const startNeighbor = alongX ? tileAt(grid, block.row, block.col - 1) : tileAt(grid, block.row - 1, block.col);
+  const endNeighbor = alongX
+    ? tileAt(grid, block.row, block.col + block.colsSpan)
+    : tileAt(grid, block.row + block.rowsSpan, block.col);
+  const hostStart = startNeighbor === '#';
+  const hostEnd = endNeighbor === '#';
+
+  if (block.kind === 'window') {
+    // Sill (collider 0..1.12) = body + proud ledge cap; lintel (collider 2.55..3.60) = body + proud soffit.
+    box(a0, a1, 0, 1.08, d0, d1, m.windowWall, m.edge);
+    box(a0 + 0.008, a1 - 0.008, 1.076, WINDOW_SILL_TOP_M, d0 - 0.04, d1 + 0.04, m.frame);
+    box(a0, a1, 2.594, 3.596, d0, d1, m.windowWall, m.edge);
+    box(a0 + 0.008, a1 - 0.008, WINDOW_LINTEL_BOTTOM_M, 2.598, d0 - 0.012, d1 + 0.012, m.frame);
+
+    // Jamb casings recessed inside the host walls, proud +0.02m of the wall faces
+    // (fully enclosing the 0.012m wall posts so nothing is coplanar).
+    if (hostStart) box(a0 - 0.14, a0 - 0.006, 1.04, 2.63, d0 - 0.02, d1 + 0.02, m.frame);
+    if (hostEnd) box(a1 + 0.006, a1 + 0.14, 1.04, 2.63, d0 - 0.02, d1 + 0.02, m.frame);
+
+    // Mullion strips at internal tile seams on the sill & lintel faces (+0.012m proud).
+    for (let s = a0 + TILE_SIZE_M; s < a1 - 1e-4; s += TILE_SIZE_M) {
+      box(s - 0.03, s + 0.03, 0.004, 1.076, d0 - 0.012, d1 + 0.012, m.frame);
+      box(s - 0.03, s + 0.03, 2.602, 3.5, d0 - 0.012, d1 + 0.012, m.frame);
+    }
+    return;
+  }
+
+  // Archway: overhead header beam (collider 2.65..3.60) + proud soffit + keystone.
+  box(a0, a1, 2.69, 3.596, d0, d1, m.archStone, m.edge);
+  box(a0 + 0.008, a1 - 0.008, ARCH_HEADER_BOTTOM_M, 2.694, d0 - 0.012, d1 + 0.012, m.frame);
+  const mid = (a0 + a1) * 0.5;
+  box(mid - 0.2, mid + 0.2, 2.86, 3.42, d0 - 0.02, d1 + 0.02, m.accent);
+
+  // Side pilasters + capitals living inside the host walls, proud +0.03m / +0.05m.
+  if (hostStart) {
+    box(a0 - 0.18, a0 - 0.006, 0.004, 2.7, d0 - 0.03, d1 + 0.03, m.pilaster);
+    box(a0 - 0.22, a0 - 0.006, 2.7, 2.84, d0 - 0.05, d1 + 0.05, m.frame);
+  }
+  if (hostEnd) {
+    box(a1 + 0.006, a1 + 0.18, 0.004, 2.7, d0 - 0.03, d1 + 0.03, m.pilaster);
+    box(a1 + 0.006, a1 + 0.22, 2.7, 2.84, d0 - 0.05, d1 + 0.05, m.frame);
+  }
+}
+
+/**
+ * Olive-slate double-stacked crates (`D`, 1.72m): two tiers per merged block,
+ * a proud seam band, a proud top cap, and diagonal bracing on every outer face
+ * of every tile segment (alternating per tier for an X-brace feel).
+ */
+function buildDoubleBox(
+  root: THREE.Group,
+  block: MergedBlock,
+  bodyMat: THREE.MeshStandardMaterial,
+  trimMat: THREE.MeshStandardMaterial,
+  braceMat: THREE.MeshStandardMaterial,
+  edgeMat: THREE.LineBasicMaterial
+): void {
+  const { min, max } = block.box;
+  const p = 0.008;
+  addBoxMesh(root, min.x, max.x, 0, 0.84, min.z, max.z, bodyMat, edgeMat);
+  addBoxMesh(root, min.x, max.x, 0.88, 1.68, min.z, max.z, bodyMat, edgeMat);
+  addBoxMesh(root, min.x - p, max.x + p, 0.836, 0.884, min.z - p, max.z + p, trimMat);
+  addBoxMesh(root, min.x - p, max.x + p, 1.676, DOUBLE_BOX_HEIGHT_M, min.z - p, max.z + p, trimMat);
+
+  const tiers: ReadonlyArray<readonly [number, number]> = [
+    [0.0, 0.836],
+    [0.884, 1.676],
+  ];
+  const braceThick = 0.014;
+  const braceOffset = 0.012 + braceThick * 0.5; // inner face 0.012m proud (clear of 0.008m bands)
+  const braceWidth = 0.07;
+
+  const addBrace = (cx: number, cy: number, cz: number, segLen: number, tierH: number, faceAxis: 'x' | 'z', flip: boolean) => {
+    const diag = Math.hypot(segLen, tierH) - 0.16;
+    const angle = Math.atan2(tierH, segLen) * (flip ? -1 : 1);
+    const geo =
+      faceAxis === 'z'
+        ? new THREE.BoxGeometry(diag, braceWidth, braceThick)
+        : new THREE.BoxGeometry(braceThick, braceWidth, diag);
+    const mesh = new THREE.Mesh(geo, braceMat);
+    mesh.position.set(cx, cy, cz);
+    if (faceAxis === 'z') mesh.rotation.z = angle;
+    else mesh.rotation.x = -angle;
+    root.add(mesh);
   };
 
-  const trimMat = new THREE.MeshStandardMaterial({
-    color: COLOR_PERIMETER_TRIM,
-    roughness: 0.75,
-    metalness: 0.25,
+  tiers.forEach(([y0, y1], tierIdx) => {
+    const cy = (y0 + y1) * 0.5;
+    const tierH = y1 - y0 - 0.06;
+    // +-Z faces: one brace per tile column
+    for (let dc = 0; dc < block.colsSpan; dc++) {
+      const cx = min.x + (dc + 0.5) * TILE_SIZE_M;
+      const flip = (dc + tierIdx) % 2 === 1;
+      addBrace(cx, cy, min.z - braceOffset, TILE_SIZE_M, tierH, 'z', flip);
+      addBrace(cx, cy, max.z + braceOffset, TILE_SIZE_M, tierH, 'z', !flip);
+    }
+    // +-X faces: one brace per tile row
+    for (let dr = 0; dr < block.rowsSpan; dr++) {
+      const cz = min.z + (dr + 0.5) * TILE_SIZE_M;
+      const flip = (dr + tierIdx) % 2 === 1;
+      addBrace(min.x - braceOffset, cy, cz, TILE_SIZE_M, tierH, 'x', flip);
+      addBrace(max.x + braceOffset, cy, cz, TILE_SIZE_M, tierH, 'x', !flip);
+    }
   });
-  const frameSteelMat = new THREE.MeshStandardMaterial({
-    color: COLOR_STEEL_FRAME,
-    roughness: 0.55,
-    metalness: 0.42,
-  });
-  const caprailMat = new THREE.MeshStandardMaterial({
-    color: COLOR_CAPRAIL,
-    roughness: 0.65,
-    metalness: 0.3,
-  });
-  const crateTrimMat = new THREE.MeshStandardMaterial({
-    color: COLOR_CRATE_TRIM,
-    roughness: 0.62,
-    metalness: 0.35,
-  });
-  const bollardMat = new THREE.MeshStandardMaterial({
-    color: COLOR_BOLLARD,
-    roughness: 0.45,
-    metalness: 0.2,
-  });
+}
 
-  const edgeMat = new THREE.LineBasicMaterial({
-    color: 0x2a323d,
-    transparent: true,
-    opacity: 0.38,
-  });
+function buildArchitecturalBlocks(root: THREE.Group, grid: readonly string[]): void {
+  const mats = {
+    perimeter: solidMat(COLOR_PERIMETER_WALL, 0.88, 0.08),
+    wall_interior: solidMat(COLOR_PLYWOOD_WALL, 0.86, 0.04),
+    low_cover: solidMat(COLOR_HEADGLITCH, 0.82, 0.06),
+    double_box: solidMat(COLOR_DOUBLE_BOX, 0.78, 0.12),
+    crate: solidMat(COLOR_CRATE, 0.72, 0.22),
+    platform: solidMat(COLOR_WATCHTOWER, 0.54, 0.38),
+    stair: solidMat(COLOR_STAIR, 0.68, 0.24),
+  };
+
+  const trimMat = new THREE.MeshStandardMaterial({ color: COLOR_PERIMETER_TRIM, roughness: 0.75, metalness: 0.25 });
+  const frameSteelMat = new THREE.MeshStandardMaterial({ color: COLOR_STEEL_FRAME, roughness: 0.55, metalness: 0.42 });
+  const caprailMat = new THREE.MeshStandardMaterial({ color: COLOR_CAPRAIL, roughness: 0.65, metalness: 0.3 });
+  const crateTrimMat = new THREE.MeshStandardMaterial({ color: COLOR_CRATE_TRIM, roughness: 0.62, metalness: 0.35 });
+  const doubleBoxTrimMat = new THREE.MeshStandardMaterial({ color: COLOR_DOUBLE_BOX_TRIM, roughness: 0.6, metalness: 0.3 });
+  const doubleBoxBraceMat = new THREE.MeshStandardMaterial({ color: COLOR_DOUBLE_BOX_BRACE, roughness: 0.7, metalness: 0.15 });
+  const bollardMat = new THREE.MeshStandardMaterial({ color: COLOR_BOLLARD, roughness: 0.45, metalness: 0.2 });
+
+  const edgeMat = new THREE.LineBasicMaterial({ color: 0x2a323d, transparent: true, opacity: 0.38 });
+
+  const frameMats: FrameMaterials = {
+    windowWall: solidMat(COLOR_WINDOW_WALL, 0.84, 0.05),
+    archStone: solidMat(COLOR_ARCH_STONE, 0.8, 0.08),
+    frame: new THREE.MeshStandardMaterial({ color: COLOR_WINDOW_FRAME, roughness: 0.5, metalness: 0.5 }),
+    pilaster: new THREE.MeshStandardMaterial({ color: COLOR_ARCH_PILASTER, roughness: 0.7, metalness: 0.2 }),
+    accent: new THREE.MeshStandardMaterial({ color: COLOR_BOLLARD, roughness: 0.45, metalness: 0.25 }),
+    edge: edgeMat,
+  };
 
   // Trim/post extrusion reliefs eliminate coplanar Z-fighting with base wall/cover meshes.
   const trimProud = 0.008;
@@ -829,33 +1309,24 @@ function buildArchitecturalBlocks(root: THREE.Group, grid: readonly string[]): v
     const { min, max } = box;
 
     if (kind === 'perimeter') {
-      // Base concrete warehouse wall (0..4.2m) + proud dark baseboard/top trims overlapping by 0.004m
-      addBoxMesh(root, min.x, max.x, 0.22, 4.10, min.z, max.z, mats.perimeter, edgeMat);
+      // Base concrete wall (0..4.6m) + proud dark baseboard/top trims overlapping by 0.004m
+      addBoxMesh(root, min.x, max.x, 0.22, 4.5, min.z, max.z, mats.perimeter, edgeMat);
       addBoxMesh(root, min.x - trimProud, max.x + trimProud, 0, 0.224, min.z - trimProud, max.z + trimProud, trimMat);
-      addBoxMesh(root, min.x - trimProud, max.x + trimProud, 4.096, 4.20, min.z - trimProud, max.z + trimProud, trimMat);
+      addBoxMesh(root, min.x - trimProud, max.x + trimProud, 4.496, PERIMETER_HEIGHT_M, min.z - trimProud, max.z + trimProud, trimMat);
     } else if (kind === 'wall_interior') {
-      // Plywood/OSB Killhouse partition with proud top steel channel & proud vertical steel posts
-      addBoxMesh(root, min.x, max.x, 0, 3.10, min.z, max.z, mats.wall_interior, edgeMat);
-      addBoxMesh(root, min.x - trimProud, max.x + trimProud, 3.096, 3.20, min.z - trimProud, max.z + trimProud, frameSteelMat);
+      // Plywood partition (0..3.6m) with proud top steel channel & proud vertical steel posts
+      addBoxMesh(root, min.x, max.x, 0, 3.5, min.z, max.z, mats.wall_interior, edgeMat);
+      addBoxMesh(root, min.x - trimProud, max.x + trimProud, 3.496, INTERIOR_WALL_HEIGHT_M, min.z - trimProud, max.z + trimProud, frameSteelMat);
 
       const postW = 0.11;
       const postMinY = 0.004;
-      const postMaxY = 3.096;
+      const postMaxY = 3.496;
       for (let dc = 0; dc <= block.colsSpan; dc++) {
         const px = Math.min(
           Math.max(min.x + dc * TILE_SIZE_M, min.x + postW * 0.5 + postProud),
           max.x - postW * 0.5 - postProud
         );
-        addBoxMesh(
-          root,
-          px - postW * 0.5,
-          px + postW * 0.5,
-          postMinY,
-          postMaxY,
-          min.z - postProud,
-          max.z + postProud,
-          frameSteelMat
-        );
+        addBoxMesh(root, px - postW * 0.5, px + postW * 0.5, postMinY, postMaxY, min.z - postProud, max.z + postProud, frameSteelMat);
       }
       if (block.rowsSpan > 1) {
         for (let dr = 0; dr <= block.rowsSpan; dr++) {
@@ -863,31 +1334,26 @@ function buildArchitecturalBlocks(root: THREE.Group, grid: readonly string[]): v
             Math.max(min.z + dr * TILE_SIZE_M, min.z + postW * 0.5 + postProud),
             max.z - postW * 0.5 - postProud
           );
-          addBoxMesh(
-            root,
-            min.x - postProud,
-            max.x + postProud,
-            postMinY,
-            postMaxY,
-            pz - postW * 0.5,
-            pz + postW * 0.5,
-            frameSteelMat
-          );
+          addBoxMesh(root, min.x - postProud, max.x + postProud, postMinY, postMaxY, pz - postW * 0.5, pz + postW * 0.5, frameSteelMat);
         }
       }
+    } else if (kind === 'window' || kind === 'archway') {
+      buildWindowOrArchway(root, block, grid, frameMats);
     } else if (kind === 'low_cover') {
-      // Head-glitch barrier (1.28m) with proud dark top caprail (1.186..1.28m)
-      addBoxMesh(root, min.x, max.x, 0, 1.19, min.z, max.z, mats.low_cover, edgeMat);
-      addBoxMesh(root, min.x - trimProud, max.x + trimProud, 1.186, 1.28, min.z - trimProud, max.z + trimProud, caprailMat);
+      // Head-glitch barrier (1.26m) with proud dark top caprail (1.166..1.26m)
+      addBoxMesh(root, min.x, max.x, 0, 1.17, min.z, max.z, mats.low_cover, edgeMat);
+      addBoxMesh(root, min.x - trimProud, max.x + trimProud, 1.166, LOW_COVER_HEIGHT_M, min.z - trimProud, max.z + trimProud, caprailMat);
+    } else if (kind === 'double_box') {
+      buildDoubleBox(root, block, mats.double_box, doubleBoxTrimMat, doubleBoxBraceMat, edgeMat);
     } else if (kind === 'crate') {
-      // Shipping crate (2.2m) with proud dark steel base/top frame bands
-      addBoxMesh(root, min.x, max.x, 0.14, 2.06, min.z, max.z, mats.crate, edgeMat);
+      // Tall industrial crate (2.25m) with proud dark steel base/top frame bands
+      addBoxMesh(root, min.x, max.x, 0.14, 2.11, min.z, max.z, mats.crate, edgeMat);
       addBoxMesh(root, min.x - trimProud, max.x + trimProud, 0, 0.144, min.z - trimProud, max.z + trimProud, crateTrimMat);
-      addBoxMesh(root, min.x - trimProud, max.x + trimProud, 2.056, 2.20, min.z - trimProud, max.z + trimProud, crateTrimMat);
+      addBoxMesh(root, min.x - trimProud, max.x + trimProud, 2.106, CRATE_HEIGHT_M, min.z - trimProud, max.z + trimProud, crateTrimMat);
     } else if (kind === 'platform') {
-      // Watchtower steel-grate deck (0.90m) + slightly inset dark skirt (no coplanar join) + corner bollards
+      // Steel-grate deck (0.90m) + slightly inset dark skirt (no coplanar join) + corner bollards
       addBoxMesh(root, min.x + trimProud, max.x - trimProud, 0, 0.784, min.z + trimProud, max.z - trimProud, frameSteelMat);
-      addBoxMesh(root, min.x, max.x, 0.78, 0.90, min.z, max.z, mats.platform, edgeMat);
+      addBoxMesh(root, min.x, max.x, 0.78, PLATFORM_HEIGHT_M, min.z, max.z, mats.platform, edgeMat);
 
       const inset = 0.16;
       const bHalf = 0.055;
@@ -898,11 +1364,11 @@ function buildArchitecturalBlocks(root: THREE.Group, grid: readonly string[]): v
         [max.x - inset, max.z - inset],
       ];
       for (const [bx, bz] of corners) {
-        addBoxMesh(root, bx - bHalf, bx + bHalf, 0.90, 1.08, bz - bHalf, bz + bHalf, bollardMat);
+        addBoxMesh(root, bx - bHalf, bx + bHalf, PLATFORM_HEIGHT_M, 1.08, bz - bHalf, bz + bHalf, bollardMat);
       }
     } else if (kind === 'stair') {
       // 0.45m step-up platform
-      addBoxMesh(root, min.x, max.x, 0, 0.45, min.z, max.z, mats.stair, edgeMat);
+      addBoxMesh(root, min.x, max.x, 0, STAIR_HEIGHT_M, min.z, max.z, mats.stair, edgeMat);
     }
   }
 
@@ -916,28 +1382,19 @@ function buildArchitecturalBlocks(root: THREE.Group, grid: readonly string[]): v
       const x1 = -HALF_WIDTH_M + (c + 1) * TILE_SIZE_M - 0.14;
       const zTileMin = -HALF_DEPTH_M + r * TILE_SIZE_M;
 
-      // 3 crisp anti-slip grip cleats along Z, raised proud (0.448..0.462) above the 0.45m step top face
+      // 3 grip cleats along Z, raised proud (0.448..0.462) above the 0.45m step top face
       const offsets = ch === '^' ? [0.35, 0.95, 1.55] : [0.45, 1.05, 1.65];
       for (const off of offsets) {
-        addBoxMesh(
-          root,
-          x0,
-          x1,
-          0.448,
-          0.462,
-          zTileMin + off - 0.06,
-          zTileMin + off + 0.06,
-          caprailMat
-        );
+        addBoxMesh(root, x0, x1, 0.448, 0.462, zTileMin + off - 0.06, zTileMin + off + 0.06, caprailMat);
       }
     }
   }
 }
 
 /**
- * Populates `scene` with the daylight Killhouse Warehouse arena built from
+ * Populates `scene` with the daylight 2-Site S&D compound built from
  * `customGrid` (or `DEFAULT_KILLHOUSE_GRID`), updating `ARENA_COLLIDERS`,
- * `getArenaWaypoints()`, and `getArenaSpawns()`.
+ * `getArenaWaypoints()`, `getArenaSpawns()`, and `getBombSites()`.
  *
  * Safe to call multiple times: disposes any prior arena meshes/materials first.
  */
@@ -950,25 +1407,26 @@ export function buildArenaScene(scene: THREE.Scene, customGrid?: string[]): void
   applyGridData(customGrid ?? DEFAULT_KILLHOUSE_GRID);
 
   scene.background = new THREE.Color(COLOR_SKY_BG);
-  scene.fog = new THREE.Fog(COLOR_SKY_BG, 34, 86);
+  scene.fog = new THREE.Fog(COLOR_SKY_BG, 48, 120);
 
   const root = new THREE.Group();
   root.name = 'killhouse-arena-root';
 
-  // Bright overcast skylight + warm sun key light so Red/Blue/Green characters POP
+  // Bright overcast skylight + warm sun key light so agent colors POP
   const hemiLight = new THREE.HemisphereLight(0xeef4ff, 0x4a5568, 1.15);
   root.add(hemiLight);
 
   const sunLight = new THREE.DirectionalLight(0xfff6e8, 1.55);
-  sunLight.position.set(14, 24, 16);
+  sunLight.position.set(20, 32, 22);
   root.add(sunLight);
 
   // Subtle cool back-fill keeps north-facing cover faces legible
   const fillLight = new THREE.DirectionalLight(0xdbeafe, 0.45);
-  fillLight.position.set(-12, 16, -14);
+  fillLight.position.set(-18, 20, -20);
   root.add(fillLight);
 
   buildFloorAndGrid(root);
+  buildSiteMarkings(root, currentGrid);
   buildArchitecturalBlocks(root, currentGrid);
   buildWarehouseRafters(root);
 
@@ -978,8 +1436,8 @@ export function buildArenaScene(scene: THREE.Scene, customGrid?: string[]): void
 
 /**
  * Live-rebuilds the 3D arena, greedy-meshed `ARENA_COLLIDERS`, AI waypoints,
- * and team spawns from a user-edited ASCII grid, cleanly disposing old GPU
- * geometries and materials without disturbing combatants or HUD state.
+ * team spawns, and bomb sites from a user-edited ASCII grid, cleanly disposing
+ * old GPU geometries, materials, and textures without disturbing combatants.
  */
 export function rebuildArenaScene(scene: THREE.Scene, customGrid: string[]): void {
   buildArenaScene(scene, customGrid);

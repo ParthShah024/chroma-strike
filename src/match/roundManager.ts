@@ -5,50 +5,61 @@ import {
   AGENT_PALETTES,
   AgentColorId,
   AiDifficulty,
+  BombSiteId,
   Combatant,
   KillFeedEntry,
   MatchHudState,
+  MinimapContact,
   PlayerState,
   RoundPhase,
+  ShieldTier,
   SmokeSphere,
+  SpikeHudState,
+  SpikeStatus,
+  TacticalSide,
   TargetDummy,
   TeamId,
   Vec3,
   WeaponId,
 } from '../core/types';
-import { ARENA_COLLIDERS, getArenaSpawns } from '../arena/map';
-import { raycastSphere } from '../physics/movement';
+import {
+  ARENA_COLLIDERS,
+  getArenaSpawns,
+  getBombSiteAt,
+  getBombSites,
+} from '../arena/map';
+import { raycastAABB, raycastSphere } from '../physics/movement';
 import { WEAPON_SPECS } from '../combat/arsenal';
 import { CharacterRig, createCharacterModel } from '../entities/characterModel';
+import { createSpikeModel } from '../entities/spikeModel';
 import { AbilitySystem } from '../abilities/system';
 import { WeaponSystem } from '../combat/weapons';
 import { SoundEngine } from '../audio/sfx';
 import { TargetsManager } from '../combat/targets';
-import { createBotBrainSystem } from '../ai/botBrain';
+import { BotSdContext, createBotBrainSystem } from '../ai/botBrain';
+import { createEconomySystem } from './economy';
 
 /**
  * ============================================================================
- * 3v3 Tactical Round State Machine & Combatant Orchestrator
+ * 3v3 Search & Destroy Round State Machine, Economy & Spike Orchestrator
  * ============================================================================
  *
- * Round State Machine (`buy -> combat -> round_end -> match_over`):
- *   1. `'buy'` (`7.0s`):
- *      - All 6 combatants spawn at opposing ends (`+Z` Allies vs `-Z` Enemies).
- *      - Bots stand ready with round-scaled loadouts (R1 Pistol, R2 SMG, R3+ AR/Sniper).
- *      - Human player can swap weapons `[1-4]`, pick agent `[B]` / `[F1-F5]`, or press
- *        `[Space]` to skip straight into `'combat'` (`sfx.playRoundCue('fight')`).
- *   2. `'combat'` (`60.0s`):
- *      - Bot AI runs full FSM + Multi-Gate Perception + ability usage.
- *      - Round ends immediately when all 3 enemies die (`allyScore++`) or all 3
- *        allies die (`enemyScore++`), or on timeout (`enemyScore++` Defenders hold).
- *      - If the human player falls while >= 1 ally bot survives, `canTakeoverBot`
- *        enables `[Tab]` bot takeover so the player stays in the action!
- *   3. `'round_end'` (`3.0s`):
- *      - Celebrates round winner, then either enters `'match_over'` at 5 wins
- *        (`First to 5`) or calls `abilities.resetRound()` + `weaponSystem.resetForRound()`
- *        and starts the next `'buy'` phase.
- *   4. `'match_over'`:
- *      - Awaits `[Enter]` -> `restartMatch()` to reset scores and start Round 1.
+ * Match Structure (`First to 6 Wins`, Halftime Side Swap after Round 5):
+ *   - Rounds 1–5: Allies start as `'attacker'` (South `+Z`), Enemies as `'defender'` (North `-Z`).
+ *   - Round 6+  : Halftime side swap — Allies become `'defender'` (North `-Z`),
+ *                 Enemies become `'attacker'` (South `+Z`), economy resets to
+ *                 `800¤` pistol round!
+ *
+ * Round Phases:
+ *   1. `'buy'` (`12.0s`)       : Shop weapons/shields (`[B]` / shop API), bots run
+ *                                eco/half-buy/full-buy AI, `[Space]` skips to fight.
+ *   2. `'combat'` (`85.0s`)    : Full 2-Site S&D loop (drop `[G]`, pickup `1.8m`,
+ *                                plant `3.0s` inside Site A/B -> `45.0s` timer +
+ *                                `+300¤` team bonus, defuse `5.0s` with permanent
+ *                                50% halfway checkpoint + `+300¤` team bonus,
+ *                                detonation blast inside `15m`).
+ *   3. `'round_end'` (`3.2s`)  : Applies win/loss-streak rewards & survivor carryover.
+ *   4. `'match_over'`          : Awaits `[Enter]` -> `restartMatch()`.
  */
 
 export interface MatchManager {
@@ -56,6 +67,8 @@ export interface MatchManager {
   enemyTargetsView: TargetsManager;
   allTargetsView: TargetsManager;
   getPlayerCombatant(): Combatant;
+  getPlayerOwnedPrimary(): WeaponId | null;
+  getPlayerSide(): TacticalSide;
   selectPlayerAgent(colorId: AgentColorId): void;
   setDifficulty(diff: AiDifficulty): void;
   getDifficulty(): AiDifficulty;
@@ -64,12 +77,18 @@ export interface MatchManager {
   restartMatch(): void;
   onMapRebuilt(): void;
   setThirdPersonMode(thirdPerson: boolean): void;
+  buyWeapon(weaponId: WeaponId): boolean;
+  refundCurrentRoundWeapon(): boolean;
+  buyShield(tier: ShieldTier): boolean;
+  swapSides(): void;
   syncPlayerFromPhysics(
     player: PlayerState,
     yaw: number,
     pitch: number,
     weaponId: WeaponId,
-    firedThisFrame: boolean
+    firedThisFrame: boolean,
+    interactHeld?: boolean,
+    dropSpikePressed?: boolean
   ): void;
   update(
     dt: number,
@@ -79,10 +98,17 @@ export interface MatchManager {
   ): MatchHudState;
 }
 
-const WINS_TO_WIN_MATCH = 5;
-const BUY_PHASE_DURATION_SEC = 7.0;
-const COMBAT_PHASE_DURATION_SEC = 60.0;
-const ROUND_END_DURATION_SEC = 3.0;
+const WINS_TO_WIN_MATCH = 6;
+const HALFTIME_AFTER_ROUND = 5;
+const BUY_PHASE_DURATION_SEC = 12.0;
+const COMBAT_PHASE_DURATION_SEC = 85.0;
+const POST_PLANT_DURATION_SEC = 45.0;
+const PLANT_TIME_SEC = 3.0;
+const DEFUSE_TIME_SEC = 5.0;
+const DEFUSE_INTERACT_RADIUS_M = 2.8;
+const SPIKE_PICKUP_RADIUS_M = 1.8;
+const SPIKE_BLAST_RADIUS_M = 15.0;
+const ROUND_END_DURATION_SEC = 3.2;
 const KILLFEED_MAX_AGE_SEC = 6.5;
 const MAX_KILLFEED_ENTRIES = 5;
 
@@ -90,11 +116,13 @@ const BODY_HALF_WIDTH = 0.38;
 const BODY_HEIGHT = 1.38;
 const HEAD_HALF_WIDTH = 0.22;
 const HEAD_HEIGHT = 0.44;
-const TARGET_CHEST_HEIGHT = 1.1;
+const TARGET_CHEST_HEIGHT = 1.2;
+const EYE_HEIGHT_M = 1.6;
 const SLIDE_HITBOX_DROP_M = 0.5;
 const VULNERABLE_DAMAGE_MULT = 1.25;
+
 const BUY_BANNER_SUBTITLE =
-  'PRESS [SPACE] TO FIGHT  •  [B] AGENTS  •  [1-4] WEAPON  •  [F1-F5] SWITCH';
+  '[SPACE] FIGHT  •  [B] SHOP  •  [F] PLANT / DEFUSE  •  [G] DROP SPIKE';
 
 interface SpawnDef {
   id: string;
@@ -103,30 +131,28 @@ interface SpawnDef {
   yaw: number;
 }
 
-/** Six fixed spawn slots (3 allies on +Z, 3 enemies on -Z); agent colours are drafted separately. */
-function buildRosterSpawns(): SpawnDef[] {
+/**
+ * Attackers ALWAYS spawn on `spawns.allies` (`+Z` south pads facing `yaw = 0`);
+ * Defenders ALWAYS spawn on `spawns.enemies` (`-Z` north pads facing `yaw = Math.PI`).
+ * Team IDs (`'ally'` / `'enemy'`) stay constant while North/South sides swap on Halftime.
+ */
+function buildRosterSpawns(attackerTeam: TeamId): SpawnDef[] {
   const spawns = getArenaSpawns();
+  const allyPads = attackerTeam === 'ally' ? spawns.allies : spawns.enemies;
+  const allyYaw = attackerTeam === 'ally' ? 0 : Math.PI;
+  const enemyPads = attackerTeam === 'enemy' ? spawns.allies : spawns.enemies;
+  const enemyYaw = attackerTeam === 'enemy' ? 0 : Math.PI;
+
   return [
-    { id: 'ally-0', team: 'ally', spawn: { ...spawns.allies[0] }, yaw: 0 },
-    { id: 'ally-1', team: 'ally', spawn: { ...spawns.allies[1] }, yaw: 0 },
-    { id: 'ally-2', team: 'ally', spawn: { ...spawns.allies[2] }, yaw: 0 },
-    { id: 'enemy-0', team: 'enemy', spawn: { ...spawns.enemies[0] }, yaw: Math.PI },
-    { id: 'enemy-1', team: 'enemy', spawn: { ...spawns.enemies[1] }, yaw: Math.PI },
-    { id: 'enemy-2', team: 'enemy', spawn: { ...spawns.enemies[2] }, yaw: Math.PI },
+    { id: 'ally-0', team: 'ally', spawn: { ...allyPads[0] }, yaw: allyYaw },
+    { id: 'ally-1', team: 'ally', spawn: { ...allyPads[1] }, yaw: allyYaw },
+    { id: 'ally-2', team: 'ally', spawn: { ...allyPads[2] }, yaw: allyYaw },
+    { id: 'enemy-0', team: 'enemy', spawn: { ...enemyPads[0] }, yaw: enemyYaw },
+    { id: 'enemy-1', team: 'enemy', spawn: { ...enemyPads[1] }, yaw: enemyYaw },
+    { id: 'enemy-2', team: 'enemy', spawn: { ...enemyPads[2] }, yaw: enemyYaw },
   ];
 }
 
-function getBotWeaponForRound(roundNum: number, colorId: AgentColorId): WeaponId {
-  if (roundNum <= 1) return 'pistol';
-  if (roundNum === 2) return 'smg';
-  if (colorId === 'blue') return 'sniper';
-  return colorId === 'gold' ? 'smg' : 'ar';
-}
-
-/**
- * Non-duplicate 5-agent team draft helpers. Every team always fields 3 DISTINCT
- * agents from AGENT_ORDER.
- */
 function shuffled<T>(items: readonly T[]): T[] {
   const out = items.slice();
   for (let i = out.length - 1; i > 0; i--) {
@@ -136,7 +162,6 @@ function shuffled<T>(items: readonly T[]): T[] {
   return out;
 }
 
-/** [preferred, ...two complementary distinct agents], preferring differing roles. */
 function draftAllyRoster(preferred: AgentColorId): AgentColorId[] {
   const roster: AgentColorId[] = [preferred];
   const startIdx = AGENT_ORDER.indexOf(preferred);
@@ -159,7 +184,6 @@ function draftAllyRoster(preferred: AgentColorId): AgentColorId[] {
   return roster;
 }
 
-/** 3 distinct enemy agents, varied round to round (never the exact previous trio if avoidable). */
 function draftEnemyRoster(previous: AgentColorId[] | null): AgentColorId[] {
   let pick: AgentColorId[] = shuffled(AGENT_ORDER).slice(0, 3);
   if (previous) {
@@ -171,10 +195,47 @@ function draftEnemyRoster(previous: AgentColorId[] | null): AgentColorId[] {
   }
   return pick;
 }
+
 function formatCombatantLabel(c: Combatant): string {
   if (c.isPlayer) return 'YOU';
   const prefix = c.team === 'ally' ? 'ALLY' : 'FOE';
   return `${prefix} ${c.colorId.toUpperCase()}`;
+}
+
+function hasLineOfSight(
+  observer: Combatant,
+  target: Combatant,
+  colliders: AABB[],
+  activeSmokes: SmokeSphere[]
+): boolean {
+  if (!observer.alive || !target.alive || observer.blindTimer > 0) return false;
+  const eye: Vec3 = {
+    x: observer.position.x,
+    y: observer.position.y + EYE_HEIGHT_M,
+    z: observer.position.z,
+  };
+  const drop = (target.slideTimer ?? 0) > 0 ? SLIDE_HITBOX_DROP_M : 0;
+  const chest: Vec3 = {
+    x: target.position.x,
+    y: target.position.y + TARGET_CHEST_HEIGHT - drop,
+    z: target.position.z,
+  };
+  const dx = chest.x - eye.x;
+  const dy = chest.y - eye.y;
+  const dz = chest.z - eye.z;
+  const dist = Math.hypot(dx, dy, dz);
+  if (dist < 1e-4) return true;
+
+  const dir: Vec3 = { x: dx / dist, y: dy / dist, z: dz / dist };
+  const wallMax = Math.max(0, dist - 0.05);
+
+  for (const box of colliders) {
+    if (raycastAABB(eye, dir, box, wallMax) !== null) return false;
+  }
+  for (const smoke of activeSmokes) {
+    if (raycastSphere(eye, dir, smoke.center, smoke.radius, dist) !== null) return false;
+  }
+  return true;
 }
 
 export function createMatchManager(
@@ -184,20 +245,26 @@ export function createMatchManager(
   sfx: SoundEngine
 ): MatchManager {
   const botBrain = createBotBrainSystem();
+  const economy = createEconomySystem();
+  const spikeModel = createSpikeModel(scene);
 
   const combatants: Combatant[] = [];
   const rigById = new Map<string, CharacterRig>();
   const combatantById = new Map<string, Combatant>();
+  const ownedPrimaryById = new Map<string, WeaponId | null>();
   const dotFlashCooldownById = new Map<string, number>();
 
-  // Match & Round State
+  // Match, Side & Round State
   let phase: RoundPhase = 'buy';
   let roundNumber = 1;
   let phaseTimerSec = BUY_PHASE_DURATION_SEC;
   let allyScore = 0;
   let enemyScore = 0;
-  let roundBannerTitle: string | null = `ROUND 1 — BUY PHASE`;
+  let playerSide: TacticalSide = 'attacker';
+  let halftimeSwapped = false;
+  let roundBannerTitle: string | null = 'ROUND 1 — BUY PHASE';
   let roundBannerSubtitle: string | null = BUY_BANNER_SUBTITLE;
+  let transientBannerTimer = 0;
 
   let thirdPersonMode = false;
   let preferredPlayerColor: AgentColorId = 'red';
@@ -208,24 +275,47 @@ export function createMatchManager(
   let lastDamageAngleRad: number | null = null;
   let lastDamageSeq = 0;
 
+  // Player S&D Input Latches (fed via syncPlayerFromPhysics)
+  let playerInteractHeld = false;
+  let playerDropSpikeRequested = false;
+
+  // Spike Lifecycle State
+  let spikeStatus: SpikeStatus = 'carried';
+  let spikeCarrierId: string | null = null;
+  let spikePlantedSite: BombSiteId | null = null;
+  let spikePosition: Vec3 = { x: 0, y: 0, z: 0 };
+  let spikeTimerSec = POST_PLANT_DURATION_SEC;
+  let spikePlantProgress = 0;
+  let spikeDefuseProgress = 0;
+  let spikeHalfwayCheckpoint = false;
+  let spikeBeepAccum = 0;
+  let spikePlantTickCooldown = 0;
+  let spikeDefuseCuePlayed = false;
+  let dropPickupBlockId: string | null = null;
+  let dropPickupBlockTimer = 0;
+
   let nextKillId = 1;
   const killFeed: KillFeedEntry[] = [];
 
-  // Non-duplicate 3v3 draft from the 5-agent pool.
   let allyRoster: AgentColorId[] = draftAllyRoster(preferredPlayerColor);
   let enemyRoster: AgentColorId[] = draftEnemyRoster(null);
 
-  // Spawn all 6 combatants + articulated 3D CharacterRigs using dynamic Killhouse spawns
-  const initialSpawns = buildRosterSpawns();
+  function getAttackerTeam(): TeamId {
+    return playerSide === 'attacker' ? 'ally' : 'enemy';
+  }
+
+  function getDefenderTeam(): TeamId {
+    return playerSide === 'attacker' ? 'enemy' : 'ally';
+  }
+
+  // Spawn all 6 combatants + articulated 3D CharacterRigs
+  const initialSpawns = buildRosterSpawns(getAttackerTeam());
   let allyIdx = 0;
   let enemyIdx = 0;
   for (const def of initialSpawns) {
     const colorId: AgentColorId =
       def.team === 'ally' ? allyRoster[allyIdx++] : enemyRoster[enemyIdx++];
     const isInitialPlayer = def.team === 'ally' && colorId === preferredPlayerColor;
-    const startingWeapon: WeaponId = isInitialPlayer
-      ? weaponSystem.currentWeaponId
-      : getBotWeaponForRound(1, colorId);
 
     const combatant: Combatant = {
       id: def.id,
@@ -234,6 +324,10 @@ export function createMatchManager(
       colorId,
       health: 100,
       maxHealth: 100,
+      armor: 0,
+      maxArmor: 0,
+      credits: 800,
+      shieldTier: 'none',
       alive: true,
       respawnTimer: 0,
       strafeSpeed: 0,
@@ -250,22 +344,31 @@ export function createMatchManager(
       pitch: 0,
       velocity: { x: 0, y: 0, z: 0 },
       grounded: false,
-      weaponId: startingWeapon,
+      weaponId: 'pistol',
     };
 
     const rig = createCharacterModel(scene, def.team, colorId);
-    rig.setWeaponModel(startingWeapon);
+    rig.setWeaponModel('pistol');
     rig.setVisible(!isInitialPlayer || thirdPersonMode);
 
     combatants.push(combatant);
     combatantById.set(combatant.id, combatant);
+    ownedPrimaryById.set(combatant.id, null);
     rigById.set(combatant.id, rig);
   }
 
-  /**
-   * Swaps a combatant's agent identity in place: disposes the old `CharacterRig`
-   * (GPU memory stays flat), spawns the new agent's rig and re-equips its weapon.
-   */
+  function getPlayerCombatant(): Combatant {
+    return combatants.find((c) => c.isPlayer) ?? combatants[0];
+  }
+
+  function getPlayerOwnedPrimary(): WeaponId | null {
+    return ownedPrimaryById.get(getPlayerCombatant().id) ?? null;
+  }
+
+  function getPlayerSide(): TacticalSide {
+    return playerSide;
+  }
+
   function assignAgentToCombatant(c: Combatant, colorId: AgentColorId): void {
     if (c.colorId === colorId && rigById.has(c.id)) return;
     rigById.get(c.id)?.dispose(scene);
@@ -275,11 +378,88 @@ export function createMatchManager(
     rigById.set(c.id, rig);
   }
 
-  botBrain.resetRound(combatants);
+  function resetSpikeForRound(): void {
+    const attackerTeam = getAttackerTeam();
+    const playerCombatant = getPlayerCombatant();
+    const carrier =
+      attackerTeam === 'ally'
+        ? playerCombatant
+        : combatants.find((c) => c.team === attackerTeam && c.alive) ?? combatants[3];
 
-  function getPlayerCombatant(): Combatant {
-    return combatants.find((c) => c.isPlayer) ?? combatants[0];
+    spikeStatus = 'carried';
+    spikeCarrierId = carrier ? carrier.id : null;
+    spikePlantedSite = null;
+    spikePosition = carrier ? { ...carrier.position } : { x: 0, y: 0, z: 0 };
+    spikeTimerSec = POST_PLANT_DURATION_SEC;
+    spikePlantProgress = 0;
+    spikeDefuseProgress = 0;
+    spikeHalfwayCheckpoint = false;
+    spikeBeepAccum = 0;
+    spikePlantTickCooldown = 0;
+    spikeDefuseCuePlayed = false;
+    dropPickupBlockId = null;
+    dropPickupBlockTimer = 0;
   }
+
+  function dropSpikeAt(pos: Vec3, blockPickupForId: string | null): void {
+    spikeStatus = 'dropped';
+    spikeCarrierId = null;
+    spikePosition = {
+      x: pos.x,
+      y: Math.max(0, pos.y),
+      z: pos.z,
+    };
+    spikePlantProgress = 0;
+    spikePlantTickCooldown = 0;
+    dropPickupBlockId = blockPickupForId;
+    dropPickupBlockTimer = blockPickupForId ? 1.25 : 0;
+  }
+
+  function buildSpikeHudState(playerCombatant: Combatant): SpikeHudState {
+    const canPlantNow: BombSiteId | null =
+      phase === 'combat' &&
+      spikeStatus === 'carried' &&
+      spikeCarrierId === playerCombatant.id &&
+      playerCombatant.alive
+        ? getBombSiteAt(playerCombatant.position.x, playerCombatant.position.z)
+        : null;
+
+    const canDefuseNow =
+      phase === 'combat' &&
+      spikeStatus === 'planted' &&
+      playerCombatant.alive &&
+      playerCombatant.team === getDefenderTeam() &&
+      Math.hypot(
+        playerCombatant.position.x - spikePosition.x,
+        playerCombatant.position.z - spikePosition.z
+      ) <= DEFUSE_INTERACT_RADIUS_M;
+
+    return {
+      status: spikeStatus,
+      carrierId: spikeCarrierId,
+      playerHasSpike: spikeStatus === 'carried' && spikeCarrierId === playerCombatant.id,
+      plantedSite: spikePlantedSite,
+      position: { ...spikePosition },
+      timerSec: spikeTimerSec,
+      plantProgress: spikePlantProgress,
+      defuseProgress: spikeDefuseProgress,
+      halfwayCheckpoint: spikeHalfwayCheckpoint,
+      canPlantNow,
+      canDefuseNow,
+    };
+  }
+
+  // Seed Round 1 Economy (800¤ pistol round), Bot Buy Phase, Spike & AI
+  economy.resetForNewMatch(combatants);
+  economy.beginBuyPhase(combatants);
+  economy.runBotBuyPhase(combatants, getAttackerTeam());
+  for (const c of combatants) {
+    ownedPrimaryById.set(c.id, c.weaponId !== 'pistol' ? c.weaponId : null);
+    rigById.get(c.id)?.setWeaponModel(c.weaponId);
+  }
+  weaponSystem.equipWeapon(getPlayerCombatant().weaponId);
+  resetSpikeForRound();
+  botBrain.resetRound(combatants, getAttackerTeam());
 
   function pushKillFeed(
     killerName: string,
@@ -311,7 +491,6 @@ export function createMatchManager(
       const rig = rigById.get(c.id);
       if (!rig) continue;
       if (c.isPlayer) {
-        // Show player's own 3D rig in 3rd-person mode OR when collapsed on death
         rig.setVisible(thirdPersonMode || !c.alive);
       } else {
         rig.setVisible(true);
@@ -328,13 +507,14 @@ export function createMatchManager(
   ): boolean {
     if (!victim.alive || amount <= 0) return false;
 
-    // Singularity "Fragile": +25% damage taken while vulnerable.
+    // 1. Singularity "Fragile": +25% damage amplification BEFORE shield absorption.
+    let dmg = amount;
     if ((victim.vulnerableTimer ?? 0) > 0) {
-      const scaled = amount * VULNERABLE_DAMAGE_MULT;
-      amount = amount >= 2 ? Math.round(scaled) : scaled;
+      const scaled = dmg * VULNERABLE_DAMAGE_MULT;
+      dmg = dmg >= 2 ? Math.round(scaled) : scaled;
     }
 
-    // Directional damage indicator for the human player.
+    // 2. Directional damage indicator for the human player.
     if (victim.isPlayer && attacker && attacker.team !== victim.team) {
       lastDamageAngleRad = Math.atan2(
         attacker.position.x - victim.position.x,
@@ -343,16 +523,27 @@ export function createMatchManager(
       lastDamageSeq += 1;
     }
 
-    victim.health = Math.max(0, victim.health - amount);
+    // 3. Shield Absorption: armor absorbs incoming damage before health.
+    const absorbed = Math.min(victim.armor ?? 0, dmg);
+    victim.armor = Math.max(0, (victim.armor ?? 0) - absorbed);
+    victim.health = Math.max(0, victim.health - (dmg - absorbed));
+
+    economy.syncDamageArmor(victim.id, victim.armor);
+    if (victim.armor <= 0) {
+      victim.maxArmor = 0;
+      victim.shieldTier = 'none';
+    }
+
     if (victim.isPlayer && playerStateRef) {
       playerStateRef.health = victim.health;
+      playerStateRef.armor = victim.armor;
+      playerStateRef.maxArmor = victim.maxArmor;
       lastSyncedPlayerHealth = victim.health;
     }
 
     const rig = rigById.get(victim.id);
     if (rig) {
-      // Throttle hit flash on continuous fire-tick damage so character doesn't strobe
-      if (amount >= 1.5 || isHeadshot) {
+      if (dmg >= 1.5 || isHeadshot) {
         rig.triggerHitFlash(isHeadshot);
       } else {
         const cd = dotFlashCooldownById.get(victim.id) ?? 0;
@@ -369,7 +560,15 @@ export function createMatchManager(
       victim.velocity.y = 0;
       victim.velocity.z = 0;
 
+      // Drop Spike immediately on carrier death
+      if (spikeStatus === 'carried' && spikeCarrierId === victim.id) {
+        dropSpikeAt(victim.position, null);
+      }
+
       if (attacker) {
+        if (attacker.team !== victim.team) {
+          economy.onKill(attacker.id, combatants);
+        }
         pushKillFeed(
           formatCombatantLabel(attacker),
           attacker.team,
@@ -380,7 +579,7 @@ export function createMatchManager(
         );
       } else {
         const oppTeam: TeamId = victim.team === 'ally' ? 'enemy' : 'ally';
-        pushKillFeed('INFERNO', oppTeam, 'red', victim, weaponTag, false);
+        pushKillFeed(weaponTag === 'SPIKE' ? 'SPIKE' : 'INFERNO', oppTeam, 'red', victim, weaponTag, false);
       }
 
       updateRigVisibilities();
@@ -390,10 +589,8 @@ export function createMatchManager(
     return false;
   }
 
-  // Shared hitbox computation matching characterModel.ts & targets.ts
   function getCombatantHitboxes(target: TargetDummy): { head: AABB; body: AABB } {
     const { x, y, z } = target.position;
-    // Power-Slide ducks the whole upper hitbox stack by 0.5m (under 1.28m cover).
     const drop = (target.slideTimer ?? 0) > 0 ? SLIDE_HITBOX_DROP_M : 0;
     return {
       body: {
@@ -425,18 +622,12 @@ export function createMatchManager(
     }
   }
 
-  /**
-   * `TargetsManager` adapter exposing living `'enemy'` combatants to the player's
-   * `WeaponSystem`. Kills are credited directly to `getPlayerCombatant()` with the
-   * active weapon's `shortTag`.
-   */
+  // Keep ally vs enemy team views consistent regardless of North/South side swap
   const enemyTargetsView: TargetsManager = {
     get targets(): TargetDummy[] {
       return combatants.filter((c) => c.team === 'enemy');
     },
-    update(): void {
-      // Driven by MatchManager.update()
-    },
+    update(): void {},
     getHitboxes: getCombatantHitboxes,
     applyDamage(targetId: string, amount: number, isHeadshot: boolean): boolean {
       const victim = combatantById.get(targetId);
@@ -448,17 +639,11 @@ export function createMatchManager(
     applyStatus: applyStatusToCombatant,
   };
 
-  /**
-   * `TargetsManager` adapter exposing ALL 6 combatants to `AbilitySystem` for
-   * AoE fire damage, Cryo slows, Bio-Stim heals, and Pop-Flash blinds.
-   */
   const allTargetsView: TargetsManager = {
     get targets(): TargetDummy[] {
       return combatants;
     },
-    update(): void {
-      // Driven by MatchManager.update()
-    },
+    update(): void {},
     getHitboxes: getCombatantHitboxes,
     applyDamage(targetId: string, amount: number, isHeadshot: boolean): boolean {
       const victim = combatantById.get(targetId);
@@ -470,16 +655,30 @@ export function createMatchManager(
 
   function setupRound(nextRoundNum: number, redraftEnemies = true): void {
     roundNumber = nextRoundNum;
+
+    // Trigger Halftime Side Swap after Round 5 (entering Round 6)
+    let isHalftimeRound = false;
+    if (roundNumber === HALFTIME_AFTER_ROUND + 1 && !halftimeSwapped) {
+      halftimeSwapped = true;
+      playerSide = playerSide === 'attacker' ? 'defender' : 'attacker';
+      economy.resetForHalftime(combatants);
+      isHalftimeRound = true;
+    }
+
     phase = 'buy';
     phaseTimerSec = BUY_PHASE_DURATION_SEC;
-    roundBannerTitle = `ROUND ${roundNumber} — BUY PHASE`;
-    roundBannerSubtitle = BUY_BANNER_SUBTITLE;
+    transientBannerTimer = 0;
+    roundBannerTitle = isHalftimeRound
+      ? `HALFTIME — SIDE SWAP (${playerSide.toUpperCase()}S)`
+      : `ROUND ${roundNumber} — BUY PHASE`;
+    roundBannerSubtitle = isHalftimeRound
+      ? 'ECONOMY RESET (800¤ PISTOL ROUND)  •  ' + BUY_BANNER_SUBTITLE
+      : BUY_BANNER_SUBTITLE;
 
     abilities.resetRound();
     weaponSystem.resetForRound();
     dotFlashCooldownById.clear();
 
-    // Maintain a non-duplicate ally roster that always contains the player's agent.
     if (!allyRoster.includes(preferredPlayerColor)) {
       allyRoster = draftAllyRoster(preferredPlayerColor);
     }
@@ -487,7 +686,8 @@ export function createMatchManager(
       enemyRoster = draftEnemyRoster(enemyRoster);
     }
 
-    const rosterSpawns = buildRosterSpawns();
+    const attackerTeam = getAttackerTeam();
+    const rosterSpawns = buildRosterSpawns(attackerTeam);
     let aI = 0;
     let eI = 0;
     for (let i = 0; i < rosterSpawns.length; i++) {
@@ -516,21 +716,28 @@ export function createMatchManager(
       c.slideTimer = 0;
       c.yaw = def.yaw;
       c.pitch = 0;
-      c.weaponId = shouldBePlayer
-        ? weaponSystem.currentWeaponId
-        : getBotWeaponForRound(roundNumber, colorId);
 
-      // Swap rig only when this slot's agent changed (disposes the old one).
       if (c.colorId !== colorId) {
         assignAgentToCombatant(c, colorId);
       }
+    }
+
+    // Begin buy phase and execute bot smart buying (eco / half-buy / full-buy / sniper)
+    economy.beginBuyPhase(combatants);
+    economy.runBotBuyPhase(combatants, attackerTeam);
+
+    for (const c of combatants) {
+      ownedPrimaryById.set(c.id, c.weaponId !== 'pistol' ? c.weaponId : null);
       rigById.get(c.id)?.setWeaponModel(c.weaponId);
     }
+
+    const pc = getPlayerCombatant();
+    weaponSystem.equipWeapon(pc.weaponId);
+    weaponSystem.setAgentColor(pc.colorId);
 
     lastSyncedPlayerHealth = 100;
     pendingSyncCombatantToPlayer = true;
     if (playerStateRef) {
-      const pc = getPlayerCombatant();
       playerStateRef.position.x = pc.position.x;
       playerStateRef.position.y = pc.position.y;
       playerStateRef.position.z = pc.position.z;
@@ -540,10 +747,13 @@ export function createMatchManager(
       playerStateRef.grounded = false;
       playerStateRef.health = 100;
       playerStateRef.maxHealth = 100;
+      playerStateRef.armor = pc.armor ?? 0;
+      playerStateRef.maxArmor = pc.maxArmor ?? 0;
       playerStateRef.colorId = pc.colorId;
     }
 
-    botBrain.resetRound(combatants);
+    resetSpikeForRound();
+    botBrain.resetRound(combatants, attackerTeam);
     updateRigVisibilities();
   }
 
@@ -555,14 +765,12 @@ export function createMatchManager(
     const target = combatants.find((c) => c.team === 'ally' && c.colorId === colorId);
 
     if (!target) {
-      // Agent is not on the current ally team: swap the player's own identity in place.
-      if (phase !== 'buy') return; // Applies at the next buy phase via `preferredPlayerColor`.
+      if (phase !== 'buy') return;
       const slot = allyRoster.indexOf(current.colorId);
       if (slot >= 0) allyRoster[slot] = colorId;
       else allyRoster = draftAllyRoster(colorId);
 
       assignAgentToCombatant(current, colorId);
-      current.weaponId = weaponSystem.currentWeaponId;
       rigById.get(current.id)?.setWeaponModel(current.weaponId);
       current.vulnerableTimer = 0;
       current.concussTimer = 0;
@@ -573,28 +781,24 @@ export function createMatchManager(
     }
 
     if (phase === 'buy') {
-      // In Buy Phase: swap spawn slots so the human player stays smoothly in place
-      const prevPos = { ...current.position };
-      const targetPos = { ...target.position };
-      current.position.x = targetPos.x;
-      current.position.y = targetPos.y;
-      current.position.z = targetPos.z;
-      target.position.x = prevPos.x;
-      target.position.y = prevPos.y;
-      target.position.z = prevPos.z;
+      // Swap agent identities in-place so the player preserves their credits, weapon, armor & Spike!
+      const prevColor = current.colorId;
+      const curIdx = allyRoster.indexOf(prevColor);
+      const tgtIdx = allyRoster.indexOf(colorId);
+      if (curIdx >= 0 && tgtIdx >= 0) {
+        allyRoster[curIdx] = colorId;
+        allyRoster[tgtIdx] = prevColor;
+      }
 
-      current.isPlayer = false;
-      current.weaponId = getBotWeaponForRound(roundNumber, current.colorId);
-      target.isPlayer = true;
-      target.weaponId = weaponSystem.currentWeaponId;
-
+      assignAgentToCombatant(current, colorId);
+      assignAgentToCombatant(target, prevColor);
       rigById.get(current.id)?.setWeaponModel(current.weaponId);
       rigById.get(target.id)?.setWeaponModel(target.weaponId);
+      if (playerStateRef) playerStateRef.colorId = colorId;
       updateRigVisibilities();
     } else if (target.alive) {
       // Mid-combat swap onto a living ally transfers human control cleanly
       current.isPlayer = false;
-      current.weaponId = getBotWeaponForRound(roundNumber, current.colorId);
       target.isPlayer = true;
       weaponSystem.equipWeapon(target.weaponId);
       weaponSystem.setAgentColor(target.colorId);
@@ -602,6 +806,101 @@ export function createMatchManager(
       pendingSyncCombatantToPlayer = true;
       updateRigVisibilities();
     }
+  }
+
+  function buyWeapon(weaponId: WeaponId): boolean {
+    if (phase !== 'buy') {
+      sfx.playBuyError();
+      return false;
+    }
+    const pc = getPlayerCombatant();
+
+    // Switching back to an already-owned primary in-hand (e.g. after pressing [1] for pistol)
+    if (weaponId !== 'pistol' && ownedPrimaryById.get(pc.id) === weaponId) {
+      if (pc.weaponId === weaponId) {
+        sfx.playBuyError();
+        return false;
+      }
+      pc.weaponId = weaponId;
+      weaponSystem.equipWeapon(weaponId);
+      rigById.get(pc.id)?.setWeaponModel(weaponId);
+      sfx.playBuyPurchase();
+      return true;
+    }
+
+    // Clicking [1] Sidearm refunds only if bought from pistol this round;
+    // otherwise it equips Sidearm in-hand while preserving any carried-over primary.
+    if (weaponId === 'pistol') {
+      const econState = economy.getCombatantState(pc.id);
+      if (!(econState.boughtWeaponThisRound && econState.preBuyWeapon === 'pistol')) {
+        if (pc.weaponId === 'pistol') {
+          sfx.playBuyError();
+          return false;
+        }
+        pc.weaponId = 'pistol';
+        weaponSystem.equipWeapon('pistol');
+        rigById.get(pc.id)?.setWeaponModel('pistol');
+        sfx.playBuyPurchase();
+        return true;
+      }
+    }
+
+    const res = economy.buyWeapon(pc.id, weaponId, combatants);
+    if (!res.ok) {
+      sfx.playBuyError();
+      return false;
+    }
+    pc.weaponId = res.weaponId;
+    ownedPrimaryById.set(pc.id, res.weaponId !== 'pistol' ? res.weaponId : null);
+    weaponSystem.equipWeapon(res.weaponId);
+    rigById.get(pc.id)?.setWeaponModel(res.weaponId);
+    sfx.playBuyPurchase();
+    return true;
+  }
+
+  function refundCurrentRoundWeapon(): boolean {
+    if (phase !== 'buy') {
+      sfx.playBuyError();
+      return false;
+    }
+    const pc = getPlayerCombatant();
+    const res = economy.refundPlayerWeapon(pc.id, combatants);
+    if (!res.ok) {
+      sfx.playBuyError();
+      return false;
+    }
+    pc.weaponId = res.weaponId;
+    ownedPrimaryById.set(pc.id, res.weaponId !== 'pistol' ? res.weaponId : null);
+    weaponSystem.equipWeapon(res.weaponId);
+    rigById.get(pc.id)?.setWeaponModel(res.weaponId);
+    sfx.playBuyPurchase();
+    return true;
+  }
+
+  function buyShield(tier: ShieldTier): boolean {
+    if (phase !== 'buy') {
+      sfx.playBuyError();
+      return false;
+    }
+    const pc = getPlayerCombatant();
+    const res = economy.buyShield(pc.id, tier, combatants);
+    if (!res.ok) {
+      sfx.playBuyError();
+      return false;
+    }
+    if (playerStateRef) {
+      playerStateRef.armor = res.armor;
+      playerStateRef.maxArmor = res.maxArmor;
+    }
+    sfx.playBuyPurchase();
+    return true;
+  }
+
+  function swapSides(): void {
+    playerSide = playerSide === 'attacker' ? 'defender' : 'attacker';
+    halftimeSwapped = !halftimeSwapped;
+    setupRound(roundNumber, false);
+    sfx.playRoundCue('buy');
   }
 
   function setDifficulty(diff: AiDifficulty): void {
@@ -617,9 +916,7 @@ export function createMatchManager(
     const current = getPlayerCombatant();
     if (current.alive) return null;
 
-    const livingAlly = combatants.find(
-      (c) => c.team === 'ally' && !c.isPlayer && c.alive
-    );
+    const livingAlly = combatants.find((c) => c.team === 'ally' && !c.isPlayer && c.alive);
     if (!livingAlly) return null;
 
     current.isPlayer = false;
@@ -640,6 +937,8 @@ export function createMatchManager(
       playerStateRef.velocity.z = livingAlly.velocity.z;
       playerStateRef.grounded = livingAlly.grounded;
       playerStateRef.health = livingAlly.health;
+      playerStateRef.armor = livingAlly.armor ?? 0;
+      playerStateRef.maxArmor = livingAlly.maxArmor ?? 0;
       playerStateRef.colorId = livingAlly.colorId;
     }
 
@@ -652,14 +951,22 @@ export function createMatchManager(
     phase = 'combat';
     phaseTimerSec = COMBAT_PHASE_DURATION_SEC;
     roundBannerTitle = 'FIGHT!';
-    roundBannerSubtitle = null;
+    roundBannerSubtitle =
+      playerSide === 'attacker'
+        ? 'PLANT THE SPIKE AT SITE A OR B'
+        : 'DEFEND SITES A & B';
+    transientBannerTimer = 1.6;
     sfx.playRoundCue('fight');
   }
 
   function restartMatch(): void {
     allyScore = 0;
     enemyScore = 0;
+    playerSide = 'attacker';
+    halftimeSwapped = false;
     killFeed.length = 0;
+    ownedPrimaryById.clear();
+    economy.resetForNewMatch(combatants);
     setupRound(1);
     sfx.playRoundCue('buy');
   }
@@ -678,9 +985,16 @@ export function createMatchManager(
     yaw: number,
     pitch: number,
     weaponId: WeaponId,
-    firedThisFrame: boolean
+    firedThisFrame: boolean,
+    interactHeld = false,
+    dropSpikePressed = false
   ): void {
     playerStateRef = player;
+    playerInteractHeld = interactHeld;
+    if (dropSpikePressed) {
+      playerDropSpikeRequested = true;
+    }
+
     const pc = getPlayerCombatant();
 
     if (pendingSyncCombatantToPlayer) {
@@ -693,28 +1007,37 @@ export function createMatchManager(
       player.grounded = pc.grounded;
       player.health = pc.health;
       player.maxHealth = pc.maxHealth;
+      player.armor = pc.armor ?? 0;
+      player.maxArmor = pc.maxArmor ?? 0;
       player.colorId = pc.colorId;
       lastSyncedPlayerHealth = pc.health;
       pendingSyncCombatantToPlayer = false;
       return;
     }
 
-    // Reconcile health deltas cleanly whether AbilitySystem mutated `player.health`
-    // (beacon heal / self-scorch) or `allTargetsView` (enemy fire / bot damage).
+    // Reconcile health deltas cleanly between AbilitySystem heals/burns and combat damage
     const playerDelta = player.health - lastSyncedPlayerHealth;
     const combatantDelta = pc.health - lastSyncedPlayerHealth;
     let mergedHealth = lastSyncedPlayerHealth;
 
     if (Math.abs(playerDelta) > 1e-6 || Math.abs(combatantDelta) > 1e-6) {
-      mergedHealth = Math.max(0, Math.min(pc.maxHealth, lastSyncedPlayerHealth + playerDelta + combatantDelta));
+      mergedHealth = Math.max(
+        0,
+        Math.min(pc.maxHealth, lastSyncedPlayerHealth + playerDelta + combatantDelta)
+      );
     }
 
     pc.health = mergedHealth;
     player.health = mergedHealth;
+    player.armor = pc.armor ?? 0;
+    player.maxArmor = pc.maxArmor ?? 0;
     lastSyncedPlayerHealth = mergedHealth;
 
     if (pc.health <= 0 && pc.alive) {
       pc.alive = false;
+      if (spikeStatus === 'carried' && spikeCarrierId === pc.id) {
+        dropSpikeAt(pc.position, null);
+      }
       updateRigVisibilities();
     }
 
@@ -740,9 +1063,23 @@ export function createMatchManager(
     }
   }
 
-  function transitionToRoundEnd(winner: TeamId, subtitle: string): void {
+  function transitionToRoundEnd(winner: TeamId, subtitle: string, spikeDefused = false): void {
+    if (phase !== 'combat') return;
+
     phase = 'round_end';
     phaseTimerSec = ROUND_END_DURATION_SEC;
+    transientBannerTimer = 0;
+
+    // Surviving while holding backup Sidearm still preserves purchased SMG/AR/Sniper into next round.
+    for (const c of combatants) {
+      if (!c.alive) continue;
+      const primary = ownedPrimaryById.get(c.id);
+      if (primary && c.weaponId === 'pistol') {
+        c.weaponId = primary;
+      }
+    }
+
+    economy.onRoundEnd(winner, combatants, spikeDefused);
 
     if (winner === 'ally') {
       allyScore += 1;
@@ -757,6 +1094,199 @@ export function createMatchManager(
     }
   }
 
+  function tickSpikePlant(planter: Combatant, dt: number): boolean {
+    if (
+      phase !== 'combat' ||
+      spikeStatus !== 'carried' ||
+      spikeCarrierId !== planter.id ||
+      !planter.alive
+    ) {
+      return false;
+    }
+
+    const site = getBombSiteAt(planter.position.x, planter.position.z);
+    if (!site) return false;
+
+    spikePlantProgress = Math.min(1, spikePlantProgress + dt / PLANT_TIME_SEC);
+    spikePlantTickCooldown -= dt;
+    if (spikePlantTickCooldown <= 0) {
+      sfx.playSpikePlantTick();
+      spikePlantTickCooldown = 0.48;
+    }
+
+    if (spikePlantProgress >= 1) {
+      spikeStatus = 'planted';
+      spikeCarrierId = null;
+      spikePlantedSite = site;
+      spikePosition = {
+        x: planter.position.x,
+        y: Math.max(0, planter.position.y),
+        z: planter.position.z,
+      };
+      spikeTimerSec = POST_PLANT_DURATION_SEC;
+      phaseTimerSec = POST_PLANT_DURATION_SEC;
+      spikePlantProgress = 1;
+      spikeDefuseProgress = 0;
+      spikeHalfwayCheckpoint = false;
+      spikeBeepAccum = 0;
+      spikeDefuseCuePlayed = false;
+
+      economy.onPlant(getAttackerTeam(), combatants);
+      sfx.playSpikePlanted();
+      roundBannerTitle = `SPIKE PLANTED — SITE ${site}`;
+      roundBannerSubtitle = '45 SECONDS UNTIL DETONATION';
+      transientBannerTimer = 2.6;
+    }
+
+    return true;
+  }
+
+  function tickSpikeDefuse(defuser: Combatant, dt: number): boolean {
+    if (
+      phase !== 'combat' ||
+      spikeStatus !== 'planted' ||
+      !defuser.alive ||
+      defuser.team !== getDefenderTeam()
+    ) {
+      return false;
+    }
+
+    const dist = Math.hypot(
+      defuser.position.x - spikePosition.x,
+      defuser.position.z - spikePosition.z
+    );
+    if (dist > DEFUSE_INTERACT_RADIUS_M) return false;
+
+    if (!spikeDefuseCuePlayed) {
+      sfx.playSpikeDefuseCue(spikeHalfwayCheckpoint);
+      spikeDefuseCuePlayed = true;
+    }
+
+    spikeDefuseProgress = Math.min(1, spikeDefuseProgress + dt / DEFUSE_TIME_SEC);
+
+    // Permanent 50% halfway checkpoint
+    if (!spikeHalfwayCheckpoint && spikeDefuseProgress >= 0.5) {
+      spikeHalfwayCheckpoint = true;
+      sfx.playSpikeDefuseCue(true);
+    }
+
+    if (spikeDefuseProgress >= 1) {
+      spikeStatus = 'defused';
+      spikeDefuseProgress = 1;
+      sfx.playSpikeDefused();
+      transitionToRoundEnd(getDefenderTeam(), 'SPIKE DEFUSED', true);
+    }
+
+    return true;
+  }
+
+  function triggerSpikeDetonation(): void {
+    spikeStatus = 'detonated';
+    spikeTimerSec = 0;
+    sfx.playSpikeDetonate();
+
+    // Lethal Radianite blast damage inside 15m radius
+    for (const c of combatants) {
+      if (!c.alive) continue;
+      const dist = Math.hypot(
+        c.position.x - spikePosition.x,
+        c.position.y - spikePosition.y,
+        c.position.z - spikePosition.z
+      );
+      if (dist <= SPIKE_BLAST_RADIUS_M) {
+        const blastDmg = Math.max(150, Math.round(280 * (1 - dist / (SPIKE_BLAST_RADIUS_M + 2))));
+        applyDamageInternal(c, blastDmg, false, null, 'SPIKE');
+      }
+    }
+
+    transitionToRoundEnd(getAttackerTeam(), 'SPIKE DETONATED', false);
+  }
+
+  function handleDropAndPickup(dt: number, playerCombatant: Combatant): void {
+    if (dropPickupBlockTimer > 0) {
+      dropPickupBlockTimer = Math.max(0, dropPickupBlockTimer - dt);
+      if (dropPickupBlockTimer <= 0) {
+        dropPickupBlockId = null;
+      }
+    }
+
+    // Handle player [G] drop request
+    if (playerDropSpikeRequested) {
+      playerDropSpikeRequested = false;
+      if (
+        (phase === 'combat' || phase === 'buy') &&
+        spikeStatus === 'carried' &&
+        spikeCarrierId === playerCombatant.id &&
+        playerCombatant.alive
+      ) {
+        dropSpikeAt(
+          {
+            x: playerCombatant.position.x - Math.sin(playerCombatant.yaw) * 0.9,
+            y: Math.max(0, playerCombatant.position.y),
+            z: playerCombatant.position.z - Math.cos(playerCombatant.yaw) * 0.9,
+          },
+          playerCombatant.id
+        );
+      }
+    }
+
+    // Track carrier position
+    if (spikeStatus === 'carried' && spikeCarrierId) {
+      const carrier = combatantById.get(spikeCarrierId);
+      if (carrier && carrier.alive) {
+        spikePosition.x = carrier.position.x;
+        spikePosition.y = carrier.position.y;
+        spikePosition.z = carrier.position.z;
+      } else if (carrier) {
+        dropSpikeAt(carrier.position, null);
+      }
+    }
+
+    // Living Attacker within 1.8m auto-picks up dropped Spike
+    if (spikeStatus === 'dropped') {
+      const attackerTeam = getAttackerTeam();
+      for (const c of combatants) {
+        if (c.team !== attackerTeam || !c.alive) continue;
+        if (c.id === dropPickupBlockId && dropPickupBlockTimer > 0) continue;
+        const dist = Math.hypot(c.position.x - spikePosition.x, c.position.z - spikePosition.z);
+        if (dist <= SPIKE_PICKUP_RADIUS_M) {
+          spikeStatus = 'carried';
+          spikeCarrierId = c.id;
+          spikePosition.x = c.position.x;
+          spikePosition.y = c.position.y;
+          spikePosition.z = c.position.z;
+          sfx.playSpikePickup();
+          break;
+        }
+      }
+    }
+  }
+
+  function computeMinimapEnemies(activeSmokes: SmokeSphere[]): MinimapContact[] {
+    const allies = combatants.filter((c) => c.team === 'ally' && c.alive && c.blindTimer <= 0);
+    if (allies.length === 0) return [];
+
+    const contacts: MinimapContact[] = [];
+    for (const enemy of combatants) {
+      if (enemy.team !== 'enemy' || !enemy.alive) continue;
+      let spotted = false;
+      for (const ally of allies) {
+        if (hasLineOfSight(ally, enemy, ARENA_COLLIDERS, activeSmokes)) {
+          spotted = true;
+          break;
+        }
+      }
+      if (spotted) {
+        contacts.push({
+          x: enemy.position.x,
+          z: enemy.position.z,
+          colorId: enemy.colorId,
+        });
+      }
+    }
+    return contacts;
+  }
+
   function update(
     dt: number,
     player: PlayerState,
@@ -764,8 +1294,9 @@ export function createMatchManager(
     activeSmokes: SmokeSphere[]
   ): MatchHudState {
     playerStateRef = player;
+    const playerCombatant = getPlayerCombatant();
 
-    // 1. Age out kill feed entries and decay combatant status timers
+    // 1. Age out kill feed & decay status timers
     for (let i = killFeed.length - 1; i >= 0; i--) {
       killFeed[i].age += dt;
       if (killFeed[i].age >= KILLFEED_MAX_AGE_SEC) {
@@ -785,13 +1316,24 @@ export function createMatchManager(
       }
     }
 
+    if (transientBannerTimer > 0) {
+      transientBannerTimer -= dt;
+      if (transientBannerTimer <= 0 && phase === 'combat') {
+        roundBannerTitle = null;
+        roundBannerSubtitle = null;
+      }
+    }
+
+    handleDropAndPickup(dt, playerCombatant);
+
+    const attackerTeam = getAttackerTeam();
+    const defenderTeam = getDefenderTeam();
+    const sites = getBombSites();
+
     // 2. Step Round State Machine
     if (phase === 'buy') {
       phaseTimerSec = Math.max(0, phaseTimerSec - dt);
-      roundBannerTitle = `ROUND ${roundNumber} — BUY PHASE`;
-      roundBannerSubtitle = BUY_BANNER_SUBTITLE;
 
-      // Keep bots grounded in spawn during buy phase
       botBrain.update(
         dt,
         combatants,
@@ -810,47 +1352,110 @@ export function createMatchManager(
         skipBuyPhase();
       }
     } else if (phase === 'combat') {
-      phaseTimerSec = Math.max(0, phaseTimerSec - dt);
+      if (spikeStatus === 'planted') {
+        spikeTimerSec = Math.max(0, spikeTimerSec - dt);
+        phaseTimerSec = spikeTimerSec;
 
-      // Clear brief "FIGHT!" callout after 1.4s into combat
-      if (phaseTimerSec < COMBAT_PHASE_DURATION_SEC - 1.4 && roundBannerTitle === 'FIGHT!') {
-        roundBannerTitle = null;
-        roundBannerSubtitle = null;
+        // Accelerating timer beep (`max(0.12, min(1.0, timerSec / 45))`)
+        const beepInterval = Math.max(
+          0.12,
+          Math.min(1.0, spikeTimerSec / POST_PLANT_DURATION_SEC)
+        );
+        spikeBeepAccum += dt;
+        if (spikeBeepAccum >= beepInterval) {
+          spikeBeepAccum = 0;
+          const urgency01 = Math.max(0, Math.min(1, 1 - spikeTimerSec / POST_PLANT_DURATION_SEC));
+          sfx.playSpikeBeep(urgency01);
+        }
+      } else {
+        phaseTimerSec = Math.max(0, phaseTimerSec - dt);
       }
 
-      // Step AI bots (FSM + Multi-Gate Perception + Abilities + Burst Firing)
-      botBrain.update(
-        dt,
-        combatants,
-        ARENA_COLLIDERS,
-        activeSmokes,
-        cameraPos,
-        true,
-        abilities,
-        weaponSystem,
-        sfx,
-        (attacker, victim, damage, isHeadshot, weaponTag) => {
-          applyDamageInternal(victim, damage, isHeadshot, attacker, weaponTag);
-          if (victim.isPlayer) {
-            if (isHeadshot) sfx.playHeadshot();
-            else sfx.playBodyHit();
+      let plantedThisFrame = false;
+      let defusedThisFrame = false;
+
+      // Player [F] Plant / Defuse channel
+      if (playerInteractHeld && playerCombatant.alive) {
+        if (spikeStatus === 'carried' && spikeCarrierId === playerCombatant.id) {
+          plantedThisFrame = tickSpikePlant(playerCombatant, dt);
+        } else if (spikeStatus === 'planted' && playerCombatant.team === defenderTeam) {
+          defusedThisFrame = tickSpikeDefuse(playerCombatant, dt);
+        }
+      }
+
+      const sdContext: BotSdContext = {
+        attackerTeam,
+        spike: buildSpikeHudState(playerCombatant),
+        sites,
+        onBotPlantTick: (bot, stepDt) => {
+          if (tickSpikePlant(bot, stepDt)) {
+            plantedThisFrame = true;
           }
         },
-        (bot) => {
-          rigById.get(bot.id)?.triggerFireKick();
+        onBotDefuseTick: (bot, stepDt) => {
+          if (tickSpikeDefuse(bot, stepDt)) {
+            defusedThisFrame = true;
+          }
+        },
+      };
+
+      // Step Tactical 2-Site S&D Bot AI
+      if (phase === 'combat') {
+        botBrain.update(
+          dt,
+          combatants,
+          ARENA_COLLIDERS,
+          activeSmokes,
+          cameraPos,
+          true,
+          abilities,
+          weaponSystem,
+          sfx,
+          (attacker, victim, damage, isHeadshot, weaponTag) => {
+            applyDamageInternal(victim, damage, isHeadshot, attacker, weaponTag);
+            if (victim.isPlayer) {
+              if (isHeadshot) sfx.playHeadshot();
+              else sfx.playBodyHit();
+            }
+          },
+          (bot) => {
+            rigById.get(bot.id)?.triggerFireKick();
+          },
+          sdContext
+        );
+      }
+
+      // Reset unheld channel progress (defuse preserves permanent 50% halfway checkpoint!)
+      if (spikeStatus === 'carried' && !plantedThisFrame) {
+        spikePlantProgress = 0;
+        spikePlantTickCooldown = 0;
+      }
+      if (spikeStatus === 'planted' && !defusedThisFrame) {
+        spikeDefuseProgress = spikeHalfwayCheckpoint ? 0.5 : 0;
+        spikeDefuseCuePlayed = false;
+      }
+
+      // Evaluate S&D Round Termination Conditions
+      if (phase === 'combat') {
+        if (spikeStatus === 'planted' && spikeTimerSec <= 0) {
+          triggerSpikeDetonation();
+        } else {
+          const aliveAttackers = combatants.filter(
+            (c) => c.team === attackerTeam && c.alive
+          ).length;
+          const aliveDefenders = combatants.filter(
+            (c) => c.team === defenderTeam && c.alive
+          ).length;
+
+          if (aliveDefenders === 0) {
+            transitionToRoundEnd(attackerTeam, 'DEFENDERS ELIMINATED', false);
+          } else if (aliveAttackers === 0 && spikeStatus !== 'planted') {
+            // Never end early on post-plant when all attackers fall: Defenders must defuse!
+            transitionToRoundEnd(defenderTeam, 'ATTACKERS ELIMINATED', false);
+          } else if (phaseTimerSec <= 0 && spikeStatus !== 'planted') {
+            transitionToRoundEnd(defenderTeam, 'TIME EXPIRED — DEFENDERS HELD', false);
+          }
         }
-      );
-
-      // Evaluate round termination conditions
-      const aliveAllies = combatants.filter((c) => c.team === 'ally' && c.alive).length;
-      const aliveEnemies = combatants.filter((c) => c.team === 'enemy' && c.alive).length;
-
-      if (aliveEnemies === 0) {
-        transitionToRoundEnd('ally', 'ALL ENEMIES ELIMINATED');
-      } else if (aliveAllies === 0) {
-        transitionToRoundEnd('enemy', 'TEAM ELIMINATED');
-      } else if (phaseTimerSec <= 0) {
-        transitionToRoundEnd('enemy', 'TIME EXPIRED — DEFENDERS HELD');
       }
     } else if (phase === 'round_end') {
       phaseTimerSec = Math.max(0, phaseTimerSec - dt);
@@ -867,8 +1472,10 @@ export function createMatchManager(
       }
     }
 
-    // 3. Check Bot Takeover Availability & Update Articulated 3D Character Rigs
-    const playerCombatant = getPlayerCombatant();
+    // 3. Update 3D Spike Model & Articulated 3D Character Rigs
+    const spikeHud = buildSpikeHudState(playerCombatant);
+    spikeModel.update(dt, spikeHud);
+
     const hasLivingAllyBot = combatants.some(
       (c) => c.team === 'ally' && !c.isPlayer && c.alive
     );
@@ -885,7 +1492,6 @@ export function createMatchManager(
       const rig = rigById.get(c.id);
       if (!rig) continue;
 
-      // Smoke vision occlusion check from active camera to combatant chest
       let occludedBySmoke = false;
       if (!c.isPlayer && c.alive && activeSmokes.length > 0) {
         const dx = c.position.x - cameraPos.x;
@@ -924,11 +1530,13 @@ export function createMatchManager(
       );
     }
 
-    // Keep player's health mirrored cleanly into PlayerState
+    // Mirror player's health & armor cleanly back to PlayerState
     player.health = playerCombatant.health;
+    player.armor = playerCombatant.armor ?? 0;
+    player.maxArmor = playerCombatant.maxArmor ?? 0;
     lastSyncedPlayerHealth = playerCombatant.health;
 
-    // 4. Project Read-Only HUD State
+    // 4. Project Full Read-Only MatchHudState (including Economy, Spike & Minimap Contacts)
     const allyStates = combatants
       .filter((c) => c.team === 'ally')
       .map((c) => ({
@@ -946,6 +1554,23 @@ export function createMatchManager(
         hp: Math.ceil(c.health),
       }));
 
+    const playerEcon = economy.getCombatantState(playerCombatant.id);
+    const allyEconomy = combatants
+      .filter((c) => c.team === 'ally')
+      .map((c) => {
+        const st = economy.getCombatantState(c.id);
+        return {
+          id: c.id,
+          colorId: c.colorId,
+          credits: st.credits,
+          weaponId: c.weaponId,
+          armor: Math.ceil(c.armor ?? 0),
+          hasSpike: spikeStatus === 'carried' && spikeCarrierId === c.id,
+        };
+      });
+
+    const minimapEnemies = computeMinimapEnemies(activeSmokes);
+
     return {
       phase,
       roundNumber,
@@ -961,6 +1586,21 @@ export function createMatchManager(
       lastDamageAngleRad,
       lastDamageSeq,
       difficulty,
+      playerSide,
+      halftimeSwapped,
+      credits: playerEcon.credits,
+      nextRoundMinCredits: economy.getMinNextRoundCredits('ally', playerEcon.credits),
+      lossStreak: economy.getLossStreak('ally'),
+      armor: Math.ceil(playerCombatant.armor ?? 0),
+      maxArmor: playerCombatant.maxArmor ?? 0,
+      shieldTier: playerCombatant.shieldTier ?? 'none',
+      canRefundWeapon:
+        phase === 'buy' && playerEcon.boughtWeaponThisRound && playerEcon.boughtWeaponCost > 0,
+      refundableWeaponCost:
+        phase === 'buy' && playerEcon.boughtWeaponThisRound ? playerEcon.boughtWeaponCost : 0,
+      allyEconomy,
+      spike: spikeHud,
+      minimapEnemies,
     };
   }
 
@@ -969,6 +1609,8 @@ export function createMatchManager(
     enemyTargetsView,
     allTargetsView,
     getPlayerCombatant,
+    getPlayerOwnedPrimary,
+    getPlayerSide,
     selectPlayerAgent,
     setDifficulty,
     getDifficulty,
@@ -977,6 +1619,10 @@ export function createMatchManager(
     restartMatch,
     onMapRebuilt,
     setThirdPersonMode,
+    buyWeapon,
+    refundCurrentRoundWeapon,
+    buyShield,
+    swapSides,
     syncPlayerFromPhysics,
     update,
   };

@@ -7,31 +7,56 @@ import {
 } from '../arena/skirmishAscii';
 import { getCurrentGrid, rebuildArenaScene } from '../arena/map';
 
-const STORAGE_KEY = 'chroma_strike_custom_map_v1';
+const STORAGE_KEY = 'chroma_strike_custom_map_sd_v2';
 
-const VALID_TILES = new Set<string>(['#', '=', 'B', 'P', '^', 'v', 'A', 'E', '.']);
+const VALID_TILES = new Set<string>([
+  '#',
+  'W',
+  'O',
+  '=',
+  'D',
+  'B',
+  'P',
+  '^',
+  'v',
+  '1',
+  '2',
+  'A',
+  'E',
+  '.',
+]);
 
 const TILE_CSS_CLASS: Record<TileChar, string> = {
   '#': 'tile-wall',
+  W: 'tile-window',
+  O: 'tile-arch',
   '=': 'tile-low',
+  D: 'tile-dbox',
   B: 'tile-crate',
   P: 'tile-deck',
   '^': 'tile-stair',
   v: 'tile-stair',
+  '1': 'tile-site-a',
+  '2': 'tile-site-b',
   A: 'tile-ally',
   E: 'tile-enemy',
   '.': 'tile-floor',
 };
 
 const TILE_LABELS: Record<TileChar, string> = {
-  '#': 'Tall Wall (3.2m)',
-  '=': 'Low Cover (1.28m)',
-  B: 'Tall Crate (2.2m)',
-  P: 'Watchtower Deck (0.90m)',
-  '^': 'Stairs (0.45m)',
-  v: 'Stairs (0.45m)',
-  A: 'Ally Spawn',
-  E: 'Enemy Spawn',
+  '#': 'Tall Wall (3.6m)',
+  W: 'Window (1.1-2.5m)',
+  O: 'Archway',
+  '=': 'Low Cover (1.26m)',
+  D: 'Double Box (1.72m)',
+  B: 'Tall Crate (2.25m)',
+  P: 'Heaven Deck (0.90m)',
+  '^': 'North Stairs (0.45m)',
+  v: 'South Stairs (0.45m)',
+  '1': 'Bomb Site A',
+  '2': 'Bomb Site B',
+  A: 'Attacker Spawn',
+  E: 'Defender Spawn',
   '.': 'Open Floor',
 };
 
@@ -123,7 +148,7 @@ function fallbackCopy(text: string): boolean {
 
 /**
  * Creates the interactive `[M]` Killhouse Map Maker modal controller.
- * Renders a 14x17 drag-paintable tile grid synced 1:1 with `skirmishAscii.ts`,
+ * Renders a 24x28 drag-paintable tile grid synced 1:1 with `skirmishAscii.ts`,
  * rebuilds the 3D Three.js arena & physics colliders live, and exports TypeScript code.
  */
 export function createMapEditorController(
@@ -193,18 +218,23 @@ export function createMapEditorController(
 
     let allyCount = 0;
     let enemyCount = 0;
+    let siteACount = 0;
+    let siteBCount = 0;
     for (const row of draftGrid) {
       for (let i = 0; i < row.length; i++) {
-        if (row[i] === 'A') allyCount++;
-        else if (row[i] === 'E') enemyCount++;
+        const ch = row[i];
+        if (ch === 'A') allyCount++;
+        else if (ch === 'E') enemyCount++;
+        else if (ch === '1') siteACount++;
+        else if (ch === '2') siteBCount++;
       }
     }
 
     const spawnNote =
       allyCount === 0 || enemyCount === 0
-        ? ' • Missing A/E spawns will use safe fallbacks'
+        ? ' • Missing A/E spawns will use fallbacks'
         : '';
-    statusEl.textContent = `Brush: ${TILE_LABELS[activeBrush]} • Spawns A:${allyCount} / E:${enemyCount}${spawnNote}`;
+    statusEl.textContent = `Brush: ${TILE_LABELS[activeBrush]} • Spawns A:${allyCount}/E:${enemyCount} • Sites 1:${siteACount}/2:${siteBCount}${spawnNote}`;
   }
 
   function syncBrushButtons(): void {

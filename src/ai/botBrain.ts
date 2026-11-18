@@ -2,12 +2,16 @@ import {
   AABB,
   AGENT_PALETTES,
   AiDifficulty,
+  BombSiteId,
+  BombSiteZone,
   Combatant,
   InputState,
   MovementModifiers,
   PlayerState,
   RaycastHit,
   SmokeSphere,
+  SpikeHudState,
+  TeamId,
   Vec3,
 } from '../core/types';
 import {
@@ -26,46 +30,59 @@ import { SoundEngine } from '../audio/sfx';
 
 /**
  * ============================================================================
- * Tactical AI Brain: Finite State Machines (FSM), Shortest-Arc Aiming,
- * Multi-Gate Perception, and Waypoint Graph Navigation
+ * Tactical 2-Site Search & Destroy AI Brain:
+ * Finite State Machines (FSM), Execute/Lurk/Anchor/Retake Roles,
+ * Shortest-Arc Aiming, Multi-Gate Perception & Waypoint BFS Navigation
  * ============================================================================
  *
  * 1. **Finite State Machine (FSM)**:
- *    Each bot transitions deterministically between four high-level states:
- *      - `'advance'`     : Traverse the tactical lane waypoint graph toward
- *                          opposing territory or last-known enemy contact.
- *      - `'engage'`      : Enemy perceived through all perception gates; wait
- *                          the human-like `0.24s` reaction delay, counter-strafe
- *                          into stationary accuracy windows, cast abilities, and
- *                          fire controlled hitscan bursts.
- *      - `'evade_cover'` : Health dropped below threshold (`< 45 HP`) or weapon
- *                          is reloading under threat; fall back toward rear
- *                          cover waypoints while keeping sights raised.
- *      - `'blinded'`     : `bot.blindTimer > 0` (hit by Green's Pop-Flash);
- *                          all target tracking and accurate fire are suppressed
- *                          until blindness decays to zero.
+ *    - `'advance'`     : Traverse the tactical waypoint graph via BFS according
+ *                        to the bot's S&D role (Execute, Lurk, Anchor, Retake,
+ *                        or Post-Plant Guard).
+ *    - `'engage'`      : Enemy perceived through all 3 perception gates; wait
+ *                        difficulty-scaled reaction delay, counter-strafe into
+ *                        stationary accuracy windows, cast role abilities, and
+ *                        fire controlled hitscan bursts.
+ *    - `'evade_cover'` : Low HP (`< 45`) or reloading under fire; disengage
+ *                        toward rear cover while keeping sights raised.
+ *    - `'blinded'`     : `bot.blindTimer > 0` (Pop-Flash); stumble backward and
+ *                        suppress accurate fire until vision recovers.
+ *    - `'plant'`       : Spike carrier inside target Bomb Site with no urgent
+ *                        close-range duel; holds position and channels Spike plant.
+ *    - `'defuse'`      : Retaking Defender within `2.6m` of planted Spike (clear
+ *                        of immediate threat or `< 7.5s` left); sticks defusal.
  *
  * 2. **Multi-Gate Perception**:
- *    A bot NEVER cheats with omniscient coordinates. An opposing combatant `e`
- *    is visible if and only if ALL THREE gates pass:
- *      - Gate A (Status): `bot.blindTimer <= 0`.
- *      - Gate B (Geometry LoS): `raycastAABB` from bot eye (`y + 1.6m`) to
- *        enemy chest (`y + 1.2m`) hits NO static `ARENA_COLLIDERS` box.
- *      - Gate C (Volumetric Smoke): `raycastSphere` against EVERY active
- *        `SmokeSphere` returns `null`. Because `raycastSphere` returns the exit
- *        root `t2` when the origin lies inside a sphere, Blue's Smoke Dome
- *        blocks AI vision from outside, through the dome, AND looking out!
- *
- * 3. **Shortest-Arc Angle Wrapping (`atan2(sin, cos)`)**:
- *    Naive Euler subtraction `targetYaw - currentYaw` wraps poorly across the
- *    `±PI` discontinuity (e.g., turning from `+3.0` to `-3.0` rad would spin
- *    `6.0 rad` the long way around instead of `0.28 rad`). Computing:
- *      `delta = Math.atan2(Math.sin(targetYaw - bot.yaw), Math.cos(targetYaw - bot.yaw))`
- *    projects the angular error onto the unit circle and recovers the exact
- *    signed shortest arc in `[-PI, +PI]`, clamped to `6.5 rad/s` slew speed.
+ *    - Gate A (Status): `bot.blindTimer <= 0`.
+ *    - Gate B (Geometry LoS): `raycastAABB` from eye (`y + 1.6m`) to enemy
+ *      chest (`y + 1.2m`) hits NO static `ARENA_COLLIDERS` box (naturally shoots
+ *      and perceives cleanly through open `'W'` framed tactical windows!).
+ *    - Gate C (Volumetric Smoke): `raycastSphere` against every active
+ *      `SmokeSphere` returns `null`.
  */
 
-export type BotFsmState = 'advance' | 'engage' | 'evade_cover' | 'blinded';
+export type BotFsmState =
+  | 'advance'
+  | 'engage'
+  | 'evade_cover'
+  | 'blinded'
+  | 'plant'
+  | 'defuse';
+
+export type BotTacticalRole =
+  | 'execute'
+  | 'lurker'
+  | 'anchor_a'
+  | 'mid_watch'
+  | 'anchor_b';
+
+export interface BotSdContext {
+  attackerTeam: TeamId;
+  spike: SpikeHudState;
+  sites: Record<BombSiteId, BombSiteZone>;
+  onBotPlantTick?: (bot: Combatant, dt: number) => void;
+  onBotDefuseTick?: (bot: Combatant, dt: number) => void;
+}
 
 export interface BotDamageCallback {
   (
@@ -82,31 +99,19 @@ export interface BotFireCallback {
 }
 
 // ---------------------------------------------------------------------------
-// Dynamic Tactical Waypoint Graph (Derived Live from ../arena/map)
-// ---------------------------------------------------------------------------
-
-// ---------------------------------------------------------------------------
-// Per-Bot Tuning Constants
+// Per-Bot Tuning Constants & Difficulty Ladder
 // ---------------------------------------------------------------------------
 
 const BOT_EYE_HEIGHT = 1.6;
 const ENEMY_CHEST_HEIGHT = 1.2;
 
-/**
- * Casual-friendly difficulty ladder. 'casual' (default) is tuned so a new
- * player can win duels: slow reaction, lazy aim slew, chest-height aim and wide
- * angular error. 'pro' snaps to the head with near-laser accuracy.
- */
 interface DifficultyProfile {
   reactionSec: number;
   slewRadPerSec: number;
   aimHeightM: number;
   aimErrorRad: number;
-  /** Multiplies burst length (forgiving bursts for casual). */
   burstLenScale: number;
-  /** Multiplies the pause between bursts. */
   burstCooldownScale: number;
-  /** Multiplies the delay between shots inside a burst. */
   fireIntervalScale: number;
 }
 
@@ -146,9 +151,6 @@ const CONCUSS_SPREAD_SLEW_PENALTY = 1.45;
 const SLIDE_SPEED_MULT = 1.45;
 const SLIDE_HITBOX_DROP_M = 0.5;
 
-function slideDrop(c: Combatant): number {
-  return (c.slideTimer ?? 0) > 0 ? SLIDE_HITBOX_DROP_M : 0;
-}
 const BOT_BODY_HALF_WIDTH = 0.38;
 const BOT_BODY_HEIGHT = 1.38;
 const BOT_HEAD_HALF_WIDTH = 0.22;
@@ -157,11 +159,22 @@ const BOT_MAX_RAY_DIST = 160;
 const BOT_EVADE_HP_THRESHOLD = 45;
 const BOT_RECOVERY_HP_THRESHOLD = 68;
 
+const BOT_DEFUSE_RANGE_M = 2.6;
+const BOT_URGENT_DEFUSE_TIMER_SEC = 7.5;
+const BOT_PLANT_THREAT_DIST_M = 13.5;
+
+function slideDrop(c: Combatant): number {
+  return (c.slideTimer ?? 0) > 0 ? SLIDE_HITBOX_DROP_M : 0;
+}
+
 interface BotMemory {
   fsm: BotFsmState;
+  role: BotTacticalRole;
   route: string[];
   goalId: string | null;
   laneBias: 'west' | 'mid' | 'east';
+  holdTimer: number;
+  holdYaw: number;
   reactionTimer: number;
   timeSinceSeen: number;
   lastSeenPos: Vec3 | null;
@@ -179,7 +192,7 @@ interface BotMemory {
 }
 
 // ---------------------------------------------------------------------------
-// Geometry & Pathfinding Helpers
+// Geometry, Zone & Pathfinding Helpers
 // ---------------------------------------------------------------------------
 
 function clamp(v: number, min: number, max: number): number {
@@ -188,6 +201,19 @@ function clamp(v: number, min: number, max: number): number {
 
 function wrapAngleRad(angle: number): number {
   return Math.atan2(Math.sin(angle), Math.cos(angle));
+}
+
+function horizDist2D(a: Vec3, b: Vec3): number {
+  return Math.hypot(a.x - b.x, a.z - b.z);
+}
+
+function isPosInsideSite(pos: Vec3, site: BombSiteZone): boolean {
+  return (
+    pos.x >= site.minX &&
+    pos.x <= site.maxX &&
+    pos.z >= site.minZ &&
+    pos.z <= site.maxZ
+  );
 }
 
 function findNearestWaypointId(pos: Vec3, waypoints: ArenaWaypoint[]): string | null {
@@ -227,8 +253,7 @@ function findClosestWaypointInSubset(
 }
 
 /**
- * Unweighted BFS shortest path on the dynamically generated Killhouse waypoint graph.
- * Runs in < 0.02ms on ~150 walkable tiles and adapts instantly to custom maps.
+ * Unweighted BFS shortest path on the dynamically generated 2-Site waypoint graph.
  */
 function findShortestPath(
   startId: string,
@@ -270,7 +295,20 @@ function findShortestPath(
   return path;
 }
 
-function chooseTacticalGoal(
+function getSiteWaypoints(
+  siteId: BombSiteId,
+  sites: Record<BombSiteId, BombSiteZone>,
+  waypoints: ArenaWaypoint[]
+): ArenaWaypoint[] {
+  const zoneTag = siteId === 'A' ? 'site_a' : 'site_b';
+  const tagged = waypoints.filter((wp) => wp.zone === zoneTag);
+  if (tagged.length > 0) return tagged;
+  const site = sites[siteId];
+  const inside = waypoints.filter((wp) => isPosInsideSite(wp.pos, site));
+  return inside.length > 0 ? inside : waypoints;
+}
+
+function chooseFallbackTacticalGoal(
   bot: Combatant,
   mem: BotMemory,
   waypoints: ArenaWaypoint[]
@@ -284,33 +322,257 @@ function chooseTacticalGoal(
   const isAlly = bot.team === 'ally';
 
   if (mem.laneBias === 'mid') {
-    // Prefer Mid Watchtower / center Killhouse nodes (|z| < 3)
-    const midNodes = waypoints.filter((wp) => Math.abs(wp.pos.z) < 3);
+    const midNodes = waypoints.filter((wp) => wp.zone === 'mid' || Math.abs(wp.pos.z) < 4);
     if (midNodes.length > 0) {
       return findClosestWaypointInSubset(midNodes, 0, 0);
     }
   }
 
-  // Opposing-half nodes: z < -8 for allies pushing North, z > 8 for enemies pushing South
-  const opposingHalf = waypoints.filter((wp) =>
-    isAlly ? wp.pos.z < -8 : wp.pos.z > 8
-  );
+  const opposingHalf = waypoints.filter((wp) => (isAlly ? wp.pos.z < -8 : wp.pos.z > 8));
   const pool = opposingHalf.length > 0 ? opposingHalf : waypoints;
-  const targetZ = isAlly ? -12 : 12;
-  const targetX = mem.laneBias === 'west' ? -9 : mem.laneBias === 'east' ? 9 : 0;
+  const targetZ = isAlly ? -14 : 14;
+  const targetX = mem.laneBias === 'west' ? -12 : mem.laneBias === 'east' ? 12 : 0;
 
   return findClosestWaypointInSubset(pool, targetX, targetZ);
 }
 
-function chooseCoverGoal(bot: Combatant, waypoints: ArenaWaypoint[]): string | null {
+function chooseCoverGoal(
+  bot: Combatant,
+  waypoints: ArenaWaypoint[],
+  sdContext?: BotSdContext
+): string | null {
   if (waypoints.length === 0) return null;
 
-  const isAlly = bot.team === 'ally';
+  // Attackers fall back South (+Z); Defenders fall back North (-Z).
+  const isAttacker = sdContext ? bot.team === sdContext.attackerTeam : bot.team === 'ally';
   const friendlyHalf = waypoints.filter((wp) =>
-    isAlly ? wp.pos.z > 8 : wp.pos.z < -8
+    isAttacker ? wp.pos.z > 10 : wp.pos.z < -10
   );
   const pool = friendlyHalf.length > 0 ? friendlyHalf : waypoints;
-  return findClosestWaypointInSubset(pool, 0, isAlly ? 13 : -13);
+  return findClosestWaypointInSubset(pool, bot.position.x * 0.6, isAttacker ? 18 : -18);
+}
+
+function chooseSdObjectiveGoal(
+  bot: Combatant,
+  mem: BotMemory,
+  waypoints: ArenaWaypoint[],
+  sdContext: BotSdContext,
+  executeSite: BombSiteId,
+  allCombatants: Combatant[],
+  botSlotIndex: number
+): { goalId: string | null; directTargetPos: Vec3 | null; shouldHoldAtGoal: boolean; holdLookPos?: Vec3 } {
+  const { attackerTeam, spike, sites } = sdContext;
+  const isAttacker = bot.team === attackerTeam;
+
+  // -------------------------------------------------------------------------
+  // ATTACKER OBJECTIVE LOGIC (Execute, Lurk, Retrieve Dropped Spike, Post-Plant)
+  // -------------------------------------------------------------------------
+  if (isAttacker) {
+    // 1. Post-Plant: guard the planted Spike site from strong crossfire angles!
+    if (spike.status === 'planted' && spike.plantedSite) {
+      const siteZone = sites[spike.plantedSite];
+      const siteWps = getSiteWaypoints(spike.plantedSite, sites, waypoints);
+      // Offset guard position slightly per bot slot so attackers establish crossfires
+      const angleOffset = (botSlotIndex * 2.1) + (spike.plantedSite === 'A' ? 0.6 : -0.6);
+      const guardRadius = mem.role === 'lurker' ? 8.5 : 5.2;
+      const desiredX = spike.position.x + Math.cos(angleOffset) * guardRadius;
+      const desiredZ = spike.position.z + Math.sin(angleOffset) * guardRadius;
+
+      const nearbyPool = waypoints.filter(
+        (wp) => horizDist2D(wp.pos, spike.position) >= 3.2 && horizDist2D(wp.pos, spike.position) <= 12.0
+      );
+      const pool = nearbyPool.length > 0 ? nearbyPool : siteWps;
+
+      // If we recently spotted a retaking defender near the site, contest them
+      if (
+        mem.lastSeenPos &&
+        mem.timeSinceSeen < 4.0 &&
+        horizDist2D(mem.lastSeenPos, spike.position) < 16
+      ) {
+        return {
+          goalId: findNearestWaypointId(mem.lastSeenPos, waypoints),
+          directTargetPos: null,
+          shouldHoldAtGoal: false,
+        };
+      }
+
+      return {
+        goalId: findClosestWaypointInSubset(pool, desiredX, desiredZ),
+        directTargetPos: null,
+        shouldHoldAtGoal: true,
+        holdLookPos: { x: siteZone.center.x, y: 0, z: siteZone.center.z - 5.0 },
+      };
+    }
+
+    // 2. Dropped Spike: retrieve immediately!
+    if (spike.status === 'dropped') {
+      const otherExecuteAlive = allCombatants.some(
+        (c) =>
+          c.team === attackerTeam &&
+          c.alive &&
+          !c.isPlayer &&
+          c.id !== bot.id
+      );
+      // Main execute bots ALWAYS recover the dropped Spike; lurker recovers if solo.
+      if (mem.role !== 'lurker' || !otherExecuteAlive) {
+        const distToDrop = horizDist2D(bot.position, spike.position);
+        return {
+          goalId: findNearestWaypointId(spike.position, waypoints),
+          directTargetPos: distToDrop < 4.5 ? spike.position : null,
+          shouldHoldAtGoal: false,
+        };
+      }
+    }
+
+    // 3. Lurker Role (Pre-Plant): route through Mid/Flank connectors on opposite side
+    //    to catch rotating Defenders off-guard!
+    if (mem.role === 'lurker' && spike.carrierId !== bot.id) {
+      if (mem.lastSeenPos && mem.timeSinceSeen < 5.0) {
+        return {
+          goalId: findNearestWaypointId(mem.lastSeenPos, waypoints),
+          directTargetPos: null,
+          shouldHoldAtGoal: false,
+        };
+      }
+
+      const oppositeSite: BombSiteId = executeSite === 'A' ? 'B' : 'A';
+      const oppositeX = sites[oppositeSite].center.x;
+      const flankNodes = waypoints.filter(
+        (wp) => wp.zone === 'flank' || wp.zone === 'mid'
+      );
+
+      if (flankNodes.length > 0) {
+        // Alternate between lurking mid/flank connector and pushing toward opposite connector
+        const targetX =
+          mem.laneBias === 'mid' ? 0 : oppositeX * 0.55;
+        const targetZ = mem.laneBias === 'mid' ? -2 : -7;
+        return {
+          goalId: findClosestWaypointInSubset(flankNodes, targetX, targetZ),
+          directTargetPos: null,
+          shouldHoldAtGoal: true,
+          holdLookPos: { x: oppositeX * 0.4, y: 0, z: -18 },
+        };
+      }
+
+      return {
+        goalId: findClosestWaypointInSubset(waypoints, oppositeX * 0.5, -4),
+        directTargetPos: null,
+        shouldHoldAtGoal: true,
+        holdLookPos: { x: 0, y: 0, z: -18 },
+      };
+    }
+
+    // 4. Main Execute Duo (including Spike Carrier): push target Bomb Site via BFS!
+    const targetSiteZone = sites[executeSite];
+    const siteWps = getSiteWaypoints(executeSite, sites, waypoints);
+    const isCarrier = spike.status === 'carried' && spike.carrierId === bot.id;
+
+    if (isCarrier) {
+      const distCenter = horizDist2D(bot.position, targetSiteZone.center);
+      return {
+        goalId: findClosestWaypointInSubset(
+          siteWps,
+          targetSiteZone.center.x,
+          targetSiteZone.center.z
+        ),
+        directTargetPos: distCenter < 4.0 ? targetSiteZone.center : null,
+        shouldHoldAtGoal: false,
+      };
+    }
+
+    // Execute support teammate: push ahead of/with carrier onto the execute site
+    if (mem.lastSeenPos && mem.timeSinceSeen < 4.5) {
+      return {
+        goalId: findNearestWaypointId(mem.lastSeenPos, waypoints),
+        directTargetPos: null,
+        shouldHoldAtGoal: false,
+      };
+    }
+
+    const offsetX = botSlotIndex % 2 === 0 ? -2.2 : 2.2;
+    return {
+      goalId: findClosestWaypointInSubset(
+        siteWps,
+        targetSiteZone.center.x + offsetX,
+        targetSiteZone.center.z - 1.5
+      ),
+      directTargetPos: null,
+      shouldHoldAtGoal: true,
+      holdLookPos: { x: targetSiteZone.center.x, y: 0, z: targetSiteZone.center.z - 10 },
+    };
+  }
+
+  // -------------------------------------------------------------------------
+  // DEFENDER OBJECTIVE LOGIC (Site A Anchor, Mid/Window Watcher, Site B Anchor, Retake)
+  // -------------------------------------------------------------------------
+
+  // 1. Spike Planted -> ALL surviving Defenders sprint/rotate via BFS to retake & defuse!
+  if (spike.status === 'planted' && spike.plantedSite) {
+    const distToSpike = horizDist2D(bot.position, spike.position);
+    return {
+      goalId: findNearestWaypointId(spike.position, waypoints),
+      directTargetPos: distToSpike < 4.5 ? spike.position : null,
+      shouldHoldAtGoal: false,
+    };
+  }
+
+  // 2. Dropped Spike spotted nearby -> Defenders guard the dropped Spike!
+  if (spike.status === 'dropped' && horizDist2D(bot.position, spike.position) < 18) {
+    return {
+      goalId: findNearestWaypointId(spike.position, waypoints),
+      directTargetPos: null,
+      shouldHoldAtGoal: true,
+      holdLookPos: spike.position,
+    };
+  }
+
+  // 3. Recently spotted enemy -> contest / rotate toward contact
+  if (mem.lastSeenPos && mem.timeSinceSeen < 5.5) {
+    return {
+      goalId: findNearestWaypointId(mem.lastSeenPos, waypoints),
+      directTargetPos: null,
+      shouldHoldAtGoal: false,
+    };
+  }
+
+  // 4. Pre-Plant Defensive Assignments: Site A Anchor, Mid/Window Watcher, Site B Anchor
+  if (mem.role === 'anchor_a') {
+    const siteA = sites.A;
+    const siteWps = getSiteWaypoints('A', sites, waypoints);
+    // Anchor slightly toward CT side of Site A, watching South approaches
+    const jitterX = mem.laneBias === 'west' ? -1.8 : mem.laneBias === 'east' ? 1.8 : 0;
+    return {
+      goalId: findClosestWaypointInSubset(siteWps, siteA.center.x + jitterX, siteA.center.z - 1.5),
+      directTargetPos: null,
+      shouldHoldAtGoal: true,
+      holdLookPos: { x: siteA.center.x, y: 0, z: siteA.center.z + 12 },
+    };
+  }
+
+  if (mem.role === 'anchor_b') {
+    const siteB = sites.B;
+    const siteWps = getSiteWaypoints('B', sites, waypoints);
+    const jitterX = mem.laneBias === 'west' ? -1.8 : mem.laneBias === 'east' ? 1.8 : 0;
+    return {
+      goalId: findClosestWaypointInSubset(siteWps, siteB.center.x + jitterX, siteB.center.z - 1.5),
+      directTargetPos: null,
+      shouldHoldAtGoal: true,
+      holdLookPos: { x: siteB.center.x, y: 0, z: siteB.center.z + 12 },
+    };
+  }
+
+  // 'mid_watch': watch Mid Courtyard / Mid Sniper Window from Defender side
+  const midNodes = waypoints.filter(
+    (wp) => wp.zone === 'mid' || (Math.abs(wp.pos.x) <= 7 && wp.pos.z >= -14 && wp.pos.z <= 2)
+  );
+  const midPool = midNodes.length > 0 ? midNodes : waypoints;
+  const watchX = mem.laneBias === 'west' ? -2.0 : mem.laneBias === 'east' ? 2.0 : 0;
+  return {
+    goalId: findClosestWaypointInSubset(midPool, watchX, -6),
+    directTargetPos: null,
+    shouldHoldAtGoal: true,
+    holdLookPos: { x: 0, y: 0, z: 12 },
+  };
 }
 
 /**
@@ -332,7 +594,7 @@ function computeAimAngles(origin: Vec3, target: Vec3): { yaw: number; pitch: num
 
 /**
  * Multi-Gate Perception Check:
- *   Gate A: `bot.blindTimer <= 0` (flashbangs completely sever target detection)
+ *   Gate A: `bot.blindTimer <= 0`
  *   Gate B: No static `ARENA_COLLIDERS` wall blocks eye-to-chest raycast
  *   Gate C: No active `SmokeSphere` intersects the ray via `raycastSphere`
  */
@@ -343,7 +605,6 @@ function canBotPerceiveEnemy(
   activeSmokes: SmokeSphere[]
 ): boolean {
   if (!bot.alive || !enemy.alive) return false;
-  // Gate A: Flashbang blind check
   if (bot.blindTimer > 0) return false;
 
   const eye: Vec3 = {
@@ -366,14 +627,12 @@ function canBotPerceiveEnemy(
   const dir: Vec3 = { x: dx / dist, y: dy / dist, z: dz / dist };
   const wallMaxDist = Math.max(0, dist - 0.05);
 
-  // Gate B: Static arena wall/cover AABB occlusion
   for (const box of colliders) {
     if (raycastAABB(eye, dir, box, wallMaxDist) !== null) {
       return false;
     }
   }
 
-  // Gate C: Volumetric Smoke Sphere occlusion (blocks outside->in, through, & in->out)
   for (const smoke of activeSmokes) {
     if (raycastSphere(eye, dir, smoke.center, smoke.radius, dist) !== null) {
       return false;
@@ -385,7 +644,6 @@ function canBotPerceiveEnemy(
 
 function getCombatantHitboxes(c: Combatant): { head: AABB; body: AABB } {
   const { x, y, z } = c.position;
-  // Power-Sliding drops the whole upper hitbox stack by 0.5m so it ducks under 1.28m cover.
   const drop = slideDrop(c);
   return {
     body: {
@@ -437,7 +695,7 @@ function applyBotSpread(dir: Vec3, spreadRad: number): Vec3 {
 export interface BotBrainSystem {
   setDifficulty(diff: AiDifficulty): void;
   getDifficulty(): AiDifficulty;
-  resetRound(combatants: Combatant[]): void;
+  resetRound(combatants: Combatant[], attackerTeam?: TeamId): void;
   update(
     dt: number,
     combatants: Combatant[],
@@ -449,17 +707,16 @@ export interface BotBrainSystem {
     weaponSystem: WeaponSystem,
     sfx: SoundEngine,
     onDamage: BotDamageCallback,
-    onFire: BotFireCallback
+    onFire: BotFireCallback,
+    sdContext?: BotSdContext
   ): void;
 }
 
-/**
- * Instantiates the AI Brain controller managing FSM states, navigation routes,
- * weapon burst state, and ability casting for every non-player `Combatant`.
- */
 export function createBotBrainSystem(): BotBrainSystem {
   const memories = new Map<string, BotMemory>();
   let difficulty: AiDifficulty = 'casual';
+  let roundExecuteSite: BombSiteId = 'A';
+  let rolesAssignedForAttackerTeam: TeamId | null = null;
 
   function setDifficulty(diff: AiDifficulty): void {
     if (diff in DIFFICULTY_PROFILES) difficulty = diff;
@@ -480,9 +737,12 @@ export function createBotBrainSystem(): BotBrainSystem {
             : 'east';
       mem = {
         fsm: 'advance',
+        role: 'execute',
         route: [],
         goalId: null,
         laneBias,
+        holdTimer: 0,
+        holdYaw: bot.yaw,
         reactionTimer: 0,
         timeSinceSeen: 99,
         lastSeenPos: null,
@@ -503,18 +763,65 @@ export function createBotBrainSystem(): BotBrainSystem {
     return mem;
   }
 
-  function resetRound(combatants: Combatant[]): void {
+  function assignRoles(combatants: Combatant[], attackerTeam: TeamId, spikeCarrierId?: string | null): void {
+    rolesAssignedForAttackerTeam = attackerTeam;
+
+    const attackers = combatants.filter((c) => c.team === attackerTeam);
+    const defenders = combatants.filter((c) => c.team !== attackerTeam);
+
+    // Assign Attackers: main execute duo (including carrier) + 1 dedicated Lurker bot
+    const attackerBots = attackers.filter((c) => !c.isPlayer);
+    for (const a of attackers) {
+      getOrCreateMemory(a).role = 'execute';
+    }
+    if (attackerBots.length >= 2) {
+      // Pick a lurker who is NOT carrying the Spike, preferring flankers/duelists
+      const lurkCandidates = attackerBots.filter((b) => b.id !== spikeCarrierId);
+      const lurker =
+        lurkCandidates.find((b) => b.colorId === 'red' || b.colorId === 'gold' || b.colorId === 'violet') ??
+        lurkCandidates[lurkCandidates.length - 1] ??
+        attackerBots[attackerBots.length - 1];
+      if (lurker) {
+        getOrCreateMemory(lurker).role = 'lurker';
+      }
+    }
+
+    // Assign Defenders across Site A Anchor, Mid/Window Watcher, and Site B Anchor
+    if (defenders.length > 0) {
+      // Prefer blue/violet sniper/controller for mid_watch if available
+      const midPref =
+        defenders.find((d) => d.colorId === 'blue' || d.colorId === 'violet') ??
+        defenders[Math.min(1, defenders.length - 1)];
+      const remaining = defenders.filter((d) => d.id !== midPref.id);
+
+      getOrCreateMemory(midPref).role = 'mid_watch';
+      if (remaining[0]) getOrCreateMemory(remaining[0]).role = 'anchor_a';
+      if (remaining[1]) getOrCreateMemory(remaining[1]).role = 'anchor_b';
+    }
+  }
+
+  function resetRound(combatants: Combatant[], attackerTeam?: TeamId): void {
     memories.clear();
+    roundExecuteSite = Math.random() < 0.5 ? 'A' : 'B';
+    rolesAssignedForAttackerTeam = null;
+
     for (const c of combatants) {
       getOrCreateMemory(c);
+    }
+
+    if (attackerTeam) {
+      assignRoles(combatants, attackerTeam, null);
     }
   }
 
   function stepSingleBot(
     bot: Combatant,
+    botSlotIndex: number,
     allCombatants: Combatant[],
     colliders: AABB[],
     activeSmokes: SmokeSphere[],
+    waypoints: ArenaWaypoint[],
+    waypointById: Map<string, ArenaWaypoint>,
     cameraPos: Vec3,
     isCombatActive: boolean,
     dt: number,
@@ -522,7 +829,9 @@ export function createBotBrainSystem(): BotBrainSystem {
     weaponSystem: WeaponSystem,
     sfx: SoundEngine,
     onDamage: BotDamageCallback,
-    onFire: BotFireCallback
+    onFire: BotFireCallback,
+    sdContext: BotSdContext | undefined,
+    primaryDefuserId: string | null
   ): void {
     const mem = getOrCreateMemory(bot);
     const spec = WEAPON_SPECS[bot.weaponId];
@@ -531,7 +840,6 @@ export function createBotBrainSystem(): BotBrainSystem {
     const sliding = (bot.slideTimer ?? 0) > 0;
     const slewPenalty = concussed ? CONCUSS_SPREAD_SLEW_PENALTY : 1.0;
 
-    // Clamp ammo if weapon upgraded between rounds
     if (mem.ammo > spec.maxAmmo) {
       mem.ammo = spec.maxAmmo;
     }
@@ -555,13 +863,14 @@ export function createBotBrainSystem(): BotBrainSystem {
       mem.reloadTimer = spec.reloadDurationSec;
     }
 
-    // Build physics adapter so bots share the exact same AABB sweep, gravity, and slow physics
     const botPhysics: PlayerState = {
       position: bot.position,
       velocity: bot.velocity,
       grounded: bot.grounded,
       health: bot.health,
       maxHealth: bot.maxHealth,
+      armor: bot.armor,
+      maxArmor: bot.maxArmor,
       colorId: bot.colorId,
     };
 
@@ -576,7 +885,7 @@ export function createBotBrainSystem(): BotBrainSystem {
       suppressJump: bot.slowTimer > 0,
     };
 
-    // During Buy Phase (or if somehow stepped while frozen), stay planted in spawn
+    // During Buy Phase, remain grounded in spawn
     if (!isCombatActive) {
       const idleInput: InputState = {
         forward: false,
@@ -595,7 +904,7 @@ export function createBotBrainSystem(): BotBrainSystem {
       return;
     }
 
-    // 1. Multi-Gate Perception Scan: find closest perceived opposing combatant
+    // 1. Multi-Gate Perception Scan
     let spottedTarget: Combatant | null = null;
     let spottedDist = Infinity;
 
@@ -628,9 +937,54 @@ export function createBotBrainSystem(): BotBrainSystem {
       }
     }
 
-    // 2. FSM State Transitions
+    // 2. Check S&D Plant / Defuse Opportunities
+    let wantsPlant = false;
+    let wantsDefuse = false;
+
+    if (sdContext && bot.blindTimer <= 0) {
+      const { attackerTeam, spike, sites } = sdContext;
+      const isAttacker = bot.team === attackerTeam;
+
+      // Attacker Carrier planting when inside target site (or either site) and not dueling close-range
+      if (
+        isAttacker &&
+        spike.status === 'carried' &&
+        spike.carrierId === bot.id
+      ) {
+        const insideTarget = isPosInsideSite(bot.position, sites[roundExecuteSite]);
+        const insideAnySite =
+          insideTarget ||
+          isPosInsideSite(bot.position, sites.A) ||
+          isPosInsideSite(bot.position, sites.B);
+        const underCloseThreat = spottedTarget !== null && spottedDist < BOT_PLANT_THREAT_DIST_M;
+
+        if (insideAnySite && !underCloseThreat) {
+          wantsPlant = true;
+        }
+      }
+
+      // Defender sticking defuse within 2.6m of planted Spike when clear OR < 7.5s left
+      if (
+        !isAttacker &&
+        spike.status === 'planted' &&
+        primaryDefuserId === bot.id
+      ) {
+        const distToSpike = horizDist2D(bot.position, spike.position);
+        const urgentClock = spike.timerSec < BOT_URGENT_DEFUSE_TIMER_SEC;
+        const clearOfThreat = spottedTarget === null || spottedDist > 16.0;
+        if (distToSpike <= BOT_DEFUSE_RANGE_M && (clearOfThreat || urgentClock)) {
+          wantsDefuse = true;
+        }
+      }
+    }
+
+    // 3. FSM State Transitions
     if (bot.blindTimer > 0) {
       mem.fsm = 'blinded';
+    } else if (wantsDefuse) {
+      mem.fsm = 'defuse';
+    } else if (wantsPlant) {
+      mem.fsm = 'plant';
     } else if (
       (bot.health < BOT_EVADE_HP_THRESHOLD || mem.reloading) &&
       spottedTarget !== null
@@ -652,13 +1006,17 @@ export function createBotBrainSystem(): BotBrainSystem {
       mem.fsm = 'advance';
     }
 
-    // 3. Tactical Ability Casting (role-driven)
-    if (mem.fsm !== 'blinded' && mem.abilityCheckTimer <= 0) {
+    // 4. Tactical Ability Casting (role-driven)
+    if (
+      mem.fsm !== 'blinded' &&
+      mem.fsm !== 'plant' &&
+      mem.fsm !== 'defuse' &&
+      mem.abilityCheckTimer <= 0
+    ) {
       mem.abilityCheckTimer = 0.65;
       const botEye: Vec3 = { x: bot.position.x, y: bot.position.y + BOT_EYE_HEIGHT, z: bot.position.z };
 
       if (bot.colorId === 'blue') {
-        // Blue Controller: smoke Mid / spotted choke with Q, throw Cryo Field with E at spotted target
         if (spottedTarget && spottedDist > 8 && spottedDist < 30) {
           const aim = computeAimAngles(botEye, {
             x: spottedTarget.position.x,
@@ -668,13 +1026,14 @@ export function createBotBrainSystem(): BotBrainSystem {
           if (!abilities.castForBot('e', bot, aim.yaw, aim.pitch)) {
             abilities.castForBot('q', bot, aim.yaw, aim.pitch);
           }
-        } else if (Math.abs(bot.position.z) < 14) {
-          // Throw Mid Smoke toward center pillar (0, 1.0, 0)
-          const aim = computeAimAngles(botEye, { x: 0, y: 1.0, z: 0 });
+        } else if (Math.abs(bot.position.z) < 16) {
+          const smokeTarget: Vec3 = sdContext
+            ? sdContext.sites[roundExecuteSite].center
+            : { x: 0, y: 1.0, z: 0 };
+          const aim = computeAimAngles(botEye, { x: smokeTarget.x, y: 1.0, z: smokeTarget.z });
           abilities.castForBot('q', bot, aim.yaw, aim.pitch);
         }
       } else if (bot.colorId === 'green') {
-        // Green Initiator: Bio-Stim when below 75 HP; Pop-Flash when engaging/peeking
         if (bot.health < 75) {
           abilities.castForBot('e', bot, bot.yaw, bot.pitch);
         }
@@ -687,16 +1046,12 @@ export function createBotBrainSystem(): BotBrainSystem {
           abilities.castForBot('q', bot, aim.yaw, aim.pitch);
         }
       } else if (bot.colorId === 'violet') {
-        // Violet Controller (Umbra): Singularity [E] onto engaged enemies (7-24m),
-        // Void Shroud [Q] across longer sightlines (8-28m) or to break contact.
         const sightTarget: Vec3 | null = spottedTarget
           ? spottedTarget.position
           : mem.lastSeenPos && mem.timeSinceSeen < 2.5
             ? mem.lastSeenPos
             : null;
-        const sightDist = sightTarget
-          ? Math.hypot(sightTarget.x - bot.position.x, sightTarget.z - bot.position.z)
-          : Infinity;
+        const sightDist = sightTarget ? horizDist2D(bot.position, sightTarget) : Infinity;
 
         if (spottedTarget && mem.fsm === 'engage' && spottedDist > 7 && spottedDist < 24) {
           const aim = computeAimAngles(botEye, {
@@ -715,8 +1070,6 @@ export function createBotBrainSystem(): BotBrainSystem {
           abilities.castForBot('q', bot, aim.yaw, aim.pitch);
         }
       } else if (bot.colorId === 'gold') {
-        // Gold Duelist (Volt): Relay Bolt [E] at 6-26m; Overdrive [Q] to close the gap
-        // (<18m) or slide out of trouble.
         if (spottedTarget && spottedDist > 6 && spottedDist < 26) {
           const aim = computeAimAngles(botEye, {
             x: spottedTarget.position.x,
@@ -736,7 +1089,6 @@ export function createBotBrainSystem(): BotBrainSystem {
           abilities.castForBot('q', bot, bot.yaw + Math.PI * 0.5 * mem.strafeDir, 0);
         }
       } else if (bot.colorId === 'red') {
-        // Red Duelist: Inferno Orb onto spotted enemy, or Crimson Dash to evade/flank
         if (spottedTarget && spottedDist > 6 && spottedDist < 26) {
           const aim = computeAimAngles(botEye, {
             x: spottedTarget.position.x,
@@ -752,7 +1104,7 @@ export function createBotBrainSystem(): BotBrainSystem {
       }
     }
 
-    // 4. Compute Movement Intent & Target Look Angles per FSM State
+    // 5. Movement Intent & Target Look Angles per FSM State
     const botInput: InputState = {
       forward: false,
       backward: false,
@@ -769,14 +1121,27 @@ export function createBotBrainSystem(): BotBrainSystem {
     let desiredYaw = bot.yaw;
     let desiredPitch = 0;
 
-    if (mem.fsm === 'blinded') {
-      // Blinded: stumble backward slowly & drift aim slightly away; cannot fire accurately
+    if (mem.fsm === 'plant' && sdContext) {
+      // Stand still in safe site zone and channel Spike plant
+      desiredPitch = -0.35;
+      sdContext.onBotPlantTick?.(bot, dt);
+    } else if (mem.fsm === 'defuse' && sdContext) {
+      // Crouch/stick defuse facing the planted Spike
+      const botEye: Vec3 = { x: bot.position.x, y: bot.position.y + BOT_EYE_HEIGHT, z: bot.position.z };
+      const aim = computeAimAngles(botEye, {
+        x: sdContext.spike.position.x,
+        y: sdContext.spike.position.y + 0.3,
+        z: sdContext.spike.position.z,
+      });
+      desiredYaw = aim.yaw;
+      desiredPitch = aim.pitch;
+      sdContext.onBotDefuseTick?.(bot, dt);
+    } else if (mem.fsm === 'blinded') {
       botInput.backward = true;
       botInput.walk = true;
       desiredYaw = bot.yaw + dt * 1.4 * mem.strafeDir;
       desiredPitch = -0.15;
     } else if (mem.fsm === 'engage' && spottedTarget) {
-      // Aim at enemy chest / head based on weapon archetype
       const botEye: Vec3 = {
         x: bot.position.x,
         y: bot.position.y + BOT_EYE_HEIGHT,
@@ -791,7 +1156,7 @@ export function createBotBrainSystem(): BotBrainSystem {
       desiredYaw = aim.yaw;
       desiredPitch = aim.pitch;
 
-      // Counter-strafe cadence: alternate 0.48s strafe bursts with 0.34s crisp stationary shoot windows
+      // Counter-strafe cadence: alternate strafe bursts with crisp stationary accuracy windows
       mem.strafeTimer -= dt;
       if (mem.strafeTimer <= 0) {
         mem.strafeDir = -mem.strafeDir;
@@ -809,73 +1174,129 @@ export function createBotBrainSystem(): BotBrainSystem {
         }
       }
     } else {
-      // 'advance' or 'evade_cover': navigate dynamic Killhouse waypoint graph
-      const waypoints = getArenaWaypoints();
-      const waypointById = new Map<string, ArenaWaypoint>(
-        waypoints.map((wp) => [wp.id, wp])
-      );
-      const targetGoalId =
-        mem.fsm === 'evade_cover'
-          ? chooseCoverGoal(bot, waypoints)
-          : chooseTacticalGoal(bot, mem, waypoints);
+      // 'advance' or 'evade_cover': navigate 2-Site S&D waypoint graph via BFS
+      let targetGoalId: string | null = null;
+      let directTargetPos: Vec3 | null = null;
+      let shouldHoldAtGoal = false;
+      let holdLookPos: Vec3 | undefined;
 
-      if (
-        targetGoalId &&
-        (mem.route.length === 0 ||
-          mem.goalId !== targetGoalId ||
-          !waypointById.has(mem.route[0]))
-      ) {
-        const startId = findNearestWaypointId(bot.position, waypoints);
-        mem.route = startId ? findShortestPath(startId, targetGoalId, waypointById) : [];
-        mem.goalId = targetGoalId;
+      if (mem.fsm === 'evade_cover') {
+        targetGoalId = chooseCoverGoal(bot, waypoints, sdContext);
+      } else if (sdContext) {
+        const obj = chooseSdObjectiveGoal(
+          bot,
+          mem,
+          waypoints,
+          sdContext,
+          roundExecuteSite,
+          allCombatants,
+          botSlotIndex
+        );
+        targetGoalId = obj.goalId;
+        directTargetPos = obj.directTargetPos;
+        shouldHoldAtGoal = obj.shouldHoldAtGoal;
+        holdLookPos = obj.holdLookPos;
+      } else {
+        targetGoalId = chooseFallbackTacticalGoal(bot, mem, waypoints);
       }
 
-      const nextWp = mem.route.length > 0 ? waypointById.get(mem.route[0]) : undefined;
-      if (nextWp) {
-        const dx = nextWp.pos.x - bot.position.x;
-        const dz = nextWp.pos.z - bot.position.z;
-        const horizDist = Math.hypot(dx, dz);
-
-        if (horizDist < 1.25) {
-          mem.route.shift();
-          // Reached goal -> pick next patrol waypoint toward enemy side
-          if (mem.route.length === 0) {
-            mem.lastSeenPos = null;
-            mem.laneBias =
-              mem.laneBias === 'west' ? 'mid' : mem.laneBias === 'mid' ? 'east' : 'west';
+      if (directTargetPos) {
+        // Direct final approach onto exact Spike / site center (prevents 2m tile-center offset stalls)
+        const dx = directTargetPos.x - bot.position.x;
+        const dz = directTargetPos.z - bot.position.z;
+        const dist = Math.hypot(dx, dz);
+        if (dist > 0.35) {
+          desiredYaw = Math.atan2(-dx, -dz);
+          desiredPitch = 0;
+          botInput.forward = true;
+        }
+      } else {
+        if (
+          targetGoalId &&
+          (mem.route.length === 0 ||
+            mem.goalId !== targetGoalId ||
+            !waypointById.has(mem.route[0]))
+        ) {
+          if (mem.holdTimer > 0 && mem.goalId === targetGoalId && shouldHoldAtGoal) {
+            // Holding tactical angle at anchor / guard waypoint
+            mem.holdTimer -= dt;
+            desiredYaw = mem.holdYaw;
+            desiredPitch = 0;
+          } else {
+            const startId = findNearestWaypointId(bot.position, waypoints);
+            mem.route = startId ? findShortestPath(startId, targetGoalId, waypointById) : [];
+            mem.goalId = targetGoalId;
           }
         }
 
-        if (horizDist > 0.15) {
-          const moveYaw = Math.atan2(-dx, -dz);
-          desiredYaw = moveYaw;
-          desiredPitch = 0;
+        const nextWp = mem.route.length > 0 ? waypointById.get(mem.route[0]) : undefined;
+        if (nextWp) {
+          const dx = nextWp.pos.x - bot.position.x;
+          const dz = nextWp.pos.z - bot.position.z;
+          const horizDist = Math.hypot(dx, dz);
 
-          // If evading while still seeing enemy, face enemy while backing away!
-          if (mem.fsm === 'evade_cover' && spottedTarget) {
-            const botEye: Vec3 = { x: bot.position.x, y: bot.position.y + BOT_EYE_HEIGHT, z: bot.position.z };
-            const aim = computeAimAngles(botEye, {
-              x: spottedTarget.position.x,
-              y: spottedTarget.position.y + prof.aimHeightM - slideDrop(spottedTarget),
-              z: spottedTarget.position.z,
-            });
-            desiredYaw = aim.yaw;
-            desiredPitch = aim.pitch;
+          if (horizDist < 1.25) {
+            mem.route.shift();
+            if (mem.route.length === 0) {
+              mem.lastSeenPos = null;
+              if (shouldHoldAtGoal) {
+                mem.holdTimer = 3.0 + Math.random() * 2.5;
+                if (holdLookPos) {
+                  mem.holdYaw = Math.atan2(
+                    -(holdLookPos.x - bot.position.x),
+                    -(holdLookPos.z - bot.position.z)
+                  );
+                } else {
+                  mem.holdYaw = bot.yaw;
+                }
+              }
+              mem.laneBias =
+                mem.laneBias === 'west' ? 'mid' : mem.laneBias === 'mid' ? 'east' : 'west';
+            }
+          }
 
-            // Project desired movement onto bot's facing basis so bot backpedals/strafes cleanly
-            const relAngle = wrapAngleRad(moveYaw - bot.yaw);
-            if (Math.cos(relAngle) > 0.35) botInput.forward = true;
-            else if (Math.cos(relAngle) < -0.35) botInput.backward = true;
-            if (Math.sin(relAngle) < -0.35) botInput.right = true;
-            else if (Math.sin(relAngle) > 0.35) botInput.left = true;
-          } else {
-            botInput.forward = true;
+          if (horizDist > 0.15) {
+            const moveYaw = Math.atan2(-dx, -dz);
+            desiredYaw = moveYaw;
+            desiredPitch = 0;
+
+            if (mem.fsm === 'evade_cover' && spottedTarget) {
+              const botEye: Vec3 = {
+                x: bot.position.x,
+                y: bot.position.y + BOT_EYE_HEIGHT,
+                z: bot.position.z,
+              };
+              const aim = computeAimAngles(botEye, {
+                x: spottedTarget.position.x,
+                y: spottedTarget.position.y + prof.aimHeightM - slideDrop(spottedTarget),
+                z: spottedTarget.position.z,
+              });
+              desiredYaw = aim.yaw;
+              desiredPitch = aim.pitch;
+
+              const relAngle = wrapAngleRad(moveYaw - bot.yaw);
+              if (Math.cos(relAngle) > 0.35) botInput.forward = true;
+              else if (Math.cos(relAngle) < -0.35) botInput.backward = true;
+              if (Math.sin(relAngle) < -0.35) botInput.right = true;
+              else if (Math.sin(relAngle) > 0.35) botInput.left = true;
+            } else {
+              botInput.forward = true;
+              // Lurkers walk quietly when approaching mid/flank angles pre-plant
+              if (
+                sdContext &&
+                mem.role === 'lurker' &&
+                sdContext.spike.status === 'carried' &&
+                Math.abs(bot.position.z) < 12
+              ) {
+                botInput.walk = true;
+              }
+            }
           }
         }
       }
     }
 
-    // 5. Smoothly Slew Yaw & Pitch via Shortest-Arc Wrapping (`atan2(sin, cos)`)
+    // 6. Smoothly Slew Yaw & Pitch via Shortest-Arc Wrapping (`atan2(sin, cos)`)
     const maxStep = (prof.slewRadPerSec / slewPenalty) * dt;
     const yawDiff = wrapAngleRad(desiredYaw - bot.yaw);
     bot.yaw = wrapAngleRad(bot.yaw + clamp(yawDiff, -maxStep, maxStep));
@@ -885,11 +1306,11 @@ export function createBotBrainSystem(): BotBrainSystem {
     botInput.yaw = bot.yaw;
     botInput.pitch = bot.pitch;
 
-    // 6. Step Authentic Physics Movement (obeys gravity, AABB walls, and 0.5x slow)
+    // 7. Step Authentic Physics Movement
     updatePlayerMovement(botPhysics, botInput, colliders, dt, modifiers);
     bot.grounded = botPhysics.grounded;
 
-    // 7. Hitscan Burst Combat (requires >= 0.24s reaction delay & aligned sightline)
+    // 8. Hitscan Burst Combat (respects Casual / Tactical / Pro ladder)
     if (
       mem.fsm === 'engage' &&
       spottedTarget &&
@@ -916,7 +1337,6 @@ export function createBotBrainSystem(): BotBrainSystem {
           bot.weaponId === 'pistol'
             ? Math.max(spec.fireIntervalSec, 0.28)
             : spec.fireIntervalSec * (bot.weaponId === 'sniper' ? 1.15 : 1.08);
-        // Concussed bots fire at 0.68x rate (interval / 0.68).
         mem.fireTimer =
           (baseInterval * prof.fireIntervalScale) / (concussed ? CONCUSS_FIRE_RATE_MULT : 1.0);
 
@@ -934,15 +1354,14 @@ export function createBotBrainSystem(): BotBrainSystem {
         const horizSpeed = getHorizontalSpeed(bot.velocity);
         const moveSpread =
           horizSpeed < 0.45 && bot.grounded ? 0 : (horizSpeed / RUN_SPEED) * spec.moveSpreadRad;
-        // Bots use sniper scoped accuracy when stationary, plus a fair baseline dispersion
         const baseAimError =
           bot.weaponId === 'sniper' && horizSpeed < 0.45 ? prof.aimErrorRad * 0.55 : prof.aimErrorRad;
         const totalSpread =
           (baseAimError +
-          (bot.weaponId === 'sniper' ? spec.scopedSpreadRad : spec.baseSpreadRad) +
-          moveSpread +
-          (bot.grounded ? 0 : spec.airSpreadRad) +
-          mem.recoilAccum * 0.03) *
+            (bot.weaponId === 'sniper' ? spec.scopedSpreadRad : spec.baseSpreadRad) +
+            moveSpread +
+            (bot.grounded ? 0 : spec.airSpreadRad) +
+            mem.recoilAccum * 0.03) *
           slewPenalty;
 
         const baseDir = getLookDirection(bot.yaw, bot.pitch + mem.recoilAccum * 0.04);
@@ -951,7 +1370,6 @@ export function createBotBrainSystem(): BotBrainSystem {
 
         onFire(bot);
 
-        // Audio attenuated by distance from camera
         const listenerDist = Math.hypot(
           origin.x - cameraPos.x,
           origin.y - cameraPos.y,
@@ -959,7 +1377,7 @@ export function createBotBrainSystem(): BotBrainSystem {
         );
         sfx.playWeaponShot(bot.weaponId, false, listenerDist);
 
-        // Raycast static colliders first
+        // Raycast static colliders first (bullets pass cleanly through open 'W' windows!)
         let closestWallDist = BOT_MAX_RAY_DIST;
         let closestWallHit: RaycastHit | null = null;
         for (const box of colliders) {
@@ -1055,15 +1473,46 @@ export function createBotBrainSystem(): BotBrainSystem {
     weaponSystem: WeaponSystem,
     sfx: SoundEngine,
     onDamage: BotDamageCallback,
-    onFire: BotFireCallback
+    onFire: BotFireCallback,
+    sdContext?: BotSdContext
   ): void {
-    for (const c of combatants) {
+    // Lazily ensure tactical roles match current attacking side (e.g., post-halftime swap)
+    if (sdContext && rolesAssignedForAttackerTeam !== sdContext.attackerTeam) {
+      assignRoles(combatants, sdContext.attackerTeam, sdContext.spike.carrierId);
+    }
+
+    // Build waypoint lookup once per tick across all bots for O(1) lookups
+    const waypoints = isCombatActive ? getArenaWaypoints() : [];
+    const waypointById = new Map<string, ArenaWaypoint>();
+    for (const wp of waypoints) {
+      waypointById.set(wp.id, wp);
+    }
+
+    // Determine single primary defender bot closest to planted Spike so teammates cover
+    let primaryDefuserId: string | null = null;
+    if (sdContext && sdContext.spike.status === 'planted') {
+      let bestDist = Infinity;
+      for (const c of combatants) {
+        if (c.isPlayer || !c.alive || c.team === sdContext.attackerTeam) continue;
+        const d = horizDist2D(c.position, sdContext.spike.position);
+        if (d < bestDist) {
+          bestDist = d;
+          primaryDefuserId = c.id;
+        }
+      }
+    }
+
+    for (let i = 0; i < combatants.length; i++) {
+      const c = combatants[i];
       if (c.isPlayer || !c.alive) continue;
       stepSingleBot(
         c,
+        i,
         combatants,
         colliders,
         activeSmokes,
+        waypoints,
+        waypointById,
         cameraPos,
         isCombatActive,
         dt,
@@ -1071,7 +1520,9 @@ export function createBotBrainSystem(): BotBrainSystem {
         weaponSystem,
         sfx,
         onDamage,
-        onFire
+        onFire,
+        sdContext,
+        primaryDefuserId
       );
     }
   }
