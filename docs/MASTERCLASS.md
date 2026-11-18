@@ -183,3 +183,32 @@ Scanning row-by-row from top-left to bottom-right, `greedyMeshGrid` expands maxi
 $$(x, y, z) = \big(r(t)\sin\phi,\; y(t),\; r(t)\cos\phi\big)$$
 
 - **Backward-Only Knee FK & Analytic 2-Bone Arm IK (`solveArmIK`)**: Rotating downward leg limbs (`(0, -1, 0)^T`) about $+X$ sends $+\theta$ toward `-Z` (forward) and $-\theta$ toward `+Z` (backward); clamping `kneeL/kneeR <= 0` prevents hyperextension. Meanwhile `solveArmIK` applies the Law of Cosines with elbow pole hints to place both hands accurately onto Pistol, SMG, AR, and Sniper grips at every pitch angle!
+
+---
+
+# Chapter 5 — Indie Production Polish: Z-Fighting Elimination, 3D Agent Select & Umbra + Volt
+
+## 5.1 Hardware Depth-Buffer Quantization & Fixing Wall Flashing ([src/arena/map.ts](../src/arena/map.ts), [src/combat/weapons.ts](../src/combat/weapons.ts))
+In a perspective frustum ($n = 0.05$, $f = 150$), view-space depth $z_e$ maps hyperbolically to Normalized Device Coordinates before 24-bit integer quantization:
+
+$$z_{\text{ndc}}(z_e) = \frac{f + n}{f - n} - \frac{2\,f\,n}{(f - n)\,z_e}$$
+
+When `wall_interior` steel framing posts shared identical `min.z`, `max.z`, and `0..3.10` Y bounds with plywood panels, distant depth precision collapsed below floating-point rounding — causing walls to flicker/flash as the camera moved. Three complementary fixes eliminate flashing completely:
+1. **True Geometric Relief (`+1.2 cm` / `+0.8 cm`)**: Interior steel framing posts protrude `0.012 m` proud of plywood faces with `0.004..3.096 m` vertical clearance; trims/caprails/crate bands extend `+0.008 m` proud with `0.004 m` vertical overlap; purlin rafters inset `0.02 m` cleanly above trusses.
+2. **Hardware Polygon Depth Bias (`polygonOffset`)**: Block/floor `MeshStandardMaterial`s apply `(factor = +1, units = +1)` so `EdgesGeometry` never stipples, while floor ability decals and bullet impact rings (`0.024 m` normal offset) apply `(-2, -2)` plus `(zoneSeq % 8) * 0.0015 m` Y-stagger:
+
+$$\Delta z_{\text{bias}} = \text{factor} \cdot \max\!\left(\left|\frac{\partial z}{\partial x}\right|, \left|\frac{\partial z}{\partial y}\right|\right) + \text{units} \cdot r$$
+
+3. **Wall-Proximity Viewmodel Tuck**: A short `0.95 m` forward raycast smoothly retracts first-person rifle/sniper viewmodels along `+Z` (up to `+0.34 m`) next to tight cover so gun barrels never clip through concrete.
+
+## 5.2 Two New Agents — Physics & Custom GLSL ([src/abilities/system.ts](../src/abilities/system.ts), [src/abilities/shaders.ts](../src/abilities/shaders.ts))
+- **`violet` — Umbra (Shadow Smoker / Controller)**:
+  - **`[Q]` Void Shroud (2 Charges, `14 s`)**: Fires a zero-drop linear phase bolt (`32 m/s`, auto-blooms at `0.50 s` or wall impact) that you can **re-tap `[Q]` mid-flight** to bloom early without spending a second charge! Uses `createVoidSmokeMaterial` (double domain-warped `voidNebula` turbulence with full `depthWrite: true` + `discard` dissolve).
+  - **`[E]` Singularity (`13 s`)**: Spawns a `4.0 m / 3.2 s` accretion vortex (`createSingularityMaterial` differential rotation $\theta' = \theta + 2.5/(r + 0.15) + 3t$ around a black event horizon). Pulls opposing targets inward (`externalVelocity` up to `3.2 m/s` resolved through X/Z AABB wall sliding in [movement.ts](../src/physics/movement.ts)), locks jump, and applies **`1.25x` Fragile** incoming damage.
+- **`gold` — Volt (Neon-Style Electric Duelist)**:
+  - **`[Q]` Overdrive Slide (`11 s`)**: `4.5 s` overdrive sprint (`1.45x` = `11.89 m/s`). Pressing `Shift` or tapping `[Q]` while moving fires a `0.55 s` **Electric Power-Slide** (`14.2 -> 7.8 m/s` cubic ease-out, `-0.68 m` camera eye dip, `85°` FOV + `-0.038 rad` tilt, `1.22 m` crouched collision + `-0.50 m` ducked hitboxes underneath `1.28 m` barriers, and `moveSpreadMultiplier = 0` for pinpoint slide-shooting!).
+  - **`[E]` Relay Bolt (`10 s`)**: `34 m/s` 1-bounce bolt (`restitution = 0.92`) spawning dual `3.2 m` crackling lightning shock zones (`createElectricRelayMaterial`, ridged FBM $\big(1 - |n|\big)^8$ quantized at 20 Hz) at both **Bounce #1** and **Impact #2** (`22` damage + `2.0 s` Concuss: `0.60x` speed, `0.68x` fire rate, `1.45x` spread/slew).
+
+## 5.3 Live 3D Agent Select Stage, Opus Sculpted Rigs & Fair AI ([src/ui/agentSelect.ts](../src/ui/agentSelect.ts), [src/ai/botBrain.ts](../src/ai/botBrain.ts))
+- **Secondary-Renderer 3D Agent Select Stage (`[B]`)**: Dedicated `WebGLRenderer` with 3-point rim lights showcasing any of the 5 live spinning `CharacterRig`s (including **Umbra**'s `1.6π` hooded cowl + out-of-phase spine censer vials + rippling veils and **Volt**'s dorsal `TorusKnotGeometry` lightning coils + pooled `THREE.Line` sprint arcs + low Power-Slide 3rd-person pose) — rendering **only while open** for zero gameplay FPS overhead.
+- **Casual / Tactical / Pro AI + Non-Duplicate 5-Agent 3v3 Draft + Game Feel**: Default `Casual` AI (`0.45 s` reaction, `3.8 rad/s` slew, `+1.08 m` chest aim, forgiving bursts) keeps solo matches welcoming; non-duplicate 3v3 squads draft from all 5 agents every round; camera-relative `atan2` directional damage arcs, `x2`/`x3` Kill Medals, `140 ms` jump/trigger input buffers, and low-ammo magazine clicks complete the indie studio polish!

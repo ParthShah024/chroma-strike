@@ -71,4 +71,41 @@ export const AGENT_ABILITIES: Record<AgentColorId, Record<AbilitySlot, AbilitySp
       description: '+20 HP/s heal + 1.28x combat stim',
     },
   },
+  violet: {
+    q: {
+      slot: 'q',
+      keyLabel: 'Q',
+      name: 'Void Shroud',
+      shortTag: 'SHROUD',
+      cooldownSec: 14.0,
+      maxCharges: 2,
+      description: '2-charge zero-drop phase smoke (re-tap Q to bloom)',
+    },
+    e: {
+      slot: 'e',
+      keyLabel: 'E',
+      name: 'Singularity',
+      shortTag: 'VORTEX',
+      cooldownSec: 13.0,
+      description: 'Gravity well pulling foes inward + 1.25x Fragile',
+    },
+  },
+  gold: {
+    q: {
+      slot: 'q',
+      keyLabel: 'Q',
+      name: 'Overdrive Slide',
+      shortTag: 'SLIDE',
+      cooldownSec: 11.0,
+      description: '1.45x electric sprint + Shift/Q pinpoint Power-Slide',
+    },
+    e: {
+      slot: 'e',
+      keyLabel: 'E',
+      name: 'Relay Bolt',
+      shortTag: 'RELAY',
+      cooldownSec: 10.0,
+      description: '1-bounce lightning bolt creating twin concuss shockzones',
+    },
+  },
 };

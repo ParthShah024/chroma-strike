@@ -1,6 +1,7 @@
 import {
   AABB,
   AGENT_PALETTES,
+  AiDifficulty,
   Combatant,
   InputState,
   MovementModifiers,
@@ -90,8 +91,64 @@ export interface BotFireCallback {
 
 const BOT_EYE_HEIGHT = 1.6;
 const ENEMY_CHEST_HEIGHT = 1.2;
-const BOT_AIM_SLEW_RAD_PER_SEC = 6.5;
-const BOT_REACTION_DELAY_SEC = 0.24;
+
+/**
+ * Casual-friendly difficulty ladder. 'casual' (default) is tuned so a new
+ * player can win duels: slow reaction, lazy aim slew, chest-height aim and wide
+ * angular error. 'pro' snaps to the head with near-laser accuracy.
+ */
+interface DifficultyProfile {
+  reactionSec: number;
+  slewRadPerSec: number;
+  aimHeightM: number;
+  aimErrorRad: number;
+  /** Multiplies burst length (forgiving bursts for casual). */
+  burstLenScale: number;
+  /** Multiplies the pause between bursts. */
+  burstCooldownScale: number;
+  /** Multiplies the delay between shots inside a burst. */
+  fireIntervalScale: number;
+}
+
+const DIFFICULTY_PROFILES: Record<AiDifficulty, DifficultyProfile> = {
+  casual: {
+    reactionSec: 0.45,
+    slewRadPerSec: 3.8,
+    aimHeightM: 1.08,
+    aimErrorRad: 0.048,
+    burstLenScale: 0.7,
+    burstCooldownScale: 1.6,
+    fireIntervalScale: 1.15,
+  },
+  tactical: {
+    reactionSec: 0.3,
+    slewRadPerSec: 5.4,
+    aimHeightM: 1.26,
+    aimErrorRad: 0.026,
+    burstLenScale: 1.0,
+    burstCooldownScale: 1.0,
+    fireIntervalScale: 1.0,
+  },
+  pro: {
+    reactionSec: 0.2,
+    slewRadPerSec: 7.2,
+    aimHeightM: 1.44,
+    aimErrorRad: 0.012,
+    burstLenScale: 1.0,
+    burstCooldownScale: 0.8,
+    fireIntervalScale: 0.96,
+  },
+};
+
+const CONCUSS_SPEED_MULT = 0.6;
+const CONCUSS_FIRE_RATE_MULT = 0.68;
+const CONCUSS_SPREAD_SLEW_PENALTY = 1.45;
+const SLIDE_SPEED_MULT = 1.45;
+const SLIDE_HITBOX_DROP_M = 0.5;
+
+function slideDrop(c: Combatant): number {
+  return (c.slideTimer ?? 0) > 0 ? SLIDE_HITBOX_DROP_M : 0;
+}
 const BOT_BODY_HALF_WIDTH = 0.38;
 const BOT_BODY_HEIGHT = 1.38;
 const BOT_HEAD_HALF_WIDTH = 0.22;
@@ -296,7 +353,7 @@ function canBotPerceiveEnemy(
   };
   const chest: Vec3 = {
     x: enemy.position.x,
-    y: enemy.position.y + ENEMY_CHEST_HEIGHT,
+    y: enemy.position.y + ENEMY_CHEST_HEIGHT - slideDrop(enemy),
     z: enemy.position.z,
   };
 
@@ -328,14 +385,20 @@ function canBotPerceiveEnemy(
 
 function getCombatantHitboxes(c: Combatant): { head: AABB; body: AABB } {
   const { x, y, z } = c.position;
+  // Power-Sliding drops the whole upper hitbox stack by 0.5m so it ducks under 1.28m cover.
+  const drop = slideDrop(c);
   return {
     body: {
       min: { x: x - BOT_BODY_HALF_WIDTH, y, z: z - BOT_BODY_HALF_WIDTH },
-      max: { x: x + BOT_BODY_HALF_WIDTH, y: y + BOT_BODY_HEIGHT, z: z + BOT_BODY_HALF_WIDTH },
+      max: { x: x + BOT_BODY_HALF_WIDTH, y: y + BOT_BODY_HEIGHT - drop, z: z + BOT_BODY_HALF_WIDTH },
     },
     head: {
-      min: { x: x - BOT_HEAD_HALF_WIDTH, y: y + BOT_BODY_HEIGHT, z: z - BOT_HEAD_HALF_WIDTH },
-      max: { x: x + BOT_HEAD_HALF_WIDTH, y: y + BOT_BODY_HEIGHT + BOT_HEAD_HEIGHT, z: z + BOT_HEAD_HALF_WIDTH },
+      min: { x: x - BOT_HEAD_HALF_WIDTH, y: y + BOT_BODY_HEIGHT - drop, z: z - BOT_HEAD_HALF_WIDTH },
+      max: {
+        x: x + BOT_HEAD_HALF_WIDTH,
+        y: y + BOT_BODY_HEIGHT + BOT_HEAD_HEIGHT - drop,
+        z: z + BOT_HEAD_HALF_WIDTH,
+      },
     },
   };
 }
@@ -372,6 +435,8 @@ function applyBotSpread(dir: Vec3, spreadRad: number): Vec3 {
 // ---------------------------------------------------------------------------
 
 export interface BotBrainSystem {
+  setDifficulty(diff: AiDifficulty): void;
+  getDifficulty(): AiDifficulty;
   resetRound(combatants: Combatant[]): void;
   update(
     dt: number,
@@ -394,12 +459,25 @@ export interface BotBrainSystem {
  */
 export function createBotBrainSystem(): BotBrainSystem {
   const memories = new Map<string, BotMemory>();
+  let difficulty: AiDifficulty = 'casual';
+
+  function setDifficulty(diff: AiDifficulty): void {
+    if (diff in DIFFICULTY_PROFILES) difficulty = diff;
+  }
+
+  function getDifficulty(): AiDifficulty {
+    return difficulty;
+  }
 
   function getOrCreateMemory(bot: Combatant): BotMemory {
     let mem = memories.get(bot.id);
     if (!mem) {
       const laneBias: BotMemory['laneBias'] =
-        bot.colorId === 'red' ? 'west' : bot.colorId === 'blue' ? 'mid' : 'east';
+        bot.colorId === 'red' || bot.colorId === 'gold'
+          ? 'west'
+          : bot.colorId === 'blue' || bot.colorId === 'violet'
+            ? 'mid'
+            : 'east';
       mem = {
         fsm: 'advance',
         route: [],
@@ -448,6 +526,10 @@ export function createBotBrainSystem(): BotBrainSystem {
   ): void {
     const mem = getOrCreateMemory(bot);
     const spec = WEAPON_SPECS[bot.weaponId];
+    const prof = DIFFICULTY_PROFILES[difficulty];
+    const concussed = (bot.concussTimer ?? 0) > 0;
+    const sliding = (bot.slideTimer ?? 0) > 0;
+    const slewPenalty = concussed ? CONCUSS_SPREAD_SLEW_PENALTY : 1.0;
 
     // Clamp ammo if weapon upgraded between rounds
     if (mem.ammo > spec.maxAmmo) {
@@ -486,7 +568,11 @@ export function createBotBrainSystem(): BotBrainSystem {
     const modifiers: MovementModifiers = {
       dashActive: false,
       dashVelocity: { x: 0, y: 0, z: 0 },
-      speedMultiplier: spec.moveSpeedMult * (bot.slowTimer > 0 ? 0.5 : 1.0),
+      speedMultiplier:
+        spec.moveSpeedMult *
+        (bot.slowTimer > 0 ? 0.5 : 1.0) *
+        (concussed ? CONCUSS_SPEED_MULT : 1.0) *
+        (sliding ? SLIDE_SPEED_MULT : 1.0),
       suppressJump: bot.slowTimer > 0,
     };
 
@@ -600,6 +686,55 @@ export function createBotBrainSystem(): BotBrainSystem {
           });
           abilities.castForBot('q', bot, aim.yaw, aim.pitch);
         }
+      } else if (bot.colorId === 'violet') {
+        // Violet Controller (Umbra): Singularity [E] onto engaged enemies (7-24m),
+        // Void Shroud [Q] across longer sightlines (8-28m) or to break contact.
+        const sightTarget: Vec3 | null = spottedTarget
+          ? spottedTarget.position
+          : mem.lastSeenPos && mem.timeSinceSeen < 2.5
+            ? mem.lastSeenPos
+            : null;
+        const sightDist = sightTarget
+          ? Math.hypot(sightTarget.x - bot.position.x, sightTarget.z - bot.position.z)
+          : Infinity;
+
+        if (spottedTarget && mem.fsm === 'engage' && spottedDist > 7 && spottedDist < 24) {
+          const aim = computeAimAngles(botEye, {
+            x: spottedTarget.position.x,
+            y: spottedTarget.position.y + 0.6,
+            z: spottedTarget.position.z,
+          });
+          abilities.castForBot('e', bot, aim.yaw, aim.pitch);
+        }
+        if (sightTarget && sightDist > 8 && sightDist < 28 && (sightDist > 14 || mem.fsm === 'evade_cover')) {
+          const aim = computeAimAngles(botEye, {
+            x: sightTarget.x,
+            y: sightTarget.y + 0.9,
+            z: sightTarget.z,
+          });
+          abilities.castForBot('q', bot, aim.yaw, aim.pitch);
+        }
+      } else if (bot.colorId === 'gold') {
+        // Gold Duelist (Volt): Relay Bolt [E] at 6-26m; Overdrive [Q] to close the gap
+        // (<18m) or slide out of trouble.
+        if (spottedTarget && spottedDist > 6 && spottedDist < 26) {
+          const aim = computeAimAngles(botEye, {
+            x: spottedTarget.position.x,
+            y: spottedTarget.position.y + 0.9,
+            z: spottedTarget.position.z,
+          });
+          abilities.castForBot('e', bot, aim.yaw, aim.pitch);
+        }
+        if (spottedTarget && spottedDist > 4 && spottedDist < 18) {
+          const aim = computeAimAngles(botEye, {
+            x: spottedTarget.position.x,
+            y: spottedTarget.position.y + 0.9,
+            z: spottedTarget.position.z,
+          });
+          abilities.castForBot('q', bot, aim.yaw, aim.pitch);
+        } else if (mem.fsm === 'evade_cover') {
+          abilities.castForBot('q', bot, bot.yaw + Math.PI * 0.5 * mem.strafeDir, 0);
+        }
       } else if (bot.colorId === 'red') {
         // Red Duelist: Inferno Orb onto spotted enemy, or Crimson Dash to evade/flank
         if (spottedTarget && spottedDist > 6 && spottedDist < 26) {
@@ -647,10 +782,9 @@ export function createBotBrainSystem(): BotBrainSystem {
         y: bot.position.y + BOT_EYE_HEIGHT,
         z: bot.position.z,
       };
-      const aimHeadBias = bot.weaponId === 'sniper' ? 1.25 : 1.38;
       const aimPos: Vec3 = {
         x: spottedTarget.position.x,
-        y: spottedTarget.position.y + aimHeadBias,
+        y: spottedTarget.position.y + prof.aimHeightM - slideDrop(spottedTarget),
         z: spottedTarget.position.z,
       };
       const aim = computeAimAngles(botEye, aimPos);
@@ -722,7 +856,7 @@ export function createBotBrainSystem(): BotBrainSystem {
             const botEye: Vec3 = { x: bot.position.x, y: bot.position.y + BOT_EYE_HEIGHT, z: bot.position.z };
             const aim = computeAimAngles(botEye, {
               x: spottedTarget.position.x,
-              y: spottedTarget.position.y + 1.3,
+              y: spottedTarget.position.y + prof.aimHeightM - slideDrop(spottedTarget),
               z: spottedTarget.position.z,
             });
             desiredYaw = aim.yaw;
@@ -742,7 +876,7 @@ export function createBotBrainSystem(): BotBrainSystem {
     }
 
     // 5. Smoothly Slew Yaw & Pitch via Shortest-Arc Wrapping (`atan2(sin, cos)`)
-    const maxStep = BOT_AIM_SLEW_RAD_PER_SEC * dt;
+    const maxStep = (prof.slewRadPerSec / slewPenalty) * dt;
     const yawDiff = wrapAngleRad(desiredYaw - bot.yaw);
     bot.yaw = wrapAngleRad(bot.yaw + clamp(yawDiff, -maxStep, maxStep));
 
@@ -759,36 +893,41 @@ export function createBotBrainSystem(): BotBrainSystem {
     if (
       mem.fsm === 'engage' &&
       spottedTarget &&
-      mem.reactionTimer >= BOT_REACTION_DELAY_SEC &&
+      mem.reactionTimer >= prof.reactionSec * (concussed ? CONCUSS_SPREAD_SLEW_PENALTY : 1.0) &&
       !mem.reloading &&
       mem.ammo > 0 &&
       mem.fireTimer <= 0 &&
       Math.abs(yawDiff) < 0.26
     ) {
       if (mem.burstShotsLeft <= 0 && mem.burstCooldown <= 0) {
-        mem.burstShotsLeft =
+        const rawBurst =
           bot.weaponId === 'sniper' || bot.weaponId === 'pistol'
             ? 1
             : bot.weaponId === 'smg'
               ? 4 + Math.floor(Math.random() * 3)
               : 2 + Math.floor(Math.random() * 3);
+        mem.burstShotsLeft = Math.max(1, Math.round(rawBurst * prof.burstLenScale));
       }
 
       if (mem.burstShotsLeft > 0) {
         mem.burstShotsLeft -= 1;
         mem.ammo -= 1;
-        mem.fireTimer =
+        const baseInterval =
           bot.weaponId === 'pistol'
             ? Math.max(spec.fireIntervalSec, 0.28)
             : spec.fireIntervalSec * (bot.weaponId === 'sniper' ? 1.15 : 1.08);
+        // Concussed bots fire at 0.68x rate (interval / 0.68).
+        mem.fireTimer =
+          (baseInterval * prof.fireIntervalScale) / (concussed ? CONCUSS_FIRE_RATE_MULT : 1.0);
 
         if (mem.burstShotsLeft <= 0) {
-          mem.burstCooldown = bot.weaponId === 'sniper' ? 0.35 : 0.26 + Math.random() * 0.2;
+          const rawCooldown = bot.weaponId === 'sniper' ? 0.35 : 0.26 + Math.random() * 0.2;
+          mem.burstCooldown = rawCooldown * prof.burstCooldownScale;
         }
 
         const origin: Vec3 = {
           x: bot.position.x,
-          y: bot.position.y + BOT_EYE_HEIGHT,
+          y: bot.position.y + BOT_EYE_HEIGHT - slideDrop(bot),
           z: bot.position.z,
         };
 
@@ -796,13 +935,15 @@ export function createBotBrainSystem(): BotBrainSystem {
         const moveSpread =
           horizSpeed < 0.45 && bot.grounded ? 0 : (horizSpeed / RUN_SPEED) * spec.moveSpreadRad;
         // Bots use sniper scoped accuracy when stationary, plus a fair baseline dispersion
-        const baseAimError = bot.weaponId === 'sniper' && horizSpeed < 0.45 ? 0.012 : 0.022;
+        const baseAimError =
+          bot.weaponId === 'sniper' && horizSpeed < 0.45 ? prof.aimErrorRad * 0.55 : prof.aimErrorRad;
         const totalSpread =
-          baseAimError +
+          (baseAimError +
           (bot.weaponId === 'sniper' ? spec.scopedSpreadRad : spec.baseSpreadRad) +
           moveSpread +
           (bot.grounded ? 0 : spec.airSpreadRad) +
-          mem.recoilAccum * 0.03;
+          mem.recoilAccum * 0.03) *
+          slewPenalty;
 
         const baseDir = getLookDirection(bot.yaw, bot.pitch + mem.recoilAccum * 0.04);
         const shotDir = applyBotSpread(baseDir, totalSpread);
@@ -936,6 +1077,8 @@ export function createBotBrainSystem(): BotBrainSystem {
   }
 
   return {
+    setDifficulty,
+    getDifficulty,
     resetRound,
     update,
   };

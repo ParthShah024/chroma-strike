@@ -13,7 +13,11 @@
  *    on a Node/Edge authoritative server without a WebGL context.
  */
 
-export type AgentColorId = 'red' | 'blue' | 'green';
+export type AgentColorId = 'red' | 'blue' | 'green' | 'violet' | 'gold';
+
+export const AGENT_ORDER: readonly AgentColorId[] = ['red', 'blue', 'green', 'violet', 'gold'];
+
+export type AiDifficulty = 'casual' | 'tactical' | 'pro';
 
 export interface AgentPalette {
   id: AgentColorId;
@@ -44,6 +48,20 @@ export const AGENT_PALETTES: Record<AgentColorId, AgentPalette> = {
     role: 'Initiator',
     hex: 0x2ecc71,
     css: '#2ecc71',
+  },
+  violet: {
+    id: 'violet',
+    name: 'Umbra (Violet)',
+    role: 'Controller',
+    hex: 0xa855f7,
+    css: '#a855f7',
+  },
+  gold: {
+    id: 'gold',
+    name: 'Volt (Gold)',
+    role: 'Duelist',
+    hex: 0xfacc15,
+    css: '#facc15',
   },
 };
 
@@ -118,6 +136,12 @@ export interface TargetDummy {
   slowTimer: number;
   /** Remaining seconds of Pop-Flash blindness (0 = clear vision). */
   blindTimer: number;
+  /** Remaining seconds of Singularity Fragile amplification (0 = normal damage). */
+  vulnerableTimer?: number;
+  /** Remaining seconds of Relay Shock concuss disorientation (0 = clear). */
+  concussTimer?: number;
+  /** Remaining seconds of Volt Power-Slide low-profile stance. */
+  slideTimer?: number;
 }
 
 export interface ShotResult {
@@ -160,7 +184,14 @@ export type AbilityAudioEvent =
   | 'slow_shatter'
   | 'flash_warn'
   | 'flash_pop'
-  | 'beacon_deploy';
+  | 'beacon_deploy'
+  | 'void_cast'
+  | 'void_bloom'
+  | 'vortex_pull'
+  | 'overdrive_on'
+  | 'power_slide'
+  | 'relay_bounce'
+  | 'relay_zap';
 
 /** Immutable static specification for one agent ability slot. */
 export interface AbilitySpec {
@@ -169,6 +200,7 @@ export interface AbilitySpec {
   name: string;
   shortTag: string;
   cooldownSec: number;
+  maxCharges?: number;
   description: string;
 }
 
@@ -181,9 +213,18 @@ export interface MovementModifiers {
   dashVelocity: Vec3;
   speedMultiplier: number;
   suppressJump?: boolean;
+  externalVelocity?: Vec3;
+  slideActive?: boolean;
 }
 
-export type ProjectileKind = 'fire_orb' | 'smoke_orb' | 'slow_orb' | 'flash_orb';
+export type ProjectileKind =
+  | 'fire_orb'
+  | 'smoke_orb'
+  | 'slow_orb'
+  | 'flash_orb'
+  | 'void_orb'
+  | 'vortex_orb'
+  | 'relay_bolt';
 
 /** Live thrown orb simulated via ballistic gravity and AABB raycast bounces. */
 export interface AbilityProjectile {
@@ -199,7 +240,7 @@ export interface AbilityProjectile {
   detonateOnFloor: boolean;
 }
 
-export type ZoneKind = 'fire' | 'smoke' | 'slow' | 'beacon';
+export type ZoneKind = 'fire' | 'smoke' | 'slow' | 'beacon' | 'void_smoke' | 'vortex' | 'relay_shock';
 
 /** Persistent area-of-effect volume active in the arena for a bounded duration. */
 export interface ActiveZone {
@@ -225,6 +266,9 @@ export interface AbilityHudSlotState {
   cooldownRemaining: number;
   cooldownTotal: number;
   ready: boolean;
+  charges?: number;
+  maxCharges?: number;
+  activeTimer?: number;
 }
 
 /**
@@ -236,12 +280,17 @@ export interface AbilityFrameFeedback {
   movement: MovementModifiers;
   fireRateMultiplier: number;
   recoilMultiplier: number;
+  moveSpreadMultiplier: number;
+  eyeHeightOffset: number;
   audioEvents: AbilityAudioEvent[];
   activeSmokes: SmokeSphere[];
   insideSmokeFactor: number;
   flashAlpha: number;
   dashAlpha: number;
+  overdriveAlpha: number;
+  concussAlpha: number;
   stimActive: boolean;
+  slideActive: boolean;
   qHud: AbilityHudSlotState;
   eHud: AbilityHudSlotState;
 }
@@ -347,4 +396,7 @@ export interface MatchHudState {
   bannerSubtitle: string | null;
   canTakeoverBot: boolean;
   killFeed: KillFeedEntry[];
+  lastDamageAngleRad?: number | null;
+  lastDamageSeq?: number;
+  difficulty?: AiDifficulty;
 }

@@ -30,6 +30,8 @@ export interface SoundEngine {
   playHeadshot(): void;
   playBodyHit(): void;
   playReload(): void;
+  playLowAmmoClick(): void;
+  playUiLockIn(): void;
   playAbility(event: AbilityAudioEvent): void;
   playRoundCue(cue: 'buy' | 'fight' | 'win' | 'lose'): void;
 }
@@ -387,6 +389,76 @@ export function createSoundEngine(): SoundEngine {
     }
   }
 
+  /**
+   * Crisp dry metallic magazine click signaling low ammunition (`<= 20%` mag).
+   * Combines a tight `3.4 kHz` high-Q noise tick with a `1900 -> 880 Hz` latch ping.
+   */
+  function playLowAmmoClick(): void {
+    const nodes = getReadyNodes();
+    if (!nodes) return;
+    const { context, out, noise } = nodes;
+    const now = context.currentTime;
+
+    const clickSrc = context.createBufferSource();
+    clickSrc.buffer = noise;
+    const bp = context.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.setValueAtTime(3400, now);
+    bp.Q.setValueAtTime(4.2, now);
+    const clickGain = context.createGain();
+    clickGain.gain.setValueAtTime(0.16, now);
+    clickGain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + 0.022);
+    clickSrc.connect(bp);
+    bp.connect(clickGain);
+    clickGain.connect(out);
+    clickSrc.start(now);
+    clickSrc.stop(now + 0.03);
+
+    const pingOsc = context.createOscillator();
+    const pingGain = context.createGain();
+    pingOsc.type = 'triangle';
+    pingOsc.frequency.setValueAtTime(1900, now);
+    pingOsc.frequency.exponentialRampToValueAtTime(880, now + 0.024);
+    pingGain.gain.setValueAtTime(0.11, now);
+    pingGain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + 0.026);
+    pingOsc.connect(pingGain);
+    pingGain.connect(out);
+    pingOsc.start(now);
+    pingOsc.stop(now + 0.032);
+  }
+
+  /**
+   * Futuristic two-voice lock-in confirmation chord (detuned fifth + octave shimmer).
+   */
+  function playUiLockIn(): void {
+    const nodes = getReadyNodes();
+    if (!nodes) return;
+    const { context, out } = nodes;
+    const now = context.currentTime;
+
+    const voices: Array<{ fStart: number; fEnd: number; delay: number; dur: number; type: OscillatorType; peak: number }> = [
+      { fStart: 440, fEnd: 523.25, delay: 0, dur: 0.18, type: 'triangle', peak: 0.18 },
+      { fStart: 659.25, fEnd: 783.99, delay: 0.045, dur: 0.24, type: 'sine', peak: 0.2 },
+      { fStart: 1046.5, fEnd: 1046.5, delay: 0.075, dur: 0.26, type: 'sine', peak: 0.12 },
+    ];
+
+    for (const v of voices) {
+      const t0 = now + v.delay;
+      const osc = context.createOscillator();
+      const gain = context.createGain();
+      osc.type = v.type;
+      osc.frequency.setValueAtTime(v.fStart, t0);
+      osc.frequency.exponentialRampToValueAtTime(v.fEnd, t0 + 0.05);
+      gain.gain.setValueAtTime(0.004, t0);
+      gain.gain.linearRampToValueAtTime(v.peak, t0 + 0.015);
+      gain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, t0 + v.dur);
+      osc.connect(gain);
+      gain.connect(out);
+      osc.start(t0);
+      osc.stop(t0 + v.dur + 0.02);
+    }
+  }
+
   function playAbility(event: AbilityAudioEvent): void {
     const nodes = getReadyNodes();
     if (!nodes) return;
@@ -602,6 +674,214 @@ export function createSoundEngine(): SoundEngine {
         }
         break;
       }
+
+      case 'void_cast': {
+        // Umbra phase-orb cast: hollow descending phase sweep + dark bandpass whoosh
+        const phaseOsc = context.createOscillator();
+        const phaseGain = context.createGain();
+        phaseOsc.type = 'sine';
+        phaseOsc.frequency.setValueAtTime(420, now);
+        phaseOsc.frequency.exponentialRampToValueAtTime(140, now + 0.22);
+        phaseGain.gain.setValueAtTime(0.01, now);
+        phaseGain.gain.linearRampToValueAtTime(0.24, now + 0.03);
+        phaseGain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + 0.24);
+        phaseOsc.connect(phaseGain);
+        phaseGain.connect(out);
+        phaseOsc.start(now);
+        phaseOsc.stop(now + 0.26);
+
+        const whooshSrc = context.createBufferSource();
+        whooshSrc.buffer = noise;
+        const bp = context.createBiquadFilter();
+        bp.type = 'bandpass';
+        bp.Q.setValueAtTime(2.8, now);
+        bp.frequency.setValueAtTime(920, now);
+        bp.frequency.exponentialRampToValueAtTime(280, now + 0.2);
+        const whooshGain = context.createGain();
+        whooshGain.gain.setValueAtTime(0.18, now);
+        whooshGain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + 0.21);
+        whooshSrc.connect(bp);
+        bp.connect(whooshGain);
+        whooshGain.connect(out);
+        whooshSrc.start(now);
+        whooshSrc.stop(now + 0.23);
+        break;
+      }
+
+      case 'void_bloom': {
+        // Umbra void shroud bloom: deep resonant sub-drop + eerie detuned fifth shimmer
+        const subOsc = context.createOscillator();
+        const subGain = context.createGain();
+        subOsc.type = 'sine';
+        subOsc.frequency.setValueAtTime(155, now);
+        subOsc.frequency.exponentialRampToValueAtTime(46, now + 0.45);
+        subGain.gain.setValueAtTime(0.38, now);
+        subGain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + 0.46);
+        subOsc.connect(subGain);
+        subGain.connect(out);
+        subOsc.start(now);
+        subOsc.stop(now + 0.48);
+
+        for (const freq of [311.13, 466.16]) {
+          const chimeOsc = context.createOscillator();
+          const chimeGain = context.createGain();
+          chimeOsc.type = 'triangle';
+          chimeOsc.frequency.setValueAtTime(freq, now);
+          chimeOsc.frequency.exponentialRampToValueAtTime(freq * 0.94, now + 0.42);
+          chimeGain.gain.setValueAtTime(0.01, now);
+          chimeGain.gain.linearRampToValueAtTime(0.12, now + 0.06);
+          chimeGain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + 0.44);
+          chimeOsc.connect(chimeGain);
+          chimeGain.connect(out);
+          chimeOsc.start(now);
+          chimeOsc.stop(now + 0.46);
+        }
+        break;
+      }
+
+      case 'vortex_pull': {
+        // Umbra Singularity: inward gravity vacuum sweep (rising low-pass suction + sub thrum)
+        const vacSrc = context.createBufferSource();
+        vacSrc.buffer = noise;
+        const lp = context.createBiquadFilter();
+        lp.type = 'bandpass';
+        lp.Q.setValueAtTime(2.2, now);
+        lp.frequency.setValueAtTime(180, now);
+        lp.frequency.exponentialRampToValueAtTime(980, now + 0.28);
+        lp.frequency.exponentialRampToValueAtTime(120, now + 0.46);
+        const vacGain = context.createGain();
+        vacGain.gain.setValueAtTime(0.02, now);
+        vacGain.gain.linearRampToValueAtTime(0.3, now + 0.22);
+        vacGain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + 0.46);
+        vacSrc.connect(lp);
+        lp.connect(vacGain);
+        vacGain.connect(out);
+        vacSrc.start(now);
+        vacSrc.stop(now + 0.48);
+
+        const gravOsc = context.createOscillator();
+        const gravGain = context.createGain();
+        gravOsc.type = 'sawtooth';
+        gravOsc.frequency.setValueAtTime(110, now);
+        gravOsc.frequency.exponentialRampToValueAtTime(48, now + 0.42);
+        gravGain.gain.setValueAtTime(0.22, now);
+        gravGain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + 0.44);
+        gravOsc.connect(gravGain);
+        gravGain.connect(out);
+        gravOsc.start(now);
+        gravOsc.stop(now + 0.46);
+        break;
+      }
+
+      case 'overdrive_on': {
+        // Volt Overdrive: rising electric harmonic surge + crisp arc snap
+        const surgeOsc = context.createOscillator();
+        const surgeGain = context.createGain();
+        surgeOsc.type = 'sawtooth';
+        surgeOsc.frequency.setValueAtTime(240, now);
+        surgeOsc.frequency.exponentialRampToValueAtTime(880, now + 0.18);
+        surgeGain.gain.setValueAtTime(0.01, now);
+        surgeGain.gain.linearRampToValueAtTime(0.22, now + 0.04);
+        surgeGain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + 0.24);
+        surgeOsc.connect(surgeGain);
+        surgeGain.connect(out);
+        surgeOsc.start(now);
+        surgeOsc.stop(now + 0.26);
+
+        const sparkSrc = context.createBufferSource();
+        sparkSrc.buffer = noise;
+        const hp = context.createBiquadFilter();
+        hp.type = 'highpass';
+        hp.frequency.setValueAtTime(2400, now);
+        const sparkGain = context.createGain();
+        sparkGain.gain.setValueAtTime(0.2, now);
+        sparkGain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + 0.12);
+        sparkSrc.connect(hp);
+        hp.connect(sparkGain);
+        sparkGain.connect(out);
+        sparkSrc.start(now);
+        sparkSrc.stop(now + 0.14);
+        break;
+      }
+
+      case 'power_slide': {
+        // Volt Power-Slide: kinetic floor skid noise + descending electric coil whine
+        const skidSrc = context.createBufferSource();
+        skidSrc.buffer = noise;
+        const bp = context.createBiquadFilter();
+        bp.type = 'bandpass';
+        bp.Q.setValueAtTime(1.5, now);
+        bp.frequency.setValueAtTime(1900, now);
+        bp.frequency.exponentialRampToValueAtTime(520, now + 0.34);
+        const skidGain = context.createGain();
+        skidGain.gain.setValueAtTime(0.02, now);
+        skidGain.gain.linearRampToValueAtTime(0.36, now + 0.03);
+        skidGain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + 0.36);
+        skidSrc.connect(bp);
+        bp.connect(skidGain);
+        skidGain.connect(out);
+        skidSrc.start(now);
+        skidSrc.stop(now + 0.38);
+
+        const coilOsc = context.createOscillator();
+        const coilGain = context.createGain();
+        coilOsc.type = 'triangle';
+        coilOsc.frequency.setValueAtTime(640, now);
+        coilOsc.frequency.exponentialRampToValueAtTime(190, now + 0.3);
+        coilGain.gain.setValueAtTime(0.16, now);
+        coilGain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + 0.32);
+        coilOsc.connect(coilGain);
+        coilGain.connect(out);
+        coilOsc.start(now);
+        coilOsc.stop(now + 0.34);
+        break;
+      }
+
+      case 'relay_bounce': {
+        // Volt Relay Bolt ricochet: bright electric chirp + metallic bounce ping
+        const chirpOsc = context.createOscillator();
+        const chirpGain = context.createGain();
+        chirpOsc.type = 'sine';
+        chirpOsc.frequency.setValueAtTime(1250, now);
+        chirpOsc.frequency.exponentialRampToValueAtTime(2400, now + 0.055);
+        chirpGain.gain.setValueAtTime(0.22, now);
+        chirpGain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + 0.09);
+        chirpOsc.connect(chirpGain);
+        chirpGain.connect(out);
+        chirpOsc.start(now);
+        chirpOsc.stop(now + 0.1);
+        break;
+      }
+
+      case 'relay_zap': {
+        // Volt Relay Shock detonation: sharp electric arc snap + buzzing discharge
+        const arcSrc = context.createBufferSource();
+        arcSrc.buffer = noise;
+        const hp = context.createBiquadFilter();
+        hp.type = 'highpass';
+        hp.frequency.setValueAtTime(1600, now);
+        const arcGain = context.createGain();
+        arcGain.gain.setValueAtTime(0.36, now);
+        arcGain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + 0.16);
+        arcSrc.connect(hp);
+        hp.connect(arcGain);
+        arcGain.connect(out);
+        arcSrc.start(now);
+        arcSrc.stop(now + 0.18);
+
+        const zapOsc = context.createOscillator();
+        const zapGain = context.createGain();
+        zapOsc.type = 'sawtooth';
+        zapOsc.frequency.setValueAtTime(520, now);
+        zapOsc.frequency.exponentialRampToValueAtTime(95, now + 0.22);
+        zapGain.gain.setValueAtTime(0.28, now);
+        zapGain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + 0.24);
+        zapOsc.connect(zapGain);
+        zapGain.connect(out);
+        zapOsc.start(now);
+        zapOsc.stop(now + 0.26);
+        break;
+      }
     }
   }
 
@@ -680,6 +960,8 @@ export function createSoundEngine(): SoundEngine {
     playHeadshot,
     playBodyHit,
     playReload,
+    playLowAmmoClick,
+    playUiLockIn,
     playAbility,
     playRoundCue,
   };

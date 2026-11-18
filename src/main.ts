@@ -1,9 +1,11 @@
 import * as THREE from 'three';
 import {
+  AGENT_ORDER,
   AGENT_PALETTES,
   AbilityFrameFeedback,
   AbilityHudSlotState,
   AgentColorId,
+  AiDifficulty,
   InputState,
   MatchHudState,
   MovementModifiers,
@@ -30,6 +32,7 @@ import { createAbilitySystem } from './abilities/system';
 import { createSoundEngine } from './audio/sfx';
 import { createMatchManager } from './match/roundManager';
 import { createCrosshairController } from './ui/crosshair';
+import { createAgentSelectController } from './ui/agentSelect';
 import {
   createMapEditorController,
   loadSavedCustomMapGrid,
@@ -60,6 +63,9 @@ const camera = new THREE.PerspectiveCamera(
   0.1,
   150
 );
+// Tight near plane so first-person viewmodels and low slide-cam geometry never clip.
+camera.near = 0.05;
+camera.updateProjectionMatrix();
 // YXZ Euler order applies yaw (around world Y) before pitch (around local X),
 // preventing camera roll/tilt when looking diagonally in an FPS.
 camera.rotation.order = 'YXZ';
@@ -77,6 +83,7 @@ window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
+  frozenDrawn = false; // resizing clears the canvas: redraw the frozen backdrop once
 });
 
 // ---------------------------------------------------------------------------
@@ -90,6 +97,18 @@ const weapon = createWeaponSystem(camera, scene, player.colorId);
 const abilities = createAbilitySystem(scene);
 const match = createMatchManager(scene, abilities, weapon, sfx);
 const crosshair = createCrosshairController();
+
+// While Agent Select is up (or before the very first LOCK IN) the simulation is frozen
+// and the main scene is drawn only once (`frozenDrawn`), so the stage owns the GPU.
+let frozenDrawn = false;
+let gameStarted = false;
+
+const INPUT_BUFFER_SEC = 0.14;
+let jumpHeld = false;
+let jumpBufferTimer = 0;
+let fireBufferTimer = 0;
+let eyeOffsetSmoothed = 0;
+let slideTiltSmoothed = 0;
 
 let lastAbilityFeedback: AbilityFrameFeedback | null = null;
 let thirdPerson = false;
@@ -131,12 +150,8 @@ const allyScoreEl = document.getElementById('ally-score') as HTMLDivElement;
 const enemyScoreEl = document.getElementById('enemy-score') as HTMLDivElement;
 const roundPhaseLabelEl = document.getElementById('round-phase-label') as HTMLDivElement;
 const roundClockEl = document.getElementById('round-clock') as HTMLDivElement;
-const allyDots = Array.from(
-  document.querySelectorAll<HTMLDivElement>('#ally-dots .agent-dot')
-);
-const enemyDots = Array.from(
-  document.querySelectorAll<HTMLDivElement>('#enemy-dots .agent-dot')
-);
+const allyDotsEl = document.getElementById('ally-dots') as HTMLDivElement;
+const enemyDotsEl = document.getElementById('enemy-dots') as HTMLDivElement;
 
 const killfeedEl = document.getElementById('killfeed') as HTMLDivElement;
 const roundBannerEl = document.getElementById('round-banner') as HTMLDivElement;
@@ -151,6 +166,12 @@ const speedEl = document.getElementById('hud-speed') as HTMLDivElement;
 const hint3pEl = document.getElementById('hint-3p') as HTMLDivElement;
 const hintXhairEl = document.getElementById('hint-xhair') as HTMLDivElement;
 const hintMapEl = document.getElementById('hint-map') as HTMLDivElement;
+const hintAgentsEl = document.getElementById('hint-agents') as HTMLDivElement;
+const damageArcEl = document.getElementById('damage-arc') as HTMLDivElement;
+const killMedalEl = document.getElementById('kill-medal') as HTMLDivElement;
+const killMedalTitleEl = document.getElementById('kill-medal-title') as HTMLDivElement;
+const killMedalStreakEl = document.getElementById('kill-medal-streak') as HTMLDivElement;
+const controlStripEl = document.getElementById('control-strip') as HTMLDivElement;
 
 const agentPills = Array.from(document.querySelectorAll<HTMLDivElement>('.pill'));
 const weaponPills = Array.from(document.querySelectorAll<HTMLDivElement>('.wpn-pill'));
@@ -211,15 +232,69 @@ function isPointerLocked(): boolean {
 }
 
 function isAnyModalOpen(): boolean {
-  return crosshair.isOpen() || mapEditor.isOpen();
+  return crosshair.isOpen() || mapEditor.isOpen() || agentSelect.isOpen();
 }
 
 function syncOverlayVisibility(): void {
-  // Keep `#overlay` hidden while playing (pointer locked) OR editing crosshair/map.
+  // Keep `#overlay` (Pause / Resume) hidden while playing (pointer locked) OR in any modal.
   overlayEl.classList.toggle('hidden', isPointerLocked() || isAnyModalOpen());
   hintXhairEl.classList.toggle('active', crosshair.isOpen());
   hintMapEl.classList.toggle('active', mapEditor.isOpen());
+  hintAgentsEl.classList.toggle('active', agentSelect.isOpen());
 }
+
+function clearHeldInputs(): void {
+  input.forward = false;
+  input.backward = false;
+  input.left = false;
+  input.right = false;
+  input.walk = false;
+  input.jump = false;
+  input.fire = false;
+  input.fireJustPressed = false;
+  input.reload = false;
+  jumpHeld = false;
+  jumpBufferTimer = 0;
+  fireBufferTimer = 0;
+}
+
+/** Opens Agent Select (releases the pointer so the cursor can click cards). */
+function openAgentSelect(): void {
+  if (isPointerLocked()) document.exitPointerLock();
+  clearHeldInputs();
+  crosshair.close();
+  mapEditor.close();
+  frozenDrawn = false;
+  agentSelect.open(match.getPlayerCombatant().colorId);
+  syncOverlayVisibility();
+}
+
+const agentSelect = createAgentSelectController({
+  getCurrentAgent: () => match.getPlayerCombatant().colorId,
+  canDismiss: () => gameStarted,
+  onDifficultyChange: (diff: AiDifficulty) => {
+    match.setDifficulty(diff);
+  },
+  onClose: () => {
+    syncOverlayVisibility();
+  },
+  onLockIn: (colorId: AgentColorId, diff: AiDifficulty) => {
+    sfx.unlock();
+    sfx.playUiLockIn();
+    match.setDifficulty(diff);
+    match.selectPlayerAgent(colorId);
+    syncLocalPlayerFromCombatant();
+    gameStarted = true;
+    frozenDrawn = false;
+    syncOverlayVisibility();
+    // LOCK IN is a user gesture (click / Enter): lock the pointer and start immediately.
+    canvas.requestPointerLock();
+  },
+});
+match.setDifficulty(agentSelect.getDifficulty());
+// Launch straight into Agent Select (the plain `#overlay` stays a Pause/Resume menu on [Esc]).
+agentSelect.open(match.getPlayerCombatant().colorId);
+syncOverlayVisibility();
 
 crosshair.setOnClose(() => {
   syncOverlayVisibility();
@@ -269,15 +344,7 @@ document.addEventListener('pointerlockchange', () => {
 
   // Clear held movement/fire inputs when unlocking so keys never get stuck.
   if (!locked) {
-    input.forward = false;
-    input.backward = false;
-    input.left = false;
-    input.right = false;
-    input.walk = false;
-    input.jump = false;
-    input.fire = false;
-    input.fireJustPressed = false;
-    input.reload = false;
+    clearHeldInputs();
   }
 });
 
@@ -317,6 +384,7 @@ window.addEventListener('mousedown', (e: MouseEvent) => {
   if (e.button === 0) {
     input.fire = true;
     input.fireJustPressed = true;
+    fireBufferTimer = INPUT_BUFFER_SEC; // 140ms semi-auto fire buffer
   } else if (e.button === 2) {
     if (match.getPlayerCombatant().alive) {
       weapon.toggleScope();
@@ -365,7 +433,9 @@ function handleKey(code: string, isDown: boolean): void {
       input.walk = isDown;
       break;
     case 'Space':
+      jumpHeld = isDown;
       input.jump = isDown;
+      if (isDown) jumpBufferTimer = INPUT_BUFFER_SEC; // 140ms jump buffer
       break;
     case 'KeyR':
       input.reload = isDown;
@@ -404,17 +474,37 @@ function handleKey(code: string, isDown: boolean): void {
 window.addEventListener('keydown', (e: KeyboardEvent) => {
   sfx.unlock();
 
+  // Keys already consumed by Agent Select (1-5, Enter, arrows, Esc) never reach gameplay.
+  if (e.defaultPrevented) return;
+
   if (
     e.code === 'Space' ||
     e.code === 'Tab' ||
     e.code === 'F1' ||
     e.code === 'F2' ||
-    e.code === 'F3'
+    e.code === 'F3' ||
+    e.code === 'F4' ||
+    e.code === 'F5'
   ) {
     e.preventDefault();
   }
 
+  if (agentSelect.isOpen()) {
+    // [B] closes Agent Select again (only once the match has started).
+    if (e.code === 'KeyB' && !e.repeat && gameStarted) {
+      agentSelect.close();
+      canvas.requestPointerLock();
+    }
+    return;
+  }
+
   if (!e.repeat) {
+    // [B] opens Agent Select during the Buy phase.
+    if (e.code === 'KeyB' && gameStarted && lastHudPhase === 'buy') {
+      openAgentSelect();
+      return;
+    }
+
     // [C] Crosshair Customizer modal toggle
     if (e.code === 'KeyC') {
       const wasMapOpen = mapEditor.isOpen();
@@ -454,10 +544,10 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
       return;
     }
 
-    // [F1..F3] Switch active Agent
-    if (e.code === 'F1' || e.code === 'F2' || e.code === 'F3') {
-      const targetColor: AgentColorId =
-        e.code === 'F1' ? 'red' : e.code === 'F2' ? 'blue' : 'green';
+    // [F1..F5] Switch active Agent (Blaze, Mist, Pulse, Umbra, Volt)
+    const fKey = /^F([1-5])$/.exec(e.code);
+    if (fKey) {
+      const targetColor = AGENT_ORDER[Number(fKey[1]) - 1];
       match.selectPlayerAgent(targetColor);
       syncLocalPlayerFromCombatant();
       return;
@@ -478,6 +568,7 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
     if (e.code === 'Enter' && lastHudPhase === 'match_over') {
       match.restartMatch();
       syncLocalPlayerFromCombatant();
+      openAgentSelect(); // fresh draft: pick your agent for the new match
       return;
     }
 
@@ -521,16 +612,27 @@ function syncAbilitySlot(
   keyLabel: 'Q' | 'E',
   slot: AbilityHudSlotState
 ): void {
+  const activeTimer = slot.activeTimer ?? 0;
   el.classList.toggle('ready', slot.ready);
+  el.classList.toggle('active-fx', activeTimer > 0);
   const pct = slot.ready
     ? 100
     : clamp((1 - slot.cooldownRemaining / Math.max(slot.cooldownTotal, 0.001)) * 100, 0, 100);
   el.style.setProperty('--cd-pct', `${pct.toFixed(1)}%`);
 
-  if (slot.ready) {
-    el.innerHTML = `<span class="ab-key">[${keyLabel}]</span>${slot.shortTag}`;
-  } else {
-    el.innerHTML = `<span class="ab-key">[${keyLabel}]</span>${slot.cooldownRemaining.toFixed(1)}s`;
+  // Multi-charge pill (e.g. Umbra's 2/2 Void Shroud) or active-duration timer (Volt Overdrive).
+  let extra = '';
+  if ((slot.maxCharges ?? 0) > 1) {
+    extra = `<span class="ab-charges" id="${el.id}-charges">${slot.charges ?? 0}/${slot.maxCharges}</span>`;
+  } else if (activeTimer > 0) {
+    extra = `<span class="ab-charges timer" id="${el.id}-charges">${activeTimer.toFixed(1)}s</span>`;
+  }
+
+  const label = slot.ready ? slot.shortTag : `${slot.cooldownRemaining.toFixed(1)}s`;
+  const html = `<span class="ab-key">[${keyLabel}]</span>${label}${extra}`;
+  if (el.dataset.html !== html) {
+    el.dataset.html = html;
+    el.innerHTML = html;
   }
 }
 
@@ -550,6 +652,22 @@ function syncScreenFx(feedback: AbilityFrameFeedback): void {
   if (feedback.dashAlpha > 0.001) {
     const a = clamp(feedback.dashAlpha * 0.38, 0, 0.45).toFixed(3);
     layers.push(`radial-gradient(circle at center, transparent 52%, rgba(255, 59, 92, ${a}) 100%)`);
+  }
+
+  // Volt Overdrive: electric purple -> gold edge vignette.
+  if (feedback.overdriveAlpha > 0.001) {
+    const a = clamp(feedback.overdriveAlpha, 0, 1);
+    layers.push(
+      `radial-gradient(circle at center, transparent 46%, rgba(168, 85, 247, ${(a * 0.26).toFixed(3)}) 76%, rgba(250, 204, 21, ${(a * 0.42).toFixed(3)}) 100%)`
+    );
+  }
+
+  // Relay Shock concussion: washed-out gold-white shimmer.
+  if (feedback.concussAlpha > 0.001) {
+    const a = clamp(feedback.concussAlpha, 0, 1);
+    layers.push(
+      `radial-gradient(circle at center, rgba(255, 244, 190, ${(a * 0.1).toFixed(3)}) 0%, rgba(250, 204, 21, ${(a * 0.34).toFixed(3)}) 100%)`
+    );
   }
 
   if (feedback.stimActive) {
@@ -574,6 +692,86 @@ function formatClock(phase: RoundPhase, timerSec: number): string {
 
 let lastKillfeedSignature = '';
 
+/** Rebuilds the scoreboard dots whenever the drafted roster changes, then updates states. */
+function syncTeamDots(
+  container: HTMLDivElement,
+  team: 'ally' | 'enemy',
+  states: Array<{ colorId: AgentColorId; alive: boolean; isPlayer?: boolean }>
+): void {
+  const sig = states.map((s) => s.colorId).join('|');
+  if (container.dataset.sig !== sig) {
+    container.dataset.sig = sig;
+    container.replaceChildren();
+    for (const st of states) {
+      const dot = document.createElement('div');
+      dot.className = 'agent-dot';
+      dot.dataset.team = team;
+      dot.dataset.color = st.colorId;
+      dot.title = `${team === 'ally' ? 'Ally' : 'Enemy'} ${AGENT_PALETTES[st.colorId].name}`;
+      container.appendChild(dot);
+    }
+  }
+  const dots = container.children;
+  for (let i = 0; i < dots.length && i < states.length; i++) {
+    dots[i].classList.toggle('dead', !states[i].alive);
+    dots[i].classList.toggle('is-player', Boolean(states[i].isPlayer));
+  }
+}
+
+// --- Elimination medal & directional damage arc ---
+const ARC_FADE_SEC = 0.9;
+const MULTI_KILL_WINDOW_MS = 4000;
+let lastSeenKillId = 0;
+let playerKillTimes: number[] = [];
+let lastDamageSeqSeen = 0;
+let damageArcAngleRad = 0;
+let damageArcTimer = 0;
+let combatSecondsPlayed = 0;
+
+function triggerKillMedal(headshot: boolean, streak: number): void {
+  killMedalTitleEl.textContent = headshot ? 'HEADSHOT' : 'ELIMINATED';
+  killMedalStreakEl.textContent = streak >= 2 ? `x${streak}` : '';
+  killMedalEl.classList.toggle('headshot', headshot);
+  killMedalEl.classList.remove('show');
+  void killMedalEl.offsetWidth; // restart the CSS pop animation
+  killMedalEl.classList.add('show');
+}
+
+function syncKillMedal(hud: MatchHudState): void {
+  const fresh = hud.killFeed.filter((k) => k.id > lastSeenKillId).sort((a, b) => a.id - b.id);
+  for (const k of fresh) {
+    lastSeenKillId = Math.max(lastSeenKillId, k.id);
+    if (k.killerName !== 'YOU' || k.killerTeam !== 'ally') continue;
+    const now = performance.now();
+    playerKillTimes = playerKillTimes.filter((ts) => now - ts <= MULTI_KILL_WINDOW_MS);
+    playerKillTimes.push(now);
+    triggerKillMedal(k.headshot, playerKillTimes.length);
+  }
+}
+
+function syncDamageArc(hud: MatchHudState, dt: number, health: number): void {
+  const seq = hud.lastDamageSeq ?? 0;
+  if (seq !== lastDamageSeqSeen) {
+    lastDamageSeqSeen = seq;
+    if (hud.lastDamageAngleRad != null) {
+      damageArcAngleRad = hud.lastDamageAngleRad;
+      damageArcTimer = ARC_FADE_SEC;
+    }
+  }
+  if (damageArcTimer > 0) {
+    damageArcTimer = Math.max(0, damageArcTimer - dt);
+    // Camera forward angle in the same atan2(x, z) convention is (yaw + PI); the wedge sits at
+    // 12 o'clock for "ahead" and sweeps clockwise toward the attacker as they move to the right.
+    const rotDeg = ((input.yaw + Math.PI - damageArcAngleRad) * 180) / Math.PI;
+    const life = damageArcTimer / ARC_FADE_SEC;
+    damageArcEl.style.setProperty('--arc-rot', `${rotDeg.toFixed(1)}deg`);
+    damageArcEl.style.opacity = (life * life * 0.4 + life * 0.6).toFixed(3);
+    damageArcEl.classList.toggle('critical', health < 30);
+  } else if (damageArcEl.style.opacity !== '0') {
+    damageArcEl.style.opacity = '0';
+  }
+}
+
 function syncMatchHud(hud: MatchHudState): void {
   allyScoreEl.textContent = String(hud.allyScore);
   enemyScoreEl.textContent = String(hud.enemyScore);
@@ -590,23 +788,14 @@ function syncMatchHud(hud: MatchHudState): void {
   roundClockEl.textContent =
     hud.phase === 'match_over' ? 'FINAL' : formatClock(hud.phase, hud.phaseTimerSec);
 
-  for (const dot of allyDots) {
-    const color = dot.dataset.color as AgentColorId | undefined;
-    const st = hud.allyStates.find((a) => a.colorId === color);
-    dot.classList.toggle('dead', !st?.alive);
-    dot.classList.toggle('is-player', Boolean(st?.isPlayer));
-  }
-
-  for (const dot of enemyDots) {
-    const color = dot.dataset.color as AgentColorId | undefined;
-    const st = hud.enemyStates.find((e) => e.colorId === color);
-    dot.classList.toggle('dead', !st?.alive);
-  }
+  syncTeamDots(allyDotsEl, 'ally', hud.allyStates);
+  syncTeamDots(enemyDotsEl, 'enemy', hud.enemyStates);
 
   for (const pill of agentPills) {
     const color = pill.dataset.color as AgentColorId | undefined;
     const st = hud.allyStates.find((a) => a.colorId === color);
-    pill.classList.toggle('dead', !st?.alive);
+    pill.classList.toggle('offteam', !st);
+    pill.classList.toggle('dead', Boolean(st) && !st?.alive);
   }
 
   // Round callout & takeover banner
@@ -673,17 +862,47 @@ function tick(now: number): void {
   const dt = Math.min((now - lastTime) / 1000, 0.05);
   lastTime = now;
 
+  // -------------------------------------------------------------------------
+  // Frozen state: Agent Select is open (or the match has not started yet).
+  // The simulation is paused, the Agent Select stage renders ONLY while open,
+  // and the main scene is drawn once as a static backdrop.
+  // -------------------------------------------------------------------------
+  if (agentSelect.isOpen() || !gameStarted) {
+    if (agentSelect.isOpen()) {
+      agentSelect.render(dt);
+    }
+    if (!frozenDrawn) {
+      const pc = match.getPlayerCombatant();
+      camera.position.set(player.position.x, player.position.y + EYE_HEIGHT, player.position.z);
+      camera.rotation.y = pc.yaw;
+      camera.rotation.x = 0;
+      camera.rotation.z = 0;
+      match.update(0, player, camera.position, []);
+      renderer.render(scene, camera);
+      frozenDrawn = true;
+    }
+    input.fireJustPressed = false;
+    return;
+  }
+  frozenDrawn = false;
+
   const playerCombatant = match.getPlayerCombatant();
   const isAlive = playerCombatant.alive;
   const activeSpec = WEAPON_SPECS[weapon.currentWeaponId];
 
-  // Combine ability movement modifiers (Dash / Cryo Slow) with active weapon mobility.
+  // 140ms input buffers: a jump pressed just before landing still fires on touchdown.
+  jumpBufferTimer = Math.max(0, jumpBufferTimer - dt);
+  input.jump = jumpHeld || jumpBufferTimer > 0;
+
+  // Combine ability movement modifiers (Dash / Cryo Slow / Overdrive) with active weapon mobility.
   const baseMove = lastAbilityFeedback?.movement;
   const moveModifiers: MovementModifiers = {
     dashActive: baseMove?.dashActive ?? false,
     dashVelocity: baseMove?.dashVelocity ?? { x: 0, y: 0, z: 0 },
     speedMultiplier: (baseMove?.speedMultiplier ?? 1.0) * activeSpec.moveSpeedMult,
     suppressJump: baseMove?.suppressJump,
+    externalVelocity: baseMove?.externalVelocity,
+    slideActive: baseMove?.slideActive,
   };
 
   // Step player movement only while alive; clamp inside attacker spawn box during Buy phase.
@@ -723,13 +942,21 @@ function tick(now: number): void {
     sfx.playAbility(ev);
   }
 
+  // Smooth eye-height lerp (Power-Slide camera drop) + slide tilt.
+  const eyeAlpha = 1 - Math.exp(-16 * dt);
+  eyeOffsetSmoothed += ((feedback.eyeHeightOffset ?? 0) - eyeOffsetSmoothed) * eyeAlpha;
+  const slideTiltTarget = feedback.slideActive ? -0.038 : 0;
+  slideTiltSmoothed += (slideTiltTarget - slideTiltSmoothed) * (1 - Math.exp(-14 * dt));
+
   // Target FOV: smooth optical zoom when scoped with an ADS-capable weapon,
-  // otherwise hipfire 75° + Crimson Dash FOV punch.
+  // otherwise hipfire 75° + Crimson Dash punch, or a wide 85° during Power-Slide.
   const adsFov = activeSpec.adsFovDeg;
   const targetFov =
     isAlive && weapon.isScoped && adsFov != null
       ? adsFov
-      : BASE_FOV_DEG + feedback.dashAlpha * 15;
+      : feedback.slideActive
+        ? 85
+        : BASE_FOV_DEG + feedback.dashAlpha * 15;
 
   if (Math.abs(camera.fov - targetFov) > 0.01) {
     const alpha = 1 - Math.exp(-18 * dt);
@@ -747,6 +974,7 @@ function tick(now: number): void {
   );
   camera.rotation.y = input.yaw;
   camera.rotation.x = effectivePitch;
+  camera.rotation.z = slideTiltSmoothed;
 
   // Camera Positioning: 1st-Person vs Wall-Clamped 3rd-Person Over-the-Shoulder
   const useThirdPersonCamera = thirdPerson || !isAlive;
@@ -755,7 +983,7 @@ function tick(now: number): void {
   if (!useThirdPersonCamera) {
     camera.position.set(
       player.position.x,
-      player.position.y + EYE_HEIGHT,
+      player.position.y + EYE_HEIGHT + eyeOffsetSmoothed,
       player.position.z
     );
   } else {
@@ -773,7 +1001,7 @@ function tick(now: number): void {
     const rightZ = -Math.sin(input.yaw);
     const anchor = {
       x: player.position.x + rightX * 0.48,
-      y: player.position.y + 1.68,
+      y: player.position.y + 1.68 + eyeOffsetSmoothed,
       z: player.position.z + rightZ * 0.48,
     };
 
@@ -800,6 +1028,9 @@ function tick(now: number): void {
   let firedThisFrame = false;
 
   if (isAlive) {
+    // Semi-auto fire buffer: a click during cooldown/reload still fires within 140ms.
+    if (fireBufferTimer > 0) input.fireJustPressed = true;
+
     const shot = weapon.update(
       dt,
       player,
@@ -807,9 +1038,12 @@ function tick(now: number): void {
       ARENA_COLLIDERS,
       match.enemyTargetsView,
       feedback.fireRateMultiplier,
-      feedback.recoilMultiplier
+      feedback.recoilMultiplier,
+      feedback.moveSpreadMultiplier,
+      feedback.eyeHeightOffset
     );
     firedThisFrame = shot.fired;
+    fireBufferTimer = shot.fired ? 0 : Math.max(0, fireBufferTimer - dt);
 
     if (!wasReloading && weapon.state.reloading) {
       sfx.playReload();
@@ -817,6 +1051,13 @@ function tick(now: number): void {
 
     if (shot.fired) {
       sfx.playWeaponShot(weapon.currentWeaponId, feedback.stimActive, 0);
+
+      // Low-ammo warning click on the last few rounds of a magazine.
+      const lowThreshold = Math.min(5, Math.ceil(activeSpec.maxAmmo * 0.3));
+      if (weapon.state.ammo > 0 && weapon.state.ammo <= lowThreshold) {
+        sfx.playLowAmmoClick();
+      }
+
       if (shot.hitType === 'head') {
         sfx.playHeadshot();
         headshotFlashTimer = 0.16;
@@ -826,6 +1067,8 @@ function tick(now: number): void {
         sfx.playBodyHit();
       }
     }
+  } else {
+    fireBufferTimer = 0;
   }
 
   // Push local player physics/aim state into match manager & advance 3v3 bots/round clock.
@@ -843,7 +1086,7 @@ function tick(now: number): void {
     const c = match.getPlayerCombatant();
     input.yaw = c.yaw;
     input.pitch = c.pitch;
-    switchAgentColor(player.colorId);
+    switchAgentColor(c.colorId);
     syncWeaponPills(weapon.currentWeaponId);
   }
   lastHudPhase = hud.phase;
@@ -864,6 +1107,14 @@ function tick(now: number): void {
   syncAbilitySlot(abilityEEl, 'E', feedback.eHud);
   syncScreenFx(feedback);
   syncMatchHud(hud);
+  syncKillMedal(hud);
+  syncDamageArc(hud, dt, player.health);
+
+  // Beginner control strip fades after ~25s of live combat.
+  if (hud.phase === 'combat') {
+    combatSecondsPlayed += dt;
+    if (combatSecondsPlayed > 25) controlStripEl.classList.add('faded');
+  }
 
   // Sniper scope overlay vs CSS-variable reactive hipfire crosshair.
   const isScopedSniper =
@@ -888,12 +1139,16 @@ function tick(now: number): void {
   speedEl.textContent = `${speed.toFixed(1)} m/s`;
   speedEl.classList.toggle('accurate', speed < 0.45 && player.grounded);
 
-  // Update ammo readout and active weapon pill.
+  // Update ammo readout (low / empty warning tint) and active weapon pill.
   syncWeaponPills(weapon.currentWeaponId);
+  const ammoNow = weapon.state.ammo;
+  const lowAmmoThreshold = Math.min(5, Math.ceil(activeSpec.maxAmmo * 0.3));
+  ammoEl.classList.toggle('low', !weapon.state.reloading && ammoNow > 0 && ammoNow <= lowAmmoThreshold);
+  ammoEl.classList.toggle('empty', !weapon.state.reloading && ammoNow <= 0);
   if (weapon.state.reloading) {
     ammoEl.innerHTML = `<span class="muted">RELOAD...</span>`;
   } else {
-    ammoEl.innerHTML = `${weapon.state.ammo} <span class="muted">/ ${activeSpec.maxAmmo}</span>`;
+    ammoEl.innerHTML = `${ammoNow} <span class="muted">/ ${activeSpec.maxAmmo}</span>`;
   }
 
   renderer.render(scene, camera);

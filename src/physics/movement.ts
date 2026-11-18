@@ -159,7 +159,7 @@ function intervalsOverlap(
 }
 
 /**
- * Returns `true` when a combatant's standing AABB `[y, y + PLAYER_HEIGHT]`
+ * Returns `true` when a combatant's vertical AABB `[y, y + height]`
  * at `(x, y, z)` is clear of all static colliders (used to verify ceiling/wall
  * clearance before performing a Quake/Valorant stair step-up).
  */
@@ -167,12 +167,13 @@ function canStepUpToY(
   x: number,
   newY: number,
   z: number,
-  colliders: AABB[]
+  colliders: AABB[],
+  height = PLAYER_HEIGHT
 ): boolean {
   const minX = x - PLAYER_RADIUS + COLLISION_EPSILON;
   const maxX = x + PLAYER_RADIUS - COLLISION_EPSILON;
   const minY = newY + COLLISION_EPSILON;
-  const maxY = newY + PLAYER_HEIGHT - COLLISION_EPSILON;
+  const maxY = newY + height - COLLISION_EPSILON;
   const minZ = z - PLAYER_RADIUS + COLLISION_EPSILON;
   const maxZ = z + PLAYER_RADIUS - COLLISION_EPSILON;
 
@@ -256,13 +257,18 @@ export function updatePlayerMovement(
     player.velocity.y -= GRAVITY * stepDt;
   }
 
+  const activeHeight = modifiers?.slideActive ? 1.22 : PLAYER_HEIGHT;
+  const extVx = modifiers?.externalVelocity?.x ?? 0;
+  const extVz = modifiers?.externalVelocity?.z ?? 0;
+
   // 4. Axis-by-axis AABB sweep & resolution: X, then Z, then Y.
   // --- X Axis ---
-  player.position.x += player.velocity.x * stepDt;
+  const stepVx = player.velocity.x + extVx;
+  player.position.x += stepVx * stepDt;
   for (const box of colliders) {
     const overlapY = intervalsOverlap(
       player.position.y + COLLISION_EPSILON,
-      player.position.y + PLAYER_HEIGHT - COLLISION_EPSILON,
+      player.position.y + activeHeight - COLLISION_EPSILON,
       box.min.y,
       box.max.y
     );
@@ -287,23 +293,31 @@ export function updatePlayerMovement(
         player.grounded &&
         stepDelta > 0 &&
         stepDelta <= STEP_HEIGHT &&
-        canStepUpToY(player.position.x, box.max.y, player.position.z, colliders)
+        canStepUpToY(player.position.x, box.max.y, player.position.z, colliders, activeHeight)
       ) {
         player.position.y = box.max.y;
         continue;
       }
 
-      if (player.velocity.x > 0) {
+      if (stepVx > 0) {
         player.position.x = box.min.x - PLAYER_RADIUS;
-      } else if (player.velocity.x < 0) {
+        if (player.velocity.x > 0) player.velocity.x = 0;
+      } else if (stepVx < 0) {
         player.position.x = box.max.x + PLAYER_RADIUS;
+        if (player.velocity.x < 0) player.velocity.x = 0;
+      } else {
+        const pushLeft = Math.abs(player.position.x - (box.min.x - PLAYER_RADIUS));
+        const pushRight = Math.abs(box.max.x + PLAYER_RADIUS - player.position.x);
+        player.position.x =
+          pushLeft <= pushRight ? box.min.x - PLAYER_RADIUS : box.max.x + PLAYER_RADIUS;
+        player.velocity.x = 0;
       }
-      player.velocity.x = 0;
     }
   }
 
   // --- Z Axis ---
-  player.position.z += player.velocity.z * stepDt;
+  const stepVz = player.velocity.z + extVz;
+  player.position.z += stepVz * stepDt;
   for (const box of colliders) {
     const overlapX = intervalsOverlap(
       player.position.x - PLAYER_RADIUS + COLLISION_EPSILON,
@@ -313,7 +327,7 @@ export function updatePlayerMovement(
     );
     const overlapY = intervalsOverlap(
       player.position.y + COLLISION_EPSILON,
-      player.position.y + PLAYER_HEIGHT - COLLISION_EPSILON,
+      player.position.y + activeHeight - COLLISION_EPSILON,
       box.min.y,
       box.max.y
     );
@@ -332,18 +346,25 @@ export function updatePlayerMovement(
         player.grounded &&
         stepDelta > 0 &&
         stepDelta <= STEP_HEIGHT &&
-        canStepUpToY(player.position.x, box.max.y, player.position.z, colliders)
+        canStepUpToY(player.position.x, box.max.y, player.position.z, colliders, activeHeight)
       ) {
         player.position.y = box.max.y;
         continue;
       }
 
-      if (player.velocity.z > 0) {
+      if (stepVz > 0) {
         player.position.z = box.min.z - PLAYER_RADIUS;
-      } else if (player.velocity.z < 0) {
+        if (player.velocity.z > 0) player.velocity.z = 0;
+      } else if (stepVz < 0) {
         player.position.z = box.max.z + PLAYER_RADIUS;
+        if (player.velocity.z < 0) player.velocity.z = 0;
+      } else {
+        const pushBack = Math.abs(player.position.z - (box.min.z - PLAYER_RADIUS));
+        const pushFront = Math.abs(box.max.z + PLAYER_RADIUS - player.position.z);
+        player.position.z =
+          pushBack <= pushFront ? box.min.z - PLAYER_RADIUS : box.max.z + PLAYER_RADIUS;
+        player.velocity.z = 0;
       }
-      player.velocity.z = 0;
     }
   }
 
@@ -368,7 +389,7 @@ export function updatePlayerMovement(
     if (
       intervalsOverlap(
         player.position.y,
-        player.position.y + PLAYER_HEIGHT,
+        player.position.y + activeHeight,
         box.min.y,
         box.max.y
       )
@@ -380,7 +401,7 @@ export function updatePlayerMovement(
         player.grounded = true;
       } else {
         // Bonking head on an underside ceiling.
-        player.position.y = box.min.y - PLAYER_HEIGHT;
+        player.position.y = box.min.y - activeHeight;
         player.velocity.y = 0;
       }
     }

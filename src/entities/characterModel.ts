@@ -27,6 +27,10 @@ export interface CharacterRig {
       slowTimer: number;
       blindTimer: number;
       occludedBySmoke: boolean;
+      /** Seconds of Power-Slide remaining (> 0 = sliding). Optional for older callers. */
+      slideTimer?: number;
+      /** Seconds of concussion remaining (> 0 = gold-white electric shimmer). */
+      concussTimer?: number;
     },
     cameraPos: Vec3
   ): void;
@@ -38,7 +42,7 @@ export interface CharacterRig {
 // ===========================================================================
 // A tactical shooter asks the player two questions about every silhouette in a
 // fraction of a second:
-//   1. WHICH AGENT is it?   -> answered by HUE (red / blue / green)
+//   1. WHICH AGENT is it?   -> answered by HUE (red / blue / green / violet / gold)
 //   2. WHICH TEAM is it on? -> answered by VALUE (bright pearl vs dark obsidian)
 //
 // Hue and value are processed by different channels of human vision, so we
@@ -60,7 +64,43 @@ const AGENT_STYLE: Record<AgentColorId, { primary: number; trim: number }> = {
   red: { primary: 0xff2244, trim: 0xff6b85 }, // Blaze — vivid crimson + neon rose
   blue: { primary: 0x00a8ff, trim: 0x6ce8ff }, // Mist  — electric cobalt-cyan + ice neon
   green: { primary: 0x10d464, trim: 0x7dffb3 }, // Pulse — emerald-jade + mint neon
+  violet: { primary: 0xa23cff, trim: 0xdcb0ff }, // Umbra — vivid amethyst + lilac neon
+  gold: { primary: 0xffbf00, trim: 0xfff27a }, // Volt  — electric amber-gold + lemon neon
 };
+
+/**
+ * Per-agent armour surface tuning. Most agents share the default finish, but
+ * two hues need help to keep the "hue = agent" channel readable:
+ *   * Violet is a LOW-luminance hue: against an Obsidian enemy undersuit it
+ *     would sink toward black, so Umbra self-illuminates harder (0.34).
+ *   * Gold is a HIGH-luminance hue: against Pearl-White ally panels it can
+ *     wash out toward cream, so Volt gets a slightly glossier, more metallic
+ *     finish (roughness 0.30 / metalness 0.34) whose specular contrast keeps
+ *     the gold reading as gold.
+ */
+const ARMOR_FINISH: Record<AgentColorId, { roughness: number; metalness: number; emissiveIntensity: number }> = {
+  red: { roughness: 0.34, metalness: 0.22, emissiveIntensity: 0.28 },
+  blue: { roughness: 0.34, metalness: 0.22, emissiveIntensity: 0.28 },
+  green: { roughness: 0.34, metalness: 0.22, emissiveIntensity: 0.28 },
+  violet: { roughness: 0.34, metalness: 0.22, emissiveIntensity: 0.34 },
+  gold: { roughness: 0.3, metalness: 0.34, emissiveIntensity: 0.28 },
+};
+
+/** Gold-white tint pulsed onto armour while concussed (Volt's relay). */
+const CONCUSS_SHIMMER_HEX = 0xfff4c8;
+
+// Power-Slide target pose (radians / metres). Lead leg = LEFT.
+const SLIDE_LEAD_HIP_RAD = 1.25;
+const SLIDE_LEAD_KNEE_RAD = -1.6;
+const SLIDE_TRAIL_HIP_RAD = -0.8;
+const SLIDE_TRAIL_KNEE_RAD = -0.2;
+const SLIDE_TORSO_LEAN_RAD = 0.25; // +X tips the torso toward +Z = leaning BACK
+const SLIDE_DROP_M = -0.35;
+
+// Volt's pooled electric arc: heelL -> coilL -> coilR -> heelR, 3 legs.
+const ARC_SEGMENTS_PER_LEG = 8;
+const ARC_POINT_COUNT = ARC_SEGMENTS_PER_LEG * 3 + 1;
+const ARC_RESEED_SEC = 0.05;
 
 interface TeamStyle {
   suit: number;
@@ -465,6 +505,7 @@ type Animator = (time: number, dt: number, motion: number) => void;
  */
 export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: AgentColorId): CharacterRig {
   const agent = AGENT_STYLE[colorId];
+  const finish = ARMOR_FINISH[colorId];
   const teamStyle = TEAM_STYLE[team];
   const isEnemy = team === 'enemy';
 
@@ -473,10 +514,10 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
   // -------------------------------------------------------------------------
   const armorMat = new THREE.MeshStandardMaterial({
     color: agent.primary,
-    roughness: 0.34,
-    metalness: 0.22,
+    roughness: finish.roughness,
+    metalness: finish.metalness,
     emissive: agent.primary,
-    emissiveIntensity: 0.28,
+    emissiveIntensity: finish.emissiveIntensity,
     side: THREE.DoubleSide, // open domes (pauldrons) / shells read solid from below
   });
   const helmetMat = armorMat.clone(); // separate so headshots flash the head harder
@@ -708,14 +749,33 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
   upperBody.add(headGroup);
 
   // -------------------------------------------------------------------------
-  // Archetype silhouettes — branch once on colorId
+  // Archetype silhouettes — branch once on colorId (exhaustive: every
+  // AgentColorId has an explicit builder; the `never` check makes TypeScript
+  // flag any future colour that forgets its own silhouette).
   // -------------------------------------------------------------------------
-  if (colorId === 'red') {
-    buildBlazeDuelist();
-  } else if (colorId === 'blue') {
-    buildMistController();
-  } else {
-    buildPulseInitiator();
+  /** Live per-frame flags archetype animators may read (written in update()). */
+  const rigFlags = { sliding: false };
+
+  switch (colorId) {
+    case 'red':
+      buildBlazeDuelist();
+      break;
+    case 'blue':
+      buildMistController();
+      break;
+    case 'green':
+      buildPulseInitiator();
+      break;
+    case 'violet':
+      buildUmbraController();
+      break;
+    case 'gold':
+      buildVoltDuelist();
+      break;
+    default: {
+      const unreachable: never = colorId;
+      throw new Error(`Unknown agent colour: ${String(unreachable)}`);
+    }
   }
 
   /** BLAZE — Agile Duelist: streamlined helmet, chevron V-visor, swept wing-fins, scarf tails, forearm blades. */
@@ -928,6 +988,287 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
     });
   }
 
+  /**
+   * UMBRA — Shadow Controller / Smoker: a bell-shaped lathe cowl open at the
+   * face over a recessed void mask with one thin amethyst slit, three dorsal
+   * censer vials whose cores bob out of phase, and two translucent shadow-veil
+   * ribbons that ripple and stream behind when moving.
+   */
+  function buildUmbraController(): void {
+    // Bell cowl profile (radius, height) in head-local space, bottom -> crown.
+    // The flared hem drapes onto the shoulders like a monk's hood.
+    const cowlProfile = [
+      new THREE.Vector2(0.25, -0.27),
+      new THREE.Vector2(0.235, -0.2),
+      new THREE.Vector2(0.218, -0.11),
+      new THREE.Vector2(0.214, -0.02),
+      new THREE.Vector2(0.205, 0.07),
+      new THREE.Vector2(0.18, 0.15),
+      new THREE.Vector2(0.13, 0.215),
+      new THREE.Vector2(0.065, 0.245),
+      new THREE.Vector2(1e-4, 0.252),
+    ];
+    // phiLength = 1.6π starting at 1.2π leaves a 0.4π gap centred on phi = π (the face).
+    const COWL_PHI_START = Math.PI * 1.2;
+    const COWL_PHI_LENGTH = Math.PI * 1.6;
+    const cowl = addMesh(
+      headGroup,
+      new THREE.LatheGeometry(cowlProfile, 34, COWL_PHI_START, COWL_PHI_LENGTH),
+      helmetMat,
+      0,
+      0,
+      0.015
+    );
+    cowl.scale.set(1, 1, 1.08);
+
+    // Inner lining: the same sweep slightly smaller, rendered BackSide so the
+    // inside of the hood reads as deep shadow when seen through the opening.
+    const liningMat = new THREE.MeshStandardMaterial({ color: 0x07020d, roughness: 0.95, metalness: 0.0, side: THREE.BackSide });
+    const lining = addMesh(cowl, new THREE.LatheGeometry(cowlProfile, 34, COWL_PHI_START, COWL_PHI_LENGTH), liningMat);
+    lining.scale.setScalar(0.97);
+
+    // Neon hem trim — a partial torus whose arc matches the cowl sweep.
+    // Torus angle a maps to lathe phi = π/2 - a after the +π/2 X rotation, so
+    // pre-rotating by -0.3π about Z makes the 1.6π arc cover phi ∈ [-0.8π, 0.8π].
+    const hem = addMesh(cowl, new THREE.TorusGeometry(0.25, 0.009, 6, 40, COWL_PHI_LENGTH), trimMat, 0, -0.27, 0);
+    hem.rotation.set(Math.PI / 2, 0, -0.3 * Math.PI);
+
+    // Recessed void mask + one thin curved amethyst slit visor.
+    const mask = addMesh(headGroup, new THREE.SphereGeometry(0.15, 22, 16), shadowMat, 0, -0.005, -0.005);
+    mask.scale.set(0.94, 1.05, 1.0);
+    addMesh(mask, new THREE.CylinderGeometry(0.153, 0.153, 0.013, 26, 1, true, Math.PI - 0.6, 1.2), glowMat, 0, 0.018, 0);
+
+    // Dorsal censer vials stacked along the spine on a support rod.
+    addMesh(upperBody, new THREE.CylinderGeometry(0.011, 0.011, 0.36, 8), suitMat, 0, U(1.15), 0.158);
+    const capProfile = [
+      new THREE.Vector2(1e-4, -0.012),
+      new THREE.Vector2(0.024, -0.012),
+      new THREE.Vector2(0.031, -0.004),
+      new THREE.Vector2(0.031, 0.004),
+      new THREE.Vector2(0.02, 0.012),
+      new THREE.Vector2(1e-4, 0.013),
+    ];
+    const censerCores: THREE.Mesh[] = [];
+    const VIAL_Y = [1.29, 1.155, 1.02];
+    VIAL_Y.forEach((worldY, i) => {
+      const vial = new THREE.Group();
+      vial.position.set(0, U(worldY), 0.182 - (i === 2 ? 0.01 : 0));
+      upperBody.add(vial);
+      addMesh(vial, new THREE.LatheGeometry(capProfile, 16), armorMat, 0, -0.045, 0);
+      const top = addMesh(vial, new THREE.LatheGeometry(capProfile, 16), armorMat, 0, 0.045, 0);
+      top.rotation.x = Math.PI; // mirrored cap
+      for (let k = 0; k < 3; k++) {
+        const a = (k / 3) * Math.PI * 2;
+        addMesh(vial, new THREE.CylinderGeometry(0.0035, 0.0035, 0.08, 6), suitMat, Math.sin(a) * 0.026, 0, Math.cos(a) * 0.026);
+      }
+      censerCores.push(addMesh(vial, new THREE.SphereGeometry(0.018, 12, 10), glowMat));
+    });
+
+    // Shadow-veil ribbons: translucent tapered planes hanging from the shoulder
+    // blades. Their vertices ripple in place each frame (no allocation).
+    const veilMat = new THREE.MeshStandardMaterial({
+      color: 0x1a0830,
+      emissive: agent.primary,
+      emissiveIntensity: 0.22,
+      roughness: 0.8,
+      metalness: 0.05,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.62,
+      depthWrite: false,
+    });
+    const VEIL_LEN = 0.62;
+    const veils: Array<{ node: THREE.Mesh; side: number; base: Float32Array }> = [];
+    for (const side of [-1, 1] as const) {
+      const geo = new THREE.PlaneGeometry(0.12, VEIL_LEN, 1, 10);
+      geo.translate(0, -VEIL_LEN / 2, 0);
+      const pos = geo.attributes.position as THREE.BufferAttribute;
+      for (let v = 0; v < pos.count; v++) {
+        const t = -pos.getY(v) / VEIL_LEN; // 0 at shoulder .. 1 at tip
+        pos.setX(v, pos.getX(v) * (1 - 0.65 * t)); // taper toward a point
+      }
+      const veil = addMesh(upperBody, geo, veilMat, side * 0.11, U(1.34), 0.15);
+      veil.rotation.z = side * 0.06;
+      veils.push({ node: veil, side, base: Float32Array.from(pos.array as Float32Array) });
+    }
+
+    // Belt shadow capsules (void-charge grenades) + front pouches.
+    for (const phi of [Math.PI / 2 + 0.5, -(Math.PI / 2 + 0.5), 0.45, -0.45]) {
+      const cap = addMesh(bodyTiltGroup, new THREE.CapsuleGeometry(0.024, 0.05, 4, 10), shadowMat);
+      placeOnBelt(cap, phi, 0.03, 0.86);
+      const band = addMesh(cap, new THREE.TorusGeometry(0.025, 0.004, 6, 16), glowMat);
+      band.rotation.x = Math.PI / 2;
+    }
+    for (const phi of [Math.PI - 0.8, Math.PI + 0.8]) {
+      const pouch = addMesh(bodyTiltGroup, new THREE.CapsuleGeometry(0.026, 0.035, 4, 10), armorMat);
+      pouch.scale.set(1, 1, 0.6);
+      placeOnBelt(pouch, phi, 0.012, 0.872);
+    }
+
+    animators.push((time, _dt, motion) => {
+      // Censer cores bob out of phase: sin(time * 2 + i).
+      for (let i = 0; i < censerCores.length; i++) {
+        censerCores[i].position.y = Math.sin(time * 2 + i) * 0.014;
+      }
+      for (const v of veils) {
+        // Negative X rotation swings a hanging plane toward +Z (behind the agent).
+        v.node.rotation.x = -(0.1 + motion * 0.75 + Math.sin(time * 2.2 + v.side) * 0.06);
+        const pos = v.node.geometry.attributes.position as THREE.BufferAttribute;
+        const arr = pos.array as Float32Array;
+        for (let k = 0; k < pos.count; k++) {
+          const t = -v.base[k * 3 + 1] / VEIL_LEN;
+          arr[k * 3 + 2] = v.base[k * 3 + 2] + Math.sin(time * (3 + motion * 4) - t * 6 + v.side) * 0.035 * t;
+        }
+        pos.needsUpdate = true;
+      }
+    });
+  }
+
+  /**
+   * VOLT — Electric Duelist: low aero speedster helmet with a 2.6 rad
+   * wraparound visor, twin dorsal lightning-coil struts with spinning cores,
+   * aerodynamic calf fins, and a pooled zig-zag arc that crackles heel ->
+   * coil -> coil -> heel while sprinting or power-sliding.
+   */
+  function buildVoltDuelist(): void {
+    const helmet = addMesh(headGroup, new THREE.SphereGeometry(0.16, 26, 20), helmetMat, 0, 0.0, 0.01);
+    helmet.scale.set(0.94, 0.9, 1.2);
+    const jaw = addMesh(headGroup, new THREE.SphereGeometry(0.095, 18, 12), helmetMat, 0, -0.085, -0.05);
+    jaw.scale.set(1.1, 0.7, 1.0);
+    // Swept aero tail: cone rotated to point backward (+Y -> +Z), flattened vertically.
+    const tail = addMesh(headGroup, new THREE.ConeGeometry(0.07, 0.2, 12), helmetMat, 0, 0.03, 0.17);
+    tail.rotation.x = Math.PI / 2;
+    tail.scale.set(1.2, 1, 0.5);
+
+    // Dark backing band + 2.6 rad wraparound electric visor strip (children of
+    // the helmet so they share its aero scale).
+    addMesh(helmet, new THREE.CylinderGeometry(0.161, 0.157, 0.075, 32, 1, true, Math.PI - 1.36, 2.72), visorGlassMat, 0, 0.01, 0);
+    addMesh(helmet, new THREE.CylinderGeometry(0.164, 0.159, 0.045, 32, 1, true, Math.PI - 1.3, 2.6), glowMat, 0, 0.01, 0);
+    addMesh(helmet, zCapsuleGeometry(0.008, 0.2), trimMat, 0, 0.157, 0.02); // crest stripe
+
+    // Twin dorsal lightning-coil struts.
+    const coilCores: THREE.Mesh[] = [];
+    const coilKnots: THREE.Mesh[] = [];
+    for (const side of [-1, 1] as const) {
+      const coil = new THREE.Group();
+      coil.position.set(side * 0.085, U(1.2), 0.17);
+      coil.rotation.set(-0.15, 0, -side * 0.18); // lean back, splay outward
+      upperBody.add(coil);
+      addMesh(coil, new THREE.SphereGeometry(0.026, 12, 10), armorMat, 0, -0.1, 0);
+      addMesh(coil, new THREE.CylinderGeometry(0.011, 0.015, 0.3, 10), suitMat, 0, 0.05, 0);
+      for (const y of [-0.02, 0.03, 0.08]) {
+        const ring = addMesh(coil, new THREE.TorusGeometry(0.028, 0.0055, 6, 20), trimMat, 0, y, 0);
+        ring.rotation.x = Math.PI / 2;
+      }
+      const knot = addMesh(coil, new THREE.TorusKnotGeometry(0.026, 0.0055, 48, 6, 2, 3), trimMat, 0, 0.17, 0);
+      coilKnots.push(knot);
+      coilCores.push(addMesh(coil, new THREE.OctahedronGeometry(0.02, 0), glowMat, 0, 0.17, 0));
+    }
+
+    // Aerodynamic calf fins (shape x = backward, y = up) + heel arc anchors.
+    const calfFin = new THREE.Shape();
+    calfFin.moveTo(0, 0.07);
+    calfFin.quadraticCurveTo(0.06, 0.02, 0.11, -0.03);
+    calfFin.lineTo(0.02, -0.08);
+    calfFin.lineTo(0, -0.06);
+    calfFin.closePath();
+    const heelAnchors: THREE.Object3D[] = [];
+    for (const [leg, side] of [[leftLeg, -1], [rightLeg, 1]] as const) {
+      const fin = addMesh(leg.knee, extrudeBackward(calfFin, 0.008), trimMat, side * 0.035, -0.2, 0.045);
+      fin.rotation.y = side * 0.35; // +Y rotation turns +Z toward +X: fins angle outward
+      const heel = new THREE.Object3D();
+      heel.position.set(0, -KNEE_TO_SOLE + 0.05, 0.07);
+      leg.knee.add(heel);
+      heelAnchors.push(heel);
+    }
+
+    // Forearm lightning stripes + belt power cells.
+    for (const [arm, side] of [[leftArm, -1], [rightArm, 1]] as const) {
+      const stripe = addMesh(arm.elbow, new THREE.CapsuleGeometry(0.006, 0.12, 3, 8), glowMat, side * 0.05, -0.12, 0);
+      stripe.rotation.z = side * 0.25;
+    }
+    for (const phi of [Math.PI - 0.8, Math.PI + 0.8, 1.9, -1.9]) {
+      const cell = addMesh(bodyTiltGroup, new THREE.CylinderGeometry(0.022, 0.022, 0.06, 12), suitMat);
+      placeOnBelt(cell, phi, 0.02, 0.868);
+      addMesh(cell, new THREE.CylinderGeometry(0.0235, 0.0235, 0.014, 12), glowMat);
+    }
+
+    // ---------------------------------------------------------------------
+    // Pooled electric arc. ONE preallocated Float32Array is rewritten in place
+    // (no per-frame allocation). The zig-zag jitter is reseeded every ~50 ms
+    // (a strobe rate that reads as "crackling"), while the anchor-following
+    // base path is refreshed every frame so the bolt never detaches from the
+    // limbs. Jitter is weighted by sin(πt) so each leg stays pinned to its
+    // two anchors.
+    // ---------------------------------------------------------------------
+    const arcPositions = new Float32Array(ARC_POINT_COUNT * 3);
+    const arcJitter = new Float32Array(ARC_POINT_COUNT * 3);
+    const arcGeo = new THREE.BufferGeometry();
+    const arcAttr = new THREE.BufferAttribute(arcPositions, 3);
+    arcAttr.setUsage(THREE.DynamicDrawUsage);
+    arcGeo.setAttribute('position', arcAttr);
+    const arcMat = new THREE.LineBasicMaterial({
+      color: 0xfff6b0,
+      transparent: true,
+      opacity: 0.95,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    });
+    const arcLine = new THREE.Line(arcGeo, arcMat);
+    arcLine.frustumCulled = false; // bounds change every frame
+    arcLine.visible = false;
+    bodyTiltGroup.add(arcLine);
+
+    const arcAnchors = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()];
+    const arcNodes: THREE.Object3D[] = [heelAnchors[0], coilCores[0], coilCores[1], heelAnchors[1]];
+    let arcReseedTimer = 0;
+    let arcFlickerOn = true;
+
+    animators.push((time, dt, motion) => {
+      for (let i = 0; i < coilCores.length; i++) {
+        coilCores[i].rotation.y += dt * (6 + motion * 10);
+        coilCores[i].rotation.x += dt * 2.2;
+        coilKnots[i].rotation.y -= dt * (3 + motion * 6);
+      }
+
+      const active = motion > 0.8 || rigFlags.sliding;
+      if (!active) {
+        arcLine.visible = false;
+        arcReseedTimer = 0;
+        return;
+      }
+
+      arcReseedTimer -= dt;
+      if (arcReseedTimer <= 0) {
+        arcReseedTimer = ARC_RESEED_SEC;
+        arcFlickerOn = Math.random() > 0.15;
+        for (let k = 0; k < arcJitter.length; k++) {
+          arcJitter[k] = (Math.random() * 2 - 1) * 0.045;
+        }
+      }
+      arcLine.visible = arcFlickerOn;
+      if (!arcFlickerOn) return;
+
+      for (let a = 0; a < 4; a++) pointInSpace(arcNodes[a], bodyTiltGroup, arcAnchors[a]);
+      let idx = 0;
+      for (let leg = 0; leg < 3; leg++) {
+        const A = arcAnchors[leg];
+        const B = arcAnchors[leg + 1];
+        for (let s = leg === 0 ? 0 : 1; s <= ARC_SEGMENTS_PER_LEG; s++) {
+          const t = s / ARC_SEGMENTS_PER_LEG;
+          const w = Math.sin(Math.PI * t);
+          const o = idx * 3;
+          arcPositions[o] = A.x + (B.x - A.x) * t + arcJitter[o] * w;
+          arcPositions[o + 1] = A.y + (B.y - A.y) * t + arcJitter[o + 1] * w;
+          arcPositions[o + 2] = A.z + (B.z - A.z) * t + arcJitter[o + 2] * w;
+          idx++;
+        }
+      }
+      arcAttr.needsUpdate = true;
+      arcMat.opacity = 0.7 + 0.3 * Math.abs(Math.sin(time * 41));
+    });
+  }
+
   // -------------------------------------------------------------------------
   // Weapon aim pivot + swappable props
   // -------------------------------------------------------------------------
@@ -1010,6 +1351,11 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
   let lastHitWasHeadshot = false;
   let wasAlive = true;
   let ghostRatio = 1;
+  let slideBlend = 0; // 0 = normal gait .. 1 = full Power-Slide pose
+
+  const _shimmerColor = new THREE.Color();
+  const _shimmerTarget = new THREE.Color(CONCUSS_SHIMMER_HEX);
+  const _agentColor = new THREE.Color(agent.primary);
 
   const _aimBase = new THREE.Vector3();
   const _gripTarget = new THREE.Vector3();
@@ -1019,9 +1365,14 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
 
   /** Composes local matrices from `node` up to `upperBody` (no world update needed). */
   function pointInUpperBody(node: THREE.Object3D, out: THREE.Vector3): THREE.Vector3 {
+    return pointInSpace(node, upperBody, out);
+  }
+
+  /** Origin of `node` expressed in the local space of ancestor `space` (allocation-free). */
+  function pointInSpace(node: THREE.Object3D, space: THREE.Object3D, out: THREE.Vector3): THREE.Vector3 {
     out.set(0, 0, 0);
     let cur: THREE.Object3D | null = node;
-    while (cur && cur !== upperBody) {
+    while (cur && cur !== space) {
       cur.updateMatrix();
       out.applyMatrix4(cur.matrix);
       cur = cur.parent;
@@ -1127,11 +1478,15 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
       slowTimer: number;
       blindTimer: number;
       occludedBySmoke: boolean;
+      slideTimer?: number;
+      concussTimer?: number;
     },
     cameraPos: Vec3
   ): void {
     const stepDt = clamp(dt, 0, 0.1);
     time += stepDt;
+    const sliding = (state.slideTimer ?? 0) > 0;
+    rigFlags.sliding = sliding && state.alive;
 
     root.position.set(state.position.x, state.position.y, state.position.z);
     root.rotation.y = state.yaw;
@@ -1142,6 +1497,9 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
       wasAlive = false;
       const collapseAlpha = 1 - Math.exp(-10 * stepDt);
       bodyTiltGroup.rotation.x += (DEATH_TILT_TARGET_RAD - bodyTiltGroup.rotation.x) * collapseAlpha;
+      // Let any slide crouch rise back out so the corpse doesn't sink into the floor.
+      slideBlend *= Math.exp(-14 * stepDt);
+      bodyTiltGroup.position.y = SLIDE_DROP_M * slideBlend;
       healthBarGroup.visible = false;
       blindHalo.visible = false;
       teamRing.visible = false;
@@ -1151,6 +1509,8 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
     if (!wasAlive) {
       wasAlive = true;
       bodyTiltGroup.rotation.x = 0;
+      bodyTiltGroup.position.y = 0;
+      slideBlend = 0;
       gaitPhase = 0;
       strideAmpSmoothed = 0;
       airBlend = 0;
@@ -1199,10 +1559,27 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
     const kneeR = -Math.max(0, -Math.sin(gaitPhase + Math.PI + 0.7)) * strideAmp * 1.15 - strideAmp * 0.15;
 
     // Idle: soft athletic knee bend. Airborne: tuck (hips forward, knees back).
-    leftLeg.hip.rotation.x = hipL + idle * 0.04 + airBlend * 0.35;
-    rightLeg.hip.rotation.x = hipR + idle * 0.04 + airBlend * 0.15;
-    leftLeg.knee.rotation.x = kneeL - idle * 0.08 - airBlend * 0.6;
-    rightLeg.knee.rotation.x = kneeR - idle * 0.08 - airBlend * 0.3;
+    const gaitHipL = hipL + idle * 0.04 + airBlend * 0.35;
+    const gaitHipR = hipR + idle * 0.04 + airBlend * 0.15;
+    const gaitKneeL = kneeL - idle * 0.08 - airBlend * 0.6;
+    const gaitKneeR = kneeR - idle * 0.08 - airBlend * 0.3;
+
+    // -----------------------------------------------------------------------
+    // Power-Slide: blend the gait toward a low slide pose with the same
+    // frame-rate independent exponential smoothing `b += (target - b)(1 - e^(-14 dt))`.
+    // Lead (left) thigh swings forward with the shin folded under; the
+    // trailing (right) leg extends back; the whole body drops 0.35 m and the
+    // torso leans back. When the slide ends `slideBlend` decays to 0, which
+    // smoothly lifts `bodyTiltGroup.position.y` back to the floor-standing 0.
+    // -----------------------------------------------------------------------
+    slideBlend += ((sliding ? 1 : 0) - slideBlend) * (1 - Math.exp(-14 * stepDt));
+    if (slideBlend < 1e-4) slideBlend = 0;
+    const sb = slideBlend;
+    leftLeg.hip.rotation.x = gaitHipL + (SLIDE_LEAD_HIP_RAD - gaitHipL) * sb;
+    rightLeg.hip.rotation.x = gaitHipR + (SLIDE_TRAIL_HIP_RAD - gaitHipR) * sb;
+    leftLeg.knee.rotation.x = gaitKneeL + (SLIDE_LEAD_KNEE_RAD - gaitKneeL) * sb;
+    rightLeg.knee.rotation.x = gaitKneeR + (SLIDE_TRAIL_KNEE_RAD - gaitKneeR) * sb;
+    bodyTiltGroup.position.y = SLIDE_DROP_M * sb;
 
     // -----------------------------------------------------------------------
     // Upper body: bladed stance twist, stride counter-rotation, bob & breathing
@@ -1212,7 +1589,12 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
     const bob = -Math.abs(Math.sin(gaitPhase)) * 0.028 * motion;
     const twist = hold.twist + Math.sin(gaitPhase) * 0.05 * motion;
     upperBody.position.y = WAIST_Y + bob + breathe;
-    upperBody.rotation.set(-0.07 * motion - airBlend * 0.05, twist, Math.sin(gaitPhase) * 0.025 * motion);
+    const gaitLean = -0.07 * motion - airBlend * 0.05;
+    upperBody.rotation.set(
+      gaitLean + (SLIDE_TORSO_LEAN_RAD - gaitLean) * sb,
+      twist,
+      Math.sin(gaitPhase) * 0.025 * motion * (1 - sb)
+    );
 
     // Head counter-yaws so the visor always faces the aim direction.
     const aimPitch = clamp(state.pitch, -1.1, 1.1);
@@ -1261,12 +1643,23 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
       armorMat.emissiveIntensity = 0.55;
       helmetMat.emissiveIntensity = 0.55;
       suitMat.emissiveIntensity = 0.45;
+    } else if ((state.concussTimer ?? 0) > 0) {
+      // Concussed: a fast, jittery electric gold-white shimmer over the
+      // agent's own hue (two incommensurate sines read as crackle, not a pulse).
+      const s = clamp(0.5 + 0.35 * Math.sin(time * 27) + 0.15 * Math.sin(time * 61), 0, 1);
+      _shimmerColor.copy(_agentColor).lerp(_shimmerTarget, 0.35 + 0.5 * s);
+      armorMat.emissive.copy(_shimmerColor);
+      helmetMat.emissive.copy(_shimmerColor);
+      suitMat.emissive.setHex(teamStyle.suitEmissive);
+      armorMat.emissiveIntensity = finish.emissiveIntensity + 0.3 * s;
+      helmetMat.emissiveIntensity = finish.emissiveIntensity + 0.38 * s;
+      suitMat.emissiveIntensity = teamStyle.suitEmissiveIntensity;
     } else {
       armorMat.emissive.setHex(agent.primary);
       helmetMat.emissive.setHex(agent.primary);
       suitMat.emissive.setHex(teamStyle.suitEmissive);
-      armorMat.emissiveIntensity = 0.28;
-      helmetMat.emissiveIntensity = 0.28;
+      armorMat.emissiveIntensity = finish.emissiveIntensity;
+      helmetMat.emissiveIntensity = finish.emissiveIntensity;
       suitMat.emissiveIntensity = teamStyle.suitEmissiveIntensity;
     }
 

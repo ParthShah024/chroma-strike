@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {
   AABB,
+  AGENT_ORDER,
   AGENT_PALETTES,
   AbilityAudioEvent,
   AbilityFrameFeedback,
@@ -30,9 +31,12 @@ import { TargetsManager } from '../combat/targets';
 import { AGENT_ABILITIES } from './definitions';
 import {
   createCryoFieldMaterial,
+  createElectricRelayMaterial,
   createFireZoneMaterial,
   createFlameWallMaterial,
+  createSingularityMaterial,
   createSmokeDomeMaterial,
+  createVoidSmokeMaterial,
 } from './shaders';
 
 /**
@@ -134,6 +138,54 @@ const BEACON_FIRE_RATE_MULT = 1.35;
 const BEACON_RECOIL_MULT = 0.65;
 const BEACON_MOTE_COUNT = 22;
 
+// Violet — Umbra (Shadow Smoker / Controller)
+const VOID_MAX_CHARGES = 2;
+const VOID_RECHARGE_SEC = 14.0;
+const VOID_RECAST_LOCK_SEC = 0.35;
+const VOID_REBLOOM_MIN_AGE_SEC = 0.08;
+const VOID_ORB_SPEED = 32.0;
+const VOID_ORB_GRAVITY = 0.0;
+const VOID_ORB_MAX_LIFETIME = 0.50;
+const VOID_SMOKE_RADIUS = 3.6;
+const VOID_SMOKE_DURATION_SEC = 6.5;
+const VOID_SMOKE_FLOOR_Y_OFFSET = 1.35;
+
+const VORTEX_ORB_SPEED = 22.0;
+const VORTEX_ORB_GRAVITY = 16.0;
+const VORTEX_ORB_RESTITUTION = 0.50;
+const VORTEX_ORB_UPWARD_LOB = 0.10;
+const VORTEX_RADIUS = 4.0;
+const VORTEX_DURATION_SEC = 3.2;
+const VORTEX_PULL_MAX_SPEED_MPS = 3.2;
+const VORTEX_PULL_ACCEL_MPS2 = 9.5;
+const VORTEX_SPEED_MULT = 0.65;
+const VORTEX_FRAGILE_SEC = 0.35;
+const VORTEX_PARTICLE_COUNT = 32;
+
+// Gold — Volt (Neon-Style Electric Duelist)
+const OVERDRIVE_DURATION_SEC = 4.5;
+const OVERDRIVE_SPEED_MULT = 1.45;
+const SLIDE_DURATION_SEC = 0.55;
+const SLIDE_PEAK_SPEED_MPS = 14.2;
+const SLIDE_END_SPEED_MPS = 7.8;
+const SLIDE_LOCKOUT_SEC = 2.2;
+const SLIDE_SPRINT_THRESHOLD_MPS = 5.0;
+const SLIDE_EYE_HEIGHT_OFFSET = -0.68;
+const SLIDE_RECOIL_MULT = 0.72;
+
+const RELAY_BOLT_SPEED = 34.0;
+const RELAY_BOLT_GRAVITY = 2.5;
+const RELAY_BOLT_RESTITUTION = 0.92;
+const RELAY_BOLT_MAX_LIFETIME = 0.85;
+const RELAY_SHOCK_RADIUS = 3.2;
+const RELAY_SHOCK_DURATION_SEC = 0.75;
+const RELAY_SHOCK_ARM_SEC = 0.38;
+const RELAY_SHOCK_DAMAGE = 22.0;
+const RELAY_CONCUSS_DURATION_SEC = 2.0;
+const CONCUSS_SPEED_MULT = 0.60;
+const CONCUSS_FIRE_RATE_MULT = 0.68;
+const CONCUSS_MOVE_SPREAD_MULT = 1.45;
+
 const PROJECTILE_SPAWN_FORWARD_OFFSET = 0.28;
 const PROJECTILE_SPAWN_VERTICAL_OFFSET = -0.06;
 const ZONE_VERTICAL_TOLERANCE_M = 1.8;
@@ -145,6 +197,10 @@ const ZONE_VERTICAL_TOLERANCE_M = 1.8;
 interface ProjectileEntry {
   data: AbilityProjectile;
   team: TeamId;
+  ownerTeam?: TeamId;
+  casterId?: string;
+  isPlayerCast?: boolean;
+  bounces: number;
   group: THREE.Group;
   auraMesh?: THREE.Mesh;
   auraMat?: THREE.MeshBasicMaterial;
@@ -169,6 +225,10 @@ interface ZoneVisualHandles {
   fireDiscMat?: THREE.ShaderMaterial;
   flameWallMat?: THREE.ShaderMaterial;
   cryoMat?: THREE.ShaderMaterial;
+  singularityMat?: THREE.ShaderMaterial;
+  relayMat?: THREE.ShaderMaterial;
+  lightningGroup?: THREE.Group;
+  lightningMat?: THREE.LineBasicMaterial;
   spikeGroup?: THREE.Group;
   spikeMat?: THREE.MeshBasicMaterial;
   rimMat?: THREE.MeshBasicMaterial;
@@ -183,6 +243,9 @@ interface ZoneVisualHandles {
 interface ZoneEntry {
   data: ActiveZone;
   team: TeamId;
+  ownerTeam?: TeamId;
+  casterId?: string;
+  discharged?: boolean;
   visual: ZoneVisualHandles;
 }
 
@@ -192,8 +255,21 @@ interface BotDashEntry {
   dir: Vec3;
 }
 
+interface BotSlideEntry {
+  combatant: Combatant;
+  slideTimer: number;
+  overdriveTimer: number;
+  dir: Vec3;
+}
+
+interface BotVoidChargeState {
+  charges: number;
+  rechargeTimer: number;
+  recastLock: number;
+}
+
 interface TransientBurst {
-  kind: 'dash_tunnel' | 'smoke_shockwave' | 'flash_burst';
+  kind: 'dash_tunnel' | 'smoke_shockwave' | 'flash_burst' | 'slide_sparks';
   group: THREE.Group;
   materials: THREE.Material[];
   age: number;
@@ -408,26 +484,89 @@ function updateParticleStream(
   stream.material.opacity = opacity;
 }
 
+/**
+ * Steps a `ParticleStream` inward along an accretion spiral for Umbra's Singularity Vortex.
+ */
+function updateInwardVortexParticles(
+  stream: ParticleStream,
+  elapsed: number,
+  opacity: number
+): void {
+  const { positions, radii, angles, speeds, phases, count } = stream;
+  for (let i = 0; i < count; i++) {
+    const life = (phases[i] + elapsed * speeds[i]) % 1;
+    const theta = angles[i] + life * 5.4 + elapsed * 2.4;
+    const r = Math.max(0.1, radii[i] * (1.0 - life * 0.92));
+    const idx = i * 3;
+    positions[idx] = Math.cos(theta) * r;
+    positions[idx + 1] = 0.05 + Math.sin(life * Math.PI) * 0.55;
+    positions[idx + 2] = Math.sin(theta) * r;
+  }
+  const posAttr = stream.geometry.getAttribute('position') as THREE.BufferAttribute;
+  posAttr.needsUpdate = true;
+  stream.material.opacity = opacity;
+}
+
+/**
+ * Projects a wall or mid-air projectile impact point vertically down onto the
+ * nearest floor/platform collider below so ground AoE discs never float in mid-air.
+ */
+function projectPointToFloor(
+  pos: Vec3,
+  normal: Vec3 | null,
+  colliders: AABB[]
+): Vec3 {
+  const nx = normal ? normal.x * 0.12 : 0;
+  const nz = normal ? normal.z * 0.12 : 0;
+  const rayOrigin: Vec3 = {
+    x: pos.x + nx,
+    y: pos.y + (normal && normal.y > 0.5 ? 0.08 : 0.12),
+    z: pos.z + nz,
+  };
+  const downDir: Vec3 = { x: 0, y: -1, z: 0 };
+  let bestDist = 10.0;
+  let floorY = 0;
+
+  for (const box of colliders) {
+    const hit = raycastAABB(rayOrigin, downDir, box, bestDist);
+    if (hit && hit.distance < bestDist && hit.normal.y >= 0.5) {
+      bestDist = hit.distance;
+      floorY = hit.point.y;
+    }
+  }
+
+  return {
+    x: pos.x + (normal ? normal.x * 0.05 : 0),
+    y: floorY,
+    z: pos.z + (normal ? normal.z * 0.05 : 0),
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Ability System Factory
 // ---------------------------------------------------------------------------
 
 /**
- * Creates the upgraded Chapter 2 Ability System managing all 6 agent abilities
+ * Creates the Chroma Strike Ability System managing all 5 agents (10 abilities)
  * with custom GLSL shaders, pooled `Float32Array` particle emitters, cubic
- * ease-out dash physics, hollow opaque smoke seam-masking, and audio event cues.
+ * ease-out dash & power-slide physics, hollow opaque smoke seam-masking, and audio cues.
  */
 export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
   let nextEntityId = 1;
+  let zoneSeq = 0;
 
-  // Independent per-agent cooldown pools so swapping colors preserves cooldown timers.
+  // Independent per-agent cooldown pools across all 5 roster agents.
   const cooldowns: Record<AgentColorId, { q: number; e: number }> = {
     red: { q: 0, e: 0 },
     blue: { q: 0, e: 0 },
     green: { q: 0, e: 0 },
+    violet: { q: 0, e: 0 },
+    gold: { q: 0, e: 0 },
   };
   const botCooldowns = new Map<string, { q: number; e: number }>();
   const botDashes = new Map<string, BotDashEntry>();
+  const botSlides = new Map<string, BotSlideEntry>();
+  const botVoidStates = new Map<string, BotVoidChargeState>();
 
   function getOrInitBotCooldowns(botId: string): { q: number; e: number } {
     let cd = botCooldowns.get(botId);
@@ -438,10 +577,23 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
     return cd;
   }
 
+  function getOrInitBotVoidState(botId: string): BotVoidChargeState {
+    let st = botVoidStates.get(botId);
+    if (!st) {
+      st = { charges: VOID_MAX_CHARGES, rechargeTimer: 0, recastLock: 0 };
+      botVoidStates.set(botId, st);
+    }
+    return st;
+  }
+
   const projectiles: ProjectileEntry[] = [];
   const zones: ZoneEntry[] = [];
   const bursts: TransientBurst[] = [];
   const pendingAudioEvents: AbilityAudioEvent[] = [];
+
+  // Cached player team & combatant ID for friendly-fire / self-hazard filtering
+  let playerTeam: TeamId = 'ally';
+  let playerCasterId = 'player';
 
   // Active Red Q dash state
   let dashTimer = 0;
@@ -449,6 +601,20 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
 
   // Active Green Q player blind state
   let playerFlashTimer = 0;
+
+  // Active Violet Q (Void Shroud) 2-charge pool
+  let voidCharges = VOID_MAX_CHARGES;
+  let voidRechargeTimer = 0;
+  let voidRecastLockTimer = 0;
+
+  // Active Gold Q (Overdrive + Electric Power Slide) & Concuss state
+  let overdriveTimer = 0;
+  let slideTimer = 0;
+  let slideLockoutTimer = 0;
+  let slideDir: Vec3 = { x: 0, y: 0, z: -1 };
+  let walkArmedForSlide = true;
+  let smoothEyeHeightOffset = 0;
+  let playerConcussTimer = 0;
 
   // -------------------------------------------------------------------------
   // 3D VFX Builders
@@ -519,14 +685,14 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
     };
   }
 
-  function createSmokeShockwaveVisual(origin: Vec3): TransientBurst {
+  function createSmokeShockwaveVisual(origin: Vec3, ringColorHex = 0x7ae9ff): TransientBurst {
     const group = new THREE.Group();
     group.position.set(origin.x, origin.y + 0.05, origin.z);
 
     const ringGeo = new THREE.RingGeometry(0.75, 1.0, 44);
     ringGeo.rotateX(-Math.PI * 0.5);
     const ringMat = new THREE.MeshBasicMaterial({
-      color: 0x7ae9ff,
+      color: ringColorHex,
       transparent: true,
       opacity: 0.85,
       side: THREE.DoubleSide,
@@ -545,6 +711,46 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
     };
   }
 
+  function createSlideSparksVisual(origin: Vec3, dir: Vec3): TransientBurst {
+    const group = new THREE.Group();
+    group.position.set(origin.x, origin.y, origin.z);
+    group.rotation.y = Math.atan2(dir.x, dir.z);
+
+    const goldMat = new THREE.MeshBasicMaterial({
+      color: AGENT_PALETTES.gold.hex,
+      transparent: true,
+      opacity: 0.92,
+      depthWrite: false,
+    });
+    const whiteGoldMat = new THREE.MeshBasicMaterial({
+      color: 0xfef08a,
+      transparent: true,
+      opacity: 0.95,
+      depthWrite: false,
+    });
+
+    for (let i = 0; i < 12; i++) {
+      const side = i % 2 === 0 ? -1 : 1;
+      const lateral = side * (0.42 + (i % 3) * 0.18);
+      const yPos = 0.14 + (i % 4) * 0.22;
+      const forwardDist = 0.6 + (i / 11) * 4.2;
+      const streakLen = 0.65 + (i % 3) * 0.28;
+      const boxGeo = new THREE.BoxGeometry(0.032, 0.032, streakLen);
+      const mesh = new THREE.Mesh(boxGeo, i % 2 === 0 ? goldMat : whiteGoldMat);
+      mesh.position.set(lateral, yPos, forwardDist);
+      group.add(mesh);
+    }
+
+    scene.add(group);
+    return {
+      kind: 'slide_sparks',
+      group,
+      materials: [goldMat, whiteGoldMat],
+      age: 0,
+      duration: 0.42,
+    };
+  }
+
   function createProjectileVisual(
     kind: ProjectileKind,
     colorId: AgentColorId,
@@ -554,10 +760,22 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
     group.position.set(pos.x, pos.y, pos.z);
 
     const hex = AGENT_PALETTES[colorId].hex;
-    const coreGeo = new THREE.SphereGeometry(0.14, 14, 12);
-    const coreMat = new THREE.MeshBasicMaterial({
-      color: kind === 'flash_orb' ? 0xd9ffe8 : hex,
-    });
+    const coreColor =
+      kind === 'flash_orb'
+        ? 0xd9ffe8
+        : kind === 'void_orb'
+          ? 0x12051f
+          : kind === 'vortex_orb'
+            ? 0x07010f
+            : kind === 'relay_bolt'
+              ? 0xfef08a
+              : hex;
+
+    const coreGeo =
+      kind === 'relay_bolt'
+        ? new THREE.OctahedronGeometry(0.15, 1)
+        : new THREE.SphereGeometry(0.14, 14, 12);
+    const coreMat = new THREE.MeshBasicMaterial({ color: coreColor });
     group.add(new THREE.Mesh(coreGeo, coreMat));
 
     const shellGeo = new THREE.SphereGeometry(0.21, 12, 10);
@@ -565,14 +783,16 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
       color: hex,
       wireframe: true,
       transparent: true,
-      opacity: 0.72,
+      opacity: 0.78,
     });
     group.add(new THREE.Mesh(shellGeo, shellMat));
 
-    if (kind === 'flash_orb') {
+    if (kind === 'flash_orb' || kind === 'void_orb' || kind === 'relay_bolt') {
+      const auraColor =
+        kind === 'flash_orb' ? 0x7effb2 : kind === 'void_orb' ? 0xc084fc : 0xfde047;
       const auraGeo = new THREE.SphereGeometry(0.28, 16, 12);
       const auraMat = new THREE.MeshBasicMaterial({
-        color: 0x7effb2,
+        color: auraColor,
         transparent: true,
         opacity: 0.42,
         depthWrite: false,
@@ -598,10 +818,13 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
     group.position.set(center.x, center.y, center.z);
     const hex = AGENT_PALETTES[colorId].hex;
 
-    if (kind === 'smoke') {
+    if (kind === 'smoke' || kind === 'void_smoke') {
       // 100% opaque Z-buffered DoubleSide shader sphere (true Valorant hollow smoke)
       const sphereGeo = new THREE.SphereGeometry(radius, 36, 24);
-      const smokeMat = createSmokeDomeMaterial(hex);
+      const smokeMat =
+        kind === 'void_smoke'
+          ? createVoidSmokeMaterial(hex)
+          : createSmokeDomeMaterial(hex);
       const sphereMesh = new THREE.Mesh(sphereGeo, smokeMat);
       group.add(sphereMesh);
 
@@ -613,12 +836,15 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
       };
     }
 
+    // Per-zone Y-stagger prevents overlapping AoE floor discs from Z-fighting each other.
+    const yStagger = (zoneSeq++ % 8) * 0.0015;
+
     if (kind === 'fire') {
       const discGeo = new THREE.CircleGeometry(radius, 44);
       discGeo.rotateX(-Math.PI * 0.5);
       const fireDiscMat = createFireZoneMaterial();
       const discMesh = new THREE.Mesh(discGeo, fireDiscMat);
-      discMesh.position.y = 0.03;
+      discMesh.position.y = 0.03 + yStagger;
       group.add(discMesh);
 
       // 0.95m-tall open-ended cylindrical flame crown scrolling upward
@@ -652,7 +878,7 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
       discGeo.rotateX(-Math.PI * 0.5);
       const cryoMat = createCryoFieldMaterial();
       const discMesh = new THREE.Mesh(discGeo, cryoMat);
-      discMesh.position.y = 0.025;
+      discMesh.position.y = 0.025 + yStagger;
       group.add(discMesh);
 
       const rimGeo = new THREE.TorusGeometry(radius, 0.055, 8, 48);
@@ -664,7 +890,7 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
         depthWrite: false,
       });
       const rimMesh = new THREE.Mesh(rimGeo, rimMat);
-      rimMesh.position.y = 0.045;
+      rimMesh.position.y = 0.045 + yStagger;
       group.add(rimMesh);
 
       // 14 angled 3D ice crystal spikes erupting from the floor over 0.18s
@@ -700,6 +926,118 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
         rimMat,
         spikeGroup,
         spikeMat,
+      };
+    }
+
+    if (kind === 'vortex') {
+      const discGeo = new THREE.CircleGeometry(radius, 48);
+      discGeo.rotateX(-Math.PI * 0.5);
+      const singularityMat = createSingularityMaterial();
+      const discMesh = new THREE.Mesh(discGeo, singularityMat);
+      discMesh.position.y = 0.028 + yStagger;
+      group.add(discMesh);
+
+      const rimGeo = new THREE.TorusGeometry(radius, 0.045, 8, 48);
+      rimGeo.rotateX(Math.PI * 0.5);
+      const rimMat = new THREE.MeshBasicMaterial({
+        color: 0xc084fc,
+        transparent: true,
+        opacity: 0.74,
+        depthWrite: false,
+      });
+      const rimMesh = new THREE.Mesh(rimGeo, rimMat);
+      rimMesh.position.y = 0.042 + yStagger;
+      group.add(rimMesh);
+
+      const coreGeo = new THREE.SphereGeometry(0.24, 16, 12);
+      const coreMat = new THREE.MeshBasicMaterial({
+        color: 0x090212,
+        transparent: true,
+        opacity: 0.96,
+      });
+      const coreMesh = new THREE.Mesh(coreGeo, coreMat);
+      coreMesh.position.y = 0.24;
+      group.add(coreMesh);
+
+      const particles = createParticleStream(
+        VORTEX_PARTICLE_COUNT,
+        radius * 0.96,
+        0xd8b4fe,
+        0.14,
+        0.65,
+        1.25
+      );
+      group.add(particles.points);
+
+      scene.add(group);
+      return {
+        group,
+        singularityMat,
+        rimMat,
+        coreMesh,
+        coreMat,
+        particles,
+      };
+    }
+
+    if (kind === 'relay_shock') {
+      const discGeo = new THREE.CircleGeometry(radius, 44);
+      discGeo.rotateX(-Math.PI * 0.5);
+      const relayMat = createElectricRelayMaterial();
+      relayMat.uniforms.uIntensity.value = 0.6;
+      const discMesh = new THREE.Mesh(discGeo, relayMat);
+      discMesh.position.y = 0.032 + yStagger;
+      group.add(discMesh);
+
+      const rimGeo = new THREE.TorusGeometry(radius, 0.042, 8, 48);
+      rimGeo.rotateX(Math.PI * 0.5);
+      const rimMat = new THREE.MeshBasicMaterial({
+        color: AGENT_PALETTES.gold.hex,
+        transparent: true,
+        opacity: 0.65,
+        depthWrite: false,
+      });
+      const rimMesh = new THREE.Mesh(rimGeo, rimMat);
+      rimMesh.position.y = 0.044 + yStagger;
+      group.add(rimMesh);
+
+      // Jagged 3D lightning THREE.Line bolts overhead (revealed on discharge at 0.38s)
+      const lightningGroup = new THREE.Group();
+      const lightningMat = new THREE.LineBasicMaterial({
+        color: 0xfef08a,
+        transparent: true,
+        opacity: 0.95,
+      });
+
+      for (let b = 0; b < 5; b++) {
+        const baseAngle = (b / 5) * Math.PI * 2;
+        const pts: THREE.Vector3[] = [];
+        const segs = 6;
+        for (let s = 0; s <= segs; s++) {
+          const frac = s / segs;
+          const y = 2.45 * (1 - frac) + 0.05;
+          const r = radius * (0.14 + frac * 0.66);
+          const jag =
+            s === 0 || s === segs
+              ? 0
+              : ((s % 2 === 0 ? 1 : -1) * 0.32 + Math.sin(b * 2.1 + s * 1.7) * 0.18);
+          const ang = baseAngle + jag * 0.55;
+          const radJitter = r + jag * 0.25;
+          pts.push(new THREE.Vector3(Math.cos(ang) * radJitter, y, Math.sin(ang) * radJitter));
+        }
+        const boltGeo = new THREE.BufferGeometry().setFromPoints(pts);
+        lightningGroup.add(new THREE.Line(boltGeo, lightningMat));
+      }
+      lightningGroup.visible = false;
+      group.add(lightningGroup);
+
+      scene.add(group);
+      return {
+        group,
+        relayMat,
+        rimMat,
+        lightningGroup,
+        lightningMat,
       };
     }
 
@@ -746,7 +1084,7 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
       depthWrite: false,
     });
     const rimMesh = new THREE.Mesh(rimGeo, rimMat);
-    rimMesh.position.y = 0.04;
+    rimMesh.position.y = 0.04 + yStagger;
     group.add(rimMesh);
 
     // 2 expanding sonar rings phased half a cycle apart
@@ -763,7 +1101,7 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
         depthWrite: false,
       });
       const sonarMesh = new THREE.Mesh(sonarGeo, sonarMat);
-      sonarMesh.position.y = 0.05;
+      sonarMesh.position.y = 0.05 + yStagger;
       group.add(sonarMesh);
       sonarMeshes.push(sonarMesh);
       sonarMats.push(sonarMat);
@@ -854,7 +1192,8 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
     team: TeamId,
     center: Vec3,
     radius: number,
-    durationSec: number
+    durationSec: number,
+    casterId?: string
   ): void {
     const data: ActiveZone = {
       id: `zone-${nextEntityId++}`,
@@ -866,7 +1205,14 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
       totalDurationSec: durationSec,
     };
     const visual = createZoneVisual(kind, colorId, data.center, radius);
-    zones.push({ data, team, visual });
+    zones.push({
+      data,
+      team,
+      ownerTeam: team,
+      casterId,
+      discharged: false,
+      visual,
+    });
   }
 
   function spawnProjectileFromOrigin(
@@ -881,11 +1227,14 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
     restitution: number,
     maxLifetime: number,
     detonateOnFloor: boolean,
-    upwardLob: number
+    upwardLob: number,
+    casterId?: string,
+    isPlayerCast = false,
+    eyeOffsetY = 0
   ): void {
     const eye: Vec3 = {
       x: originPos.x,
-      y: originPos.y + EYE_HEIGHT,
+      y: originPos.y + EYE_HEIGHT + eyeOffsetY,
       z: originPos.z,
     };
     const rawDir = getLookDirection(yaw, pitch);
@@ -919,7 +1268,59 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
     };
 
     const { group, auraMesh, auraMat } = createProjectileVisual(kind, colorId, spawnPos);
-    projectiles.push({ data, team, group, auraMesh, auraMat, warned: false });
+    projectiles.push({
+      data,
+      team,
+      ownerTeam: team,
+      casterId,
+      isPlayerCast,
+      bounces: 0,
+      group,
+      auraMesh,
+      auraMat,
+      warned: false,
+    });
+  }
+
+  function bloomVoidOrb(
+    entry: ProjectileEntry,
+    hitHorizontalFloor: boolean,
+    audioSink: AbilityAudioEvent[]
+  ): void {
+    const pos = entry.data.position;
+    const centerY = hitHorizontalFloor ? pos.y + VOID_SMOKE_FLOOR_Y_OFFSET : pos.y;
+    spawnZone(
+      'void_smoke',
+      'violet',
+      entry.ownerTeam ?? entry.team,
+      { x: pos.x, y: centerY, z: pos.z },
+      VOID_SMOKE_RADIUS,
+      VOID_SMOKE_DURATION_SEC,
+      entry.casterId
+    );
+    bursts.push(createSmokeShockwaveVisual(pos, 0xc084fc));
+    audioSink.push('void_bloom');
+  }
+
+  function triggerPlayerPowerSlide(
+    player: PlayerState,
+    input: InputState,
+    audioSink: AbilityAudioEvent[]
+  ): void {
+    const hSpeed = Math.hypot(player.velocity.x, player.velocity.z);
+    if (hSpeed > 2.0) {
+      slideDir = {
+        x: player.velocity.x / hSpeed,
+        y: 0,
+        z: player.velocity.z / hSpeed,
+      };
+    } else {
+      slideDir = computeDashDirection(input);
+    }
+    slideTimer = SLIDE_DURATION_SEC;
+    slideLockoutTimer = SLIDE_LOCKOUT_SEC;
+    bursts.push(createSlideSparksVisual(player.position, slideDir));
+    audioSink.push('power_slide');
   }
 
   /**
@@ -981,7 +1382,7 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
 
     const eye: Vec3 = {
       x: player.position.x,
-      y: player.position.y + EYE_HEIGHT,
+      y: player.position.y + EYE_HEIGHT + smoothEyeHeightOffset,
       z: player.position.z,
     };
     const toFlashX = flashPos.x - eye.x;
@@ -1019,15 +1420,17 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
     allCombatants?: Combatant[]
   ): void {
     const proj = entry.data;
+    const ownerTeam = entry.ownerTeam ?? entry.team;
     switch (proj.kind) {
       case 'fire_orb':
         spawnZone(
           'fire',
           'red',
-          entry.team,
+          ownerTeam,
           proj.position,
           FIRE_ZONE_RADIUS,
-          FIRE_ZONE_DURATION_SEC
+          FIRE_ZONE_DURATION_SEC,
+          entry.casterId
         );
         audioEvents.push('fire_ignite');
         break;
@@ -1035,14 +1438,15 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
         spawnZone(
           'smoke',
           'blue',
-          entry.team,
+          ownerTeam,
           {
             x: proj.position.x,
             y: proj.position.y + SMOKE_CENTER_Y_OFFSET,
             z: proj.position.z,
           },
           SMOKE_RADIUS,
-          SMOKE_DURATION_SEC
+          SMOKE_DURATION_SEC,
+          entry.casterId
         );
         bursts.push(createSmokeShockwaveVisual(proj.position));
         audioEvents.push('smoke_bloom');
@@ -1051,17 +1455,18 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
         spawnZone(
           'slow',
           'blue',
-          entry.team,
+          ownerTeam,
           proj.position,
           SLOW_ZONE_RADIUS,
-          SLOW_ZONE_DURATION_SEC
+          SLOW_ZONE_DURATION_SEC,
+          entry.casterId
         );
         audioEvents.push('slow_shatter');
         break;
       case 'flash_orb':
         detonateFlash(
           proj.position,
-          entry.team,
+          ownerTeam,
           player,
           input,
           colliders,
@@ -1070,6 +1475,23 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
         );
         audioEvents.push('flash_pop');
         break;
+      case 'void_orb':
+        bloomVoidOrb(entry, false, audioEvents);
+        break;
+      case 'vortex_orb': {
+        const floorCenter = projectPointToFloor(proj.position, null, colliders);
+        spawnZone(
+          'vortex',
+          'violet',
+          ownerTeam,
+          floorCenter,
+          VORTEX_RADIUS,
+          VORTEX_DURATION_SEC,
+          entry.casterId
+        );
+        audioEvents.push('vortex_pull');
+        break;
+      }
     }
   }
 
@@ -1079,6 +1501,82 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
 
   function cast(slot: AbilitySlot, player: PlayerState, input: InputState): boolean {
     const colorId = player.colorId;
+
+    // Special Case 1: Umbra (violet) [Q] Void Shroud (2 charges + mid-air re-tap bloom)
+    if (colorId === 'violet' && slot === 'q') {
+      const inFlightIdx = projectiles.findIndex(
+        (p) => p.isPlayerCast && p.data.kind === 'void_orb'
+      );
+      if (inFlightIdx !== -1) {
+        const activeOrb = projectiles[inFlightIdx];
+        if (activeOrb.data.age > VOID_REBLOOM_MIN_AGE_SEC) {
+          bloomVoidOrb(activeOrb, false, pendingAudioEvents);
+          disposeObject3D(scene, activeOrb.group);
+          projectiles.splice(inFlightIdx, 1);
+          voidRecastLockTimer = VOID_RECAST_LOCK_SEC;
+          return true;
+        }
+        return false;
+      }
+
+      if (voidCharges <= 0 || voidRecastLockTimer > 0) {
+        return false;
+      }
+
+      voidCharges -= 1;
+      if (voidRechargeTimer <= 0) {
+        voidRechargeTimer = VOID_RECHARGE_SEC;
+      }
+      voidRecastLockTimer = VOID_RECAST_LOCK_SEC;
+
+      spawnProjectileFromOrigin(
+        'void_orb',
+        'violet',
+        playerTeam,
+        player.position,
+        input.yaw,
+        input.pitch,
+        VOID_ORB_SPEED,
+        VOID_ORB_GRAVITY,
+        0.0,
+        VOID_ORB_MAX_LIFETIME,
+        true,
+        0.0,
+        playerCasterId,
+        true,
+        smoothEyeHeightOffset
+      );
+      pendingAudioEvents.push('void_cast');
+      return true;
+    }
+
+    // Special Case 2: Volt (gold) [Q] Overdrive + Electric Power Slide
+    if (colorId === 'gold' && slot === 'q') {
+      if (overdriveTimer > 0) {
+        if (player.grounded && slideTimer <= 0 && slideLockoutTimer <= 0) {
+          triggerPlayerPowerSlide(player, input, pendingAudioEvents);
+          return true;
+        }
+        return false;
+      }
+
+      if (cooldowns.gold.q > 0) {
+        return false;
+      }
+
+      cooldowns.gold.q = AGENT_ABILITIES.gold.q.cooldownSec;
+      overdriveTimer = OVERDRIVE_DURATION_SEC;
+      slideLockoutTimer = 0;
+      walkArmedForSlide = !input.walk;
+      pendingAudioEvents.push('overdrive_on');
+
+      const horizSpeed = Math.hypot(player.velocity.x, player.velocity.z);
+      if (player.grounded && horizSpeed >= SLIDE_SPRINT_THRESHOLD_MPS) {
+        triggerPlayerPowerSlide(player, input, pendingAudioEvents);
+      }
+      return true;
+    }
+
     if (cooldowns[colorId][slot] > 0) {
       return false;
     }
@@ -1099,7 +1597,7 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
       spawnProjectileFromOrigin(
         'fire_orb',
         'red',
-        'ally',
+        playerTeam,
         player.position,
         input.yaw,
         input.pitch,
@@ -1108,7 +1606,10 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
         FIRE_ORB_RESTITUTION,
         4.0,
         true,
-        FIRE_ORB_UPWARD_LOB
+        FIRE_ORB_UPWARD_LOB,
+        playerCasterId,
+        true,
+        smoothEyeHeightOffset
       );
       pendingAudioEvents.push('throw');
       return true;
@@ -1118,7 +1619,7 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
       spawnProjectileFromOrigin(
         'smoke_orb',
         'blue',
-        'ally',
+        playerTeam,
         player.position,
         input.yaw,
         input.pitch,
@@ -1127,7 +1628,10 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
         SMOKE_ORB_RESTITUTION,
         4.0,
         true,
-        SMOKE_ORB_UPWARD_LOB
+        SMOKE_ORB_UPWARD_LOB,
+        playerCasterId,
+        true,
+        smoothEyeHeightOffset
       );
       pendingAudioEvents.push('throw');
       return true;
@@ -1137,7 +1641,7 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
       spawnProjectileFromOrigin(
         'slow_orb',
         'blue',
-        'ally',
+        playerTeam,
         player.position,
         input.yaw,
         input.pitch,
@@ -1146,7 +1650,10 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
         SLOW_ORB_RESTITUTION,
         4.0,
         true,
-        SLOW_ORB_UPWARD_LOB
+        SLOW_ORB_UPWARD_LOB,
+        playerCasterId,
+        true,
+        smoothEyeHeightOffset
       );
       pendingAudioEvents.push('throw');
       return true;
@@ -1156,7 +1663,7 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
       spawnProjectileFromOrigin(
         'flash_orb',
         'green',
-        'ally',
+        playerTeam,
         player.position,
         input.yaw,
         input.pitch,
@@ -1165,7 +1672,10 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
         FLASH_ORB_RESTITUTION,
         FLASH_FUSE_SEC,
         false,
-        0.0
+        0.0,
+        playerCasterId,
+        true,
+        smoothEyeHeightOffset
       );
       pendingAudioEvents.push('throw');
       return true;
@@ -1175,12 +1685,57 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
       spawnZone(
         'beacon',
         'green',
-        'ally',
+        playerTeam,
         { x: player.position.x, y: player.position.y, z: player.position.z },
         BEACON_RADIUS,
-        BEACON_DURATION_SEC
+        BEACON_DURATION_SEC,
+        playerCasterId
       );
       pendingAudioEvents.push('beacon_deploy');
+      return true;
+    }
+
+    if (colorId === 'violet' && slot === 'e') {
+      spawnProjectileFromOrigin(
+        'vortex_orb',
+        'violet',
+        playerTeam,
+        player.position,
+        input.yaw,
+        input.pitch,
+        VORTEX_ORB_SPEED,
+        VORTEX_ORB_GRAVITY,
+        VORTEX_ORB_RESTITUTION,
+        4.0,
+        true,
+        VORTEX_ORB_UPWARD_LOB,
+        playerCasterId,
+        true,
+        smoothEyeHeightOffset
+      );
+      pendingAudioEvents.push('throw');
+      return true;
+    }
+
+    if (colorId === 'gold' && slot === 'e') {
+      spawnProjectileFromOrigin(
+        'relay_bolt',
+        'gold',
+        playerTeam,
+        player.position,
+        input.yaw,
+        input.pitch,
+        RELAY_BOLT_SPEED,
+        RELAY_BOLT_GRAVITY,
+        RELAY_BOLT_RESTITUTION,
+        RELAY_BOLT_MAX_LIFETIME,
+        false,
+        0.0,
+        playerCasterId,
+        true,
+        smoothEyeHeightOffset
+      );
+      pendingAudioEvents.push('throw');
       return true;
     }
 
@@ -1195,6 +1750,36 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
   ): boolean {
     if (!bot.alive) {
       return false;
+    }
+
+    if (bot.colorId === 'violet' && slot === 'q') {
+      const vState = getOrInitBotVoidState(bot.id);
+      if (vState.charges <= 0 || vState.recastLock > 0) {
+        return false;
+      }
+      vState.charges -= 1;
+      if (vState.rechargeTimer <= 0) {
+        vState.rechargeTimer = VOID_RECHARGE_SEC;
+      }
+      vState.recastLock = 0.65;
+
+      spawnProjectileFromOrigin(
+        'void_orb',
+        'violet',
+        bot.team,
+        bot.position,
+        aimYaw,
+        aimPitch,
+        VOID_ORB_SPEED,
+        VOID_ORB_GRAVITY,
+        0.0,
+        VOID_ORB_MAX_LIFETIME,
+        true,
+        0.0,
+        bot.id
+      );
+      pendingAudioEvents.push('void_cast');
+      return true;
     }
 
     const cd = getOrInitBotCooldowns(bot.id);
@@ -1237,7 +1822,8 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
         FIRE_ORB_RESTITUTION,
         4.0,
         true,
-        FIRE_ORB_UPWARD_LOB
+        FIRE_ORB_UPWARD_LOB,
+        bot.id
       );
       pendingAudioEvents.push('throw');
       return true;
@@ -1256,7 +1842,8 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
         SMOKE_ORB_RESTITUTION,
         4.0,
         true,
-        SMOKE_ORB_UPWARD_LOB
+        SMOKE_ORB_UPWARD_LOB,
+        bot.id
       );
       pendingAudioEvents.push('throw');
       return true;
@@ -1275,7 +1862,8 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
         SLOW_ORB_RESTITUTION,
         4.0,
         true,
-        SLOW_ORB_UPWARD_LOB
+        SLOW_ORB_UPWARD_LOB,
+        bot.id
       );
       pendingAudioEvents.push('throw');
       return true;
@@ -1294,7 +1882,8 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
         FLASH_ORB_RESTITUTION,
         FLASH_FUSE_SEC,
         false,
-        0.0
+        0.0,
+        bot.id
       );
       pendingAudioEvents.push('throw');
       return true;
@@ -1307,9 +1896,66 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
         bot.team,
         { x: bot.position.x, y: bot.position.y, z: bot.position.z },
         BEACON_RADIUS,
-        BEACON_DURATION_SEC
+        BEACON_DURATION_SEC,
+        bot.id
       );
       pendingAudioEvents.push('beacon_deploy');
+      return true;
+    }
+
+    if (bot.colorId === 'violet' && slot === 'e') {
+      spawnProjectileFromOrigin(
+        'vortex_orb',
+        'violet',
+        bot.team,
+        bot.position,
+        aimYaw,
+        aimPitch,
+        VORTEX_ORB_SPEED,
+        VORTEX_ORB_GRAVITY,
+        VORTEX_ORB_RESTITUTION,
+        4.0,
+        true,
+        VORTEX_ORB_UPWARD_LOB,
+        bot.id
+      );
+      pendingAudioEvents.push('throw');
+      return true;
+    }
+
+    if (bot.colorId === 'gold' && slot === 'q') {
+      const dir: Vec3 = { x: -Math.sin(aimYaw), y: 0, z: -Math.cos(aimYaw) };
+      bot.slideTimer = SLIDE_DURATION_SEC;
+      bot.velocity.x = dir.x * SLIDE_PEAK_SPEED_MPS;
+      bot.velocity.z = dir.z * SLIDE_PEAK_SPEED_MPS;
+      botSlides.set(bot.id, {
+        combatant: bot,
+        slideTimer: SLIDE_DURATION_SEC,
+        overdriveTimer: OVERDRIVE_DURATION_SEC,
+        dir,
+      });
+      bursts.push(createSlideSparksVisual(bot.position, dir));
+      pendingAudioEvents.push('overdrive_on', 'power_slide');
+      return true;
+    }
+
+    if (bot.colorId === 'gold' && slot === 'e') {
+      spawnProjectileFromOrigin(
+        'relay_bolt',
+        'gold',
+        bot.team,
+        bot.position,
+        aimYaw,
+        aimPitch,
+        RELAY_BOLT_SPEED,
+        RELAY_BOLT_GRAVITY,
+        RELAY_BOLT_RESTITUTION,
+        RELAY_BOLT_MAX_LIFETIME,
+        false,
+        0.02,
+        bot.id
+      );
+      pendingAudioEvents.push('throw');
       return true;
     }
 
@@ -1333,11 +1979,24 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
     bursts.length = 0;
 
     pendingAudioEvents.length = 0;
+    zoneSeq = 0;
     dashTimer = 0;
     playerFlashTimer = 0;
-    botDashes.clear();
+    voidCharges = VOID_MAX_CHARGES;
+    voidRechargeTimer = 0;
+    voidRecastLockTimer = 0;
+    overdriveTimer = 0;
+    slideTimer = 0;
+    slideLockoutTimer = 0;
+    walkArmedForSlide = true;
+    smoothEyeHeightOffset = 0;
+    playerConcussTimer = 0;
 
-    for (const color of ['red', 'blue', 'green'] as const) {
+    botDashes.clear();
+    botSlides.clear();
+    botVoidStates.clear();
+
+    for (const color of AGENT_ORDER) {
       cooldowns[color].q = 0;
       cooldowns[color].e = 0;
     }
@@ -1358,14 +2017,59 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
     const stepDt = Math.max(0, dt);
     const audioEvents = pendingAudioEvents.splice(0, pendingAudioEvents.length);
 
-    // 1. Tick all agent cooldowns independently (both player and AI bots).
-    for (const color of ['red', 'blue', 'green'] as const) {
+    const pc = allCombatants?.find((c) => c.isPlayer);
+    if (pc) {
+      playerTeam = pc.team;
+      playerCasterId = pc.id;
+    } else {
+      playerTeam = 'ally';
+      playerCasterId = 'player';
+    }
+
+    // 1. Tick all 5 agent cooldowns & multi-charge timers independently.
+    for (const color of AGENT_ORDER) {
       cooldowns[color].q = Math.max(0, cooldowns[color].q - stepDt);
       cooldowns[color].e = Math.max(0, cooldowns[color].e - stepDt);
     }
+
+    voidRecastLockTimer = Math.max(0, voidRecastLockTimer - stepDt);
+    if (voidCharges < VOID_MAX_CHARGES) {
+      voidRechargeTimer -= stepDt;
+      if (voidRechargeTimer <= 0) {
+        voidCharges += 1;
+        voidRechargeTimer = voidCharges < VOID_MAX_CHARGES ? VOID_RECHARGE_SEC : 0;
+      }
+    } else {
+      voidRechargeTimer = 0;
+    }
+    cooldowns.violet.q = voidCharges > 0 ? voidRecastLockTimer : voidRechargeTimer;
+
     for (const cd of botCooldowns.values()) {
       cd.q = Math.max(0, cd.q - stepDt);
       cd.e = Math.max(0, cd.e - stepDt);
+    }
+    for (const vState of botVoidStates.values()) {
+      vState.recastLock = Math.max(0, vState.recastLock - stepDt);
+      if (vState.charges < VOID_MAX_CHARGES) {
+        vState.rechargeTimer -= stepDt;
+        if (vState.rechargeTimer <= 0) {
+          vState.charges += 1;
+          vState.rechargeTimer = vState.charges < VOID_MAX_CHARGES ? VOID_RECHARGE_SEC : 0;
+        }
+      } else {
+        vState.rechargeTimer = 0;
+      }
+    }
+
+    if (!allCombatants) {
+      for (const target of targetsMgr.targets) {
+        if (target.vulnerableTimer) {
+          target.vulnerableTimer = Math.max(0, target.vulnerableTimer - stepDt);
+        }
+        if (target.concussTimer) {
+          target.concussTimer = Math.max(0, target.concussTimer - stepDt);
+        }
+      }
     }
 
     // Tick active AI bot Crimson Dash horizontal velocity impulses (0.22s)
@@ -1386,15 +2090,62 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
       }
     }
 
-    // 2. Tick Crimson Dash with Cubic Ease-Out Velocity Curve:
-    //    v(t) = v_run + (v_peak - v_run) * (1 - t / T)^2.2
-    //    This delivers an immediate 30 m/s snap out of cover and decelerates smoothly
-    //    into 8.2 m/s sprint speed at t = 0.24s (~5.2m total covered with momentum).
-    const dashActive = dashTimer > 0;
+    // Tick active AI bot Volt Power-Slide & Overdrive impulses
+    for (const [botId, slide] of botSlides.entries()) {
+      if (!slide.combatant.alive || (slide.slideTimer <= 0 && slide.overdriveTimer <= 0)) {
+        if (slide.combatant) slide.combatant.slideTimer = 0;
+        botSlides.delete(botId);
+        continue;
+      }
+      if (slide.slideTimer > 0) {
+        const remainFrac = clamp(slide.slideTimer / SLIDE_DURATION_SEC, 0, 1);
+        const speed =
+          SLIDE_END_SPEED_MPS +
+          (SLIDE_PEAK_SPEED_MPS - SLIDE_END_SPEED_MPS) * Math.pow(remainFrac, 3.0);
+        slide.combatant.velocity.x = slide.dir.x * speed;
+        slide.combatant.velocity.z = slide.dir.z * speed;
+        slide.slideTimer = Math.max(0, slide.slideTimer - stepDt);
+        slide.combatant.slideTimer = slide.slideTimer;
+      }
+      slide.overdriveTimer = Math.max(0, slide.overdriveTimer - stepDt);
+      if (slide.slideTimer <= 0 && slide.overdriveTimer <= 0) {
+        botSlides.delete(botId);
+      }
+    }
+
+    // 2. Tick Crimson Dash & Volt Overdrive / Electric Power Slide
+    if (player.colorId !== 'red' || player.health <= 0) {
+      dashTimer = 0;
+    }
+    if (player.colorId !== 'gold' || player.health <= 0) {
+      overdriveTimer = 0;
+      slideTimer = 0;
+      slideLockoutTimer = 0;
+    }
+
+    slideLockoutTimer = Math.max(0, slideLockoutTimer - stepDt);
+
+    if (overdriveTimer > 0) {
+      if (!input.walk) {
+        walkArmedForSlide = true;
+      } else if (
+        walkArmedForSlide &&
+        player.grounded &&
+        slideTimer <= 0 &&
+        slideLockoutTimer <= 0
+      ) {
+        triggerPlayerPowerSlide(player, input, audioEvents);
+        walkArmedForSlide = false;
+      }
+    }
+
+    const crimsonDashActive = dashTimer > 0;
+    const slideActive = slideTimer > 0;
     let dashAlpha = 0;
+    let overdriveAlpha = 0;
     let dashVelocity: Vec3 = { x: 0, y: 0, z: 0 };
 
-    if (dashActive) {
+    if (crimsonDashActive) {
       const elapsed = DASH_DURATION_SEC - dashTimer;
       const remainFrac = clamp(1 - elapsed / DASH_DURATION_SEC, 0, 1);
       const speed =
@@ -1407,19 +2158,49 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
       };
       dashAlpha = remainFrac;
       dashTimer = Math.max(0, dashTimer - stepDt);
+    } else if (slideActive) {
+      const elapsedSlide = SLIDE_DURATION_SEC - slideTimer;
+      const remainFrac = clamp(1 - elapsedSlide / SLIDE_DURATION_SEC, 0, 1);
+      const slideSpeed =
+        SLIDE_END_SPEED_MPS +
+        (SLIDE_PEAK_SPEED_MPS - SLIDE_END_SPEED_MPS) * Math.pow(remainFrac, 3.0);
+      dashVelocity = {
+        x: slideDir.x * slideSpeed,
+        y: player.grounded ? -2.5 : player.velocity.y - 21.0 * stepDt,
+        z: slideDir.z * slideSpeed,
+      };
+      slideTimer = Math.max(0, slideTimer - stepDt);
+    }
+
+    if (pc) {
+      pc.slideTimer = slideActive ? Math.max(slideTimer, 0.001) : 0;
+    }
+
+    const targetEyeOffset = slideActive ? SLIDE_EYE_HEIGHT_OFFSET : 0;
+    smoothEyeHeightOffset +=
+      (targetEyeOffset - smoothEyeHeightOffset) * (1 - Math.exp(-20 * stepDt));
+    if (!slideActive && Math.abs(smoothEyeHeightOffset) < 0.002) {
+      smoothEyeHeightOffset = 0;
     }
 
     const movement: MovementModifiers = {
-      dashActive,
+      dashActive: crimsonDashActive || slideActive,
       dashVelocity,
       speedMultiplier: 1.0,
       suppressJump: false,
+      slideActive,
     };
+
+    if (overdriveTimer > 0) {
+      movement.speedMultiplier *= OVERDRIVE_SPEED_MULT;
+      overdriveAlpha = clamp(overdriveTimer / 0.5, 0, 1) * (slideActive ? 1.0 : 0.65);
+      overdriveTimer = Math.max(0, overdriveTimer - stepDt);
+    }
 
     // 3. Step active projectiles with swept ray-AABB bounce physics
     for (let i = projectiles.length - 1; i >= 0; i--) {
       const entry = projectiles[i];
-      const { hitHorizontalSurface } = stepProjectile(entry.data, colliders, stepDt);
+      const { hit, hitHorizontalSurface } = stepProjectile(entry.data, colliders, stepDt);
       entry.group.position.set(
         entry.data.position.x,
         entry.data.position.y,
@@ -1427,6 +2208,67 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
       );
       entry.group.rotation.y += stepDt * 6.0;
       entry.group.rotation.x += stepDt * 4.0;
+
+      // Volt [E] Relay Bolt: Bounce #1 spawns Shock Zone #1; Impact #2 (or maxLifetime) spawns Shock Zone #2
+      if (entry.data.kind === 'relay_bolt') {
+        const ownerTeam = entry.ownerTeam ?? entry.team;
+        if (hit !== null) {
+          const shockCenter = projectPointToFloor(hit.point, hit.normal, colliders);
+          if (entry.bounces === 0) {
+            entry.bounces = 1;
+            audioEvents.push('relay_bounce');
+            spawnZone(
+              'relay_shock',
+              'gold',
+              ownerTeam,
+              shockCenter,
+              RELAY_SHOCK_RADIUS,
+              RELAY_SHOCK_DURATION_SEC,
+              entry.casterId
+            );
+            if (entry.data.age >= entry.data.maxLifetime) {
+              disposeObject3D(scene, entry.group);
+              projectiles.splice(i, 1);
+            }
+          } else {
+            spawnZone(
+              'relay_shock',
+              'gold',
+              ownerTeam,
+              shockCenter,
+              RELAY_SHOCK_RADIUS,
+              RELAY_SHOCK_DURATION_SEC,
+              entry.casterId
+            );
+            disposeObject3D(scene, entry.group);
+            projectiles.splice(i, 1);
+          }
+        } else if (entry.data.age >= entry.data.maxLifetime) {
+          const shockCenter = projectPointToFloor(entry.data.position, null, colliders);
+          spawnZone(
+            'relay_shock',
+            'gold',
+            ownerTeam,
+            shockCenter,
+            RELAY_SHOCK_RADIUS,
+            RELAY_SHOCK_DURATION_SEC,
+            entry.casterId
+          );
+          disposeObject3D(scene, entry.group);
+          projectiles.splice(i, 1);
+        }
+        continue;
+      }
+
+      // Umbra [Q] Void Shroud: auto-blooms on any wall/floor impact or at maxLifetime (0.50s ~16m)
+      if (entry.data.kind === 'void_orb') {
+        if (hit !== null || entry.data.age >= entry.data.maxLifetime) {
+          bloomVoidOrb(entry, Boolean(hit && hit.normal.y >= 0.5), audioEvents);
+          disposeObject3D(scene, entry.group);
+          projectiles.splice(i, 1);
+        }
+        continue;
+      }
 
       // Pop-Flash warning telegraph: scale outer aura & chime once at age >= 0.42s
       if (entry.data.kind === 'flash_orb') {
@@ -1466,19 +2308,24 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
     let insideSmokeFactor = 0;
     let fireRateMultiplier = 1.0;
     let recoilMultiplier = 1.0;
+    let moveSpreadMultiplier = 1.0;
     let stimActive = false;
     let playerInSlow = false;
     let playerInBeacon = false;
+    let playerInVortex = false;
+    let playerExtVelX = 0;
+    let playerExtVelZ = 0;
 
     const playerEye: Vec3 = {
       x: player.position.x,
-      y: player.position.y + EYE_HEIGHT,
+      y: player.position.y + EYE_HEIGHT + smoothEyeHeightOffset,
       z: player.position.z,
     };
 
     for (let i = zones.length - 1; i >= 0; i--) {
       const entry = zones[i];
       const zone = entry.data;
+      const ownerTeam = entry.ownerTeam ?? entry.team;
       zone.remainingSec -= stepDt;
 
       if (zone.remainingSec <= 0) {
@@ -1513,7 +2360,7 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
               dx * dx + dz * dz <= rSq &&
               Math.abs(c.position.y - zone.center.y) <= ZONE_VERTICAL_TOLERANCE_M
             ) {
-              if (c.team !== entry.team) {
+              if (c.team !== ownerTeam) {
                 targetsMgr.applyDamage(c.id, FIRE_TARGET_DPS * stepDt, false);
               } else if (c.isPlayer) {
                 const avail = Math.max(0, c.health - FIRE_PLAYER_MIN_HP);
@@ -1553,7 +2400,7 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
             );
           }
         }
-      } else if (zone.kind === 'smoke') {
+      } else if (zone.kind === 'smoke' || zone.kind === 'void_smoke') {
         const bloomScale = clamp(elapsed / SMOKE_BLOOM_SEC, 0.12, 1.0);
         entry.visual.group.scale.setScalar(bloomScale);
 
@@ -1571,10 +2418,7 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
           radius: effectiveRadius,
         });
 
-        // Hollow-Smoke Seam-Masking:
-        // Peaks at 0.98 right as playerEye crosses the opaque shell polygon boundary
-        // (eliminating near-plane clipping seams), then smoothsteps down to 0.22
-        // clear atmospheric tint inside the hollow interior.
+        // Hollow-Smoke Seam-Masking (shared identically by Mist Smoke & Umbra Void Shroud):
         const d = Math.hypot(
           playerEye.x - zone.center.x,
           playerEye.y - zone.center.y,
@@ -1677,7 +2521,7 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
         const rSq = zone.radius * zone.radius;
         if (allCombatants) {
           for (const c of allCombatants) {
-            if (!c.alive || c.team !== entry.team) continue;
+            if (!c.alive || c.team !== ownerTeam) continue;
             const dx = c.position.x - zone.center.x;
             const dz = c.position.z - zone.center.z;
             if (
@@ -1700,12 +2544,188 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
             playerInBeacon = true;
           }
         }
+      } else if (zone.kind === 'vortex') {
+        const fade =
+          clamp(zone.remainingSec / 0.45, 0, 1) * clamp(elapsed / 0.16, 0.25, 1.0);
+        if (entry.visual.singularityMat) {
+          entry.visual.singularityMat.uniforms.uTime.value = elapsed;
+          entry.visual.singularityMat.uniforms.uFade.value = fade;
+        }
+        if (entry.visual.rimMat) {
+          entry.visual.rimMat.opacity = 0.74 * fade;
+        }
+        if (entry.visual.coreMesh && entry.visual.coreMat) {
+          const pulse = 0.92 + 0.14 * Math.sin(elapsed * 7.0);
+          entry.visual.coreMesh.scale.setScalar(pulse);
+          entry.visual.coreMat.opacity = 0.96 * fade;
+        }
+        if (entry.visual.particles) {
+          updateInwardVortexParticles(entry.visual.particles, elapsed, 0.92 * fade);
+        }
+
+        if (allCombatants) {
+          for (const c of allCombatants) {
+            if (!c.alive || c.team === ownerTeam || c.id === entry.casterId) continue;
+            const dx = zone.center.x - c.position.x;
+            const dz = zone.center.z - c.position.z;
+            const dist = Math.hypot(dx, dz);
+            if (
+              dist <= zone.radius &&
+              Math.abs(c.position.y - zone.center.y) <= ZONE_VERTICAL_TOLERANCE_M
+            ) {
+              c.vulnerableTimer = Math.max(c.vulnerableTimer ?? 0, VORTEX_FRAGILE_SEC);
+              if (c.isPlayer) {
+                playerInVortex = true;
+                if (dist > 0.15) {
+                  const ramp = Math.min(1, dist / 0.6);
+                  const pullSpeed = VORTEX_PULL_MAX_SPEED_MPS * ramp;
+                  playerExtVelX += (dx / dist) * pullSpeed;
+                  playerExtVelZ += (dz / dist) * pullSpeed;
+                }
+              } else {
+                targetsMgr.applyStatus(c.id, 'slow', 0.25);
+                if (dist > 0.15) {
+                  const nx = dx / dist;
+                  const nz = dz / dist;
+                  const ramp = Math.min(1, dist / 0.6);
+                  const targetPull = VORTEX_PULL_MAX_SPEED_MPS * ramp;
+                  const inwardComp = c.velocity.x * nx + c.velocity.z * nz;
+                  const accelDelta = Math.min(
+                    Math.max(0, targetPull * 1.18 - inwardComp),
+                    (VORTEX_PULL_ACCEL_MPS2 + 26.0) * stepDt
+                  );
+                  c.velocity.x = c.velocity.x * 0.85 + nx * accelDelta;
+                  c.velocity.z = c.velocity.z * 0.85 + nz * accelDelta;
+                }
+              }
+            }
+          }
+        } else if (ownerTeam === 'ally') {
+          for (const target of targetsMgr.targets) {
+            if (!target.alive) continue;
+            const dx = zone.center.x - target.position.x;
+            const dz = zone.center.z - target.position.z;
+            const dist = Math.hypot(dx, dz);
+            if (
+              dist <= zone.radius &&
+              Math.abs(target.position.y - zone.center.y) <= ZONE_VERTICAL_TOLERANCE_M
+            ) {
+              target.vulnerableTimer = Math.max(
+                target.vulnerableTimer ?? 0,
+                VORTEX_FRAGILE_SEC
+              );
+              targetsMgr.applyStatus(target.id, 'slow', 0.25);
+              if (dist > 0.15) {
+                const ramp = Math.min(1, dist / 0.6);
+                const pullStep = VORTEX_PULL_MAX_SPEED_MPS * ramp * stepDt;
+                target.position.x += (dx / dist) * pullStep;
+                target.position.z += (dz / dist) * pullStep;
+              }
+            }
+          }
+        }
+      } else if (zone.kind === 'relay_shock') {
+        if (elapsed < RELAY_SHOCK_ARM_SEC) {
+          const armFrac = clamp(elapsed / RELAY_SHOCK_ARM_SEC, 0, 1);
+          if (entry.visual.relayMat) {
+            entry.visual.relayMat.uniforms.uTime.value = elapsed;
+            entry.visual.relayMat.uniforms.uIntensity.value = 0.6;
+            entry.visual.relayMat.uniforms.uFade.value = 1.0;
+          }
+          if (entry.visual.rimMat) {
+            entry.visual.rimMat.opacity = 0.55 + 0.35 * armFrac;
+          }
+        } else {
+          if (!entry.discharged) {
+            entry.discharged = true;
+            audioEvents.push('relay_zap');
+            if (entry.visual.lightningGroup) {
+              entry.visual.lightningGroup.visible = true;
+            }
+
+            const rSq = zone.radius * zone.radius;
+            if (allCombatants) {
+              for (const c of allCombatants) {
+                if (!c.alive || c.team === ownerTeam || c.id === entry.casterId) continue;
+                const dx = c.position.x - zone.center.x;
+                const dz = c.position.z - zone.center.z;
+                if (
+                  dx * dx + dz * dz <= rSq &&
+                  Math.abs(c.position.y - zone.center.y) <= ZONE_VERTICAL_TOLERANCE_M
+                ) {
+                  targetsMgr.applyDamage(c.id, RELAY_SHOCK_DAMAGE, false);
+                  c.concussTimer = Math.max(
+                    c.concussTimer ?? 0,
+                    RELAY_CONCUSS_DURATION_SEC
+                  );
+                  if (c.isPlayer) {
+                    playerConcussTimer = Math.max(
+                      playerConcussTimer,
+                      RELAY_CONCUSS_DURATION_SEC
+                    );
+                  }
+                }
+              }
+            } else if (ownerTeam === 'ally') {
+              for (const target of targetsMgr.targets) {
+                if (!target.alive) continue;
+                const dx = target.position.x - zone.center.x;
+                const dz = target.position.z - zone.center.z;
+                if (
+                  dx * dx + dz * dz <= rSq &&
+                  Math.abs(target.position.y - zone.center.y) <= ZONE_VERTICAL_TOLERANCE_M
+                ) {
+                  targetsMgr.applyDamage(target.id, RELAY_SHOCK_DAMAGE, false);
+                  target.concussTimer = Math.max(
+                    target.concussTimer ?? 0,
+                    RELAY_CONCUSS_DURATION_SEC
+                  );
+                  targetsMgr.applyStatus(target.id, 'slow', RELAY_CONCUSS_DURATION_SEC);
+                }
+              }
+            }
+          }
+
+          const postFade = clamp(
+            zone.remainingSec / (RELAY_SHOCK_DURATION_SEC - RELAY_SHOCK_ARM_SEC),
+            0,
+            1
+          );
+          if (entry.visual.relayMat) {
+            entry.visual.relayMat.uniforms.uTime.value = elapsed;
+            entry.visual.relayMat.uniforms.uIntensity.value = 2.2;
+            entry.visual.relayMat.uniforms.uFade.value = postFade;
+          }
+          if (entry.visual.rimMat) {
+            entry.visual.rimMat.opacity = 0.95 * postFade;
+          }
+          if (entry.visual.lightningGroup && entry.visual.lightningMat) {
+            entry.visual.lightningGroup.rotation.y = Math.floor(elapsed * 24) * 1.9;
+            entry.visual.lightningMat.opacity = 0.95 * postFade;
+          }
+        }
       }
     }
 
     if (playerInSlow) {
       movement.speedMultiplier *= SLOW_PLAYER_SPEED_MULT;
       movement.suppressJump = true;
+    }
+
+    if (playerInVortex) {
+      movement.speedMultiplier *= VORTEX_SPEED_MULT;
+      movement.suppressJump = true;
+      const extMag = Math.hypot(playerExtVelX, playerExtVelZ);
+      if (extMag > VORTEX_PULL_MAX_SPEED_MPS) {
+        const scale = VORTEX_PULL_MAX_SPEED_MPS / extMag;
+        playerExtVelX *= scale;
+        playerExtVelZ *= scale;
+      }
+      movement.externalVelocity = {
+        x: playerExtVelX,
+        y: 0,
+        z: playerExtVelZ,
+      };
     }
 
     if (playerInBeacon) {
@@ -1718,7 +2738,26 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
       recoilMultiplier = BEACON_RECOIL_MULT;
     }
 
-    // 5. Update transient bursts (dash wind tunnel, smoke shockwave, flash starbursts)
+    if (slideActive) {
+      moveSpreadMultiplier = 0;
+      recoilMultiplier *= SLIDE_RECOIL_MULT;
+    }
+
+    playerConcussTimer = Math.max(0, playerConcussTimer - stepDt);
+    const activePlayerConcuss = Math.max(playerConcussTimer, pc?.concussTimer ?? 0);
+    if (pc && activePlayerConcuss > 0) {
+      pc.concussTimer = activePlayerConcuss;
+    }
+
+    let concussAlpha = 0;
+    if (activePlayerConcuss > 0 && player.health > 0) {
+      movement.speedMultiplier *= CONCUSS_SPEED_MULT;
+      fireRateMultiplier *= CONCUSS_FIRE_RATE_MULT;
+      moveSpreadMultiplier *= CONCUSS_MOVE_SPREAD_MULT;
+      concussAlpha = clamp(activePlayerConcuss / 0.6, 0, 1) * 0.85;
+    }
+
+    // 5. Update transient bursts (dash wind tunnel, smoke shockwave, slide sparks, flash starbursts)
     for (let i = bursts.length - 1; i >= 0; i--) {
       const burst = bursts[i];
       burst.age += stepDt;
@@ -1735,6 +2774,11 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
         (burst.materials[0] as THREE.MeshBasicMaterial).opacity = 0.92 * (1 - t);
         (burst.materials[1] as THREE.MeshBasicMaterial).opacity = 0.95 * (1 - t);
         (burst.materials[2] as THREE.MeshBasicMaterial).opacity = 0.85 * (1 - t);
+      } else if (burst.kind === 'slide_sparks') {
+        const stretch = 1.0 + t * 0.75;
+        burst.group.scale.set(1.0 + t * 0.12, 1.0, stretch);
+        (burst.materials[0] as THREE.MeshBasicMaterial).opacity = 0.92 * (1 - t);
+        (burst.materials[1] as THREE.MeshBasicMaterial).opacity = 0.95 * (1 - t);
       } else if (burst.kind === 'smoke_shockwave') {
         const easeOut = 1 - Math.pow(1 - t, 3);
         burst.group.scale.setScalar(0.35 + easeOut * 4.45);
@@ -1761,13 +2805,54 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
     const qCd = cooldowns[player.colorId].q;
     const eCd = cooldowns[player.colorId].e;
 
-    const qHud: AbilityHudSlotState = {
-      name: qSpec.name,
-      shortTag: qSpec.shortTag,
-      cooldownRemaining: qCd,
-      cooldownTotal: qSpec.cooldownSec,
-      ready: qCd <= 0,
-    };
+    let qHud: AbilityHudSlotState;
+    if (player.colorId === 'violet') {
+      const hasBloomableVoidOrb = projectiles.some(
+        (p) =>
+          p.isPlayerCast &&
+          p.data.kind === 'void_orb' &&
+          p.data.age > VOID_REBLOOM_MIN_AGE_SEC
+      );
+      const canCastVoid =
+        hasBloomableVoidOrb || (voidCharges > 0 && voidRecastLockTimer <= 0);
+      const qRemain = hasBloomableVoidOrb
+        ? 0
+        : voidCharges > 0
+          ? voidRecastLockTimer
+          : voidRechargeTimer;
+
+      qHud = {
+        name: qSpec.name,
+        shortTag: qSpec.shortTag,
+        cooldownRemaining: qRemain,
+        cooldownTotal: qSpec.cooldownSec,
+        ready: canCastVoid,
+        charges: voidCharges,
+        maxCharges: VOID_MAX_CHARGES,
+      };
+    } else if (player.colorId === 'gold') {
+      const canSlideInOverdrive =
+        overdriveTimer > 0 &&
+        player.grounded &&
+        slideTimer <= 0 &&
+        slideLockoutTimer <= 0;
+      qHud = {
+        name: qSpec.name,
+        shortTag: qSpec.shortTag,
+        cooldownRemaining: overdriveTimer > 0 ? 0 : qCd,
+        cooldownTotal: qSpec.cooldownSec,
+        ready: overdriveTimer > 0 ? canSlideInOverdrive : qCd <= 0,
+        activeTimer: overdriveTimer > 0 ? overdriveTimer : undefined,
+      };
+    } else {
+      qHud = {
+        name: qSpec.name,
+        shortTag: qSpec.shortTag,
+        cooldownRemaining: qCd,
+        cooldownTotal: qSpec.cooldownSec,
+        ready: qCd <= 0,
+      };
+    }
 
     const eHud: AbilityHudSlotState = {
       name: eSpec.name,
@@ -1781,12 +2866,17 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
       movement,
       fireRateMultiplier,
       recoilMultiplier,
+      moveSpreadMultiplier,
+      eyeHeightOffset: smoothEyeHeightOffset,
+      audioEvents,
       activeSmokes,
       insideSmokeFactor,
       flashAlpha,
       dashAlpha,
+      overdriveAlpha,
+      concussAlpha,
       stimActive,
-      audioEvents,
+      slideActive,
       qHud,
       eHud,
     };

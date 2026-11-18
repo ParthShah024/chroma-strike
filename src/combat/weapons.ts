@@ -49,6 +49,8 @@ export interface WeaponSystem {
     targetsMgr: TargetsManager,
     fireRateMultiplier?: number,
     recoilMultiplier?: number,
+    moveSpreadMultiplier?: number,
+    eyeHeightOffset?: number,
   ): ShotResult;
 }
 
@@ -56,6 +58,9 @@ const MAX_RAY_DISTANCE = 200;
 const TRACER_LIFETIME_SEC = 0.12;
 const MAX_RECOIL_ACCUMULATOR = 1.2;
 const RECOIL_DECAY_RATE = 2.8;
+const WALL_TUCK_CHECK_DIST = 0.95;
+const WALL_TUCK_MIN_DIST = 0.4;
+const WALL_TUCK_MAX_Z = 0.34;
 
 /** Base resting position of the FPS weapon viewmodel in camera-local space. */
 const VIEWMODEL_BASE_POS = new THREE.Vector3(0.28, -0.24, -0.48);
@@ -344,6 +349,7 @@ export function createWeaponSystem(
   let muzzleFlashTimer = 0;
   let bobPhase = 0;
   let adsBlend = 0;
+  let wallTuckZ = 0;
 
   // Pool of active short-lived tracers & impact rings
   const activeTracers: ActiveTracer[] = [];
@@ -439,6 +445,7 @@ export function createWeaponSystem(
     adsBlend = 0;
     kickOffsetZ = 0;
     kickPitch = 0;
+    wallTuckZ = 0;
     muzzleFlashTimer = 0;
     muzzleFlashMat.opacity = 0;
 
@@ -546,13 +553,16 @@ export function createWeaponSystem(
         transparent: true,
         opacity: 0.95,
         depthWrite: false,
+        polygonOffset: true,
+        polygonOffsetFactor: -2,
+        polygonOffsetUnits: -2,
       });
       ring = new THREE.Mesh(ringGeo, ringMat);
 
       ring.position.set(
-        endPoint.x + hitNormal.x * 0.015,
-        endPoint.y + hitNormal.y * 0.015,
-        endPoint.z + hitNormal.z * 0.015,
+        endPoint.x + hitNormal.x * 0.024,
+        endPoint.y + hitNormal.y * 0.024,
+        endPoint.z + hitNormal.z * 0.024,
       );
       ring.lookAt(
         endPoint.x + hitNormal.x,
@@ -640,14 +650,46 @@ export function createWeaponSystem(
     input: InputState,
     colliders: AABB[],
     targetsMgr: TargetsManager,
-    fireRateMultiplier = 1.0,
-    recoilMultiplier = 1.0,
+    fireRateMultiplier = 1,
+    recoilMultiplier = 1,
+    moveSpreadMultiplier = 1,
+    eyeHeightOffset = 0,
   ): ShotResult {
     updateTracers(dt);
 
     const spec = WEAPON_SPECS[currentWeaponId];
     const rateScale = Math.max(0.1, fireRateMultiplier);
     const recoilScale = Math.max(0, recoilMultiplier);
+    const moveSpreadScale = Math.max(0, moveSpreadMultiplier);
+
+    const eyeOrigin: Vec3 = {
+      x: player.position.x,
+      y: player.position.y + EYE_HEIGHT + eyeHeightOffset,
+      z: player.position.z,
+    };
+
+    // Wall-Proximity Viewmodel Tuck: cast a 0.95m forward ray along look direction
+    // and smoothly pull weaponGroup backward (+Z up to +0.34m) near walls/cover.
+    const viewDir = getLookDirection(input.yaw, input.pitch);
+    let closestTuckDist = WALL_TUCK_CHECK_DIST;
+    for (const box of colliders) {
+      const hit = raycastAABB(eyeOrigin, viewDir, box, closestTuckDist);
+      if (hit && hit.distance < closestTuckDist) {
+        closestTuckDist = hit.distance;
+      }
+    }
+    const targetTuckZ =
+      closestTuckDist < WALL_TUCK_CHECK_DIST
+        ? Math.min(
+            1,
+            Math.max(
+              0,
+              (WALL_TUCK_CHECK_DIST - closestTuckDist) /
+                (WALL_TUCK_CHECK_DIST - WALL_TUCK_MIN_DIST),
+            ),
+          ) * WALL_TUCK_MAX_Z
+        : 0;
+    wallTuckZ += (targetTuckZ - wallTuckZ) * Math.min(1, 18 * dt);
 
     // Ensure scope cannot linger on weapons without optics (e.g. Sidearm)
     if (spec.adsFovDeg === null && isScoped) {
@@ -688,7 +730,9 @@ export function createWeaponSystem(
     const horizontalSpeed = getHorizontalSpeed(player.velocity);
     const isStationary = horizontalSpeed < 0.45 && player.grounded;
     const stationaryBase = isScoped ? spec.scopedSpreadRad : spec.baseSpreadRad;
-    const movePart = isStationary ? 0 : (horizontalSpeed / RUN_SPEED) * spec.moveSpreadRad;
+    const movePart =
+      (isStationary ? 0 : (horizontalSpeed / RUN_SPEED) * spec.moveSpreadRad) *
+      moveSpreadScale;
     const airPart = player.grounded ? 0 : spec.airSpreadRad;
     const sprayPart = state.recoilAccumulator * 0.035;
     state.currentSpread = stationaryBase + movePart + airPart + sprayPart;
@@ -707,11 +751,7 @@ export function createWeaponSystem(
       ammoByWeapon[currentWeaponId] = state.ammo;
       state.fireTimer = spec.fireIntervalSec / rateScale;
 
-      const origin: Vec3 = {
-        x: player.position.x,
-        y: player.position.y + EYE_HEIGHT,
-        z: player.position.z,
-      };
+      const origin: Vec3 = eyeOrigin;
 
       const baseLookDir = getLookDirection(
         input.yaw,
@@ -903,7 +943,7 @@ export function createWeaponSystem(
     weaponGroup.position.set(
       restX + bobX,
       restY + bobY + reloadDropY,
-      restZ + kickOffsetZ,
+      restZ + kickOffsetZ + wallTuckZ,
     );
     weaponGroup.rotation.set(kickPitch + reloadPitchX, 0, reloadRollZ);
 

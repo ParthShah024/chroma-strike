@@ -658,16 +658,20 @@ function addBoxMesh(
 }
 
 function buildFloorAndGrid(root: THREE.Group): void {
+  // Polygon offset pushes solid floor depth back slightly so grid/overlay lines never Z-fight.
   const floorMat = new THREE.MeshStandardMaterial({
     color: COLOR_FLOOR,
     roughness: 0.92,
     metalness: 0.04,
+    polygonOffset: true,
+    polygonOffsetFactor: 1,
+    polygonOffsetUnits: 1,
   });
   addBoxMesh(root, -HALF_WIDTH_M, HALF_WIDTH_M, -0.5, 0, -HALF_DEPTH_M, HALF_DEPTH_M, floorMat);
 
   // Exact 28m x 34m 2m tactical grid lines clipped cleanly to arena bounds.
   const linePoints: number[] = [];
-  const y = 0.008;
+  const y = 0.006;
   for (let x = -HALF_WIDTH_M; x <= HALF_WIDTH_M + 1e-4; x += TILE_SIZE_M) {
     linePoints.push(x, y, -HALF_DEPTH_M, x, y, HALF_DEPTH_M);
   }
@@ -681,6 +685,7 @@ function buildFloorAndGrid(root: THREE.Group): void {
     color: COLOR_FLOOR_GRID,
     transparent: true,
     opacity: 0.42,
+    depthWrite: false,
   });
   root.add(new THREE.LineSegments(gridGeo, gridMat));
 
@@ -689,9 +694,14 @@ function buildFloorAndGrid(root: THREE.Group): void {
     const geo = new THREE.BufferGeometry();
     geo.setAttribute(
       'position',
-      new THREE.Float32BufferAttribute([-12, 0.012, zPos, 12, 0.012, zPos], 3)
+      new THREE.Float32BufferAttribute([-12, 0.010, zPos, 12, 0.010, zPos], 3)
     );
-    const mat = new THREE.LineBasicMaterial({ color: hex, transparent: true, opacity });
+    const mat = new THREE.LineBasicMaterial({
+      color: hex,
+      transparent: true,
+      opacity,
+      depthWrite: false,
+    });
     root.add(new THREE.LineSegments(geo, mat));
   };
 
@@ -706,47 +716,75 @@ function buildWarehouseRafters(root: THREE.Group): void {
     metalness: 0.45,
   });
 
-  // Overhead steel trusses spanning across X at y = 4.25..4.48m
+  // Overhead steel trusses spanning across X at y = 4.24..4.46m
   for (const zPos of [-12, -6, 0, 6, 12]) {
     addBoxMesh(root, -HALF_WIDTH_M, HALF_WIDTH_M, 4.24, 4.46, zPos - 0.14, zPos + 0.14, rafterMat);
   }
-  // Longitudinal purlins tying the roof trusses together
+  // Longitudinal purlins tying the roof trusses together cleanly above trusses (no coplanar Y or Z ends)
   for (const xPos of [-7, 7]) {
-    addBoxMesh(root, xPos - 0.1, xPos + 0.1, 4.46, 4.60, -HALF_DEPTH_M, HALF_DEPTH_M, rafterMat);
+    addBoxMesh(
+      root,
+      xPos - 0.1,
+      xPos + 0.1,
+      4.465,
+      4.605,
+      -HALF_DEPTH_M + 0.02,
+      HALF_DEPTH_M - 0.02,
+      rafterMat
+    );
   }
 }
 
 function buildArchitecturalBlocks(root: THREE.Group, grid: readonly string[]): void {
+  // Polygon offset keeps all solid block faces slightly behind EdgesGeometry lines to prevent stipple-flicker.
   const mats: Record<MergeKind, THREE.MeshStandardMaterial> = {
     perimeter: new THREE.MeshStandardMaterial({
       color: COLOR_PERIMETER_WALL,
       roughness: 0.88,
       metalness: 0.08,
+      polygonOffset: true,
+      polygonOffsetFactor: 1,
+      polygonOffsetUnits: 1,
     }),
     wall_interior: new THREE.MeshStandardMaterial({
       color: COLOR_PLYWOOD_WALL,
       roughness: 0.86,
       metalness: 0.04,
+      polygonOffset: true,
+      polygonOffsetFactor: 1,
+      polygonOffsetUnits: 1,
     }),
     low_cover: new THREE.MeshStandardMaterial({
       color: COLOR_HEADGLITCH,
       roughness: 0.82,
       metalness: 0.06,
+      polygonOffset: true,
+      polygonOffsetFactor: 1,
+      polygonOffsetUnits: 1,
     }),
     crate: new THREE.MeshStandardMaterial({
       color: COLOR_CRATE,
       roughness: 0.72,
       metalness: 0.22,
+      polygonOffset: true,
+      polygonOffsetFactor: 1,
+      polygonOffsetUnits: 1,
     }),
     platform: new THREE.MeshStandardMaterial({
       color: COLOR_WATCHTOWER,
       roughness: 0.54,
       metalness: 0.38,
+      polygonOffset: true,
+      polygonOffsetFactor: 1,
+      polygonOffsetUnits: 1,
     }),
     stair: new THREE.MeshStandardMaterial({
       color: COLOR_STAIR,
       roughness: 0.68,
       metalness: 0.24,
+      polygonOffset: true,
+      polygonOffsetFactor: 1,
+      polygonOffsetUnits: 1,
     }),
   };
 
@@ -782,37 +820,73 @@ function buildArchitecturalBlocks(root: THREE.Group, grid: readonly string[]): v
     opacity: 0.38,
   });
 
+  // Trim/post extrusion reliefs eliminate coplanar Z-fighting with base wall/cover meshes.
+  const trimProud = 0.008;
+  const postProud = 0.012;
+
   for (const block of cachedMergedBlocks) {
     const { box, kind } = block;
     const { min, max } = box;
 
     if (kind === 'perimeter') {
-      // Base concrete warehouse wall (0..4.2m) + dark lower baseboard trim
+      // Base concrete warehouse wall (0..4.2m) + proud dark baseboard/top trims overlapping by 0.004m
       addBoxMesh(root, min.x, max.x, 0.22, 4.10, min.z, max.z, mats.perimeter, edgeMat);
-      addBoxMesh(root, min.x, max.x, 0, 0.22, min.z, max.z, trimMat);
-      addBoxMesh(root, min.x, max.x, 4.10, 4.20, min.z, max.z, trimMat);
+      addBoxMesh(root, min.x - trimProud, max.x + trimProud, 0, 0.224, min.z - trimProud, max.z + trimProud, trimMat);
+      addBoxMesh(root, min.x - trimProud, max.x + trimProud, 4.096, 4.20, min.z - trimProud, max.z + trimProud, trimMat);
     } else if (kind === 'wall_interior') {
-      // Plywood/OSB Killhouse partition with top steel channel & corner steel posts
+      // Plywood/OSB Killhouse partition with proud top steel channel & proud vertical steel posts
       addBoxMesh(root, min.x, max.x, 0, 3.10, min.z, max.z, mats.wall_interior, edgeMat);
-      addBoxMesh(root, min.x, max.x, 3.10, 3.20, min.z, max.z, frameSteelMat);
+      addBoxMesh(root, min.x - trimProud, max.x + trimProud, 3.096, 3.20, min.z - trimProud, max.z + trimProud, frameSteelMat);
 
       const postW = 0.11;
+      const postMinY = 0.004;
+      const postMaxY = 3.096;
       for (let dc = 0; dc <= block.colsSpan; dc++) {
-        const px = Math.min(Math.max(min.x + dc * TILE_SIZE_M, min.x + postW * 0.5), max.x - postW * 0.5);
-        addBoxMesh(root, px - postW * 0.5, px + postW * 0.5, 0, 3.10, min.z, max.z, frameSteelMat);
+        const px = Math.min(
+          Math.max(min.x + dc * TILE_SIZE_M, min.x + postW * 0.5 + postProud),
+          max.x - postW * 0.5 - postProud
+        );
+        addBoxMesh(
+          root,
+          px - postW * 0.5,
+          px + postW * 0.5,
+          postMinY,
+          postMaxY,
+          min.z - postProud,
+          max.z + postProud,
+          frameSteelMat
+        );
+      }
+      if (block.rowsSpan > 1) {
+        for (let dr = 0; dr <= block.rowsSpan; dr++) {
+          const pz = Math.min(
+            Math.max(min.z + dr * TILE_SIZE_M, min.z + postW * 0.5 + postProud),
+            max.z - postW * 0.5 - postProud
+          );
+          addBoxMesh(
+            root,
+            min.x - postProud,
+            max.x + postProud,
+            postMinY,
+            postMaxY,
+            pz - postW * 0.5,
+            pz + postW * 0.5,
+            frameSteelMat
+          );
+        }
       }
     } else if (kind === 'low_cover') {
-      // Head-glitch barrier (1.28m) with dark top caprail (1.19..1.28m)
+      // Head-glitch barrier (1.28m) with proud dark top caprail (1.186..1.28m)
       addBoxMesh(root, min.x, max.x, 0, 1.19, min.z, max.z, mats.low_cover, edgeMat);
-      addBoxMesh(root, min.x, max.x, 1.19, 1.28, min.z, max.z, caprailMat);
+      addBoxMesh(root, min.x - trimProud, max.x + trimProud, 1.186, 1.28, min.z - trimProud, max.z + trimProud, caprailMat);
     } else if (kind === 'crate') {
-      // Shipping crate (2.2m) with dark steel base/top frame bands
+      // Shipping crate (2.2m) with proud dark steel base/top frame bands
       addBoxMesh(root, min.x, max.x, 0.14, 2.06, min.z, max.z, mats.crate, edgeMat);
-      addBoxMesh(root, min.x, max.x, 0, 0.14, min.z, max.z, crateTrimMat);
-      addBoxMesh(root, min.x, max.x, 2.06, 2.20, min.z, max.z, crateTrimMat);
+      addBoxMesh(root, min.x - trimProud, max.x + trimProud, 0, 0.144, min.z - trimProud, max.z + trimProud, crateTrimMat);
+      addBoxMesh(root, min.x - trimProud, max.x + trimProud, 2.056, 2.20, min.z - trimProud, max.z + trimProud, crateTrimMat);
     } else if (kind === 'platform') {
-      // Watchtower steel-grate deck (0.90m) + dark skirt + subtle corner safety bollards
-      addBoxMesh(root, min.x, max.x, 0, 0.78, min.z, max.z, frameSteelMat);
+      // Watchtower steel-grate deck (0.90m) + slightly inset dark skirt (no coplanar join) + corner bollards
+      addBoxMesh(root, min.x + trimProud, max.x - trimProud, 0, 0.784, min.z + trimProud, max.z - trimProud, frameSteelMat);
       addBoxMesh(root, min.x, max.x, 0.78, 0.90, min.z, max.z, mats.platform, edgeMat);
 
       const inset = 0.16;
@@ -842,15 +916,15 @@ function buildArchitecturalBlocks(root: THREE.Group, grid: readonly string[]): v
       const x1 = -HALF_WIDTH_M + (c + 1) * TILE_SIZE_M - 0.14;
       const zTileMin = -HALF_DEPTH_M + r * TILE_SIZE_M;
 
-      // 3 crisp anti-slip grip cleats along Z, biased slightly toward the climb edge
+      // 3 crisp anti-slip grip cleats along Z, raised proud (0.448..0.462) above the 0.45m step top face
       const offsets = ch === '^' ? [0.35, 0.95, 1.55] : [0.45, 1.05, 1.65];
       for (const off of offsets) {
         addBoxMesh(
           root,
           x0,
           x1,
-          0.45,
-          0.458,
+          0.448,
+          0.462,
           zTileMin + off - 0.06,
           zTileMin + off + 0.06,
           caprailMat
