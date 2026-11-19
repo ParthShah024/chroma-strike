@@ -22,10 +22,10 @@ export const PLAYER_HEIGHT = 1.8;
 export const EYE_HEIGHT = 1.62;
 
 /** Maximum ground running speed in meters per second. */
-export const RUN_SPEED = 6.2;
+export const RUN_SPEED = 5.55;
 
 /** Maximum Shift-walk speed in meters per second (silent, low-spread movement). */
-export const WALK_SPEED = 3.2;
+export const WALK_SPEED = 3.0;
 
 /**
  * Maximum vertical ledge/stair height in meters that a grounded player or bot
@@ -248,13 +248,23 @@ export function updatePlayerMovement(
       (input.walk ? WALK_SPEED : RUN_SPEED) * (modifiers?.speedMultiplier ?? 1.0);
     updateHorizontalVelocity(player, wishX, wishZ, hasWish, maxSpeed, stepDt);
 
-    // 3. Jump impulse and downward gravity acceleration.
+    // 3. Jump impulse, vertical ability impulse (Windy Updraft), passive glide clamp & downward gravity.
     //    Cryo Slow Field sets `modifiers.suppressJump = true` to ground targets/players.
-    if (player.grounded && input.jump && !modifiers?.suppressJump) {
+    if (modifiers?.verticalImpulse !== undefined && modifiers.verticalImpulse > 0) {
+      player.velocity.y = modifiers.verticalImpulse;
+      player.grounded = false;
+    } else if (player.grounded && input.jump && !modifiers?.suppressJump) {
       player.velocity.y = JUMP_SPEED;
       player.grounded = false;
     }
     player.velocity.y -= GRAVITY * stepDt;
+    if (
+      !player.grounded &&
+      modifiers?.glideFallSpeed !== undefined &&
+      player.velocity.y < modifiers.glideFallSpeed
+    ) {
+      player.velocity.y = modifiers.glideFallSpeed;
+    }
   }
 
   const activeHeight = modifiers?.slideActive ? 1.22 : PLAYER_HEIGHT;

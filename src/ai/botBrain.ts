@@ -25,8 +25,8 @@ import {
 import {
   ArenaWaypoint,
   damageArenaDoor,
-  getArenaSpawns,
   getArenaWaypoints,
+  isInsideBuyZone,
 } from '../arena/map';
 import { WEAPON_SPECS, computeWeaponDamage } from '../combat/arsenal';
 import { AbilitySystem } from '../abilities/system';
@@ -170,7 +170,7 @@ const BOT_URGENT_DEFUSE_TIMER_SEC = 7.5;
 const BOT_PLANT_THREAT_DIST_M = 13.5;
 const MAX_ULT_POINTS = 5;
 const BOT_ULT_ACTIVE_SEC = 7.5;
-const BUY_SPIKE_BOT_PICKUP_WINDOW_SEC = 7.5;
+const BUY_SPIKE_BOT_PICKUP_WINDOW_SEC = 12.0;
 const BOT_DOOR_DETECT_DIST_M = 6.2;
 const BOT_DOOR_FIRE_MIN_INTERVAL_SEC = 0.18;
 const BOT_DOOR_FIRE_MAX_INTERVAL_SEC = 0.3;
@@ -599,12 +599,10 @@ function chooseSdObjectiveGoal(
 
 /**
  * Buy-Phase Staging & Spike Pickup Goal Selector:
- * - Defenders walk via BFS out of CT-Spawn to `anchor_a`, `mid_watch`, and
- *   `anchor_b` staging points strictly inside `spawns.buyMaxDefenderZ`.
- * - Attackers let the human player grab the T-Spawn `'S'` Pedestal Spike for
- *   the first 4.5s (`buyTimeRemainingSec >= 7.5s`); below 7.5s (or when the
- *   enemy team is attacking), the designated carrier walks to `spike.position`
- *   to pick it up while Attackers stage neatly behind `spawns.buyMinAllyZ`.
+ * - Defenders stage forward across Site A, Mid Market, and Site B strictly inside
+ *   `isInsideBuyZone(..., 'defender')` behind the forward Defender choke barriers.
+ * - Attackers let the human player grab the T-Spawn `'S'` Pedestal Spike first, then
+ *   advance into A Lobby, Top-Mid, and B Lobby strictly inside `isInsideBuyZone(..., 'attacker')`.
  */
 function chooseBuyPhaseGoal(
   bot: Combatant,
@@ -620,77 +618,65 @@ function chooseBuyPhaseGoal(
   lookPos: Vec3;
   isAllowedNode: (wp: ArenaWaypoint) => boolean;
 } {
-  const spawns = getArenaSpawns();
   const { attackerTeam, spike, sites } = sdContext;
   const isAttacker = bot.team === attackerTeam;
 
   if (!isAttacker) {
-    const defMaxZ = spawns.buyMaxDefenderZ;
-    const isAllowedNode = (wp: ArenaWaypoint): boolean => wp.pos.z <= defMaxZ - 0.35;
-    const defPoolRaw = waypoints.filter(isAllowedNode);
-    const defPool =
-      defPoolRaw.length > 0
-        ? defPoolRaw
-        : waypoints.filter((wp) => wp.pos.z <= defMaxZ + 0.25);
+    const isAllowedNode = (wp: ArenaWaypoint): boolean =>
+      isInsideBuyZone(wp.pos.x, wp.pos.z, 'defender');
+    const defPool = waypoints.filter(isAllowedNode);
     const pool = defPool.length > 0 ? defPool : waypoints;
 
     if (mem.role === 'anchor_a') {
       const siteA = sites.A;
-      const targetZ = Math.min(siteA.center.z - 1.2, defMaxZ - 1.2);
       const siteAPool = pool.filter((wp) => wp.zone === 'site_a');
       return {
         goalId: findClosestWaypointInSubset(
           siteAPool.length > 0 ? siteAPool : pool,
           siteA.center.x,
-          targetZ
+          -12.5
         ),
         directTargetPos: null,
-        lookPos: { x: siteA.center.x, y: 0, z: siteA.center.z + 16 },
+        lookPos: { x: siteA.center.x, y: 0, z: 6.0 },
         isAllowedNode,
       };
     }
 
     if (mem.role === 'anchor_b') {
       const siteB = sites.B;
-      const targetZ = Math.min(siteB.center.z - 1.2, defMaxZ - 1.2);
       const siteBPool = pool.filter((wp) => wp.zone === 'site_b');
       return {
         goalId: findClosestWaypointInSubset(
           siteBPool.length > 0 ? siteBPool : pool,
           siteB.center.x,
-          targetZ
+          -13.0
         ),
         directTargetPos: null,
-        lookPos: { x: siteB.center.x, y: 0, z: siteB.center.z + 16 },
+        lookPos: { x: siteB.center.x, y: 0, z: 6.0 },
         isAllowedNode,
       };
     }
 
-    // 'mid_watch': stage at Mid Window / CT-Mid looking South
+    // 'mid_watch': stage forward inside Mid Market looking South through Window & Door
     const midPool = pool.filter(
-      (wp) => wp.zone === 'mid' || (Math.abs(wp.pos.x) <= 8 && wp.pos.z <= defMaxZ)
+      (wp) => wp.pos.x >= 1.5 && wp.pos.x <= 14.0 && wp.pos.z >= -26.0 && wp.pos.z <= -15.1
     );
-    const targetZ = Math.min(-6.0, defMaxZ - 1.2);
     return {
       goalId: findClosestWaypointInSubset(
         midPool.length > 0 ? midPool : pool,
-        0,
-        targetZ
+        8.0,
+        -17.0
       ),
       directTargetPos: null,
-      lookPos: { x: 0, y: 0, z: 16 },
+      lookPos: { x: 8.0, y: 0, z: 8.0 },
       isAllowedNode,
     };
   }
 
-  // Attacker Buy Phase
-  const atkMinZ = spawns.buyMinAllyZ;
-  const isAllowedNode = (wp: ArenaWaypoint): boolean => wp.pos.z >= atkMinZ + 0.35;
-  const atkPoolRaw = waypoints.filter(isAllowedNode);
-  const atkPool =
-    atkPoolRaw.length > 0
-      ? atkPoolRaw
-      : waypoints.filter((wp) => wp.pos.z >= atkMinZ - 0.25);
+  // Attacker Buy Phase: walk forward out of T-Spawn up behind the forward Lobby / Top-Mid barriers
+  const isAllowedNode = (wp: ArenaWaypoint): boolean =>
+    isInsideBuyZone(wp.pos.x, wp.pos.z, 'attacker');
+  const atkPool = waypoints.filter(isAllowedNode);
   const pool = atkPool.length > 0 ? atkPool : waypoints;
 
   const buyRemaining = sdContext.buyTimeRemainingSec ?? 0;
@@ -709,21 +695,18 @@ function chooseBuyPhaseGoal(
     };
   }
 
-  // Stage neatly behind `buyMinAllyZ` facing West (A Main) / Mid / East (B Main) barrier exits
-  const midStageX = (sites.A.center.x + sites.B.center.x) * 0.5 + 5.0;
-  const stageX =
+  const stagePos =
     mem.role === 'lurker'
-      ? midStageX
+      ? { x: -4.5, z: 13.6 }
       : botSlotIndex % 3 === 0
-        ? sites.A.center.x
+        ? { x: -27.5, z: 7.4 }
         : botSlotIndex % 3 === 1
-          ? midStageX
-          : sites.B.center.x;
-  const stageZ = atkMinZ + 1.4;
+          ? { x: -4.5, z: 13.6 }
+          : { x: 27.2, z: 5.4 };
   return {
-    goalId: findClosestWaypointInSubset(pool, stageX, stageZ),
+    goalId: findClosestWaypointInSubset(pool, stagePos.x, stagePos.z),
     directTargetPos: null,
-    lookPos: { x: stageX, y: 0, z: atkMinZ - 16 },
+    lookPos: { x: stagePos.x, y: 0, z: stagePos.z - 18.0 },
     isAllowedNode,
   };
 }
@@ -1003,7 +986,7 @@ export function createBotBrainSystem(): BotBrainSystem {
     let mem = memories.get(bot.id);
     if (!mem) {
       const laneBias: BotMemory['laneBias'] =
-        bot.colorId === 'red' || bot.colorId === 'gold'
+        bot.colorId === 'red' || bot.colorId === 'gold' || bot.colorId === 'cyan'
           ? 'west'
           : bot.colorId === 'blue' || bot.colorId === 'violet'
             ? 'mid'
@@ -1051,7 +1034,13 @@ export function createBotBrainSystem(): BotBrainSystem {
       // Pick a lurker who is NOT carrying the Spike, preferring flankers/duelists
       const lurkCandidates = attackerBots.filter((b) => b.id !== spikeCarrierId);
       const lurker =
-        lurkCandidates.find((b) => b.colorId === 'red' || b.colorId === 'gold' || b.colorId === 'violet') ??
+        lurkCandidates.find(
+          (b) =>
+            b.colorId === 'red' ||
+            b.colorId === 'gold' ||
+            b.colorId === 'cyan' ||
+            b.colorId === 'violet'
+        ) ??
         lurkCandidates[lurkCandidates.length - 1] ??
         attackerBots[attackerBots.length - 1];
       if (lurker) {
@@ -1118,6 +1107,7 @@ export function createBotBrainSystem(): BotBrainSystem {
 
     const blazeUltActive = bot.colorId === 'red' && (bot.ultActiveTimer ?? 0) > 0;
     const voltUltActive = bot.colorId === 'gold' && (bot.ultActiveTimer ?? 0) > 0;
+    const windyUltActive = bot.colorId === 'cyan' && (bot.ultActiveTimer ?? 0) > 0;
     const teamPulseUltActive = allCombatants.some(
       (c) => c.alive && c.team === bot.team && c.colorId === 'green' && (c.ultActiveTimer ?? 0) > 0
     );
@@ -1167,11 +1157,12 @@ export function createBotBrainSystem(): BotBrainSystem {
         (sliding ? SLIDE_SPEED_MULT : 1.0) *
         (blazeUltActive ? 1.2 : 1.0) *
         (voltUltActive ? 1.5 : 1.0) *
+        (windyUltActive ? 1.1 : 1.0) *
         (teamPulseUltActive ? 1.15 : 1.0),
       suppressJump: bot.slowTimer > 0,
     };
 
-    // Buy-Phase Site Setup & T-Spawn Spike Pedestal Pickup (strictly barrier-clamped)
+    // Buy-Phase Forward Site Setup & T-Spawn Spike Pedestal Pickup (swept against forward Buy Barriers)
     if (!isCombatActive) {
       const buyInput: InputState = {
         forward: false,
@@ -1187,8 +1178,6 @@ export function createBotBrainSystem(): BotBrainSystem {
       };
 
       if (sdContext && waypoints.length > 0) {
-        const spawns = getArenaSpawns();
-        const isAttacker = bot.team === sdContext.attackerTeam;
         const buyObj = chooseBuyPhaseGoal(
           bot,
           mem,
@@ -1214,7 +1203,7 @@ export function createBotBrainSystem(): BotBrainSystem {
           const distToGoal = goalWp ? horizDist2D(bot.position, goalWp.pos) : Infinity;
 
           if (distToGoal <= 1.2) {
-            // Staged cleanly at Buy-Phase position: face barrier / choke approach!
+            // Staged cleanly at forward Buy-Phase position: face barrier / choke approach!
             mem.route = [];
             desiredYaw = Math.atan2(
               -(buyObj.lookPos.x - bot.position.x),
@@ -1257,19 +1246,6 @@ export function createBotBrainSystem(): BotBrainSystem {
 
         updatePlayerMovement(botPhysics, buyInput, colliders, dt, modifiers);
         bot.grounded = botPhysics.grounded;
-
-        // Strictly clamp every bot inside its Buy-Phase Barrier fence!
-        if (!isAttacker) {
-          if (bot.position.z > spawns.buyMaxDefenderZ) {
-            bot.position.z = spawns.buyMaxDefenderZ;
-            if (bot.velocity.z > 0) bot.velocity.z = 0;
-          }
-        } else {
-          if (bot.position.z < spawns.buyMinAllyZ) {
-            bot.position.z = spawns.buyMinAllyZ;
-            if (bot.velocity.z < 0) bot.velocity.z = 0;
-          }
-        }
         return;
       }
 
@@ -1454,8 +1430,8 @@ export function createBotBrainSystem(): BotBrainSystem {
             ultPitch = 0;
             shouldCastUlt = true;
           }
-        } else if (bot.colorId === 'gold') {
-          shouldCastUlt = (engaged && spottedDist < 22) || isExecutingOrRetaking;
+        } else if (bot.colorId === 'gold' || bot.colorId === 'cyan') {
+          shouldCastUlt = (engaged && spottedDist < 24) || isExecutingOrRetaking;
         }
 
         if (shouldCastUlt && abilities.castForBot('x', bot, ultYaw, ultPitch)) {
@@ -1539,6 +1515,14 @@ export function createBotBrainSystem(): BotBrainSystem {
           abilities.castForBot('q', bot, aim.yaw, aim.pitch);
         } else if (mem.fsm === 'evade_cover') {
           abilities.castForBot('q', bot, bot.yaw + Math.PI * 0.5 * mem.strafeDir, 0);
+        }
+      } else if (bot.colorId === 'cyan') {
+        if (spottedTarget && spottedDist < 12 && mem.fsm === 'evade_cover') {
+          abilities.castForBot('e', bot, bot.yaw + Math.PI * 0.5 * mem.strafeDir, 0);
+        } else if (spottedTarget && spottedDist > 7 && spottedDist < 20 && bot.grounded) {
+          abilities.castForBot('q', bot, bot.yaw, bot.pitch);
+        } else if (mem.fsm === 'evade_cover') {
+          abilities.castForBot('e', bot, bot.yaw + Math.PI * 0.5 * mem.strafeDir, 0);
         }
       } else if (bot.colorId === 'red') {
         if (spottedTarget && spottedDist > 6 && spottedDist < 26) {
@@ -1823,7 +1807,9 @@ export function createBotBrainSystem(): BotBrainSystem {
             ? Math.max(spec.fireIntervalSec, 0.28)
             : spec.fireIntervalSec * (bot.weaponId === 'sniper' ? 1.15 : 1.08);
         const fireRateMult =
-          (concussed ? CONCUSS_FIRE_RATE_MULT : 1.0) * (blazeUltActive ? 1.35 : 1.0);
+          (concussed ? CONCUSS_FIRE_RATE_MULT : 1.0) *
+          (blazeUltActive ? 1.35 : 1.0) *
+          (windyUltActive ? 1.3 : 1.0);
         mem.fireTimer = (baseInterval * prof.fireIntervalScale) / fireRateMult;
 
         if (mem.burstShotsLeft <= 0) {
@@ -1842,17 +1828,18 @@ export function createBotBrainSystem(): BotBrainSystem {
           horizSpeed < 0.45 && bot.grounded ? 0 : (horizSpeed / RUN_SPEED) * spec.moveSpreadRad;
         const baseAimError =
           bot.weaponId === 'sniper' && horizSpeed < 0.45 ? prof.aimErrorRad * 0.55 : prof.aimErrorRad;
-        const totalSpread =
-          (baseAimError +
-            (bot.weaponId === 'sniper' ? spec.scopedSpreadRad : spec.baseSpreadRad) +
-            moveSpread +
-            (bot.grounded ? 0 : spec.airSpreadRad) +
-            mem.recoilAccum * 0.03) *
-          slewPenalty;
+        const totalSpread = windyUltActive
+          ? baseAimError * 0.35 * slewPenalty
+          : (baseAimError +
+              (bot.weaponId === 'sniper' ? spec.scopedSpreadRad : spec.baseSpreadRad) +
+              moveSpread +
+              (bot.grounded ? 0 : spec.airSpreadRad) +
+              mem.recoilAccum * 0.03) *
+            slewPenalty;
 
         const baseDir = getLookDirection(bot.yaw, bot.pitch + mem.recoilAccum * 0.04);
         const shotDir = applyBotSpread(baseDir, totalSpread);
-        const recoilScale = blazeUltActive ? 0.65 : 1.0;
+        const recoilScale = blazeUltActive ? 0.65 : windyUltActive ? 0.45 : 1.0;
         mem.recoilAccum = Math.min(1.0, mem.recoilAccum + spec.recoilPerShot * 0.85 * recoilScale);
 
         onFire(bot);

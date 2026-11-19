@@ -107,6 +107,8 @@ const ALLOWED_EXTRA_CODES = new Set([
   'Mouse3',
   'Mouse4',
   'Mouse5',
+  'WheelUp',
+  'WheelDown',
 ]);
 
 function isValidKeybindCode(code: unknown): code is string {
@@ -122,6 +124,8 @@ const BIND_LABEL_MAP: Record<string, string> = {
   Mouse3: 'MMB',
   Mouse4: 'M4',
   Mouse5: 'M5',
+  WheelUp: 'MWU',
+  WheelDown: 'MWD',
   Space: 'SPC',
   ShiftLeft: 'SHF',
   ShiftRight: 'RSHF',
@@ -279,6 +283,7 @@ export function createSettingsController(): SettingsController {
   let onSurrenderCallback: (() => void) | null = null;
 
   let listeningSlot: keyof AbilityKeybinds | null = null;
+  let listeningStartedAt = 0;
   let suppressAuxUntilMs = 0;
 
   let surrenderArmed = false;
@@ -308,6 +313,10 @@ export function createSettingsController(): SettingsController {
   const bindAbilityEBtn = safeGetEl<HTMLButtonElement>('bind-ability-e');
   const bindAbilityXBtn = safeGetEl<HTMLButtonElement>('bind-ability-x');
   const bindResetBtn = safeGetEl<HTMLButtonElement>('bind-reset-btn');
+  const quickBindButtons =
+    typeof document !== 'undefined'
+      ? Array.from(document.querySelectorAll<HTMLButtonElement>('[data-quick-bind][data-bind-code]'))
+      : [];
 
   // Video & Minimap tab
   const fovInput = safeGetEl<HTMLInputElement>('set-fov');
@@ -359,8 +368,13 @@ export function createSettingsController(): SettingsController {
       const isListening = listeningSlot === slot;
       btn.classList.toggle('listening', isListening);
       btn.textContent = isListening
-        ? 'PRESS KEY OR M3/M4/M5...'
+        ? 'PRESS KEY / MOUSE...'
         : formatBindLabel(settings.keybinds[slot]);
+    }
+    for (const qbtn of quickBindButtons) {
+      const slot = qbtn.dataset.quickBind as keyof AbilityKeybinds | undefined;
+      const code = qbtn.dataset.bindCode;
+      qbtn.classList.toggle('active', Boolean(slot && code && settings.keybinds[slot] === code));
     }
   }
 
@@ -433,7 +447,12 @@ export function createSettingsController(): SettingsController {
     listeningSlot = null;
     if (typeof window !== 'undefined') {
       window.removeEventListener('keydown', onRebindKeyDown, true);
-      window.removeEventListener('mousedown', onRebindMouseDown, true);
+      window.removeEventListener('pointerdown', onRebindMouseEvent, true);
+      window.removeEventListener('mousedown', onRebindMouseEvent, true);
+      window.removeEventListener('pointerup', onRebindAuxUp, true);
+      window.removeEventListener('mouseup', onRebindAuxUp, true);
+      window.removeEventListener('auxclick', onRebindAuxUp, true);
+      window.removeEventListener('wheel', onRebindWheel, { capture: true });
     }
     syncBindButtons();
   }
@@ -445,10 +464,16 @@ export function createSettingsController(): SettingsController {
     }
     stopListening();
     listeningSlot = slot;
+    listeningStartedAt = performance.now();
     syncBindButtons();
     if (typeof window !== 'undefined') {
       window.addEventListener('keydown', onRebindKeyDown, true);
-      window.addEventListener('mousedown', onRebindMouseDown, true);
+      window.addEventListener('pointerdown', onRebindMouseEvent, true);
+      window.addEventListener('mousedown', onRebindMouseEvent, true);
+      window.addEventListener('pointerup', onRebindAuxUp, true);
+      window.addEventListener('mouseup', onRebindAuxUp, true);
+      window.addEventListener('auxclick', onRebindAuxUp, true);
+      window.addEventListener('wheel', onRebindWheel, { capture: true, passive: false });
     }
   }
 
@@ -456,32 +481,42 @@ export function createSettingsController(): SettingsController {
     if (listeningSlot === null) return;
     e.preventDefault();
     e.stopPropagation();
-    if (e.code === 'Escape') {
+    const rawCode =
+      e.code === 'BrowserBack' ? 'Mouse4' : e.code === 'BrowserForward' ? 'Mouse5' : e.code;
+    if (rawCode === 'Escape') {
       stopListening();
       return;
     }
-    if (isValidKeybindCode(e.code)) {
+    if (isValidKeybindCode(rawCode)) {
+      suppressAuxUntilMs = performance.now() + 500;
       const targetSlot = listeningSlot;
       stopListening();
-      commitKeybind(targetSlot, e.code);
+      commitKeybind(targetSlot, rawCode);
     }
   }
 
-  function onRebindMouseDown(e: MouseEvent): void {
+  function onRebindMouseEvent(e: MouseEvent): void {
     if (listeningSlot === null) return;
     const mouseCode = mapMouseButtonToBindCode(e.button);
     if (mouseCode) {
       e.preventDefault();
       e.stopPropagation();
-      suppressAuxUntilMs = performance.now() + 450;
+      e.stopImmediatePropagation?.();
+      suppressAuxUntilMs = performance.now() + 550;
       const targetSlot = listeningSlot;
       stopListening();
       commitKeybind(targetSlot, mouseCode);
       return;
     }
-    // Left or right click outside cancels listening cleanly (let another bind button click handle itself).
-    if (e.button === 0 && listeningSlot && e.target === bindButtons[listeningSlot]) {
-      return;
+    if (e.button === 0) {
+      const target = e.target as Node | null;
+      const activeBtn = listeningSlot ? bindButtons[listeningSlot] : null;
+      if (
+        (activeBtn && target && activeBtn.contains(target)) ||
+        performance.now() - listeningStartedAt < 80
+      ) {
+        return;
+      }
     }
     if (e.button === 2) {
       e.preventDefault();
@@ -489,15 +524,36 @@ export function createSettingsController(): SettingsController {
     stopListening();
   }
 
+  function onRebindAuxUp(e: MouseEvent): void {
+    if (e.button !== 1 && e.button !== 3 && e.button !== 4) return;
+    e.preventDefault();
+    e.stopPropagation();
+  }
+
+  function onRebindWheel(e: WheelEvent): void {
+    if (listeningSlot === null) return;
+    const code = e.deltaY < 0 ? 'WheelUp' : e.deltaY > 0 ? 'WheelDown' : null;
+    if (!code) return;
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation?.();
+    const targetSlot = listeningSlot;
+    stopListening();
+    commitKeybind(targetSlot, code);
+  }
+
   function onAuxMouseGuard(e: MouseEvent): void {
     if (e.button !== 1 && e.button !== 3 && e.button !== 4) return;
-    if (listeningSlot !== null || performance.now() <= suppressAuxUntilMs) {
+    if (openState || listeningSlot !== null || performance.now() <= suppressAuxUntilMs) {
       e.preventDefault();
       e.stopPropagation();
     }
   }
 
   if (typeof window !== 'undefined') {
+    window.addEventListener('pointerdown', onAuxMouseGuard, true);
+    window.addEventListener('pointerup', onAuxMouseGuard, true);
+    window.addEventListener('mousedown', onAuxMouseGuard, true);
     window.addEventListener('mouseup', onAuxMouseGuard, true);
     window.addEventListener('auxclick', onAuxMouseGuard, true);
   }
@@ -609,6 +665,16 @@ export function createSettingsController(): SettingsController {
   bindAbilityQBtn?.addEventListener('click', () => startListening('abilityQ'));
   bindAbilityEBtn?.addEventListener('click', () => startListening('abilityE'));
   bindAbilityXBtn?.addEventListener('click', () => startListening('abilityX'));
+  for (const qbtn of quickBindButtons) {
+    qbtn.addEventListener('click', () => {
+      const slot = qbtn.dataset.quickBind as keyof AbilityKeybinds | undefined;
+      const code = qbtn.dataset.bindCode;
+      if (slot && code && isValidKeybindCode(code)) {
+        stopListening();
+        commitKeybind(slot, code);
+      }
+    });
+  }
   bindResetBtn?.addEventListener('click', () => {
     stopListening();
     applyPatch({ keybinds: { ...DEFAULT_KEYBINDS } });

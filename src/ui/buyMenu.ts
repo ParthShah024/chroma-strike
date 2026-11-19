@@ -230,25 +230,46 @@ export function createBuyMenuController(options: BuyMenuOptions): BuyMenuControl
 
     const armor = hud.armor ?? 0;
     const shieldTier = hud.shieldTier ?? 'none';
+    const boughtArmorThisRound = Boolean(hud.boughtArmorThisRound);
 
     for (const tier of ['light', 'heavy'] as const) {
       const btn = shieldBtns.get(tier);
       if (!btn) continue;
       const spec = SHIELD_SPECS[tier];
       const cost = computeShieldCost(armor, shieldTier, tier);
-      const isFull = armor >= spec.armor;
+      const isActiveTier = shieldTier === tier && armor > 0;
+      const isFull = isActiveTier && armor >= spec.armor;
+      const blockedByOtherShield =
+        (shieldTier === 'heavy' && armor > 0 && tier === 'light') ||
+        (boughtArmorThisRound && !isActiveTier);
       const canAfford = credits >= cost;
 
       let statusLabel = tier === 'heavy' && shieldTier === 'light' ? 'UPGRADE' : 'BUY';
-      if (isFull) statusLabel = 'EQUIPPED';
-      else if (!canAfford) statusLabel = 'LOCKED';
+      let costLabel = cost === 0 ? 'FULL' : `¤ ${cost}`;
+      if (blockedByOtherShield) {
+        statusLabel = '1 SHIELD MAX';
+        costLabel = '—';
+      } else if (isActiveTier && boughtArmorThisRound) {
+        statusLabel = 'REFUND';
+        costLabel =
+          (hud.refundableArmorCost ?? 0) > 0 ? `+¤ ${hud.refundableArmorCost}` : 'UNEQUIP';
+      } else if (isFull) {
+        statusLabel = 'EQUIPPED';
+        costLabel = 'FULL';
+      } else if (!canAfford) {
+        statusLabel = 'LOCKED';
+      }
 
-      btn.classList.toggle('equipped', isFull);
-      btn.classList.toggle('locked', !isFull && !canAfford);
+      btn.disabled = blockedByOtherShield;
+      btn.classList.toggle('equipped', isActiveTier);
+      btn.classList.toggle(
+        'locked',
+        blockedByOtherShield || (!isFull && !isActiveTier && !canAfford)
+      );
 
       const costEl = btn.querySelector<HTMLElement>('.buy-item-cost');
       const stateEl = btn.querySelector<HTMLElement>('.buy-item-state');
-      if (costEl) costEl.textContent = cost === 0 ? 'FULL' : `¤ ${cost}`;
+      if (costEl) costEl.textContent = costLabel;
       if (stateEl) stateEl.textContent = statusLabel;
     }
 

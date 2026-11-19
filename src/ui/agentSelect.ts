@@ -605,7 +605,7 @@ export function createAgentSelectController(options: AgentSelectOptions): AgentS
     ) {
       return;
     }
-    const digit = /^Digit([1-5])$/.exec(e.code);
+    const digit = /^Digit([1-6])$/.exec(e.code);
     if (digit) {
       selectAgent(AGENT_ORDER[Number(digit[1]) - 1], true);
       e.preventDefault();
@@ -637,7 +637,7 @@ export function createAgentSelectController(options: AgentSelectOptions): AgentS
       e.preventDefault();
       return;
     }
-    if (e.code === 'Space' || e.code === 'Tab' || /^F[1-5]$/.test(e.code)) {
+    if (e.code === 'Space' || e.code === 'Tab' || /^F[1-6]$/.test(e.code)) {
       e.preventDefault();
     }
   }

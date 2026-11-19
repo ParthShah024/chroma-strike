@@ -90,6 +90,7 @@ const AGENT_STYLE: Record<AgentColorId, { primary: number; trim: number }> = {
   green: { primary: 0x10d464, trim: 0x7dffb3 }, // Pulse — emerald-jade + mint neon
   violet: { primary: 0xa23cff, trim: 0xdcb0ff }, // Umbra — vivid amethyst + lilac neon
   gold: { primary: 0xffbf00, trim: 0xfff27a }, // Volt  — electric amber-gold + lemon neon
+  cyan: { primary: 0xd8f3ff, trim: 0x38e8ff }, // Windy — frost-white + gale-sky
 };
 
 /** Vivid Agent armour hexes applied to cloned Blender KAY/O `Mat_ArmorPrimary`. */
@@ -99,6 +100,7 @@ const KAYO_AGENT_PRIMARY_HEX: Record<AgentColorId, number> = {
   green: 0x2ecc71,
   violet: 0xa855f7,
   gold: 0xfacc15,
+  cyan: 0xd8f3ff,
 };
 
 /** Dorsal kit node name per agent inside `public/models/agent_kayo.glb`. */
@@ -108,6 +110,7 @@ const KAYO_KIT_NODE: Record<AgentColorId, string> = {
   green: 'Kit_Green',
   violet: 'Kit_Violet',
   gold: 'Kit_Gold',
+  cyan: 'Kit_Windy',
 };
 
 const KAYO_GLB_URL = '/models/agent_kayo.glb';
@@ -135,6 +138,7 @@ const ARMOR_FINISH: Record<AgentColorId, { roughness: number; metalness: number;
   green: { roughness: 0.34, metalness: 0.22, emissiveIntensity: 0.28 },
   violet: { roughness: 0.34, metalness: 0.22, emissiveIntensity: 0.34 },
   gold: { roughness: 0.3, metalness: 0.34, emissiveIntensity: 0.28 },
+  cyan: { roughness: 0.28, metalness: 0.26, emissiveIntensity: 0.3 },
 };
 
 /** Gold-white tint pulsed onto armour while concussed (Volt's relay). */
@@ -164,7 +168,7 @@ const PLANT_BLEND_RATE = 12;
 
 /**
  * How far behind the spine the carried Spike canister sits per archetype so it
- * clears each agent's own dorsal gear (Pulse backpack, Umbra vials, Volt coils).
+ * clears each agent's own dorsal gear (Pulse backpack, Umbra vials, Volt coils, Windy aero-vanes).
  */
 const SPIKE_BACK_Z: Record<AgentColorId, number> = {
   red: 0.215,
@@ -172,6 +176,7 @@ const SPIKE_BACK_Z: Record<AgentColorId, number> = {
   green: 0.33,
   violet: 0.26,
   gold: 0.26,
+  cyan: 0.26,
 };
 
 const ULT_MOTE_COUNT = 8;
@@ -202,6 +207,7 @@ const DEFAULT_AGENT_CODENAME: Record<AgentColorId, string> = {
   green: 'PULSE',
   violet: 'UMBRA',
   gold: 'VOLT',
+  cyan: 'WINDY',
 };
 
 const TEAM_STYLE: Record<TeamId, TeamStyle> = {
@@ -611,6 +617,108 @@ interface ArmRig {
 
 type Animator = (time: number, dt: number, motion: number) => void;
 
+const OUTLINE_THICKNESS_M = 0.018;
+const outlineGeometryCache = new WeakMap<THREE.BufferGeometry, THREE.BufferGeometry>();
+
+/**
+ * Builds and caches per source BufferGeometry a smooth-normal BackSide
+ * extruded hull so hard-edged boxes and GLB armour plates form a continuous
+ * Valorant-style enemy outline without corner gaps.
+ */
+function getOrCreateOutlineGeometry(
+  srcGeo: THREE.BufferGeometry,
+  thicknessM = OUTLINE_THICKNESS_M
+): THREE.BufferGeometry {
+  const cached = outlineGeometryCache.get(srcGeo);
+  if (cached) return cached;
+
+  const posAttr = srcGeo.getAttribute('position');
+  if (!posAttr || posAttr.count === 0) {
+    const empty = new THREE.BufferGeometry();
+    outlineGeometryCache.set(srcGeo, empty);
+    return empty;
+  }
+
+  const vCount = posAttr.count;
+  const keys = new Array<string>(vCount);
+  const accum = new Map<string, [number, number, number]>();
+
+  for (let i = 0; i < vCount; i++) {
+    const x = posAttr.getX(i);
+    const y = posAttr.getY(i);
+    const z = posAttr.getZ(i);
+    const key = `${Math.round(x * 2000)}:${Math.round(y * 2000)}:${Math.round(z * 2000)}`;
+    keys[i] = key;
+    if (!accum.has(key)) accum.set(key, [0, 0, 0]);
+  }
+
+  const idx = srcGeo.getIndex();
+  const triCount = idx ? Math.floor(idx.count / 3) : Math.floor(vCount / 3);
+  for (let t = 0; t < triCount; t++) {
+    const i0 = idx ? idx.getX(t * 3) : t * 3;
+    const i1 = idx ? idx.getX(t * 3 + 1) : t * 3 + 1;
+    const i2 = idx ? idx.getX(t * 3 + 2) : t * 3 + 2;
+
+    const ax = posAttr.getX(i0);
+    const ay = posAttr.getY(i0);
+    const az = posAttr.getZ(i0);
+    const e1x = posAttr.getX(i1) - ax;
+    const e1y = posAttr.getY(i1) - ay;
+    const e1z = posAttr.getZ(i1) - az;
+    const e2x = posAttr.getX(i2) - ax;
+    const e2y = posAttr.getY(i2) - ay;
+    const e2z = posAttr.getZ(i2) - az;
+
+    const nx = e1y * e2z - e1z * e2y;
+    const ny = e1z * e2x - e1x * e2z;
+    const nz = e1x * e2y - e1y * e2x;
+
+    for (const vi of [i0, i1, i2]) {
+      const b = accum.get(keys[vi]);
+      if (b) {
+        b[0] += nx;
+        b[1] += ny;
+        b[2] += nz;
+      }
+    }
+  }
+
+  const srcNormal = srcGeo.getAttribute('normal');
+  const outPos = new Float32Array(vCount * 3);
+  for (let i = 0; i < vCount; i++) {
+    const x = posAttr.getX(i);
+    const y = posAttr.getY(i);
+    const z = posAttr.getZ(i);
+    const b = accum.get(keys[i]);
+    let nx = b ? b[0] : 0;
+    let ny = b ? b[1] : 0;
+    let nz = b ? b[2] : 0;
+    let len = Math.hypot(nx, ny, nz);
+    if (len < 1e-8 && srcNormal) {
+      nx = srcNormal.getX(i);
+      ny = srcNormal.getY(i);
+      nz = srcNormal.getZ(i);
+      len = Math.hypot(nx, ny, nz);
+    }
+    if (len > 1e-8) {
+      const inv = thicknessM / len;
+      outPos[i * 3] = x + nx * inv;
+      outPos[i * 3 + 1] = y + ny * inv;
+      outPos[i * 3 + 2] = z + nz * inv;
+    } else {
+      outPos[i * 3] = x;
+      outPos[i * 3 + 1] = y;
+      outPos[i * 3 + 2] = z;
+    }
+  }
+
+  const outlineGeo = new THREE.BufferGeometry();
+  outlineGeo.setAttribute('position', new THREE.BufferAttribute(outPos, 3));
+  if (idx) outlineGeo.setIndex(idx.clone());
+  outlineGeometryCache.set(srcGeo, outlineGeo);
+  return outlineGeo;
+}
+
 /**
  * Constructs an articulated, showcase-quality procedural tactical agent
  * matching Chroma Strike's gameplay hitboxes (`body y: 0..1.38`,
@@ -698,6 +806,27 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
     blending: THREE.AdditiveBlending,
     side: THREE.DoubleSide,
   });
+  const enemyOutlineMat = isEnemy
+    ? new THREE.MeshBasicMaterial({
+        color: 0xff223e,
+        side: THREE.BackSide,
+        depthWrite: true,
+        fog: false,
+        toneMapped: false,
+      })
+    : null;
+
+  function attachEnemyOutline(targetMesh: THREE.Mesh): void {
+    if (!enemyOutlineMat) return;
+    const oGeo = getOrCreateOutlineGeometry(targetMesh.geometry);
+    if (!oGeo.getAttribute('position')) return;
+    const outline = new THREE.Mesh(oGeo, enemyOutlineMat);
+    outline.castShadow = false;
+    outline.receiveShadow = false;
+    outline.userData.sharedGlb = true;
+    outline.userData.isEnemyOutline = true;
+    targetMesh.add(outline);
+  }
   // Unlit pure glow for optics / visors / energy cores: always full brightness.
   const glowMat = new THREE.MeshBasicMaterial({ color: agent.trim });
   const shadowMat = new THREE.MeshStandardMaterial({ color: 0x04060b, roughness: 0.9, metalness: 0.1 });
@@ -918,6 +1047,9 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
   // -------------------------------------------------------------------------
   /** Live per-frame flags archetype animators may read (written in update()). */
   const rigFlags = { sliding: false };
+  const windyKitGroup = new THREE.Group();
+  windyKitGroup.visible = colorId === 'cyan';
+  upperBody.add(windyKitGroup);
 
   switch (colorId) {
     case 'red':
@@ -935,10 +1067,80 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
     case 'gold':
       buildVoltDuelist();
       break;
+    case 'cyan':
+      buildWindyDuelist();
+      break;
     default: {
       const unreachable: never = colorId;
       throw new Error(`Unknown agent colour: ${String(unreachable)}`);
     }
+  }
+
+  // Attach crisp BackSide red outline shells to every enemy procedural body mesh (before aim/rim/FX groups)
+  if (enemyOutlineMat) {
+    const bodyMeshes: THREE.Mesh[] = [];
+    bodyTiltGroup.traverse((node) => {
+      if (
+        node instanceof THREE.Mesh &&
+        !node.userData.isEnemyOutline &&
+        (node.material === armorMat || node.material === helmetMat || node.material === suitMat)
+      ) {
+        bodyMeshes.push(node);
+      }
+    });
+    for (const m of bodyMeshes) {
+      attachEnemyOutline(m);
+    }
+  }
+
+  /** WINDY — Sky Duelist: sleek Frost-White aero visor helmet, twin swept dorsal aero-vanes & hovering wind-kunai pins. */
+  function buildWindyDuelist(): void {
+    const helmet = addMesh(headGroup, new THREE.SphereGeometry(0.16, 26, 20), helmetMat, 0, 0.01, 0.01);
+    helmet.scale.set(0.92, 1.02, 1.14);
+    const jaw = addMesh(headGroup, new THREE.SphereGeometry(0.092, 18, 12), helmetMat, 0, -0.082, -0.052);
+    jaw.scale.set(1.08, 0.7, 0.98);
+    addMesh(helmet, new THREE.CylinderGeometry(0.164, 0.158, 0.065, 30, 1, false, Math.PI - 1.1, 2.2), visorGlassMat, 0, 0.008, 0);
+    addMesh(helmet, new THREE.CylinderGeometry(0.167, 0.162, 0.024, 30, 1, false, Math.PI - 0.95, 1.9), glowMat, 0, 0.012, 0);
+
+    // Swept dual wind-vane aero fins + hovering radiant kunai pins inside `windyKitGroup` (kept on Blender KAY/O)
+    const vaneShape = new THREE.Shape();
+    vaneShape.moveTo(0, 0);
+    vaneShape.quadraticCurveTo(0.14, 0.1, 0.34, 0.32);
+    vaneShape.lineTo(0.24, 0.06);
+    vaneShape.quadraticCurveTo(0.1, -0.04, 0.02, -0.1);
+    vaneShape.closePath();
+
+    const vanes: Array<{ node: THREE.Mesh; side: number }> = [];
+    for (const side of [-1, 1] as const) {
+      const vane = addMesh(windyKitGroup, extrudeBackward(vaneShape, 0.014), armorMat, side * 0.085, U(1.28), 0.145);
+      vane.rotation.order = 'YXZ';
+      vane.rotation.set(-0.18, side * 0.42, -side * 0.28);
+      vanes.push({ node: vane, side });
+      addMesh(vane, zCapsuleGeometry(0.0065, 0.24), glowMat, side * 0.012, 0.08, 0.12);
+    }
+
+    // Center updraft turbine pack + 3 hovering wind-kunai pins
+    addMesh(windyKitGroup, new THREE.CylinderGeometry(0.056, 0.048, 0.18, 12), suitMat, 0, U(1.2), 0.155);
+    const coreRing = addMesh(windyKitGroup, new THREE.TorusGeometry(0.044, 0.008, 6, 20), glowMat, 0, U(1.2), 0.185);
+    const kunaiPins: THREE.Mesh[] = [];
+    for (let k = 0; k < 3; k++) {
+      const kx = (k - 1) * 0.1;
+      const ky = U(1.42) + (k === 1 ? 0.06 : 0);
+      const pin = addMesh(windyKitGroup, new THREE.ConeGeometry(0.016, 0.16, 4), glowMat, kx, ky, 0.21);
+      pin.rotation.x = Math.PI * 0.15;
+      kunaiPins.push(pin);
+    }
+
+    animators.push((time, _dt, motion) => {
+      coreRing.rotation.z = time * 4.5;
+      for (const v of vanes) {
+        v.node.rotation.x = -0.18 + motion * 0.24 + Math.sin(time * 3.8 + v.side) * 0.04;
+      }
+      for (let k = 0; k < kunaiPins.length; k++) {
+        kunaiPins[k].position.y = U(1.42) + (k === 1 ? 0.06 : 0) + Math.sin(time * 4.2 + k * 1.4) * 0.025;
+        kunaiPins[k].rotation.y = time * 2.2 + k;
+      }
+    });
   }
 
   /** BLAZE — Agile Duelist: streamlined helmet, chevron V-visor, swept wing-fins, scarf tails, forearm blades. */
@@ -1636,6 +1838,14 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
     disc.renderOrder = 14;
   }
 
+  // Disable shoulder/waist rim hoops, brow badges, floor discs & 3D overhead HP bars
+  // (Team ID = clean red silhouette outline on enemies; teammate health + Ults live in Top Bar HUD).
+  teamRimUpperGroup.visible = false;
+  teamRimWaistGroup.visible = false;
+  teamVisorBadgeGroup.visible = false;
+  teamRing.visible = false;
+  healthBarGroup.visible = false;
+
   // Crisp 3D Overhead Team Nameplate (`ALLY • <NAME>` in cyan / `ENEMY • <NAME>` in crimson)
   let displayName = DEFAULT_AGENT_CODENAME[colorId];
   const nameplateCanvas = document.createElement('canvas');
@@ -1871,6 +2081,7 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
     spikeGroup,
     ultGroup,
     teamRimUpperGroup,
+    windyKitGroup,
   ]);
   const procPelvisNodes = bodyTiltGroup.children.filter(
     (c) => !keepBodyGroups.has(c) && !(c instanceof THREE.Line)
@@ -2001,20 +2212,34 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
       part.position.set(0, offsetY, 0);
       part.rotation.set(0, 0, 0);
       part.scale.set(1, 1, 1);
+      const outlineTargets: THREE.Mesh[] = [];
       part.traverse((node) => {
+        if (node.userData.isEnemyOutline) return;
         // Shared GLB BufferGeometries stay owned by the cached template; per-rig cloned
         // materials are tracked separately in `kayoMats.owned` and disposed in `dispose()`.
         node.userData.sharedGlb = true;
         if (node instanceof THREE.Mesh) {
           node.castShadow = true;
           node.receiveShadow = true;
+          const origMats = Array.isArray(node.material) ? node.material : [node.material];
+          const primaryMatName = origMats[0]?.name || '';
           if (Array.isArray(node.material)) {
             node.material = node.material.map((m) => getRigMaterial(m, isHead));
           } else if (node.material) {
             node.material = getRigMaterial(node.material, isHead);
           }
+          if (
+            enemyOutlineMat &&
+            !primaryMatName.includes('VisorLED') &&
+            !primaryMatName.includes('TeamStripe')
+          ) {
+            outlineTargets.push(node);
+          }
         }
       });
+      for (const m of outlineTargets) {
+        attachEnemyOutline(m);
+      }
       targetBone.add(part);
       kayoMountedParts.push(part);
       for (const proc of replacedProcedural) {
@@ -2053,7 +2278,6 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
   let hitFlashTimer = 0;
   let lastHitWasHeadshot = false;
   let wasAlive = true;
-  let ghostRatio = 1;
   let slideBlend = 0; // 0 = normal gait .. 1 = full Power-Slide pose
   let plantBlend = 0; // 0 = standing .. 1 = full one-knee plant/defuse crouch
   let ultBlend = 0; // 0 = off .. 1 = full Ultimate Overcharge aura
@@ -2207,12 +2431,15 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
       channelingSpike?: boolean;
       ultActive?: boolean;
     },
-    cameraPos: Vec3
+    _cameraPos: Vec3
   ): void {
     const stepDt = clamp(dt, 0, 0.1);
     time += stepDt;
     const sliding = (state.slideTimer ?? 0) > 0;
     rigFlags.sliding = sliding && state.alive;
+    if (enemyOutlineMat) {
+      enemyOutlineMat.visible = state.alive;
+    }
 
     root.position.set(state.position.x, state.position.y, state.position.z);
     root.rotation.y = state.yaw;
@@ -2268,11 +2495,10 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
       airBlend = 0;
       recoilKick = 0;
       hitFlashTimer = 0;
-      ghostRatio = 1;
     } else {
       bodyTiltGroup.rotation.x *= Math.exp(-14 * stepDt);
     }
-    teamRing.visible = overheadUiVisible;
+    teamRing.visible = false;
 
     // -----------------------------------------------------------------------
     // Design Note E — 2-joint walk gait (hip + knee Forward Kinematics)
@@ -2538,27 +2764,15 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
       if (kayoMats.headArmorPrimary) kayoMats.headArmorPrimary.emissiveIntensity += boost;
     }
 
-    // Overhead health bar, 3D team nameplate & blind halo (hidden when overheadUiVisible is false or occluded by smoke).
-    const showOverhead = overheadUiVisible && !state.occludedBySmoke;
-    healthBarGroup.visible = showOverhead;
+    // All 3D overhead HP bars, nameplates & floor rings remain hidden cleanly
+    // (Teammate health & Ult status live in the Top Bar; enemies use red outlines).
+    healthBarGroup.visible = false;
+    teamRing.visible = false;
 
-    if (showOverhead) {
-      const hpRatio = clamp(state.maxHealth > 0 ? state.health / state.maxHealth : 0, 0, 1);
-      healthFill.scale.x = Math.max(0.0001, hpRatio);
-      // Damage "ghost" trails behind the real fill so chip damage is readable.
-      ghostRatio = hpRatio >= ghostRatio ? hpRatio : Math.max(hpRatio, ghostRatio - stepDt * 0.55);
-      ghostFill.scale.x = Math.max(0.0001, ghostRatio);
-
-      root.updateMatrixWorld();
-      healthBarGroup.lookAt(cameraPos.x, cameraPos.y, cameraPos.z);
-
-      if (state.blindTimer > 0) {
-        blindHalo.visible = true;
-        blindHalo.rotation.z += stepDt * 6.0;
-        blindHalo.rotation.y += stepDt * 3.5;
-      } else {
-        blindHalo.visible = false;
-      }
+    if (overheadUiVisible && !state.occludedBySmoke && state.blindTimer > 0) {
+      blindHalo.visible = true;
+      blindHalo.rotation.z += stepDt * 6.0;
+      blindHalo.rotation.y += stepDt * 3.5;
     } else {
       blindHalo.visible = false;
     }
@@ -2588,11 +2802,12 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
         }
       }
     });
-    // Dispose per-rig cloned KAY/O PBR materials (never shared with the cached GLB template).
+    // Dispose per-rig cloned KAY/O PBR materials & enemy outline material cleanly.
     for (const mat of kayoMats.owned) {
       mat.dispose();
     }
     kayoMats.owned.length = 0;
+    enemyOutlineMat?.dispose();
   }
 
   return {

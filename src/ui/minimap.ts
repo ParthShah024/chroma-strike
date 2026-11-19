@@ -12,7 +12,6 @@ import {
   ASCENT_MAP_DATA,
   getArenaDoors,
   getArenaMinimapData,
-  getArenaSpawns,
   getBombSites,
   getSpikeSpawnPos,
 } from '../arena/map';
@@ -495,34 +494,31 @@ export function drawAscentDynamicEntities(
     entityScale = 1,
   } = cfg;
 
-  // 1. Buy-Phase Barrier spans
+  // 1. Buy-Phase Barrier spans (all 12 forward attacker/defender lane & window spans)
   if (hud.phase === 'buy') {
-    const spawns = getArenaSpawns();
     ctx.save();
     ctx.lineWidth = 1.6;
     ctx.setLineDash([4, 3]);
     for (const span of ASCENT_MAP_DATA.buyBarrierSpans) {
-      const x0 = worldToMapX(span.x0, width);
-      const x1 = worldToMapX(span.x1, width);
-      const y = worldToMapY(span.z, height);
+      const axis = span.axis ?? 'z';
       ctx.strokeStyle =
         span.side === 'attacker' ? 'rgba(79, 157, 255, 0.92)' : 'rgba(255, 77, 94, 0.92)';
       ctx.shadowColor = span.side === 'attacker' ? '#4f9dff' : '#ff4d5e';
       ctx.shadowBlur = 5;
       ctx.beginPath();
-      ctx.moveTo(x0, y);
-      ctx.lineTo(x1, y);
-      ctx.stroke();
-    }
-    // Faint full-span reference guide
-    ctx.shadowBlur = 0;
-    ctx.lineWidth = 0.7;
-    ctx.strokeStyle = 'rgba(34, 211, 238, 0.25)';
-    for (const zLine of [spawns.buyMinAllyZ, spawns.buyMaxDefenderZ]) {
-      const gy = worldToMapY(zLine, height);
-      ctx.beginPath();
-      ctx.moveTo(worldToMapX(-38, width), gy);
-      ctx.lineTo(worldToMapX(38, width), gy);
+      if (axis === 'x') {
+        const mx = worldToMapX(span.x ?? 0, width);
+        const y0 = worldToMapY(span.z0 ?? 0, height);
+        const y1 = worldToMapY(span.z1 ?? 0, height);
+        ctx.moveTo(mx, y0);
+        ctx.lineTo(mx, y1);
+      } else {
+        const x0 = worldToMapX(span.x0 ?? 0, width);
+        const x1 = worldToMapX(span.x1 ?? 0, width);
+        const y = worldToMapY(span.z ?? 0, height);
+        ctx.moveTo(x0, y);
+        ctx.lineTo(x1, y);
+      }
       ctx.stroke();
     }
     ctx.restore();

@@ -29,6 +29,10 @@ export interface CombatantEconomyState {
   preBuyWeapon: WeaponId;
   boughtWeaponCost: number;
   boughtArmorThisRound: boolean;
+  preBuyShieldTier: ShieldTier;
+  preBuyArmor: number;
+  preBuyMaxArmor: number;
+  boughtArmorCost: number;
 }
 
 export interface BuyWeaponResult {
@@ -66,6 +70,7 @@ export interface EconomySystem {
   buyWeapon(playerId: string, weaponId: WeaponId, combatants?: Combatant[]): BuyWeaponResult;
   refundPlayerWeapon(playerId: string, combatants?: Combatant[]): RefundWeaponResult;
   buyShield(playerId: string, tier: ShieldTier, combatants?: Combatant[]): BuyShieldResult;
+  refundPlayerShield(playerId: string, combatants?: Combatant[]): BuyShieldResult;
   getShieldUpgradeCost(playerId: string, tier: ShieldTier): number;
   getMinNextRoundCredits(team: TeamId, credits: number): number;
   getLossStreak(team: TeamId): number;
@@ -95,6 +100,10 @@ function createDefaultState(): CombatantEconomyState {
     preBuyWeapon: 'pistol',
     boughtWeaponCost: 0,
     boughtArmorThisRound: false,
+    preBuyShieldTier: 'none',
+    preBuyArmor: 0,
+    preBuyMaxArmor: 0,
+    boughtArmorCost: 0,
   };
 }
 
@@ -153,9 +162,13 @@ export function createEconomySystem(): EconomySystem {
     for (const c of combatants) {
       const st = getOrCreateState(c.id);
       st.preBuyWeapon = st.weaponId;
+      st.preBuyShieldTier = st.shieldTier;
+      st.preBuyArmor = st.armor;
+      st.preBuyMaxArmor = st.maxArmor;
       st.boughtWeaponThisRound = false;
       st.boughtWeaponCost = 0;
       st.boughtArmorThisRound = false;
+      st.boughtArmorCost = 0;
       applyStateToCombatant(c, st);
     }
   }
@@ -217,7 +230,11 @@ export function createEconomySystem(): EconomySystem {
       st.boughtWeaponThisRound = false;
       st.boughtWeaponCost = 0;
       st.boughtArmorThisRound = false;
+      st.boughtArmorCost = 0;
       st.preBuyWeapon = st.weaponId;
+      st.preBuyShieldTier = st.shieldTier;
+      st.preBuyArmor = st.armor;
+      st.preBuyMaxArmor = st.maxArmor;
 
       applyStateToCombatant(c, st);
     }
@@ -334,6 +351,39 @@ export function createEconomySystem(): EconomySystem {
     };
   }
 
+  function refundPlayerShield(playerId: string, combatants?: Combatant[]): BuyShieldResult {
+    const st = getOrCreateState(playerId);
+    if (!st.boughtArmorThisRound || st.boughtArmorCost <= 0) {
+      return {
+        ok: false,
+        reason: 'No shield purchase to refund',
+        shieldTier: st.shieldTier,
+        armor: st.armor,
+        maxArmor: st.maxArmor,
+        cost: 0,
+        credits: st.credits,
+      };
+    }
+
+    const refunded = st.boughtArmorCost;
+    st.credits = clampCredits(st.credits + refunded);
+    st.shieldTier = st.preBuyShieldTier;
+    st.armor = st.preBuyArmor;
+    st.maxArmor = st.preBuyMaxArmor;
+    st.boughtArmorThisRound = false;
+    st.boughtArmorCost = 0;
+
+    syncCombatantById(playerId, combatants);
+    return {
+      ok: true,
+      shieldTier: st.shieldTier,
+      armor: st.armor,
+      maxArmor: st.maxArmor,
+      cost: -refunded,
+      credits: st.credits,
+    };
+  }
+
   function buyShield(
     playerId: string,
     tier: ShieldTier,
@@ -344,6 +394,36 @@ export function createEconomySystem(): EconomySystem {
       return {
         ok: false,
         reason: 'Invalid shield tier',
+        shieldTier: st.shieldTier,
+        armor: st.armor,
+        maxArmor: st.maxArmor,
+        cost: 0,
+        credits: st.credits,
+      };
+    }
+
+    // One-shield-per-round rule: clicking your already-bought tier refunds 100%,
+    // while clicking the other tier is blocked until you unequip first.
+    if (st.boughtArmorThisRound) {
+      if (st.shieldTier === tier) {
+        return refundPlayerShield(playerId, combatants);
+      }
+      return {
+        ok: false,
+        reason: 'Only one shield tier may be chosen',
+        shieldTier: st.shieldTier,
+        armor: st.armor,
+        maxArmor: st.maxArmor,
+        cost: 0,
+        credits: st.credits,
+      };
+    }
+
+    // Never allow buying Light Shield when Heavy armor is already carried over.
+    if (st.shieldTier === 'heavy' && st.armor > 0 && tier === 'light') {
+      return {
+        ok: false,
+        reason: 'Heavy Shield already active',
         shieldTier: st.shieldTier,
         armor: st.armor,
         maxArmor: st.maxArmor,
@@ -382,7 +462,8 @@ export function createEconomySystem(): EconomySystem {
     st.shieldTier = tier;
     st.armor = targetSpec.armor;
     st.maxArmor = targetSpec.armor;
-    st.boughtArmorThisRound = true;
+    st.boughtArmorThisRound = cost > 0;
+    st.boughtArmorCost = cost;
 
     syncCombatantById(playerId, combatants);
     return {
@@ -517,6 +598,7 @@ export function createEconomySystem(): EconomySystem {
     buyWeapon,
     refundPlayerWeapon,
     buyShield,
+    refundPlayerShield,
     getShieldUpgradeCost,
     getMinNextRoundCredits,
     getLossStreak,

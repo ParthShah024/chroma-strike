@@ -111,7 +111,7 @@ export interface MatchManager {
   skipBuyPhase(): void;
   restartMatch(): void;
   onMapRebuilt(): void;
-  setThirdPersonMode(thirdPerson: boolean): void;
+  setSpectatedCombatantId(id: string | null): void;
   buyWeapon(weaponId: WeaponId): boolean;
   refundCurrentRoundWeapon(): boolean;
   buyShield(tier: ShieldTier): boolean;
@@ -142,7 +142,7 @@ const SWAP_INTERVAL_ROUNDS = 5;
 const MAX_ULT_POINTS = 5;
 const INITIAL_ULT_POINTS = 2;
 const PLAYER_ULT_ACTIVE_SEC = 7.5;
-const BUY_PHASE_DURATION_SEC = 15.0;
+const BUY_PHASE_DURATION_SEC = 20.0;
 const COMBAT_PHASE_DURATION_SEC = 100.0;
 const POST_PLANT_DURATION_SEC = 45.0;
 const PLANT_TIME_SEC = 3.0;
@@ -374,7 +374,7 @@ export function createMatchManager(
   let roundBannerSubtitle: string | null = BUY_BANNER_SUBTITLE;
   let transientBannerTimer = 0;
 
-  let thirdPersonMode = false;
+  let spectatedCombatantId: string | null = null;
   let preferredPlayerColor: AgentColorId = 'red';
   let pendingSyncCombatantToPlayer = true;
   let playerStateRef: PlayerState | null = null;
@@ -477,7 +477,7 @@ export function createMatchManager(
 
     const rig = createCharacterModel(scene, def.team, colorId);
     rig.setWeaponModel('pistol');
-    rig.setVisible(!isInitialPlayer || thirdPersonMode);
+    rig.setVisible(!isInitialPlayer);
 
     combatants.push(combatant);
     combatantById.set(combatant.id, combatant);
@@ -660,11 +660,9 @@ export function createMatchManager(
     for (const c of combatants) {
       const rig = rigById.get(c.id);
       if (!rig) continue;
-      if (c.isPlayer) {
-        rig.setVisible(thirdPersonMode || !c.alive);
-      } else {
-        rig.setVisible(true);
-      }
+      const hiddenForFirstPerson =
+        c.alive && (c.isPlayer || spectatedCombatantId === c.id);
+      rig.setVisible(!hiddenForFirstPerson);
     }
   }
 
@@ -1535,8 +1533,9 @@ export function createMatchManager(
     setupRound(roundNumber, false);
   }
 
-  function setThirdPersonMode(thirdPerson: boolean): void {
-    thirdPersonMode = thirdPerson;
+  function setSpectatedCombatantId(id: string | null): void {
+    if (spectatedCombatantId === id) return;
+    spectatedCombatantId = id;
     updateRigVisibilities();
   }
 
@@ -2160,18 +2159,29 @@ export function createMatchManager(
     const allyStates = combatants
       .filter((c) => c.team === 'ally')
       .map((c) => ({
+        id: c.id,
         colorId: c.colorId,
+        displayName: formatCombatantLabel(c),
         alive: c.alive,
         isPlayer: c.isPlayer,
-        hp: Math.ceil(c.health),
+        hp: Math.max(0, Math.ceil(c.health)),
+        maxHp: c.maxHealth,
+        armor: Math.max(0, Math.ceil(c.armor ?? 0)),
+        ultPoints: c.ultPoints ?? 0,
+        maxUltPoints: MAX_ULT_POINTS,
+        ultReady: (c.ultPoints ?? 0) >= MAX_ULT_POINTS,
+        ultActive: (c.ultActiveTimer ?? 0) > 0,
       }));
 
     const enemyStates = combatants
       .filter((c) => c.team === 'enemy')
       .map((c) => ({
+        id: c.id,
         colorId: c.colorId,
+        displayName: formatCombatantLabel(c),
         alive: c.alive,
-        hp: Math.ceil(c.health),
+        ultReady: (c.ultPoints ?? 0) >= MAX_ULT_POINTS,
+        ultActive: (c.ultActiveTimer ?? 0) > 0,
       }));
 
     const playerEcon = economy.getCombatantState(playerCombatant.id);
@@ -2225,6 +2235,9 @@ export function createMatchManager(
         phase === 'buy' && playerEcon.boughtWeaponThisRound && playerEcon.boughtWeaponCost > 0,
       refundableWeaponCost:
         phase === 'buy' && playerEcon.boughtWeaponThisRound ? playerEcon.boughtWeaponCost : 0,
+      boughtArmorThisRound: phase === 'buy' && playerEcon.boughtArmorThisRound,
+      refundableArmorCost:
+        phase === 'buy' && playerEcon.boughtArmorThisRound ? playerEcon.boughtArmorCost : 0,
       allyEconomy,
       spike: spikeHud,
       minimapEnemies,
@@ -2261,7 +2274,7 @@ export function createMatchManager(
     skipBuyPhase,
     restartMatch,
     onMapRebuilt,
-    setThirdPersonMode,
+    setSpectatedCombatantId,
     buyWeapon,
     refundCurrentRoundWeapon,
     buyShield,

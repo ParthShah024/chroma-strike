@@ -162,4 +162,33 @@ export const AGENT_ABILITIES: Record<AgentColorId, Record<AbilitySlot, AbilitySp
       description: '7.5s high-voltage sprint, rapid slides & chain-lightning arcs',
     },
   },
+  cyan: {
+    q: {
+      slot: 'q',
+      keyLabel: 'Q',
+      name: 'Updraft',
+      shortTag: 'UPDRAFT',
+      cooldownSec: 0.25,
+      maxCharges: 2,
+      description: 'Instant high-altitude wind boost — reach Heaven & high cover (2/round)',
+    },
+    e: {
+      slot: 'e',
+      keyLabel: 'E',
+      name: 'Tailwind Dash',
+      shortTag: 'DASH',
+      cooldownSec: 0.25,
+      maxCharges: 2,
+      description: 'Instant directional wind dash — chains mid-air with Updraft (2/round)',
+    },
+    x: {
+      slot: 'x',
+      keyLabel: 'X',
+      name: 'Blade Storm',
+      shortTag: 'BLADES',
+      cooldownSec: 0,
+      ultPointsRequired: 5,
+      description: '9s pinpoint mid-air wind blades: 0 spread, 1.30x fire rate & kills refresh Dash',
+    },
+  },
 };

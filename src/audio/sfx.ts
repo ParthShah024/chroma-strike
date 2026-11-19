@@ -1090,6 +1090,90 @@ export function createSoundEngine(): SoundEngine {
         surgeOsc.stop(now + 0.34);
         break;
       }
+
+      case 'wind_updraft': {
+        const upSrc = context.createBufferSource();
+        upSrc.buffer = noise;
+        const bp = context.createBiquadFilter();
+        bp.type = 'bandpass';
+        bp.Q.setValueAtTime(2.6, now);
+        bp.frequency.setValueAtTime(420, now);
+        bp.frequency.exponentialRampToValueAtTime(2800, now + 0.22);
+        const upGain = context.createGain();
+        upGain.gain.setValueAtTime(0.42, now);
+        upGain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + 0.28);
+        upSrc.connect(bp);
+        bp.connect(upGain);
+        upGain.connect(out);
+        upSrc.start(now);
+        upSrc.stop(now + 0.3);
+
+        const liftOsc = context.createOscillator();
+        const liftGain = context.createGain();
+        liftOsc.type = 'sine';
+        liftOsc.frequency.setValueAtTime(310, now);
+        liftOsc.frequency.exponentialRampToValueAtTime(980, now + 0.2);
+        liftGain.gain.setValueAtTime(0.18, now);
+        liftGain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + 0.24);
+        liftOsc.connect(liftGain);
+        liftGain.connect(out);
+        liftOsc.start(now);
+        liftOsc.stop(now + 0.26);
+        break;
+      }
+
+      case 'wind_dash': {
+        const galeSrc = context.createBufferSource();
+        galeSrc.buffer = noise;
+        const bp = context.createBiquadFilter();
+        bp.type = 'bandpass';
+        bp.Q.setValueAtTime(1.8, now);
+        bp.frequency.setValueAtTime(2600, now);
+        bp.frequency.exponentialRampToValueAtTime(520, now + 0.22);
+        const galeGain = context.createGain();
+        galeGain.gain.setValueAtTime(0.46, now);
+        galeGain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + 0.24);
+        galeSrc.connect(bp);
+        bp.connect(galeGain);
+        galeGain.connect(out);
+        galeSrc.start(now);
+        galeSrc.stop(now + 0.26);
+        break;
+      }
+
+      case 'ult_windy': {
+        const bladeNotes = [880, 1174.66, 1567.98];
+        bladeNotes.forEach((freq, idx) => {
+          const osc = context.createOscillator();
+          const gain = context.createGain();
+          osc.type = 'triangle';
+          const t0 = now + idx * 0.045;
+          osc.frequency.setValueAtTime(freq, t0);
+          osc.frequency.exponentialRampToValueAtTime(freq * 1.12, t0 + 0.16);
+          gain.gain.setValueAtTime(0.16, t0);
+          gain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, t0 + 0.26);
+          osc.connect(gain);
+          gain.connect(out);
+          osc.start(t0);
+          osc.stop(t0 + 0.28);
+        });
+        const galeSrc = context.createBufferSource();
+        galeSrc.buffer = noise;
+        const bp = context.createBiquadFilter();
+        bp.type = 'bandpass';
+        bp.Q.setValueAtTime(1.4, now);
+        bp.frequency.setValueAtTime(600, now);
+        bp.frequency.exponentialRampToValueAtTime(2400, now + 0.34);
+        const gGain = context.createGain();
+        gGain.gain.setValueAtTime(0.32, now);
+        gGain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + 0.38);
+        galeSrc.connect(bp);
+        bp.connect(gGain);
+        gGain.connect(out);
+        galeSrc.start(now);
+        galeSrc.stop(now + 0.4);
+        break;
+      }
     }
   }
 
@@ -1111,6 +1195,7 @@ export function createSoundEngine(): SoundEngine {
       green: { subStart: 125, subEnd: 42, chord: [146.83, 220.0, 293.66], filterStart: 520, filterPeak: 2600 },
       violet: { subStart: 110, subEnd: 34, chord: [98.0, 138.59, 196.0], filterStart: 360, filterPeak: 1900 },
       gold: { subStart: 140, subEnd: 45, chord: [164.81, 246.94, 369.99], filterStart: 700, filterPeak: 3400 },
+      cyan: { subStart: 150, subEnd: 48, chord: [196.0, 293.66, 440.0], filterStart: 850, filterPeak: 3800 },
     };
 
     const cfg = archetypeConfigs[colorId];

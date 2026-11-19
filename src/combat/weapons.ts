@@ -53,6 +53,7 @@ export interface WeaponSystem {
     recoilMultiplier?: number,
     moveSpreadMultiplier?: number,
     eyeHeightOffset?: number,
+    ignoreAirSpread?: boolean,
   ): ShotResult;
 }
 
@@ -99,6 +100,7 @@ const VIEWMODEL_GLOVE_STYLE: Record<AgentColorId, { primary: number; trim: numbe
   green: { primary: 0x2ecc71, trim: 0x7dffb3 }, // Pulse
   violet: { primary: 0xa855f7, trim: 0xdcb0ff }, // Umbra
   gold: { primary: 0xfacc15, trim: 0xfff27a }, // Volt
+  cyan: { primary: 0xd8f3ff, trim: 0x38e8ff }, // Windy
 };
 
 interface HandMaterials {
@@ -1303,6 +1305,7 @@ export function createWeaponSystem(
     recoilMultiplier = 1,
     moveSpreadMultiplier = 1,
     eyeHeightOffset = 0,
+    ignoreAirSpread = false,
   ): ShotResult {
     updateTracers(dt);
 
@@ -1389,16 +1392,17 @@ export function createWeaponSystem(
 
     const horizontalSpeed = getHorizontalSpeed(player.velocity);
     const isStationary = horizontalSpeed < 0.45 && player.grounded;
-    const stationaryBase =
-      isScoped && currentWeaponId === 'sniper' && adsBlend >= 0.65
+    const stationaryBase = ignoreAirSpread
+      ? 0
+      : isScoped && currentWeaponId === 'sniper' && adsBlend >= 0.65
         ? spec.scopedSpreadRad
         : spec.baseSpreadRad * adsSpreadFactor;
     const movePart =
       (isStationary ? 0 : (horizontalSpeed / RUN_SPEED) * spec.moveSpreadRad) *
       moveSpreadScale *
       adsDynamicFactor;
-    const airPart = player.grounded ? 0 : spec.airSpreadRad;
-    const sprayPart = state.recoilAccumulator * 0.035 * adsDynamicFactor;
+    const airPart = player.grounded || ignoreAirSpread ? 0 : spec.airSpreadRad;
+    const sprayPart = state.recoilAccumulator * 0.035 * adsDynamicFactor * (ignoreAirSpread ? 0.25 : 1);
     state.currentSpread = stationaryBase + movePart + airPart + sprayPart;
 
     let result: ShotResult = {

@@ -235,6 +235,17 @@ const VOLT_ULT_ZAP_DAMAGE = 12.0;
 const VOLT_ULT_ZAP_CONCUSS_SEC = 0.8;
 const VOLT_ULT_ARC_DURATION_SEC = 0.24;
 
+// Cyan — Windy (Sky Duelist: Updraft + Tailwind Dash + Blade Storm)
+const WIND_UPDRAFT_VY = 11.8;
+const WIND_DASH_DURATION_SEC = 0.22;
+const WIND_DASH_PEAK_SPEED_MPS = 24.0;
+const WIND_DASH_END_SPEED_MPS = RUN_SPEED;
+const WIND_RECAST_LOCKOUT_SEC = 0.25;
+const WIND_GLIDE_FALL_SPEED = -2.2;
+const WINDY_ULT_DURATION_SEC = 9.0;
+const WINDY_ULT_FIRE_RATE_MULT = 1.3;
+const WINDY_ULT_RECOIL_MULT = 0.45;
+
 // ---------------------------------------------------------------------------
 // Internal Visual + Simulation Record Interfaces
 // ---------------------------------------------------------------------------
@@ -630,6 +641,7 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
     green: { q: MAX_ROUND_CHARGES, e: MAX_ROUND_CHARGES },
     violet: { q: MAX_ROUND_CHARGES, e: MAX_ROUND_CHARGES },
     gold: { q: MAX_ROUND_CHARGES, e: MAX_ROUND_CHARGES },
+    cyan: { q: MAX_ROUND_CHARGES, e: MAX_ROUND_CHARGES },
   };
   // Short anti-double-click lockout timers per agent (1.2s; NEVER refill charges).
   const cooldowns: Record<AgentColorId, Record<AbilitySlot, number>> = {
@@ -638,6 +650,7 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
     green: { q: 0, e: 0, x: 0 },
     violet: { q: 0, e: 0, x: 0 },
     gold: { q: 0, e: 0, x: 0 },
+    cyan: { q: 0, e: 0, x: 0 },
   };
   const botCharges = new Map<string, { q: number; e: number }>();
   const botCooldowns = new Map<string, Record<AbilitySlot, number>>();
@@ -645,6 +658,7 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
   const botSlides = new Map<string, BotSlideEntry>();
   const botBlazeUlts = new Map<string, BotBlazeUltEntry>();
   const botVoltUlts = new Map<string, BotVoltUltEntry>();
+  const botWindyUlts = new Map<string, BotBlazeUltEntry>();
   const activePulseUlts: ActivePulseUlt[] = [];
 
   function getOrInitBotCharges(botId: string): { q: number; e: number } {
@@ -678,6 +692,12 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
   let dashTimer = 0;
   let dashDir: Vec3 = { x: 0, y: 0, z: -1 };
 
+  // Active Cyan (Windy) Q Updraft / E Tailwind Dash / X Blade Storm state
+  let windDashTimer = 0;
+  let windDashDir: Vec3 = { x: 0, y: 0, z: -1 };
+  let pendingUpdraftImpulse = 0;
+  let windyUltTimer = 0;
+
   // Active Green Q player blind state
   let playerFlashTimer = 0;
 
@@ -704,24 +724,29 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
 
   /**
    * Builds a forward 3D Dash Wind Tunnel ahead of the player (`14` glowing
-   * crimson-white streak boxes distributed `0.8m..5.5m` along `dir` around
+   * streak boxes distributed `0.8m..5.5m` along `dir` around
    * `y + 1.1..1.8` outside the center crosshair) so speed lines visibly whip
-   * past the camera during the `0.24s` dash.
+   * past the camera during a dash.
    */
-  function createDashTunnelVisual(origin: Vec3, dir: Vec3): TransientBurst {
+  function createDashTunnelVisual(
+    origin: Vec3,
+    dir: Vec3,
+    primaryHex = AGENT_PALETTES.red.hex,
+    streakHex = 0xffd6de
+  ): TransientBurst {
     const group = new THREE.Group();
     group.position.set(origin.x, origin.y, origin.z);
     // Align local +Z with horizontal dashDir so group Z-scaling stretches along the dash axis
     group.rotation.y = Math.atan2(dir.x, dir.z);
 
-    const crimsonMat = new THREE.MeshBasicMaterial({
-      color: AGENT_PALETTES.red.hex,
+    const primaryMat = new THREE.MeshBasicMaterial({
+      color: primaryHex,
       transparent: true,
       opacity: 0.92,
       depthWrite: false,
     });
     const whiteStreakMat = new THREE.MeshBasicMaterial({
-      color: 0xffd6de,
+      color: streakHex,
       transparent: true,
       opacity: 0.95,
       depthWrite: false,
@@ -738,7 +763,7 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
 
       const streakLen = 0.75 + (i % 3) * 0.32;
       const boxGeo = new THREE.BoxGeometry(0.036, 0.036, streakLen);
-      const mat = i % 2 === 0 ? crimsonMat : whiteStreakMat;
+      const mat = i % 2 === 0 ? primaryMat : whiteStreakMat;
       const mesh = new THREE.Mesh(boxGeo, mat);
 
       mesh.position.set(lateral, yPos, forwardDist);
@@ -747,7 +772,7 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
 
     const ringGeo = new THREE.TorusGeometry(0.68, 0.045, 10, 28);
     const ringMat = new THREE.MeshBasicMaterial({
-      color: AGENT_PALETTES.red.hex,
+      color: primaryHex,
       transparent: true,
       opacity: 0.85,
       side: THREE.DoubleSide,
@@ -761,7 +786,7 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
     return {
       kind: 'dash_tunnel',
       group,
-      materials: [crimsonMat, whiteStreakMat, ringMat],
+      materials: [primaryMat, whiteStreakMat, ringMat],
       age: 0,
       duration: DASH_TRAIL_DURATION_SEC,
     };
@@ -1899,6 +1924,13 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
         return true;
       }
 
+      if (colorId === 'cyan') {
+        windyUltTimer = WINDY_ULT_DURATION_SEC;
+        bursts.push(createUltActivationRingVisual(player.position, AGENT_PALETTES.cyan.hex, 6.2));
+        pendingAudioEvents.push('ult_windy');
+        return true;
+      }
+
       return false;
     }
 
@@ -1980,7 +2012,26 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
     }
 
     charges[colorId][slot] -= 1;
-    cooldowns[colorId][slot] = ABILITY_RECAST_LOCKOUT_SEC;
+    cooldowns[colorId][slot] =
+      colorId === 'cyan' ? WIND_RECAST_LOCKOUT_SEC : ABILITY_RECAST_LOCKOUT_SEC;
+
+    if (colorId === 'cyan' && slot === 'q') {
+      windDashTimer = 0;
+      pendingUpdraftImpulse = WIND_UPDRAFT_VY;
+      bursts.push(createSmokeShockwaveVisual(player.position, AGENT_PALETTES.cyan.hex));
+      pendingAudioEvents.push('wind_updraft');
+      return true;
+    }
+
+    if (colorId === 'cyan' && slot === 'e') {
+      windDashDir = computeDashDirection(input);
+      windDashTimer = WIND_DASH_DURATION_SEC;
+      bursts.push(
+        createDashTunnelVisual(player.position, windDashDir, AGENT_PALETTES.cyan.hex, 0xe8fbff)
+      );
+      pendingAudioEvents.push('wind_dash');
+      return true;
+    }
 
     if (colorId === 'red' && slot === 'q') {
       // Crimson Dash: 0.24s cubic ease-out burst from 30.0 m/s -> 8.2 m/s
@@ -2220,6 +2271,16 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
         return true;
       }
 
+      if (bot.colorId === 'cyan') {
+        botWindyUlts.set(bot.id, {
+          combatant: bot,
+          timer: WINDY_ULT_DURATION_SEC,
+        });
+        bursts.push(createUltActivationRingVisual(bot.position, AGENT_PALETTES.cyan.hex, 6.2));
+        pendingAudioEvents.push('ult_windy');
+        return true;
+      }
+
       return false;
     }
 
@@ -2230,7 +2291,31 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
     }
 
     ch[slot] -= 1;
-    cd[slot] = ABILITY_RECAST_LOCKOUT_SEC;
+    cd[slot] = bot.colorId === 'cyan' ? WIND_RECAST_LOCKOUT_SEC : ABILITY_RECAST_LOCKOUT_SEC;
+
+    if (bot.colorId === 'cyan' && slot === 'q') {
+      botDashes.delete(bot.id);
+      bot.velocity.y = WIND_UPDRAFT_VY;
+      bot.grounded = false;
+      bursts.push(createSmokeShockwaveVisual(bot.position, AGENT_PALETTES.cyan.hex));
+      pendingAudioEvents.push('wind_updraft');
+      return true;
+    }
+
+    if (bot.colorId === 'cyan' && slot === 'e') {
+      const forward = getLookDirection(aimYaw, 0);
+      const dir = normalizeVec3({ x: forward.x, y: 0, z: forward.z });
+      botDashes.set(bot.id, {
+        combatant: bot,
+        timer: BOT_DASH_DURATION_SEC,
+        dir,
+      });
+      bursts.push(
+        createDashTunnelVisual(bot.position, dir, AGENT_PALETTES.cyan.hex, 0xe8fbff)
+      );
+      pendingAudioEvents.push('wind_dash');
+      return true;
+    }
 
     if (bot.colorId === 'violet' && slot === 'q') {
       spawnProjectileFromOrigin(
@@ -2425,18 +2510,38 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
   }
 
   function notifyKill(killerColor: AgentColorId, isPlayer: boolean): void {
-    if (killerColor !== 'red') return;
-    if (isPlayer) {
-      if (blazeUltTimer > 0) {
-        charges.red.q = Math.min(MAX_ROUND_CHARGES, charges.red.q + 1); // Bonus Dash charge (cap 2)
-        cooldowns.red.q = 0; // Clear lockout
+    if (killerColor === 'red') {
+      if (isPlayer) {
+        if (blazeUltTimer > 0) {
+          charges.red.q = Math.min(MAX_ROUND_CHARGES, charges.red.q + 1); // Bonus Dash charge (cap 2)
+          cooldowns.red.q = 0; // Clear lockout
+        }
+      } else {
+        for (const [botId, entry] of botBlazeUlts.entries()) {
+          if (entry.timer > 0 && entry.combatant.alive) {
+            const bCh = getOrInitBotCharges(botId);
+            bCh.q = Math.min(MAX_ROUND_CHARGES, bCh.q + 1);
+            getOrInitBotCooldowns(botId).q = 0;
+          }
+        }
       }
-    } else {
-      for (const [botId, entry] of botBlazeUlts.entries()) {
-        if (entry.timer > 0 && entry.combatant.alive) {
-          const bCh = getOrInitBotCharges(botId);
-          bCh.q = Math.min(MAX_ROUND_CHARGES, bCh.q + 1);
-          getOrInitBotCooldowns(botId).q = 0;
+      return;
+    }
+
+    if (killerColor === 'cyan') {
+      if (isPlayer) {
+        if (windyUltTimer > 0) {
+          charges.cyan.e = Math.min(MAX_ROUND_CHARGES, charges.cyan.e + 1); // Refresh Tailwind Dash (cap 2)
+          cooldowns.cyan.e = 0;
+          windyUltTimer = Math.min(WINDY_ULT_DURATION_SEC, windyUltTimer + 2.5);
+        }
+      } else {
+        for (const [botId, entry] of botWindyUlts.entries()) {
+          if (entry.timer > 0 && entry.combatant.alive) {
+            const bCh = getOrInitBotCharges(botId);
+            bCh.e = Math.min(MAX_ROUND_CHARGES, bCh.e + 1);
+            getOrInitBotCooldowns(botId).e = 0;
+          }
         }
       }
     }
@@ -2527,6 +2632,8 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
     pendingAudioEvents.length = 0;
     zoneSeq = 0;
     dashTimer = 0;
+    windDashTimer = 0;
+    pendingUpdraftImpulse = 0;
     playerFlashTimer = 0;
     overdriveTimer = 0;
     slideTimer = 0;
@@ -2541,12 +2648,14 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
     umbraUltTimer = 0;
     voltUltTimer = 0;
     voltUltZapTimer = 0;
+    windyUltTimer = 0;
     activePulseUlts.length = 0;
 
     botDashes.clear();
     botSlides.clear();
     botBlazeUlts.clear();
     botVoltUlts.clear();
+    botWindyUlts.clear();
     botCharges.clear();
     botCooldowns.clear();
 
@@ -2625,6 +2734,17 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
       }
       if (entry.timer <= 0) {
         botVoltUlts.delete(botId);
+      }
+    }
+
+    for (const [botId, entry] of botWindyUlts.entries()) {
+      if (!entry.combatant.alive || entry.timer <= 0) {
+        botWindyUlts.delete(botId);
+        continue;
+      }
+      entry.timer = Math.max(0, entry.timer - stepDt);
+      if (entry.timer <= 0) {
+        botWindyUlts.delete(botId);
       }
     }
 
@@ -2707,7 +2827,7 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
       }
     }
 
-    // 2. Tick Crimson Dash, Blaze Ult & Volt Overdrive / Electric Power Slide / Thunderstorm
+    // 2. Tick Crimson Dash, Blaze Ult, Windy Updraft/Dash/Blade Storm & Volt Overdrive
     if (player.colorId !== 'red' || player.health <= 0) {
       dashTimer = 0;
       blazeUltTimer = 0;
@@ -2718,6 +2838,11 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
       slideLockoutTimer = 0;
       voltUltTimer = 0;
       voltUltZapTimer = 0;
+    }
+    if (player.colorId !== 'cyan' || player.health <= 0) {
+      windDashTimer = 0;
+      pendingUpdraftImpulse = 0;
+      windyUltTimer = 0;
     }
 
     slideLockoutTimer = Math.max(0, slideLockoutTimer - stepDt);
@@ -2737,8 +2862,10 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
     }
 
     const crimsonDashActive = dashTimer > 0;
+    const windDashActive = windDashTimer > 0;
     const slideActive = slideTimer > 0;
     let dashAlpha = 0;
+    let windDashAlpha = 0;
     let overdriveAlpha = 0;
     let dashVelocity: Vec3 = { x: 0, y: 0, z: 0 };
 
@@ -2755,6 +2882,20 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
       };
       dashAlpha = remainFrac;
       dashTimer = Math.max(0, dashTimer - stepDt);
+    } else if (windDashActive) {
+      const elapsed = WIND_DASH_DURATION_SEC - windDashTimer;
+      const remainFrac = clamp(1 - elapsed / WIND_DASH_DURATION_SEC, 0, 1);
+      const speed =
+        WIND_DASH_END_SPEED_MPS +
+        (WIND_DASH_PEAK_SPEED_MPS - WIND_DASH_END_SPEED_MPS) * Math.pow(remainFrac, 2.1);
+      dashVelocity = {
+        x: windDashDir.x * speed,
+        y: Math.max(0, player.velocity.y * 0.25),
+        z: windDashDir.z * speed,
+      };
+      windDashAlpha = remainFrac;
+      dashAlpha = Math.max(dashAlpha, remainFrac * 0.75);
+      windDashTimer = Math.max(0, windDashTimer - stepDt);
     } else if (slideActive) {
       const elapsedSlide = SLIDE_DURATION_SEC - slideTimer;
       const remainFrac = clamp(1 - elapsedSlide / SLIDE_DURATION_SEC, 0, 1);
@@ -2780,12 +2921,20 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
       smoothEyeHeightOffset = 0;
     }
 
+    const updraftImpulse = pendingUpdraftImpulse > 0 ? pendingUpdraftImpulse : undefined;
+    pendingUpdraftImpulse = 0;
+
     const movement: MovementModifiers = {
-      dashActive: crimsonDashActive || slideActive,
+      dashActive: crimsonDashActive || windDashActive || slideActive,
       dashVelocity,
       speedMultiplier: 1.0,
       suppressJump: false,
       slideActive,
+      verticalImpulse: updraftImpulse,
+      glideFallSpeed:
+        player.colorId === 'cyan' && input.jump && !player.grounded && player.velocity.y < 0
+          ? WIND_GLIDE_FALL_SPEED
+          : undefined,
     };
 
     if (voltUltTimer > 0) {
@@ -2822,6 +2971,13 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
       movement.speedMultiplier *= BLAZE_ULT_SPEED_MULT;
       dashAlpha = Math.max(dashAlpha, 0.36 * clamp(blazeUltTimer / 0.6, 0, 1));
       blazeUltTimer = Math.max(0, blazeUltTimer - stepDt);
+    }
+
+    const windyUltActive = windyUltTimer > 0;
+    if (windyUltActive) {
+      movement.speedMultiplier *= 1.12;
+      windDashAlpha = Math.max(windDashAlpha, 0.28 * clamp(windyUltTimer / 0.6, 0, 1));
+      windyUltTimer = Math.max(0, windyUltTimer - stepDt);
     }
 
     if (pulseUltTimer > 0) {
@@ -3389,6 +3545,12 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
       recoilMultiplier *= BLAZE_ULT_RECOIL_MULT;
     }
 
+    if (windyUltActive) {
+      fireRateMultiplier *= WINDY_ULT_FIRE_RATE_MULT;
+      recoilMultiplier *= WINDY_ULT_RECOIL_MULT;
+      moveSpreadMultiplier = 0;
+    }
+
     if (slideActive) {
       moveSpreadMultiplier = 0;
       recoilMultiplier *= SLIDE_RECOIL_MULT;
@@ -3516,22 +3678,26 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
         activeTimer: activeSprint > 0 ? activeSprint : undefined,
       };
     } else {
+      const slotLock =
+        player.colorId === 'cyan' ? WIND_RECAST_LOCKOUT_SEC : ABILITY_RECAST_LOCKOUT_SEC;
       qHud = {
         name: qSpec.name,
         shortTag: qSpec.shortTag,
         cooldownRemaining: qCd,
-        cooldownTotal: ABILITY_RECAST_LOCKOUT_SEC,
+        cooldownTotal: slotLock,
         ready: qCharges > 0 && qCd <= 0,
         charges: qCharges,
         maxCharges: MAX_ROUND_CHARGES,
       };
     }
 
+    const eSlotLock =
+      player.colorId === 'cyan' ? WIND_RECAST_LOCKOUT_SEC : ABILITY_RECAST_LOCKOUT_SEC;
     const eHud: AbilityHudSlotState = {
       name: eSpec.name,
       shortTag: eSpec.shortTag,
       cooldownRemaining: eCd,
-      cooldownTotal: ABILITY_RECAST_LOCKOUT_SEC,
+      cooldownTotal: eSlotLock,
       ready: eCharges > 0 && eCd <= 0,
       charges: eCharges,
       maxCharges: MAX_ROUND_CHARGES,
@@ -3546,7 +3712,9 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
             ? pulseUltTimer
             : player.colorId === 'violet'
               ? umbraUltTimer
-              : voltUltTimer;
+              : player.colorId === 'cyan'
+                ? windyUltTimer
+                : voltUltTimer;
     const xReq = xSpec.ultPointsRequired ?? 5;
     const xReady = (pc?.ultPoints ?? 0) >= xReq;
     const xHud: AbilityHudSlotState = {
@@ -3577,6 +3745,8 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
       eHud,
       xHud,
       ultRevealActive: pulseUltTimer > 0,
+      ignoreAirSpread: windyUltActive,
+      windDashAlpha,
     };
   }
 

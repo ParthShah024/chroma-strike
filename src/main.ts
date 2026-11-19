@@ -35,7 +35,6 @@ import {
   buildArenaScene,
   findNearbyDoorSwitch,
   getArenaDoors,
-  getArenaSpawns,
   setArenaBuyBarriersVisible,
   toggleArenaDoor,
   updateArenaDoors,
@@ -151,7 +150,6 @@ let capsHeld = false;
 let unownedHintTimer = 0;
 
 let lastAbilityFeedback: AbilityFrameFeedback | null = null;
-let thirdPerson = false;
 let lastHudPhase: RoundPhase = 'buy';
 let lastRoundNumber = 1;
 let lastPlayerSide: TacticalSide = 'attacker';
@@ -235,7 +233,6 @@ const abilityXEl = document.getElementById('ability-x') as HTMLDivElement;
 const ammoEl = document.getElementById('hud-ammo') as HTMLDivElement;
 const speedEl = document.getElementById('hud-speed') as HTMLDivElement;
 const hintBuyEl = document.getElementById('hint-buy') as HTMLDivElement;
-const hint3pEl = document.getElementById('hint-3p') as HTMLDivElement;
 const hintSettingsEl = document.getElementById('hint-settings') as HTMLDivElement;
 const hintXhairEl = document.getElementById('hint-xhair') as HTMLDivElement;
 const hintMapEl = document.getElementById('hint-map') as HTMLDivElement;
@@ -425,7 +422,6 @@ const buyMenu = createBuyMenuController({
 
 let syncingLobbySettings = false;
 let spectateTargetId: string | null = null;
-let lastSpectateTargetId: string | null = null;
 let overlaySurrenderArmed = false;
 let overlaySurrenderTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -558,7 +554,6 @@ function returnToLobbyFromMatch(): void {
   gameStarted = false;
   frozenDrawn = false;
   spectateTargetId = null;
-  lastSpectateTargetId = null;
   spectatorBarEl.classList.add('hidden');
   combatReportEl.classList.add('hidden');
   targetIdLabelEl.classList.add('hidden');
@@ -676,7 +671,6 @@ net.onMatchStart((snapshot) => {
   const startingSide = localSlot?.side ?? lobby.getSelectedSide();
 
   spectateTargetId = null;
-  lastSpectateTargetId = null;
   lastSeenKillId = 0;
   playerKillTimes = [];
 
@@ -896,6 +890,13 @@ function mapMouseBindCode(button: number): string | null {
   return null;
 }
 
+function isCodeBoundToAbility(code: string): boolean {
+  const b = currentSettings.keybinds;
+  return b.abilityQ === code || b.abilityE === code || b.abilityX === code;
+}
+
+let lastMouseAbilityAtMs = 0;
+
 function triggerAbilityByBindCode(code: string): boolean {
   if (!isPointerLocked() || isAnyModalOpen() || lastHudPhase !== 'combat') return false;
   if (!match.getPlayerCombatant().alive) return false;
@@ -929,6 +930,30 @@ function cycleSpectateTarget(delta: 1 | -1): void {
   spectateTargetId = teammates[nextIdx].id;
 }
 
+window.addEventListener('pointerdown', (e: PointerEvent) => {
+  const mouseBind = mapMouseBindCode(e.button);
+  if (!mouseBind) return;
+  if (isPointerLocked() || settings.isOpen()) {
+    e.preventDefault();
+  }
+  if (isPointerLocked() && !isAnyModalOpen()) {
+    sfx.unlock();
+    const now = performance.now();
+    if (now - lastMouseAbilityAtMs > 35) {
+      lastMouseAbilityAtMs = now;
+      triggerAbilityByBindCode(mouseBind);
+    }
+  }
+});
+
+window.addEventListener('pointerup', (e: PointerEvent) => {
+  if (e.button === 1 || e.button === 3 || e.button === 4) {
+    if (isPointerLocked() || settings.isOpen()) {
+      e.preventDefault();
+    }
+  }
+});
+
 window.addEventListener('mousedown', (e: MouseEvent) => {
   const mouseBind = mapMouseBindCode(e.button);
   if (mouseBind) {
@@ -937,7 +962,11 @@ window.addEventListener('mousedown', (e: MouseEvent) => {
     }
     if (isPointerLocked() && !isAnyModalOpen()) {
       sfx.unlock();
-      triggerAbilityByBindCode(mouseBind);
+      const now = performance.now();
+      if (now - lastMouseAbilityAtMs > 35) {
+        lastMouseAbilityAtMs = now;
+        triggerAbilityByBindCode(mouseBind);
+      }
     }
     return;
   }
@@ -998,6 +1027,13 @@ window.addEventListener(
   (e: WheelEvent) => {
     if (!isPointerLocked() || isAnyModalOpen()) return;
     if (!match.getPlayerCombatant().alive) return;
+    const wheelCode = e.deltaY < 0 ? 'WheelUp' : e.deltaY > 0 ? 'WheelDown' : null;
+    if (wheelCode && isCodeBoundToAbility(wheelCode)) {
+      e.preventDefault();
+      sfx.unlock();
+      triggerAbilityByBindCode(wheelCode);
+      return;
+    }
     const dir = Math.sign(e.deltaY);
     if (dir !== 0) {
       const ownedPrimary = match.getPlayerOwnedPrimary();
@@ -1010,7 +1046,7 @@ window.addEventListener(
       }
     }
   },
-  { passive: true }
+  { passive: false }
 );
 
 function handleKey(code: string, isDown: boolean): void {
@@ -1213,8 +1249,8 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
       return;
     }
 
-    // [F1..F5] Switch active Agent (Blaze, Mist, Pulse, Umbra, Volt)
-    const fKey = /^F([1-5])$/.exec(e.code);
+    // [F1..F6] Switch active Agent (Blaze, Mist, Pulse, Umbra, Volt, Windy)
+    const fKey = /^F([1-6])$/.exec(e.code);
     if (fKey) {
       const targetColor = AGENT_ORDER[Number(fKey[1]) - 1];
       match.selectPlayerAgent(targetColor);
@@ -1228,7 +1264,7 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
         const taken = match.tryTakeoverAlly();
         if (taken) {
           spectateTargetId = null;
-          lastSpectateTargetId = null;
+          match.setSpectatedCombatantId(null);
           syncLocalPlayerFromCombatant();
         }
       }
@@ -1267,21 +1303,24 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
         dropSpikePressed = true;
       }
 
-      // [V] Toggle 1st-Person vs 3rd-Person over-the-shoulder camera
-      if (e.code === 'KeyV') {
-        thirdPerson = !thirdPerson;
-        match.setThirdPersonMode(thirdPerson);
-        weapon.setViewmodelVisible(!thirdPerson && match.getPlayerCombatant().alive);
-        hint3pEl.classList.toggle('active', thirdPerson);
-      }
-
       // [Space] during Buy phase skips buy countdown cleanly
       if (e.code === 'Space' && lastHudPhase === 'buy') {
         match.skipBuyPhase();
       }
 
-      // Custom ability / ultimate binds (Q / E / X or Mouse3/4/5) — ONLY during combat!
-      triggerAbilityByBindCode(e.code);
+      // Custom ability / ultimate binds (Key / Mouse3/4/5 / BrowserBack/Forward / Wheel) — ONLY during combat!
+      const normalizedAbilityCode =
+        e.code === 'BrowserBack' ? 'Mouse4' : e.code === 'BrowserForward' ? 'Mouse5' : e.code;
+      if (normalizedAbilityCode === 'Mouse4' || normalizedAbilityCode === 'Mouse5') {
+        e.preventDefault();
+        const now = performance.now();
+        if (now - lastMouseAbilityAtMs > 35) {
+          lastMouseAbilityAtMs = now;
+          triggerAbilityByBindCode(normalizedAbilityCode);
+        }
+      } else {
+        triggerAbilityByBindCode(normalizedAbilityCode);
+      }
     }
   }
 
@@ -1394,6 +1433,11 @@ function syncScreenFx(feedback: AbilityFrameFeedback): void {
     layers.push(`radial-gradient(circle at center, transparent 52%, rgba(255, 59, 92, ${a}) 100%)`);
   }
 
+  if ((feedback.windDashAlpha ?? 0) > 0.001) {
+    const a = clamp((feedback.windDashAlpha ?? 0) * 0.36, 0, 0.42).toFixed(3);
+    layers.push(`radial-gradient(circle at center, transparent 50%, rgba(124, 232, 255, ${a}) 100%)`);
+  }
+
   // Volt Overdrive: electric purple -> gold edge vignette.
   if (feedback.overdriveAlpha > 0.001) {
     const a = clamp(feedback.overdriveAlpha, 0, 1);
@@ -1432,30 +1476,101 @@ function formatClock(phase: RoundPhase, timerSec: number): string {
 
 let lastKillfeedSignature = '';
 
-/** Rebuilds the scoreboard dots whenever the drafted roster changes, then updates states. */
-function syncTeamDots(
-  container: HTMLDivElement,
-  team: 'ally' | 'enemy',
-  states: Array<{ colorId: AgentColorId; alive: boolean; isPlayer?: boolean }>
-): void {
-  const sig = states.map((s) => s.colorId).join('|');
-  if (container.dataset.sig !== sig) {
+const CODENAME_SHORT: Record<AgentColorId, string> = {
+  red: 'BLZ',
+  blue: 'MST',
+  green: 'PLS',
+  violet: 'UMB',
+  gold: 'VLT',
+  cyan: 'WND',
+};
+
+/** Rebuilds Top-Bar Valorant teammate HP + Ult badges (no enemy HP ever displayed). */
+function syncTopTeamCards(hud: MatchHudState): void {
+  const syncSide = (
+    container: HTMLDivElement,
+    team: 'ally' | 'enemy',
+    list: Array<{
+      id: string;
+      colorId: AgentColorId;
+      displayName: string;
+      alive: boolean;
+      isPlayer?: boolean;
+      hp?: number;
+      maxHp?: number;
+      ultReady: boolean;
+      ultActive: boolean;
+    }>
+  ) => {
+    const sig = list
+      .map(
+        (s) =>
+          `${s.id}:${s.colorId}:${s.alive ? 1 : 0}:${s.isPlayer ? 1 : 0}:${s.hp ?? -1}:${s.ultReady ? 1 : 0}:${s.ultActive ? 1 : 0}`
+      )
+      .join('|');
+    if (container.dataset.sig === sig) return;
     container.dataset.sig = sig;
     container.replaceChildren();
-    for (const st of states) {
-      const dot = document.createElement('div');
-      dot.className = 'agent-dot';
-      dot.dataset.team = team;
-      dot.dataset.color = st.colorId;
-      dot.title = `${team === 'ally' ? 'Ally' : 'Enemy'} ${AGENT_PALETTES[st.colorId].name}`;
-      container.appendChild(dot);
+
+    for (const st of list) {
+      const card = document.createElement('div');
+      card.className = 'top-agent-card';
+      if (!st.alive) card.classList.add('dead');
+      if (st.isPlayer) card.classList.add('is-player');
+      if (st.ultReady) card.classList.add('ult-ready');
+      if (st.ultActive) card.classList.add('ult-active');
+      card.dataset.team = team;
+      card.dataset.color = st.colorId;
+      card.style.setProperty('--card-color', AGENT_PALETTES[st.colorId].css);
+      card.title = `${st.displayName} (${AGENT_PALETTES[st.colorId].name})${st.ultActive ? ' • ULT ACTIVE' : st.ultReady ? ' • ULT READY' : ''}`;
+
+      const head = document.createElement('div');
+      head.className = 'tac-head';
+
+      const codeSpan = document.createElement('span');
+      codeSpan.className = 'tac-code';
+      codeSpan.textContent = CODENAME_SHORT[st.colorId];
+      head.appendChild(codeSpan);
+
+      if (st.ultActive || st.ultReady) {
+        const ultBadge = document.createElement('span');
+        ultBadge.className = st.ultActive ? 'tac-ult active' : 'tac-ult';
+        ultBadge.textContent = 'ULT';
+        head.appendChild(ultBadge);
+      }
+      card.appendChild(head);
+
+      if (team === 'ally') {
+        const hp = Math.max(0, st.hp ?? 0);
+        const maxHp = Math.max(1, st.maxHp ?? 100);
+        const hpPct = Math.round((hp / maxHp) * 100);
+
+        const track = document.createElement('div');
+        track.className = 'tac-hp-track';
+        const fill = document.createElement('div');
+        fill.className = 'tac-hp-fill';
+        fill.style.width = `${st.alive ? hpPct : 0}%`;
+        if (st.alive && hp < 40) fill.classList.add('low');
+        track.appendChild(fill);
+
+        const hpNum = document.createElement('div');
+        hpNum.className = 'tac-hp-num';
+        hpNum.textContent = st.alive ? `${hp}` : 'DEAD';
+
+        card.append(track, hpNum);
+      } else {
+        const statusEl = document.createElement('div');
+        statusEl.className = 'tac-enemy-state';
+        statusEl.textContent = st.alive ? (st.ultActive ? 'ULTING' : 'ALIVE') : 'DEAD';
+        card.appendChild(statusEl);
+      }
+
+      container.appendChild(card);
     }
-  }
-  const dots = container.children;
-  for (let i = 0; i < dots.length && i < states.length; i++) {
-    dots[i].classList.toggle('dead', !states[i].alive);
-    dots[i].classList.toggle('is-player', Boolean(states[i].isPlayer));
-  }
+  };
+
+  syncSide(allyDotsEl, 'ally', hud.allyStates);
+  syncSide(enemyDotsEl, 'enemy', hud.enemyStates);
 }
 
 // --- Elimination medal & directional damage arc ---
@@ -1799,8 +1914,7 @@ function syncMatchHud(hud: MatchHudState): void {
 
   syncSpikeAndEconomyHud(hud);
 
-  syncTeamDots(allyDotsEl, 'ally', hud.allyStates);
-  syncTeamDots(enemyDotsEl, 'enemy', hud.enemyStates);
+  syncTopTeamCards(hud);
 
   for (const pill of agentPills) {
     const color = pill.dataset.color as AgentColorId | undefined;
@@ -1947,7 +2061,7 @@ function tick(now: number): void {
   );
   const isChannelingSpike = Boolean(isAlive && interactHeld && canChannelSpike);
 
-  // Combine ability movement modifiers (Dash / Cryo Slow / Overdrive) with active weapon mobility.
+  // Combine ability movement modifiers (Dash / Updraft / Glide / Cryo Slow / Overdrive) with active weapon mobility.
   const baseMove = lastAbilityFeedback?.movement;
   const moveModifiers: MovementModifiers = {
     dashActive: baseMove?.dashActive ?? false,
@@ -1959,25 +2073,15 @@ function tick(now: number): void {
     suppressJump: baseMove?.suppressJump,
     externalVelocity: baseMove?.externalVelocity,
     slideActive: baseMove?.slideActive,
+    verticalImpulse: baseMove?.verticalImpulse,
+    glideFallSpeed: baseMove?.glideFallSpeed,
   };
 
-  // Step player movement only while alive; enforce side-aware Buy-Phase Spawn Fence.
+  // Step player movement only while alive; solid Buy-Barrier colliders inside ARENA_COLLIDERS gate chokes.
   if (isAlive) {
     updatePlayerMovement(player, input, ARENA_COLLIDERS, dt, moveModifiers);
 
     if (lastHudPhase === 'buy') {
-      const spawns = getArenaSpawns();
-      if (lastPlayerSide === 'defender') {
-        if (player.position.z > spawns.buyMaxDefenderZ) {
-          player.position.z = spawns.buyMaxDefenderZ;
-          if (player.velocity.z > 0) player.velocity.z = 0;
-        }
-      } else {
-        if (player.position.z < spawns.buyMinAllyZ) {
-          player.position.z = spawns.buyMinAllyZ;
-          if (player.velocity.z < 0) player.velocity.z = 0;
-        }
-      }
       const maxBuyX = ARENA_WIDTH_M * 0.5 - 1.5;
       if (player.position.x < -maxBuyX) {
         player.position.x = -maxBuyX;
@@ -2040,7 +2144,7 @@ function tick(now: number): void {
     1.48
   );
 
-  // Auto-Spectate Target Resolution (when dead during combat, follow a living teammate)
+  // Auto-Spectate Target Resolution (when dead during combat, follow a living teammate in 1st-person POV)
   let spectateTarget: Combatant | null = null;
   if (!isAlive && lastHudPhase === 'combat') {
     const teammates = match.getLivingTeammates();
@@ -2052,12 +2156,10 @@ function tick(now: number): void {
     }
   } else {
     spectateTargetId = null;
-    lastSpectateTargetId = null;
   }
 
-  // Camera Positioning: 1st-Person, 3rd-Person Over-the-Shoulder, or Teammate Spectate
-  const useThirdPersonCamera = thirdPerson || !isAlive;
-  weapon.setViewmodelVisible(!useThirdPersonCamera);
+  match.setSpectatedCombatantId(spectateTarget ? spectateTarget.id : null);
+  weapon.setViewmodelVisible(isAlive && !spectateTarget);
 
   if (spectateTarget) {
     const specYaw = spectateTarget.yaw;
@@ -2066,85 +2168,21 @@ function tick(now: number): void {
     camera.rotation.x = specPitch;
     camera.rotation.z = 0;
 
-    const rightX = Math.cos(specYaw);
-    const rightZ = -Math.sin(specYaw);
-    const anchor = {
-      x: spectateTarget.position.x + rightX * 0.42,
-      y: spectateTarget.position.y + 1.58,
-      z: spectateTarget.position.z + rightZ * 0.42,
-    };
-    const lookDir = getLookDirection(specYaw, specPitch);
-    const backDir = { x: -lookDir.x, y: -lookDir.y, z: -lookDir.z };
-
-    let hitDist = 2.6;
-    for (const box of ARENA_COLLIDERS) {
-      const hit = raycastAABB(anchor, backDir, box, hitDist);
-      if (hit && hit.distance < hitDist) {
-        hitDist = hit.distance;
-      }
-    }
-    const camDist = Math.max(0.35, hitDist - 0.25);
-    const targetCamX = anchor.x + backDir.x * camDist;
-    const targetCamY = anchor.y + backDir.y * camDist;
-    const targetCamZ = anchor.z + backDir.z * camDist;
-
-    if (lastSpectateTargetId !== spectateTarget.id) {
-      camera.position.set(targetCamX, targetCamY, targetCamZ);
-      lastSpectateTargetId = spectateTarget.id;
-    } else {
-      const camAlpha = 1 - Math.exp(-18 * dt);
-      camera.position.x += (targetCamX - camera.position.x) * camAlpha;
-      camera.position.y += (targetCamY - camera.position.y) * camAlpha;
-      camera.position.z += (targetCamZ - camera.position.z) * camAlpha;
-    }
+    const specDrop = (spectateTarget.slideTimer ?? 0) > 0 ? -0.42 : 0;
+    camera.position.set(
+      spectateTarget.position.x,
+      spectateTarget.position.y + EYE_HEIGHT + specDrop,
+      spectateTarget.position.z
+    );
   } else {
-    lastSpectateTargetId = null;
     camera.rotation.y = input.yaw;
     camera.rotation.x = effectivePitch;
     camera.rotation.z = slideTiltSmoothed;
-
-    if (!useThirdPersonCamera) {
-      camera.position.set(
-        player.position.x,
-        player.position.y + EYE_HEIGHT + eyeOffsetSmoothed,
-        player.position.z
-      );
-    } else {
-      /**
-       * Wall-Clamped 3rd-Person Over-the-Shoulder Camera Math:
-       * 1. Construct the camera's horizontal right vector orthogonal to yaw forward:
-       *    With Three.js YXZ yaw, forward = (-sin(yaw), 0, -cos(yaw)),
-       *    so right = forward × up(0,1,0) = (cos(yaw), 0, -sin(yaw)).
-       * 2. Place a shoulder anchor 0.48m to the right and 1.68m above feet.
-       * 3. Cast a ray backward along `-lookDir` up to 2.8m against `ARENA_COLLIDERS`
-       *    via `raycastAABB`. Pull the camera forward by 0.25m from any wall hit
-       *    (clamped to at least 0.35m from the shoulder) so walls never occlude the player.
-       */
-      const rightX = Math.cos(input.yaw);
-      const rightZ = -Math.sin(input.yaw);
-      const anchor = {
-        x: player.position.x + rightX * 0.48,
-        y: player.position.y + 1.68 + eyeOffsetSmoothed,
-        z: player.position.z + rightZ * 0.48,
-      };
-
-      const lookDir = getLookDirection(input.yaw, effectivePitch);
-      const backDir = { x: -lookDir.x, y: -lookDir.y, z: -lookDir.z };
-
-      let hitDist = 2.8;
-      for (const box of ARENA_COLLIDERS) {
-        const hit = raycastAABB(anchor, backDir, box, hitDist);
-        if (hit && hit.distance < hitDist) {
-          hitDist = hit.distance;
-        }
-      }
-      const camDist = Math.max(0.35, hitDist - 0.25);
-      camera.position.set(
-        anchor.x + backDir.x * camDist,
-        anchor.y + backDir.y * camDist,
-        anchor.z + backDir.z * camDist
-      );
-    }
+    camera.position.set(
+      player.position.x,
+      player.position.y + EYE_HEIGHT + eyeOffsetSmoothed,
+      player.position.z
+    );
   }
 
   // Step weapon cooldowns, spread, hitscan raycast & tracers (only while player is alive).
@@ -2172,7 +2210,8 @@ function tick(now: number): void {
       feedback.fireRateMultiplier,
       feedback.recoilMultiplier,
       feedback.moveSpreadMultiplier,
-      feedback.eyeHeightOffset
+      feedback.eyeHeightOffset,
+      Boolean(feedback.ignoreAirSpread)
     );
     firedThisFrame = shot.fired;
     fireBufferTimer = shot.fired ? 0 : Math.max(0, fireBufferTimer - dt);
@@ -2281,7 +2320,6 @@ function tick(now: number): void {
     input.yaw = c.yaw;
     input.pitch = c.pitch;
     spectateTargetId = null;
-    lastSpectateTargetId = null;
     switchAgentColor(c.colorId);
     syncWeaponPills(weapon.currentWeaponId);
   }
@@ -2342,7 +2380,7 @@ function tick(now: number): void {
   let crosshairOpacity = 1;
   if (!isAlive) {
     crosshairOpacity = 0;
-  } else if (!thirdPerson && weapon.currentWeaponId !== 'sniper') {
+  } else if (weapon.currentWeaponId !== 'sniper') {
     if (adsBlend > 0.65) {
       crosshairOpacity = 0;
     } else if (adsBlend > 0.25) {

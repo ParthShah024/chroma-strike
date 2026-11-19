@@ -276,20 +276,20 @@
         transform: scale(1.25);
       }
 
-      /* Top center 3v3 scoreboard & round timer */
+      /* Top center 3v3 scoreboard, teammate health & team Ult indicators */
       #hud-top {
         position: fixed;
-        top: 16px;
+        top: 12px;
         left: 50%;
         transform: translateX(-50%);
         display: flex;
         align-items: center;
-        gap: 14px;
-        padding: 7px 16px;
+        gap: 10px;
+        padding: 6px 12px;
         background: var(--bg-glass);
         backdrop-filter: blur(10px);
         border: 1px solid var(--border-glass);
-        border-radius: 10px;
+        border-radius: 11px;
         pointer-events: none;
         z-index: 10;
         font-variant-numeric: tabular-nums;
@@ -298,7 +298,104 @@
       .team-dots {
         display: flex;
         align-items: center;
-        gap: 6px;
+        gap: 5px;
+      }
+
+      .top-agent-card {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 54px;
+        padding: 4px 6px 3px;
+        border-radius: 6px;
+        background: rgba(15, 21, 30, 0.85);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-top: 2.5px solid var(--card-color, #ffffff);
+        transition: opacity 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+      }
+
+      .top-agent-card.is-player {
+        border-color: rgba(255, 255, 255, 0.55);
+        background: rgba(24, 34, 48, 0.92);
+      }
+
+      .top-agent-card.ult-ready {
+        border-color: rgba(250, 204, 21, 0.82);
+        box-shadow: 0 0 10px rgba(250, 204, 21, 0.28);
+      }
+
+      .top-agent-card.ult-active {
+        border-color: #fde047;
+        box-shadow: 0 0 14px rgba(250, 204, 21, 0.55);
+      }
+
+      .top-agent-card.dead {
+        opacity: 0.38;
+        filter: grayscale(0.75);
+        box-shadow: none;
+      }
+
+      .tac-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 4px;
+      }
+
+      .tac-code {
+        font-size: 9px;
+        font-weight: 900;
+        letter-spacing: 0.06em;
+        color: #f1f5f9;
+      }
+
+      .tac-ult {
+        padding: 0 3px;
+        border-radius: 3px;
+        font-size: 7.5px;
+        font-weight: 900;
+        letter-spacing: 0.05em;
+        color: #111827;
+        background: #facc15;
+        line-height: 1.3;
+      }
+
+      .tac-ult.active {
+        background: #fef08a;
+        box-shadow: 0 0 6px #fde047;
+      }
+
+      .tac-hp-track {
+        width: 100%;
+        height: 4px;
+        border-radius: 99px;
+        background: rgba(255, 255, 255, 0.14);
+        overflow: hidden;
+      }
+
+      .tac-hp-fill {
+        height: 100%;
+        background: #22d3ee;
+        transition: width 80ms linear;
+      }
+
+      .tac-hp-fill.low {
+        background: #ff4d6d;
+      }
+
+      .tac-hp-num {
+        font-size: 9px;
+        font-weight: 800;
+        line-height: 1;
+        color: #cbd5e1;
+      }
+
+      .tac-enemy-state {
+        font-size: 8px;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        color: #fda4af;
+        line-height: 1.2;
       }
 
       .agent-dot {
@@ -322,6 +419,23 @@
       .agent-dot[data-color='green'] {
         background: #2ecc71;
         box-shadow: 0 0 8px rgba(46, 204, 113, 0.55);
+      }
+
+      .agent-dot[data-color='cyan'],
+      .pill.active[data-color='cyan'] {
+        --pill-accent: #7ce8ff;
+      }
+
+      .agent-dot[data-color='cyan'] {
+        background: #7ce8ff;
+        box-shadow: 0 0 8px rgba(124, 232, 255, 0.6);
+      }
+
+      .pill.active[data-color='cyan'] {
+        color: #fff;
+        background: rgba(124, 232, 255, 0.24);
+        border-color: #7ce8ff;
+        box-shadow: 0 0 10px rgba(124, 232, 255, 0.45);
       }
 
       .agent-dot.is-player {
@@ -814,9 +928,17 @@
         gap: 8px;
       }
 
-      .settings-bind-btn {
+      .settings-bind-controls {
         grid-column: span 2;
-        padding: 7px 12px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .settings-bind-btn {
+        flex: 1;
+        min-width: 0;
+        padding: 7px 10px;
         border-radius: 7px;
         border: 1px solid rgba(255, 255, 255, 0.2);
         background: rgba(255, 255, 255, 0.06);
@@ -840,6 +962,38 @@
         background: rgba(250, 204, 21, 0.18);
         color: #fef08a;
         box-shadow: 0 0 12px rgba(250, 204, 21, 0.3);
+      }
+
+      .quick-mouse-pills {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        flex-shrink: 0;
+      }
+
+      .quick-mouse-pill {
+        padding: 6px 7px;
+        border-radius: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--text-muted);
+        font: inherit;
+        font-size: 10.5px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        cursor: pointer;
+        transition: border-color 120ms ease, background 120ms ease, color 120ms ease;
+      }
+
+      .quick-mouse-pill:hover {
+        color: #fff;
+        border-color: rgba(255, 255, 255, 0.35);
+      }
+
+      .quick-mouse-pill.active {
+        color: #0d1117;
+        background: var(--accent);
+        border-color: var(--accent);
       }
 
       .settings-danger-btn {
@@ -2464,7 +2618,7 @@
       #agent-card-list {
         display: flex;
         flex-direction: column;
-        gap: 5px;
+        gap: 4px;
         flex-shrink: 0;
       }
 
@@ -2513,7 +2667,7 @@
         flex: 1;
         display: flex;
         flex-direction: column;
-        padding: 7px 11px;
+        padding: 5.5px 10px;
         min-width: 0;
       }
 
@@ -3617,7 +3771,7 @@
 
       #spectator-bar {
         position: fixed;
-        top: 72px;
+        top: 78px;
         left: 50%;
         transform: translateX(-50%);
         padding: 6px 16px;
@@ -3796,7 +3950,7 @@
       <div id="side-badge" class="atk">ATK</div>
       <div class="match-clock-box" id="match-top">
         <div id="round-phase-label">ROUND 1 • BUY</div>
-        <div id="round-clock">15.0s</div>
+        <div id="round-clock">20.0s</div>
         <div id="match-format-label">FT10 • 5 ATK / 5 DEF SWAP</div>
       </div>
       <div id="spike-top-pill" class="hidden">
@@ -3870,6 +4024,7 @@
         <div class="pill" data-color="green">[F3] GREEN</div>
         <div class="pill" data-color="violet">[F4] VIOLET</div>
         <div class="pill" data-color="gold">[F5] GOLD</div>
+        <div class="pill" data-color="cyan">[F6] WINDY</div>
       </div>
       <div class="hud-sep"></div>
       <div class="hud-credits" id="hud-credits">¤ 800</div>
@@ -3897,7 +4052,6 @@
       <div class="hud-hints">
         <div class="hint-chip" id="hint-buy">[B] SHOP</div>
         <div class="hint-chip" id="hint-agents">[H] AGENTS</div>
-        <div class="hint-chip" id="hint-3p">[V] 3P</div>
         <div class="hint-chip" id="hint-settings">[O] SETTINGS</div>
         <div class="hint-chip" id="hint-xhair">[C] XHAIR</div>
         <div class="hint-chip" id="hint-map">[M] MAP</div>
@@ -3947,20 +4101,41 @@
           </label>
           <div class="settings-keybinds-card">
             <div class="settings-keybinds-head">
-              <span class="xhair-section-label" style="margin-bottom: 0;">Ability Keybinds (Keyboard or Mouse 3/4/5)</span>
+              <span class="xhair-section-label" style="margin-bottom: 0;">Ability Keybinds (Key / Mouse 3–5 / Wheel)</span>
               <button type="button" class="xhair-close" id="bind-reset-btn">Reset Defaults</button>
             </div>
             <div class="settings-row">
               <span>Ability 1 (Q)</span>
-              <button type="button" class="settings-bind-btn" id="bind-ability-q">[Q]</button>
+              <div class="settings-bind-controls">
+                <button type="button" class="settings-bind-btn" id="bind-ability-q">[Q]</button>
+                <div class="quick-mouse-pills" aria-label="Quick Mouse Binds for Ability 1">
+                  <button type="button" class="quick-mouse-pill" data-quick-bind="abilityQ" data-bind-code="Mouse3">M3</button>
+                  <button type="button" class="quick-mouse-pill" data-quick-bind="abilityQ" data-bind-code="Mouse4">M4</button>
+                  <button type="button" class="quick-mouse-pill" data-quick-bind="abilityQ" data-bind-code="Mouse5">M5</button>
+                </div>
+              </div>
             </div>
             <div class="settings-row">
               <span>Ability 2 (E)</span>
-              <button type="button" class="settings-bind-btn" id="bind-ability-e">[E]</button>
+              <div class="settings-bind-controls">
+                <button type="button" class="settings-bind-btn" id="bind-ability-e">[E]</button>
+                <div class="quick-mouse-pills" aria-label="Quick Mouse Binds for Ability 2">
+                  <button type="button" class="quick-mouse-pill" data-quick-bind="abilityE" data-bind-code="Mouse3">M3</button>
+                  <button type="button" class="quick-mouse-pill" data-quick-bind="abilityE" data-bind-code="Mouse4">M4</button>
+                  <button type="button" class="quick-mouse-pill" data-quick-bind="abilityE" data-bind-code="Mouse5">M5</button>
+                </div>
+              </div>
             </div>
             <div class="settings-row">
               <span>Ultimate (X)</span>
-              <button type="button" class="settings-bind-btn" id="bind-ability-x">[X]</button>
+              <div class="settings-bind-controls">
+                <button type="button" class="settings-bind-btn" id="bind-ability-x">[X]</button>
+                <div class="quick-mouse-pills" aria-label="Quick Mouse Binds for Ultimate">
+                  <button type="button" class="quick-mouse-pill" data-quick-bind="abilityX" data-bind-code="Mouse3">M3</button>
+                  <button type="button" class="quick-mouse-pill" data-quick-bind="abilityX" data-bind-code="Mouse4">M4</button>
+                  <button type="button" class="quick-mouse-pill" data-quick-bind="abilityX" data-bind-code="Mouse5">M5</button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -4187,7 +4362,7 @@
                 <span class="loss-pip"></span>
               </div>
             </div>
-            <div id="buy-clock">12.0s</div>
+            <div id="buy-clock">20.0s</div>
           </div>
         </div>
 
@@ -4269,7 +4444,7 @@
                 <span class="buy-item-key">6</span>
                 <span>
                   <span class="buy-item-name">Heavy Shield</span><br />
-                  <span class="buy-item-meta">+50 Armor (Smart Upgrade)</span>
+                  <span class="buy-item-meta">+50 Armor Absorption</span>
                 </span>
               </span>
               <span class="buy-item-right">
@@ -4408,7 +4583,7 @@
             <button type="button" class="xhair-close hidden" id="agent-force-start-btn">FORCE START MATCH</button>
           </div>
           <button type="button" id="agent-lockin-btn">LOCK IN <kbd>ENTER</kbd></button>
-          <div class="agent-footnote">[1-5] pick &bull; [&uarr;&darr;] cycle &bull; [&larr;&rarr;] difficulty &bull; [Enter] lock in</div>
+          <div class="agent-footnote">[1-6] pick &bull; [&uarr;&darr;] cycle &bull; [&larr;&rarr;] difficulty &bull; [Enter] lock in</div>
         </div>
       </div>
     </div>
@@ -4420,18 +4595,17 @@
         <div class="overlay-sub">3v3 Search &amp; Destroy — Counter-strafe for 100% first-shot accuracy</div>
         <div class="controls-grid">
           <div class="ctrl-item"><span class="key">WASD / Shift</span> Move / Walk (Slide: Volt)</div>
-          <div class="ctrl-item"><span class="key">Space</span> Jump / Skip Buy</div>
+          <div class="ctrl-item"><span class="key">Space</span> Jump / Windy Glide / Skip Buy</div>
           <div class="ctrl-item"><span class="key">1-4 / Wheel</span> Sidearm / Owned Primary</div>
           <div class="ctrl-item"><span class="key">Right Click</span> Scope / ADS</div>
           <div class="ctrl-item"><span class="key">B</span> Buyout Shop (Buy Phase)</div>
-          <div class="ctrl-item"><span class="key">H / F1-F5</span> Agent Select / Switch</div>
+          <div class="ctrl-item"><span class="key">H / F1-F6</span> Agent Select / Switch</div>
           <div class="ctrl-item"><span class="key">F / G</span> Doors &amp; Spike / Drop</div>
           <div class="ctrl-item"><span class="key">Q / E</span> Tactical Abilities</div>
           <div class="ctrl-item"><span class="key">X</span> Ultimate Ability (5 Pts)</div>
           <div class="ctrl-item"><span class="key">O / C</span> Settings / Crosshair</div>
           <div class="ctrl-item"><span class="key">M</span> 2D Tactical Map / 3D Flyover</div>
           <div class="ctrl-item"><span class="key">Caps / N</span> Tactical Map / Radar</div>
-          <div class="ctrl-item"><span class="key">V</span> 1st/3rd-Person Model View</div>
           <div class="ctrl-item"><span class="key">Tab</span> Bot Takeover</div>
           <div class="ctrl-item"><span class="key">Left Click / R</span> Shoot / Reload</div>
         </div>

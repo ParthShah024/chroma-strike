@@ -307,6 +307,23 @@ $$C_{t+1} = \min\!\Big(9000,\; C_t + R_{\text{round}}(L) + 200\,K + 300\,B_{\tex
 - **Auto-Spectate & Report:** Dead players auto-follow living teammates (`LMB`/`RMB` cycles, `[Tab]` bot takeover), viewing `#combat-report` (`OUT` vs. `IN` damage & hits per opponent) when dead or in `round_end`.
 - **Single-Port `5174` Serving (`0.0.0.0`):** `gameServer.mjs` serves BOTH built `dist/` files AND RFC 6455 WebSockets (`lanUrls` in `/health` + Lobby Copy Link) plus `set_name` & `surrender` relays.
 
+---
+
+# Chapter 11 — Top-Bar Telemetry, Enemy Silhouette Outlines, Agent #6 "Windy", 20s Forward Buy Phase & 1P-Only Polish
+
+## 11.1 Top-Bar Team HP & Ult HUD + `BackSide` Enemy Outline ([characterModel.ts](../src/entities/characterModel.ts), [roundManager.ts](../src/match/roundManager.ts), [main.ts](../src/main.ts))
+- **Information-Clean Viewport:** Removed all floating 3D overhead HP bars, team rings, and armor rims (`healthBarGroup.visible = false`, `teamRing.visible = false`, `teamRimUpperGroup.visible = false`). `MatchHudState` omits enemy `hp` completely: `#hud-top` renders compact **ally agent cards** (live HP bar + numeric HP + Ult `ready`/`active` pill) on the left and **enemy agent cards** (alive/dead status + golden Ult badge, **zero HP**) on the right.
+- **Inverted-Hull Enemy Outline (`0.018 m`):** [`getOrCreateOutlineGeometry`](../src/entities/characterModel.ts) computes smooth averaged vertex normals per unique spatial vertex position so extruded `THREE.BackSide` shells (`#ff223e`, `toneMapped: false`, `fog: false`) wrap seamlessly without cracking on sharp bevels — cached in a module `WeakMap` and attached cleanly to both procedural body parts and shared Blender `.glb` armor nodes (`userData.sharedGlb`).
+
+## 11.2 Agent #6 "Windy", ~10% Slower Base Pacing & Single-Shield Mutual Exclusion ([system.ts](../src/abilities/system.ts), [movement.ts](../src/physics/movement.ts), [economy.ts](../src/match/economy.ts))
+- **Windy (`'cyan'`, Sky Duelist):** [`buildWindyDuelist`](../src/entities/characterModel.ts) adds swept dorsal aero-vanes + floating kunai pins (`windyKitGroup`, preserved on `agent_kayo.glb`). `[Q]` **Updraft** applies `verticalImpulse = 11.8 m/s` (`2/round`), `[E]` **Tailwind Dash** fires a `24.0 m/s` directional burst for `0.22 s` (`2/round`) while suspending gravity so **Updraft -> Dash** chains smoothly mid-air, holding `Space` triggers **Tailwind Drift** (`glideFallSpeed = -2.2 m/s`), and `[X]` **Blade Storm** (`9.0 s`, `5` Pts) grants `ignoreAirSpread = true`, `1.30x` fire rate, `0.45x` recoil, and `+1` Dash + `+2.5 s` extension per kill.
+- **10% Calmer Footwork & Single Shield:** Reduced `RUN_SPEED` `6.2 -> 5.55 m/s` (~`10.5%` slower) and `WALK_SPEED` `3.2 -> 3.0 m/s` across humans and bots. [`buyShield`](../src/match/economy.ts) & [`buyMenu.ts`](../src/ui/buyMenu.ts) enforce strict 1-shield mutual exclusion (buying Light blocks Heavy and vice versa; clicking your same-round shield refunds 100%).
+
+## 11.3 20s Forward Buy Phase (`11` Chokes), 1P-Only Camera & Mouse Bind Reliability ([build_ascent_map.py](../scripts/blender/build_ascent_map.py), [map.ts](../src/arena/map.ts), [settings.ts](../src/ui/settings.ts))
+- **Forward Staging (`BUY_PHASE_DURATION_SEC = 20.0`):** `ascentMapData.ts` defines `12` axis-aware forward Buy-Barrier segments (`axis: 'x' | 'z'`) across `11` Ascent chokes, injected into `ARENA_COLLIDERS` by `syncDynamicColliders()` whenever barriers are active — letting Defenders set up directly on Site A, A Tree, Market, and Site B and Attackers stage at A Lobby, Top-Mid, and B Lobby with `0` opening LoS pairs (`185` colliders, `1,204` waypoints, `100%` BFS).
+- **1P-Only & Mouse Binds:** Removed `[V]` 3P camera mode, switched dead auto-spectate (`spectatedCombatantId`) to true 1st-person POV, and paired capture-phase `pointerdown` / `mousedown` / `pointerup` / `mouseup` / `auxclick` / `wheel` / `BrowserBack` / `BrowserForward` capture in [`settings.ts`](../src/ui/settings.ts) with 1-click `[M3]` `[M4]` `[M5]` quick-bind pills and `35 ms` pointer/mouse deduplication in [`main.ts`](../src/main.ts).
+
+
 
 
 

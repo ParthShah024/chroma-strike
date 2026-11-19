@@ -69,8 +69,8 @@ ARENA_DEPTH_M = 92
 MIN_X, MAX_X = -42.0, 42.0
 MIN_Z, MAX_Z = -46.0, 46.0
 
-BUY_MIN_ALLY_Z = 20.0
-BUY_MAX_DEFENDER_Z = -16.0
+BUY_MIN_ALLY_Z = 4.0
+BUY_MAX_DEFENDER_Z = -8.0
 
 EYE_HEIGHT_M = 1.62
 PLAYER_HEIGHT_M = 1.80
@@ -1350,9 +1350,11 @@ class AscentArchitect:
         self.add_venetian_wall(28.0, 19.75, 41.4, 20.25, 0.0, 5.4, "Mat_PlasterHarbor")
 
         self.buy_barrier_spans.extend([
-            {"x0": -28.0, "x1": -23.0, "z": BUY_MIN_ALLY_Z, "baseY": 0.0, "height": 3.2, "side": "attacker"},
-            {"x0": 3.0, "x1": 8.0, "z": BUY_MIN_ALLY_Z, "baseY": 0.0, "height": 3.2, "side": "attacker"},
-            {"x0": 23.0, "x1": 28.0, "z": BUY_MIN_ALLY_Z, "baseY": 0.0, "height": 3.2, "side": "attacker"},
+            {"axis": "z", "x0": -31.0, "x1": -24.25, "z": 6.0, "baseY": 0.0, "height": 3.4, "side": "attacker"},
+            {"axis": "x", "z0": 6.25, "z1": 9.8, "x": -16.0, "baseY": 0.0, "height": 3.4, "side": "attacker"},
+            {"axis": "z", "x0": -8.0, "x1": -1.5, "z": 12.3, "baseY": 0.0, "height": 3.5, "side": "attacker"},
+            {"axis": "x", "z0": 5.5, "z1": 9.5, "x": 11.5, "baseY": 0.0, "height": 3.4, "side": "attacker"},
+            {"axis": "z", "x0": 24.0, "x1": 30.5, "z": 4.0, "baseY": 0.0, "height": 3.4, "side": "attacker"},
         ])
 
         # --- NORTH CT-SPAWN SANCTUARY (z: -45.4 .. -26.0) ---
@@ -1369,14 +1371,15 @@ class AscentArchitect:
         # Building mass between CT-Mid & Site B North-West
         self.add_solid_building_mass(14.25, -32.5, 17.5, -25.5, 5.6, "Mat_PlasterHarbor", "Mat_Terracotta")
 
-        # Defender Buy-Barrier Spans at exact z = -16.0m across all 6 open lanes
+        # Forward Defender Buy-Barrier Spans (Site A, A Tree, Mid Link, Market Door+Window, Site B, B Lane)
         self.buy_barrier_spans.extend([
-            {"x0": -36.0, "x1": -14.25, "z": BUY_MAX_DEFENDER_Z, "baseY": 0.0, "height": 3.4, "side": "defender"},
-            {"x0": -13.75, "x1": -5.25, "z": BUY_MAX_DEFENDER_Z, "baseY": 0.0, "height": 3.4, "side": "defender"},
-            {"x0": -2.6, "x1": 1.2, "z": BUY_MAX_DEFENDER_Z, "baseY": 0.0, "height": 3.25, "side": "defender"},
-            {"x0": 2.25, "x1": 13.75, "z": BUY_MAX_DEFENDER_Z, "baseY": 0.0, "height": 3.4, "side": "defender"},
-            {"x0": 14.25, "x1": 33.5, "z": BUY_MAX_DEFENDER_Z, "baseY": 0.0, "height": 3.4, "side": "defender"},
-            {"x0": 33.5, "x1": 38.0, "z": BUY_MAX_DEFENDER_Z, "baseY": 0.85, "height": 2.8, "side": "defender"},
+            {"axis": "z", "x0": -30.0, "x1": -25.0, "z": -8.0, "baseY": 0.0, "height": 3.5, "side": "defender"},
+            {"axis": "z", "x0": -11.8, "x1": -7.6, "z": -8.0, "baseY": 0.425, "height": 3.3, "side": "defender"},
+            {"axis": "z", "x0": -2.6, "x1": 1.2, "z": -16.0, "baseY": 0.0, "height": 3.5, "side": "defender"},
+            {"axis": "z", "x0": 2.6, "x1": 6.0, "z": -15.1, "baseY": 0.0, "height": 3.2, "side": "defender"},
+            {"axis": "z", "x0": 7.0, "x1": 11.4, "z": -15.1, "baseY": 1.1, "height": 1.5, "side": "defender"},
+            {"axis": "z", "x0": 24.5, "x1": 30.5, "z": -8.0, "baseY": 0.0, "height": 3.5, "side": "defender"},
+            {"axis": "z", "x0": 33.5, "x1": 38.0, "z": -8.0, "baseY": 0.0, "height": 3.8, "side": "defender"},
         ])
 
     def _build_south_lobbies_and_doglegs(self) -> None:
@@ -2612,12 +2615,39 @@ def detect_coplanar_zfight_overlaps(
     return zfight_overlaps, report_samples
 
 
+def is_attacker_buy_pt(x: float, z: float) -> bool:
+    if z >= 20.0:
+        return True
+    if x <= -16.0 and z >= 6.0:
+        return True
+    if -16.0 < x < 11.5 and z >= 12.3:
+        return True
+    if x >= 11.5 and z >= 4.0:
+        return True
+    return False
+
+
+def is_defender_buy_pt(x: float, z: float) -> bool:
+    if z <= -25.5:
+        return True
+    if x <= -5.0 and z <= -8.0:
+        return True
+    if -5.0 < x <= 1.75 and z <= -16.0:
+        return True
+    if 1.75 < x <= 14.0 and z <= -15.1:
+        return True
+    if x > 14.0 and z <= -8.0:
+        return True
+    return False
+
+
 def run_mandatory_proofs(
     colliders: List[Dict],
     waypoints: List[Dict],
     spawns: Dict,
     sites: Dict,
     doors: List[Dict],
+    buy_barrier_spans: List[Dict],
     glb_path: str,
     total_tris: int,
 ) -> None:
@@ -2678,11 +2708,11 @@ def run_mandatory_proofs(
         nearest_d = min(math.hypot(wp["pos"]["x"] - pt["x"], wp["pos"]["z"] - pt["z"]) for wp in waypoints if wp["pos"]["y"] < 0.5)
         assert nearest_d <= 2.8, f"Key point {label} too far ({nearest_d:.2f}m) from ground waypoint!"
 
-    # 2. Mandatory Proof: 0 Opening-Round Line-of-Sight Pairs between South (z >= +20) & North (z <= -16) Buy Zones!
-    south_wps = [wp for wp in waypoints if wp["pos"]["z"] >= spawns["buyMinAllyZ"]]
-    north_wps = [wp for wp in waypoints if wp["pos"]["z"] <= spawns["buyMaxDefenderZ"]]
+    # 2a. Mandatory Proof: 0 Opening-Round Line-of-Sight Pairs between South T-Spawn & North CT-Spawn!
+    south_wps = [wp for wp in waypoints if wp["pos"]["z"] >= 20.0]
+    north_wps = [wp for wp in waypoints if wp["pos"]["z"] <= -26.0]
     assert len(south_wps) >= 20, f"Expected >=20 South buy waypoints, got {len(south_wps)}"
-    assert len(north_wps) >= 40, f"Expected >=40 North buy waypoints, got {len(north_wps)}"
+    assert len(north_wps) >= 30, f"Expected >=30 North buy waypoints, got {len(north_wps)}"
 
     wall_colliders = [c for c in colliders if c["tag"] in ("wall", "cover", "floor") and c["max"]["y"] > 0.05]
     opening_los_pairs = 0
@@ -2706,6 +2736,52 @@ def run_mandatory_proofs(
                     first_leak = (ws["pos"], wn["pos"])
 
     assert opening_los_pairs == 0, f"OPENING LOS LEAK ({opening_los_pairs} pairs)! First leak: {first_leak}"
+
+    # 2b. Verify forward Buy-Phase Barriers block ALL LoS between Attacker & Defender setup zones!
+    barrier_colliders = []
+    for sp in buy_barrier_spans:
+        axis = sp.get("axis", "z")
+        by0 = sp["baseY"]
+        by1 = sp["baseY"] + max(sp["height"], 4.5)
+        if axis == "x":
+            cx = sp["x"]
+            barrier_colliders.append({
+                "min": {"x": cx - 0.2, "y": by0, "z": sp["z0"]},
+                "max": {"x": cx + 0.2, "y": by1, "z": sp["z1"]},
+            })
+        else:
+            cz = sp["z"]
+            barrier_colliders.append({
+                "min": {"x": sp["x0"], "y": by0, "z": cz - 0.2},
+                "max": {"x": sp["x1"], "y": by1, "z": cz + 0.2},
+            })
+
+    atk_buy_wps = [wp for wp in waypoints if is_attacker_buy_pt(wp["pos"]["x"], wp["pos"]["z"])]
+    def_buy_wps = [wp for wp in waypoints if is_defender_buy_pt(wp["pos"]["x"], wp["pos"]["z"])]
+    buy_occluders = wall_colliders + barrier_colliders
+    barrier_los_pairs = 0
+    first_barrier_leak = None
+    for ws in atk_buy_wps:
+        ox, oy, oz = ws["pos"]["x"], ws["pos"]["y"] + EYE_HEIGHT_M, ws["pos"]["z"]
+        for wn in def_buy_wps:
+            tx, ty, tz = wn["pos"]["x"], wn["pos"]["y"] + EYE_HEIGHT_M, wn["pos"]["z"]
+            vx, vy, vz = tx - ox, ty - oy, tz - oz
+            dist = math.sqrt(vx * vx + vy * vy + vz * vz)
+            inv = 1.0 / dist
+            dx, dy, dz = vx * inv, vy * inv, vz * inv
+            blocked = False
+            for box in buy_occluders:
+                if raycast_aabb(ox, oy, oz, dx, dy, dz, box, dist - 0.05) is not None:
+                    blocked = True
+                    break
+            if not blocked:
+                barrier_los_pairs += 1
+                if first_barrier_leak is None:
+                    first_barrier_leak = (ws["pos"], wn["pos"])
+
+    assert barrier_los_pairs == 0, (
+        f"BUY BARRIER LOS LEAK ({barrier_los_pairs} pairs)! First leak: {first_barrier_leak}"
+    )
 
     # 3. Verify Market & Boathouse Windows have clear shoot-through rays at y = 1.62m!
     for wname, (rx0, ry0, rz0), (rx1, ry1, rz1) in [
@@ -2854,9 +2930,13 @@ export interface AscentDoorDef {{
 }}
 
 export interface AscentBuyBarrierSpan {{
-  x0: number;
-  x1: number;
-  z: number;
+  axis?: 'z' | 'x';
+  x0?: number;
+  x1?: number;
+  z?: number;
+  z0?: number;
+  z1?: number;
+  x?: number;
   baseY: number;
   height: number;
   side: 'attacker' | 'defender';
@@ -2984,6 +3064,7 @@ def main() -> None:
         spawns=spawns,
         sites=bomb_sites,
         doors=arch.doors,
+        buy_barrier_spans=arch.buy_barrier_spans,
         glb_path=GLB_OUT_PATH,
         total_tris=total_tris,
     )

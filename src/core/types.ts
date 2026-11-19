@@ -13,9 +13,9 @@
  *    on a Node/Edge authoritative server without a WebGL context.
  */
 
-export type AgentColorId = 'red' | 'blue' | 'green' | 'violet' | 'gold';
+export type AgentColorId = 'red' | 'blue' | 'green' | 'violet' | 'gold' | 'cyan';
 
-export const AGENT_ORDER: readonly AgentColorId[] = ['red', 'blue', 'green', 'violet', 'gold'];
+export const AGENT_ORDER: readonly AgentColorId[] = ['red', 'blue', 'green', 'violet', 'gold', 'cyan'];
 
 export type AiDifficulty = 'casual' | 'tactical' | 'pro';
 
@@ -62,6 +62,13 @@ export const AGENT_PALETTES: Record<AgentColorId, AgentPalette> = {
     role: 'Duelist',
     hex: 0xfacc15,
     css: '#facc15',
+  },
+  cyan: {
+    id: 'cyan',
+    name: 'Windy (Sky)',
+    role: 'Duelist',
+    hex: 0x7ce8ff,
+    css: '#7ce8ff',
   },
 };
 
@@ -205,7 +212,10 @@ export type AbilityAudioEvent =
   | 'ult_mist'
   | 'ult_pulse'
   | 'ult_umbra'
-  | 'ult_volt';
+  | 'ult_volt'
+  | 'wind_updraft'
+  | 'wind_dash'
+  | 'ult_windy';
 
 /** Immutable static specification for one agent ability slot. */
 export interface AbilitySpec {
@@ -230,6 +240,8 @@ export interface MovementModifiers {
   suppressJump?: boolean;
   externalVelocity?: Vec3;
   slideActive?: boolean;
+  verticalImpulse?: number;
+  glideFallSpeed?: number;
 }
 
 export type ProjectileKind =
@@ -310,6 +322,8 @@ export interface AbilityFrameFeedback {
   eHud: AbilityHudSlotState;
   xHud?: AbilityHudSlotState;
   ultRevealActive?: boolean;
+  ignoreAirSpread?: boolean;
+  windDashAlpha?: number;
 }
 
 // ============================================================================
@@ -421,8 +435,28 @@ export interface MatchHudState {
   phaseTimerSec: number;
   allyScore: number;
   enemyScore: number;
-  allyStates: Array<{ colorId: AgentColorId; alive: boolean; isPlayer: boolean; hp: number }>;
-  enemyStates: Array<{ colorId: AgentColorId; alive: boolean; hp: number }>;
+  allyStates: Array<{
+    id: string;
+    colorId: AgentColorId;
+    displayName: string;
+    alive: boolean;
+    isPlayer: boolean;
+    hp: number;
+    maxHp: number;
+    armor: number;
+    ultPoints: number;
+    maxUltPoints: number;
+    ultReady: boolean;
+    ultActive: boolean;
+  }>;
+  enemyStates: Array<{
+    id: string;
+    colorId: AgentColorId;
+    displayName: string;
+    alive: boolean;
+    ultReady: boolean;
+    ultActive: boolean;
+  }>;
   bannerTitle: string | null;
   bannerSubtitle: string | null;
   canTakeoverBot: boolean;
@@ -440,6 +474,8 @@ export interface MatchHudState {
   shieldTier?: ShieldTier;
   canRefundWeapon?: boolean;
   refundableWeaponCost?: number;
+  boughtArmorThisRound?: boolean;
+  refundableArmorCost?: number;
   allyEconomy?: Array<{
     id: string;
     colorId: AgentColorId;

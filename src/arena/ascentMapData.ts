@@ -51,9 +51,13 @@ export interface AscentDoorDef {
 }
 
 export interface AscentBuyBarrierSpan {
-  x0: number;
-  x1: number;
-  z: number;
+  axis?: 'z' | 'x';
+  x0?: number;
+  x1?: number;
+  z?: number;
+  z0?: number;
+  z1?: number;
+  x?: number;
   baseY: number;
   height: number;
   side: 'attacker' | 'defender';
@@ -2622,80 +2626,116 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "y": 0.05,
       "z": 33.0
     },
-    "buyMinAllyZ": 20.0,
-    "buyMaxDefenderZ": -16.0
+    "buyMinAllyZ": 4.0,
+    "buyMaxDefenderZ": -8.0
   },
   "buyBarrierSpans": [
     {
-      "x0": -28.0,
-      "x1": -23.0,
-      "z": 20.0,
-      "baseY": 0.0,
-      "height": 3.2,
-      "side": "attacker"
-    },
-    {
-      "x0": 3.0,
-      "x1": 8.0,
-      "z": 20.0,
-      "baseY": 0.0,
-      "height": 3.2,
-      "side": "attacker"
-    },
-    {
-      "x0": 23.0,
-      "x1": 28.0,
-      "z": 20.0,
-      "baseY": 0.0,
-      "height": 3.2,
-      "side": "attacker"
-    },
-    {
-      "x0": -36.0,
-      "x1": -14.25,
-      "z": -16.0,
+      "axis": "z",
+      "x0": -31.0,
+      "x1": -24.25,
+      "z": 6.0,
       "baseY": 0.0,
       "height": 3.4,
+      "side": "attacker"
+    },
+    {
+      "axis": "x",
+      "z0": 6.25,
+      "z1": 9.8,
+      "x": -16.0,
+      "baseY": 0.0,
+      "height": 3.4,
+      "side": "attacker"
+    },
+    {
+      "axis": "z",
+      "x0": -8.0,
+      "x1": -1.5,
+      "z": 12.3,
+      "baseY": 0.0,
+      "height": 3.5,
+      "side": "attacker"
+    },
+    {
+      "axis": "x",
+      "z0": 5.5,
+      "z1": 9.5,
+      "x": 11.5,
+      "baseY": 0.0,
+      "height": 3.4,
+      "side": "attacker"
+    },
+    {
+      "axis": "z",
+      "x0": 24.0,
+      "x1": 30.5,
+      "z": 4.0,
+      "baseY": 0.0,
+      "height": 3.4,
+      "side": "attacker"
+    },
+    {
+      "axis": "z",
+      "x0": -30.0,
+      "x1": -25.0,
+      "z": -8.0,
+      "baseY": 0.0,
+      "height": 3.5,
       "side": "defender"
     },
     {
-      "x0": -13.75,
-      "x1": -5.25,
-      "z": -16.0,
-      "baseY": 0.0,
-      "height": 3.4,
+      "axis": "z",
+      "x0": -11.8,
+      "x1": -7.6,
+      "z": -8.0,
+      "baseY": 0.425,
+      "height": 3.3,
       "side": "defender"
     },
     {
+      "axis": "z",
       "x0": -2.6,
       "x1": 1.2,
       "z": -16.0,
       "baseY": 0.0,
-      "height": 3.25,
+      "height": 3.5,
       "side": "defender"
     },
     {
-      "x0": 2.25,
-      "x1": 13.75,
-      "z": -16.0,
+      "axis": "z",
+      "x0": 2.6,
+      "x1": 6.0,
+      "z": -15.1,
       "baseY": 0.0,
-      "height": 3.4,
+      "height": 3.2,
       "side": "defender"
     },
     {
-      "x0": 14.25,
-      "x1": 33.5,
-      "z": -16.0,
+      "axis": "z",
+      "x0": 7.0,
+      "x1": 11.4,
+      "z": -15.1,
+      "baseY": 1.1,
+      "height": 1.5,
+      "side": "defender"
+    },
+    {
+      "axis": "z",
+      "x0": 24.5,
+      "x1": 30.5,
+      "z": -8.0,
       "baseY": 0.0,
-      "height": 3.4,
+      "height": 3.5,
       "side": "defender"
     },
     {
+      "axis": "z",
       "x0": 33.5,
       "x1": 38.0,
-      "z": -16.0,
-      "baseY": 0.85,
-      "height": 2.8,
+      "z": -8.0,
+      "baseY": 0.0,
+      "height": 3.8,
       "side": "defender"
     }
   ],

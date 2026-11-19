@@ -169,8 +169,28 @@ let barrierGroup: THREE.Group | null = null;
 let shatterGroup: THREE.Group | null = null;
 let barriersVisible = false;
 
-/** Synchronizes dynamic `'closed'` Blast Door AABBs into `ARENA_COLLIDERS` in-place. */
-function syncDoorColliders(): void {
+/**
+ * Returns `true` when `(x, z)` lies inside a side's forward Buy-Phase setup region
+ * behind the 11 Valorant-style forward choke barriers.
+ */
+export function isInsideBuyZone(x: number, z: number, side: 'attacker' | 'defender'): boolean {
+  if (side === 'attacker') {
+    if (z >= 20.0) return true;
+    if (x <= -16.0 && z >= 6.0) return true;
+    if (x > -16.0 && x < 11.5 && z >= 12.3) return true;
+    if (x >= 11.5 && z >= 4.0) return true;
+    return false;
+  }
+  if (z <= -25.5) return true;
+  if (x <= -5.0 && z <= -8.0) return true;
+  if (x > -5.0 && x <= 1.75 && z <= -16.0) return true;
+  if (x > 1.75 && x <= 14.0 && z <= -15.1) return true;
+  if (x > 14.0 && z <= -8.0) return true;
+  return false;
+}
+
+/** Synchronizes dynamic `'closed'` Blast Doors & active Buy-Phase barriers into `ARENA_COLLIDERS` in-place. */
+function syncDynamicColliders(): void {
   ARENA_COLLIDERS.length = staticColliderCount;
   for (const d of doorStates) {
     if (d.status === 'closed') {
@@ -183,9 +203,35 @@ function syncDoorColliders(): void {
       });
     }
   }
+  if (barriersVisible) {
+    for (const span of ASCENT_MAP_DATA.buyBarrierSpans) {
+      const axis = span.axis ?? 'z';
+      const minY = span.baseY;
+      const maxY = span.baseY + Math.max(span.height, 4.5);
+      if (axis === 'x') {
+        const cx = span.x ?? 0;
+        const z0 = span.z0 ?? 0;
+        const z1 = span.z1 ?? 0;
+        ARENA_COLLIDERS.push({
+          min: { x: cx - 0.18, y: minY, z: Math.min(z0, z1) },
+          max: { x: cx + 0.18, y: maxY, z: Math.max(z0, z1) },
+          tag: 'wall',
+        });
+      } else {
+        const cz = span.z ?? 0;
+        const x0 = span.x0 ?? 0;
+        const x1 = span.x1 ?? 0;
+        ARENA_COLLIDERS.push({
+          min: { x: Math.min(x0, x1), y: minY, z: cz - 0.18 },
+          max: { x: Math.max(x0, x1), y: maxY, z: cz + 0.18 },
+          tag: 'wall',
+        });
+      }
+    }
+  }
 }
 
-syncDoorColliders();
+syncDynamicColliders();
 
 /** Default South (`+Z`) human player spawn: central Attacker pad. */
 export const PLAYER_SPAWN: Vec3 = cloneVec3(ASCENT_MAP_DATA.spawns.allies[1]);
@@ -373,7 +419,7 @@ export function resetArenaDoors(): void {
     d.hitFlashTimer = 0;
     applyDoorVisualState(d);
   }
-  syncDoorColliders();
+  syncDynamicColliders();
 }
 
 export function toggleArenaDoor(doorId: string): 'closed' | 'open' | null {
@@ -381,7 +427,7 @@ export function toggleArenaDoor(doorId: string): 'closed' | 'open' | null {
   if (!d || d.status === 'broken') return null;
 
   d.status = d.status === 'open' ? 'closed' : 'open';
-  syncDoorColliders();
+  syncDynamicColliders();
   applyDoorVisualState(d);
   return d.status;
 }
@@ -402,7 +448,7 @@ export function damageArenaDoor(
   if (d.hp <= 0) {
     d.hp = 0;
     d.status = 'broken';
-    syncDoorColliders();
+    syncDynamicColliders();
     spawnDoorShatterShards(d);
     applyDoorVisualState(d);
     return { hit: true, broken: true, remainingHp: 0 };
@@ -818,15 +864,15 @@ function bindLoadedAscentGlb(gltfRoot: THREE.Group, fallbackGroup: THREE.Group):
 }
 
 /**
- * Translucent animated hex-grid Buy-Phase Setup Barriers across all Attacker
- * (`z = +20m`) and Defender (`z = -16m`) openings using `getBuyBarrierTexture()`.
+ * Translucent animated hex-grid Buy-Phase Setup Barriers across all 11 Valorant-style
+ * Attacker & Defender forward chokes using `getBuyBarrierTexture()`.
  */
 function buildBuyBarriers(): THREE.Group {
   const group = new THREE.Group();
   group.name = 'buy-phase-barriers';
   const hex = getBuyBarrierTexture();
   const uvRepeatM = 1.6;
-  const baseOpacity = hex.map ? 0.62 : 0.32;
+  const baseOpacity = hex.map ? 0.78 : 0.45;
 
   const sideMatByTeam: Record<'attacker' | 'defender', THREE.MeshBasicMaterial> = {
     attacker: new THREE.MeshBasicMaterial({
@@ -863,18 +909,60 @@ function buildBuyBarriers(): THREE.Group {
     const t = nowSeconds();
     if (t === lastAnimTime) return;
     lastAnimTime = t;
-    sideMatByTeam.attacker.opacity = baseOpacity * (0.82 + 0.18 * Math.sin(t * 2.4));
-    sideMatByTeam.defender.opacity = baseOpacity * (0.82 + 0.18 * Math.sin(t * 2.4 + 1.7));
+    sideMatByTeam.attacker.opacity = baseOpacity * (0.86 + 0.14 * Math.sin(t * 2.4));
+    sideMatByTeam.defender.opacity = baseOpacity * (0.86 + 0.14 * Math.sin(t * 2.4 + 1.7));
     if (hex.map) hex.map.offset.set((t * 0.015) % 1, (t * 0.11) % 1);
     if (hex.alphaMap && hex.map) hex.alphaMap.offset.copy(hex.map.offset);
   };
 
   ASCENT_MAP_DATA.buyBarrierSpans.forEach((span) => {
-    const w = Math.max(0.2, span.x1 - span.x0 - 0.06);
+    const axis = span.axis ?? 'z';
     const h = span.height;
-    const cx = (span.x0 + span.x1) * 0.5;
     const curtainMat = sideMatByTeam[span.side];
     const railMat = railMats[span.side];
+
+    if (axis === 'x') {
+      const cx = span.x ?? 0;
+      const zMin = Math.min(span.z0 ?? 0, span.z1 ?? 0);
+      const zMax = Math.max(span.z0 ?? 0, span.z1 ?? 0);
+      const w = Math.max(0.2, zMax - zMin - 0.06);
+      const cz = (zMin + zMax) * 0.5;
+
+      const geo = new THREE.PlaneGeometry(w, h);
+      const uv = geo.getAttribute('uv');
+      for (let i = 0; i < uv.count; i++) {
+        uv.setXY(i, (uv.getX(i) * w) / uvRepeatM, (uv.getY(i) * h) / uvRepeatM);
+      }
+      uv.needsUpdate = true;
+
+      const curtain = new THREE.Mesh(geo, curtainMat);
+      curtain.rotation.y = Math.PI / 2;
+      curtain.position.set(cx, span.baseY + h * 0.5, cz);
+      curtain.renderOrder = 7;
+      curtain.onBeforeRender = animateBarriers;
+      group.add(curtain);
+
+      const floorBar = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.05, w), railMat);
+      floorBar.position.set(cx, span.baseY + 0.042, cz);
+      group.add(floorBar);
+
+      const topBar = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.05, w), railMat);
+      topBar.position.set(cx, span.baseY + h - 0.025, cz);
+      group.add(topBar);
+
+      for (const postZ of [zMin + 0.05, zMax - 0.05]) {
+        const post = new THREE.Mesh(new THREE.BoxGeometry(0.11, h, 0.08), railMat);
+        post.position.set(cx, span.baseY + h * 0.5, postZ);
+        group.add(post);
+      }
+      return;
+    }
+
+    const cz = span.z ?? 0;
+    const xMin = Math.min(span.x0 ?? 0, span.x1 ?? 0);
+    const xMax = Math.max(span.x0 ?? 0, span.x1 ?? 0);
+    const w = Math.max(0.2, xMax - xMin - 0.06);
+    const cx = (xMin + xMax) * 0.5;
 
     const geo = new THREE.PlaneGeometry(w, h);
     const uv = geo.getAttribute('uv');
@@ -884,52 +972,33 @@ function buildBuyBarriers(): THREE.Group {
     uv.needsUpdate = true;
 
     const curtain = new THREE.Mesh(geo, curtainMat);
-    curtain.position.set(cx, span.baseY + h * 0.5, span.z);
+    curtain.position.set(cx, span.baseY + h * 0.5, cz);
     curtain.renderOrder = 7;
     curtain.onBeforeRender = animateBarriers;
     group.add(curtain);
 
     // Emitter floor strip (bottom strictly above 0.016m inlays) & side posts framing each barrier span
     const floorBar = new THREE.Mesh(new THREE.BoxGeometry(w, 0.05, 0.12), railMat);
-    floorBar.position.set(cx, span.baseY + 0.042, span.z);
+    floorBar.position.set(cx, span.baseY + 0.042, cz);
     group.add(floorBar);
 
     const topBar = new THREE.Mesh(new THREE.BoxGeometry(w, 0.05, 0.1), railMat);
-    topBar.position.set(cx, span.baseY + h - 0.025, span.z);
+    topBar.position.set(cx, span.baseY + h - 0.025, cz);
     group.add(topBar);
 
-    for (const postX of [span.x0 + 0.05, span.x1 - 0.05]) {
+    for (const postX of [xMin + 0.05, xMax - 0.05]) {
       const post = new THREE.Mesh(new THREE.BoxGeometry(0.08, h, 0.11), railMat);
-      post.position.set(postX, span.baseY + h * 0.5, span.z);
+      post.position.set(postX, span.baseY + h * 0.5, cz);
       group.add(post);
     }
   });
-
-  // Subtle floor fence lines across spawns (raised cleanly above 0.016m floor inlays)
-  for (const [zLine, hexCol] of [
-    [ASCENT_MAP_DATA.spawns.buyMinAllyZ, COLOR_BARRIER_ATTACK],
-    [ASCENT_MAP_DATA.spawns.buyMaxDefenderZ, COLOR_BARRIER_DEFEND],
-  ] as const) {
-    const lineGeo = new THREE.BufferGeometry().setAttribute(
-      'position',
-      new THREE.Float32BufferAttribute([-38, 0.022, zLine, 38, 0.022, zLine], 3)
-    );
-    const lineMat = new THREE.LineBasicMaterial({
-      color: hexCol,
-      transparent: true,
-      opacity: 0.45,
-      depthWrite: false,
-    });
-    const line = new THREE.LineSegments(lineGeo, lineMat);
-    line.renderOrder = 3;
-    group.add(line);
-  }
 
   return group;
 }
 
 export function setArenaBuyBarriersVisible(visible: boolean): void {
   barriersVisible = visible;
+  syncDynamicColliders();
   if (!arenaRoot) return;
   if (!barrierGroup) {
     barrierGroup = buildBuyBarriers();
