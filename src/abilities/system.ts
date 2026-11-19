@@ -74,10 +74,10 @@ export interface AbilitySystem {
 
 // Red — Blaze (Duelist)
 const DASH_DURATION_SEC = 0.24;
-const DASH_PEAK_SPEED_MPS = 30.0;
-const DASH_END_SPEED_MPS = RUN_SPEED; // 8.2 m/s seamless handoff into ground sprint
+const DASH_PEAK_SPEED_MPS = 21.0;
+const DASH_END_SPEED_MPS = RUN_SPEED; // 6.2 m/s seamless handoff into ground sprint
 const BOT_DASH_DURATION_SEC = 0.22;
-const BOT_DASH_SPEED_MPS = 24.0;
+const BOT_DASH_SPEED_MPS = 17.5;
 const DASH_TRAIL_DURATION_SEC = 0.34;
 const DASH_TUNNEL_STREAK_COUNT = 14;
 
@@ -166,12 +166,12 @@ const VORTEX_PARTICLE_COUNT = 32;
 
 // Gold — Volt (Neon-Style Electric Duelist)
 const OVERDRIVE_DURATION_SEC = 4.5;
-const OVERDRIVE_SPEED_MULT = 1.45;
+const OVERDRIVE_SPEED_MULT = 1.3;
 const SLIDE_DURATION_SEC = 0.55;
-const SLIDE_PEAK_SPEED_MPS = 14.2;
-const SLIDE_END_SPEED_MPS = 7.8;
+const SLIDE_PEAK_SPEED_MPS = 10.5;
+const SLIDE_END_SPEED_MPS = 6.0;
 const SLIDE_LOCKOUT_SEC = 2.2;
-const SLIDE_SPRINT_THRESHOLD_MPS = 5.0;
+const SLIDE_SPRINT_THRESHOLD_MPS = 3.8;
 const SLIDE_EYE_HEIGHT_OFFSET = -0.68;
 const SLIDE_RECOIL_MULT = 0.72;
 
@@ -214,7 +214,7 @@ const PULSE_ULT_DURATION_SEC = 6.5;
 const PULSE_ULT_WAVE_TIMES: readonly number[] = [0.0, 2.2, 4.4];
 const PULSE_ULT_WAVE_DURATION_SEC = 1.9;
 const PULSE_ULT_WAVE_MAX_RADIUS = 56.0;
-const PULSE_ULT_TEAM_SPEED_MULT = 1.15;
+const PULSE_ULT_TEAM_SPEED_MULT = 1.1;
 
 // Violet (Umbra) [X] — Eclipse Curtain
 const UMBRA_ULT_DURATION_SEC = 9.0;
@@ -225,7 +225,7 @@ const UMBRA_ULT_CLAMP_Z = ARENA_DEPTH_M * 0.5 - 1.0;
 
 // Gold (Volt) [X] — Thunderstorm
 const VOLT_ULT_DURATION_SEC = 7.5;
-const VOLT_ULT_SPEED_MULT = 1.5;
+const VOLT_ULT_SPEED_MULT = 1.36;
 const VOLT_ULT_SLIDE_LOCKOUT_SEC = 0.6;
 const VOLT_ULT_ZAP_RADIUS_M = 8.5;
 const VOLT_ULT_ZAP_INTERVAL_SEC = 0.55;

@@ -274,4 +274,21 @@ $$C_{t+1} = \min\!\Big(9000,\; C_t + R_{\text{round}}(L) + 200\,K + 300\,B_{\tex
 - **Breakable Blast Doors (`a_tree`, `b_market`, `400 HP`):** Open each round (`resetArenaDoors()`); `[F]` near switches (yielding strictly to Spike plant/defuse) slides panels over `0.6 s` and mutates `ARENA_COLLIDERS` in-place; gunfire/bots shatter closed shutters at `0 HP` into 20 metal shards.
 - **Tactical Viewers:** Retired `mapEditor.ts`; `[M]` opens [`mapViewer.ts`](../src/ui/mapViewer.ts) (live fullscreen **3D Orbit Viewer** w/ 7 presets, projected callouts & door test toggles + **`2×` DPR 2D Vector Blueprint** w/ drag LoS/distance ruler); [`minimap.ts`](../src/ui/minimap.ts) delivers **Rotating Player-Centered Radar** (`[N]` Fixed toggle) and **`[CapsLock]` Full Tactical Overlay** (`480 × 520` CSS / `960 × 1040` buffer).
 
+---
+
+# Chapter 9 — 6-Player WebSocket Lobby, 1:1 Ascent Replica, Large 2D Map, Settings Suite & Tactical Pacing
+
+## 9.1 Zero-Dependency 6-Player RFC 6455 Server & Lobby -> Agent Select Flow ([server/gameServer.mjs](../server/gameServer.mjs), [multiplayer.ts](../src/net/multiplayer.ts), [lobby.ts](../src/ui/lobby.ts))
+- **Built-In Node WebSocket Server (`port 5174`):** Implements RFC 6455 handshakes & framing (`<=125`, `126`, `127` payload lengths) plus `GET /health` using pure `node:http` & `node:crypto`, enforcing hard `MAX_PLAYERS = 6` (`SERVER_FULL` + close `4000` on 7th client) and `MAX_PER_TEAM = 3` (`TEAM_FULL`) with both `'end'` and `'close'` cleanup on `allowHalfOpen` sockets.
+- **Lobby -> Agent Select -> Match:** Players pick **Attackers** or **Defenders** (`1..6` humans with AI bot auto-fill) and start into an overlap-free [`agentSelect.ts`](../src/ui/agentSelect.ts) (`body.in-frontend` hides gameplay HUD; compact `flex-shrink: 0` cards + dedicated `#agent-loadout-box`). Seamless `2.5 s` offline fallback keeps solo local play working via the same screens.
+
+## 9.2 Near 1:1 Blender Ascent, Large 2D Map `[M]` & Unified Settings `[O]` ([build_ascent_map.py](../scripts/blender/build_ascent_map.py), [mapViewer.ts](../src/ui/mapViewer.ts), [settings.ts](../src/ui/settings.ts))
+- Upgraded [`ascent_map.glb`](../public/models/ascent_map.glb) (`2,563,224 bytes`, `35,540` tris) & [`ascentMapData.ts`](../src/arena/ascentMapData.ts) (`182` colliders, `1,204` `100%`-BFS waypoints, `0` opening LoS pairs): added sculpted 3D **A Tree** olive tree + pergola + **A Tree <-> CT/Heaven** connector, deepened arched **A Wine**, **A Lobby <-> Mid Tiles**, interior **A Hell** crates, **Mid Subroza** cubby, **B Logs**, **B Boat House** wooden dock + bollards, and skyline Venetian palazzos.
+- `[M]` opens by default as a large **`620 × 680 px`** (`2×` DPR) 2D Valorant top-down tactical blueprint (`[3D FLYOVER]` secondary button). `[O]` opens [`settings.ts`](../src/ui/settings.ts) (`Controls`, `Crosshair` `[C]`, `Video & Minimap`, `Audio` master gain/mute, `Match` defaults).
+
+## 9.3 5/5 Side Swap (First to 10) & Calm Tactical Pacing ([roundManager.ts](../src/match/roundManager.ts), [movement.ts](../src/physics/movement.ts), [botBrain.ts](../src/ai/botBrain.ts))
+- `WINS_TO_WIN_MATCH = 10` (`10` or `6` selectable) with recurring side swaps every `SWAP_INTERVAL_ROUNDS = 5` rounds (`800¤` & `2/5` Ult reset) and deliberate timers (`15 s` buy / `100 s` combat / `45 s` post-plant).
+- Tuned movement (`RUN_SPEED = 6.2 m/s`, `WALK_SPEED = 3.2 m/s`), scaled ability dashes/sprints, and calmed `DIFFICULTY_PROFILES` (`0.58 s` Casual / `0.38 s` Tactical / `0.24 s` Pro) for crisp, readable tactical fights.
+
+
 

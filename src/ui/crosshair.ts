@@ -54,6 +54,12 @@ const PRESETS: Record<'pro-dot' | 'classic' | 'dynamic', CrosshairSettings> = {
   },
 };
 
+export interface CrosshairOpenDelegate {
+  open?: () => void;
+  close?: () => void;
+  isOpen?: () => boolean;
+}
+
 export interface CrosshairController {
   getSettings(): CrosshairSettings;
   isOpen(): boolean;
@@ -61,6 +67,9 @@ export interface CrosshairController {
   close(): void;
   toggle(): boolean;
   setOnClose(cb: () => void): void;
+  setModalDelegate(delegate: CrosshairOpenDelegate | null): void;
+  syncControls(): void;
+  resetDefaults(): void;
   applyFrame(spreadRad: number, agentCssColor: string, isScopedSniper: boolean): void;
 }
 
@@ -156,43 +165,65 @@ function applyVariablesToElement(
   el.classList.toggle('show-lines', settings.lineLengthPx > 0);
 }
 
+function safeGetEl<T extends HTMLElement>(id: string): T | null {
+  if (typeof document === 'undefined') return null;
+  return document.getElementById(id) as T | null;
+}
+
 /**
  * Creates the reactive crosshair controller and binds all interactive controls
- * inside `#crosshair-modal` (presets, color swatches, sliders, toggles, live preview).
+ * inside `#xhair-controls-mount` (hosted in Settings) or legacy `#crosshair-modal`
+ * (presets, color swatches, sliders, toggles, live preview).
  */
 export function createCrosshairController(): CrosshairController {
   let settings: CrosshairSettings = loadSettings();
   let openState = false;
   let lastAgentColor = '#ff3b5c';
   let onCloseCallback: (() => void) | null = null;
+  let modalDelegate: CrosshairOpenDelegate | null = null;
 
-  const crosshairEl = document.getElementById('crosshair') as HTMLDivElement | null;
-  const modalEl = document.getElementById('crosshair-modal') as HTMLDivElement | null;
-  const previewCrosshairEl = document.getElementById('xhair-preview-crosshair') as HTMLDivElement | null;
-  const closeBtn = document.getElementById('xhair-close-btn') as HTMLButtonElement | null;
+  const crosshairEl = safeGetEl<HTMLDivElement>('crosshair');
+  const modalEl = safeGetEl<HTMLDivElement>('crosshair-modal');
+  const mountEl = safeGetEl<HTMLElement>('xhair-controls-mount');
+  const previewCrosshairEl = safeGetEl<HTMLDivElement>('xhair-preview-crosshair');
+  const closeBtn = safeGetEl<HTMLButtonElement>('xhair-close-btn');
 
-  const centerDotInput = document.getElementById('xhair-center-dot') as HTMLInputElement | null;
-  const outlineInput = document.getElementById('xhair-outline') as HTMLInputElement | null;
-  const dynamicSpreadInput = document.getElementById('xhair-dynamic-spread') as HTMLInputElement | null;
+  const centerDotInput = safeGetEl<HTMLInputElement>('xhair-center-dot');
+  const outlineInput = safeGetEl<HTMLInputElement>('xhair-outline');
+  const dynamicSpreadInput = safeGetEl<HTMLInputElement>('xhair-dynamic-spread');
 
-  const dotSizeInput = document.getElementById('xhair-dot-size') as HTMLInputElement | null;
-  const dotSizeVal = document.getElementById('xhair-dot-size-val') as HTMLSpanElement | null;
+  const dotSizeInput = safeGetEl<HTMLInputElement>('xhair-dot-size');
+  const dotSizeVal = safeGetEl<HTMLSpanElement>('xhair-dot-size-val');
 
-  const lineLenInput = document.getElementById('xhair-line-len') as HTMLInputElement | null;
-  const lineLenVal = document.getElementById('xhair-line-len-val') as HTMLSpanElement | null;
+  const lineLenInput = safeGetEl<HTMLInputElement>('xhair-line-len');
+  const lineLenVal = safeGetEl<HTMLSpanElement>('xhair-line-len-val');
 
-  const lineThickInput = document.getElementById('xhair-line-thick') as HTMLInputElement | null;
-  const lineThickVal = document.getElementById('xhair-line-thick-val') as HTMLSpanElement | null;
+  const lineThickInput = safeGetEl<HTMLInputElement>('xhair-line-thick');
+  const lineThickVal = safeGetEl<HTMLSpanElement>('xhair-line-thick-val');
 
-  const baseGapInput = document.getElementById('xhair-base-gap') as HTMLInputElement | null;
-  const baseGapVal = document.getElementById('xhair-base-gap-val') as HTMLSpanElement | null;
+  const baseGapInput = safeGetEl<HTMLInputElement>('xhair-base-gap');
+  const baseGapVal = safeGetEl<HTMLSpanElement>('xhair-base-gap-val');
 
-  const swatchButtons = Array.from(
-    document.querySelectorAll<HTMLButtonElement>('[data-xhair-color]')
-  );
-  const presetButtons = Array.from(
-    document.querySelectorAll<HTMLButtonElement>('[data-xhair-preset]')
-  );
+  const queryRoot: ParentNode | null = mountEl ?? (typeof document !== 'undefined' ? document : null);
+  const swatchButtons = queryRoot
+    ? Array.from(queryRoot.querySelectorAll<HTMLButtonElement>('[data-xhair-color]'))
+    : [];
+  const presetButtons = queryRoot
+    ? Array.from(queryRoot.querySelectorAll<HTMLButtonElement>('[data-xhair-preset]'))
+    : [];
+
+  function matchesPreset(a: CrosshairSettings, b: CrosshairSettings): boolean {
+    return (
+      a.colorMode === b.colorMode &&
+      a.centerDot === b.centerDot &&
+      a.dotSizePx === b.dotSizePx &&
+      a.lineLengthPx === b.lineLengthPx &&
+      a.lineThicknessPx === b.lineThicknessPx &&
+      a.baseGapPx === b.baseGapPx &&
+      a.outline === b.outline &&
+      a.dynamicSpread === b.dynamicSpread
+    );
+  }
 
   function syncModalControls(): void {
     if (centerDotInput) centerDotInput.checked = settings.centerDot;
@@ -213,6 +244,12 @@ export function createCrosshairController(): CrosshairController {
 
     for (const btn of swatchButtons) {
       btn.classList.toggle('active', btn.dataset.xhairColor === settings.colorMode);
+    }
+
+    for (const btn of presetButtons) {
+      const presetId = btn.dataset.xhairPreset as keyof typeof PRESETS | undefined;
+      const preset = presetId ? PRESETS[presetId] : undefined;
+      btn.classList.toggle('active', Boolean(preset && matchesPreset(settings, preset)));
     }
 
     const previewColor = resolveColor(settings.colorMode, lastAgentColor);
@@ -275,48 +312,74 @@ export function createCrosshairController(): CrosshairController {
     updateSettings({ baseGapPx: clampInt(Number(baseGapInput.value), 0, 18, settings.baseGapPx) });
   });
 
+  function isOpen(): boolean {
+    if (modalDelegate?.isOpen) return modalDelegate.isOpen();
+    return openState;
+  }
+
   function open(): void {
-    openState = true;
     syncModalControls();
-    modalEl?.classList.remove('hidden');
+    if (modalDelegate?.open) {
+      modalDelegate.open();
+      return;
+    }
+    openState = true;
+    if (modalEl) {
+      modalEl.classList.remove('hidden');
+    }
   }
 
   function close(): void {
+    if (modalDelegate?.close) {
+      modalDelegate.close();
+      return;
+    }
     if (!openState) return;
     openState = false;
-    modalEl?.classList.add('hidden');
+    if (modalEl) {
+      modalEl.classList.add('hidden');
+    }
     onCloseCallback?.();
   }
 
   function toggle(): boolean {
-    if (openState) {
+    if (isOpen()) {
       close();
     } else {
       open();
     }
-    return openState;
+    return isOpen();
+  }
+
+  function resetDefaults(): void {
+    settings = { ...DEFAULT_SETTINGS };
+    saveSettings(settings);
+    syncModalControls();
   }
 
   closeBtn?.addEventListener('click', () => {
     close();
   });
 
-  // Initialize modal values and live preview immediately on load.
+  // Initialize controls and live preview immediately on load.
   syncModalControls();
 
   return {
     getSettings(): CrosshairSettings {
       return { ...settings };
     },
-    isOpen(): boolean {
-      return openState;
-    },
+    isOpen,
     open,
     close,
     toggle,
     setOnClose(cb: () => void): void {
       onCloseCallback = cb;
     },
+    setModalDelegate(delegate: CrosshairOpenDelegate | null): void {
+      modalDelegate = delegate;
+    },
+    syncControls: syncModalControls,
+    resetDefaults,
     applyFrame(spreadRad: number, agentCssColor: string, isScopedSniper: boolean): void {
       lastAgentColor = agentCssColor;
 
@@ -332,7 +395,7 @@ export function createCrosshairController(): CrosshairController {
 
       applyVariablesToElement(crosshairEl, settings, gapPx, colorCss);
 
-      if (openState) {
+      if (previewCrosshairEl) {
         applyVariablesToElement(previewCrosshairEl, settings, settings.baseGapPx, colorCss);
       }
     },

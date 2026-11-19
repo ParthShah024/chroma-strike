@@ -22,10 +22,10 @@ export const PLAYER_HEIGHT = 1.8;
 export const EYE_HEIGHT = 1.62;
 
 /** Maximum ground running speed in meters per second. */
-export const RUN_SPEED = 8.2;
+export const RUN_SPEED = 6.2;
 
 /** Maximum Shift-walk speed in meters per second (silent, low-spread movement). */
-export const WALK_SPEED = 4.3;
+export const WALK_SPEED = 3.2;
 
 /**
  * Maximum vertical ledge/stair height in meters that a grounded player or bot
@@ -37,11 +37,11 @@ export const STEP_HEIGHT = 0.52;
 // High ground acceleration + strong exponential friction allows stopping or
 // counter-strafing (tapping the opposite movement key) to reach <0.45 m/s
 // in under 80ms for crisp first-shot accuracy.
-const ACCEL = 85;
-const FRICTION = 12;
+const ACCEL = 58;
+const FRICTION = 10.5;
 const AIR_ACCEL = 18;
-const GRAVITY = 21;
-const JUMP_SPEED = 7.4;
+const GRAVITY = 19.5;
+const JUMP_SPEED = 6.8;
 
 /**
  * Small geometric inset used on non-moving axes during AABB overlap checks.

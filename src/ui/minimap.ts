@@ -17,6 +17,8 @@ import {
   getSpikeSpawnPos,
 } from '../arena/map';
 
+export type MinimapSizePreset = 'compact' | 'standard' | 'large';
+
 export interface MinimapController {
   update(
     hud: MatchHudState,
@@ -26,7 +28,9 @@ export interface MinimapController {
     ultRevealActive?: boolean
   ): void;
   toggleRotateMode(): boolean;
+  setRotateMode(rotate: boolean): void;
   isRotateMode(): boolean;
+  setSizePreset(size: MinimapSizePreset): void;
   setExpanded(expanded: boolean): void;
   isExpanded(): boolean;
   toggleExpanded(): boolean;
@@ -60,8 +64,14 @@ const MINIMAP_W = 210;
 const MINIMAP_H = 230;
 const MINIMAP_DPR = 2;
 
-const TACTICAL_W = 480;
-const TACTICAL_H = 520;
+const MINIMAP_SIZE_PRESETS: Record<MinimapSizePreset, { widthPx: number; heightPx: number }> = {
+  compact: { widthPx: 175, heightPx: 192 },
+  standard: { widthPx: 210, heightPx: 230 },
+  large: { widthPx: 255, heightPx: 280 },
+};
+
+const DEFAULT_TACTICAL_W = 560;
+const DEFAULT_TACTICAL_H = 614;
 const TACTICAL_DPR = 2;
 
 const RADAR_ZOOM = 1.32;
@@ -725,9 +735,9 @@ export function createMinimapController(): MinimapController {
     canvas.width = MINIMAP_W * MINIMAP_DPR;
     canvas.height = MINIMAP_H * MINIMAP_DPR;
   }
-  if (tacticalCanvas) {
-    tacticalCanvas.width = TACTICAL_W * TACTICAL_DPR;
-    tacticalCanvas.height = TACTICAL_H * TACTICAL_DPR;
+  if (tacticalCanvas && (!tacticalCanvas.hasAttribute('width') || !tacticalCanvas.hasAttribute('height'))) {
+    tacticalCanvas.width = DEFAULT_TACTICAL_W * TACTICAL_DPR;
+    tacticalCanvas.height = DEFAULT_TACTICAL_H * TACTICAL_DPR;
   }
 
   // Static offscreen blueprint caches (zero per-frame architectural redraw)
@@ -746,19 +756,58 @@ export function createMinimapController(): MinimapController {
   }
 
   const tacticalStatic = document.createElement('canvas');
-  tacticalStatic.width = TACTICAL_W * TACTICAL_DPR;
-  tacticalStatic.height = TACTICAL_H * TACTICAL_DPR;
   const tacticalStaticCtx = tacticalStatic.getContext('2d');
-  if (tacticalStaticCtx) {
-    tacticalStaticCtx.setTransform(TACTICAL_DPR, 0, 0, TACTICAL_DPR, 0, 0);
-    drawAscentBlueprintBase(tacticalStaticCtx, {
-      width: TACTICAL_W,
-      height: TACTICAL_H,
-      showCallouts: true,
-      showSiteLabels: true,
-      labelScale: 1.22,
-    });
+
+  function getTacticalDimensions(): {
+    pixelW: number;
+    pixelH: number;
+    logicalW: number;
+    logicalH: number;
+  } {
+    if (tacticalCanvas && tacticalCanvas.clientWidth > 40 && tacticalCanvas.clientHeight > 40) {
+      const targetPxW = Math.round(tacticalCanvas.clientWidth * TACTICAL_DPR);
+      const targetPxH = Math.round(tacticalCanvas.clientHeight * TACTICAL_DPR);
+      if (tacticalCanvas.width < targetPxW || tacticalCanvas.height < targetPxH) {
+        tacticalCanvas.width = targetPxW;
+        tacticalCanvas.height = targetPxH;
+      }
+    }
+    const pixelW =
+      tacticalCanvas && tacticalCanvas.width > 0
+        ? tacticalCanvas.width
+        : DEFAULT_TACTICAL_W * TACTICAL_DPR;
+    const pixelH =
+      tacticalCanvas && tacticalCanvas.height > 0
+        ? tacticalCanvas.height
+        : DEFAULT_TACTICAL_H * TACTICAL_DPR;
+    return {
+      pixelW,
+      pixelH,
+      logicalW: pixelW / TACTICAL_DPR,
+      logicalH: pixelH / TACTICAL_DPR,
+    };
   }
+
+  function ensureTacticalStatic(): { logicalW: number; logicalH: number } {
+    const { pixelW, pixelH, logicalW, logicalH } = getTacticalDimensions();
+    if (tacticalStatic.width !== pixelW || tacticalStatic.height !== pixelH) {
+      tacticalStatic.width = pixelW;
+      tacticalStatic.height = pixelH;
+      if (tacticalStaticCtx) {
+        tacticalStaticCtx.setTransform(TACTICAL_DPR, 0, 0, TACTICAL_DPR, 0, 0);
+        drawAscentBlueprintBase(tacticalStaticCtx, {
+          width: logicalW,
+          height: logicalH,
+          showCallouts: true,
+          showSiteLabels: true,
+          labelScale: (logicalW / 480) * 1.22,
+        });
+      }
+    }
+    return { logicalW, logicalH };
+  }
+
+  ensureTacticalStatic();
 
   let rotateMode = loadRotatePreference();
   let expandedState = false;
@@ -881,13 +930,14 @@ export function createMinimapController(): MinimapController {
       tacticalSideEl.classList.toggle('def', side === 'defender');
     }
 
+    const { logicalW, logicalH } = ensureTacticalStatic();
     tacticalCtx.setTransform(TACTICAL_DPR, 0, 0, TACTICAL_DPR, 0, 0);
-    tacticalCtx.clearRect(0, 0, TACTICAL_W, TACTICAL_H);
-    tacticalCtx.drawImage(tacticalStatic, 0, 0, TACTICAL_W, TACTICAL_H);
+    tacticalCtx.clearRect(0, 0, logicalW, logicalH);
+    tacticalCtx.drawImage(tacticalStatic, 0, 0, logicalW, logicalH);
 
     drawAscentDynamicEntities(tacticalCtx, {
-      width: TACTICAL_W,
-      height: TACTICAL_H,
+      width: logicalW,
+      height: logicalH,
       hud,
       combatants,
       player,
@@ -896,7 +946,7 @@ export function createMinimapController(): MinimapController {
       nowSec,
       detailedDoors: true,
       drawSiteLabelsUpright: false,
-      entityScale: 1.35,
+      entityScale: (logicalW / 480) * 1.35,
     });
   }
 
@@ -930,12 +980,28 @@ export function createMinimapController(): MinimapController {
     );
   }
 
-  function toggleRotateMode(): boolean {
-    rotateMode = !rotateMode;
+  function setRotateMode(rotate: boolean): void {
+    rotateMode = Boolean(rotate);
     saveRotatePreference(rotateMode);
     syncModePill();
     redrawLast();
+  }
+
+  function toggleRotateMode(): boolean {
+    setRotateMode(!rotateMode);
     return rotateMode;
+  }
+
+  function setSizePreset(size: MinimapSizePreset): void {
+    const preset = MINIMAP_SIZE_PRESETS[size] ?? MINIMAP_SIZE_PRESETS.standard;
+    if (canvas) {
+      canvas.style.width = `${preset.widthPx}px`;
+      canvas.style.height = `${preset.heightPx}px`;
+      // Preserve crisp 420x460 backing pixels regardless of CSS display preset.
+      canvas.width = MINIMAP_W * MINIMAP_DPR;
+      canvas.height = MINIMAP_H * MINIMAP_DPR;
+    }
+    wrapEl?.setAttribute('data-size', size);
   }
 
   function setExpanded(expanded: boolean): void {
@@ -990,7 +1056,9 @@ export function createMinimapController(): MinimapController {
   return {
     update,
     toggleRotateMode,
+    setRotateMode,
     isRotateMode: () => rotateMode,
+    setSizePreset,
     setExpanded,
     isExpanded: () => expandedState,
     toggleExpanded,

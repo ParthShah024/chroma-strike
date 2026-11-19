@@ -6,6 +6,7 @@ import {
   AbilityHudSlotState,
   AgentColorId,
   AiDifficulty,
+  GameSettings,
   InputState,
   MatchHudState,
   MovementModifiers,
@@ -27,8 +28,11 @@ import {
   ARENA_WIDTH_M,
   PLAYER_SPAWN,
   buildArenaScene,
+  findNearbyDoorSwitch,
+  getArenaDoors,
   getArenaSpawns,
   setArenaBuyBarriersVisible,
+  toggleArenaDoor,
   updateArenaDoors,
 } from './arena/map';
 import { WEAPON_SPECS } from './combat/arsenal';
@@ -37,7 +41,10 @@ import { AGENT_ABILITIES } from './abilities/definitions';
 import { createAbilitySystem } from './abilities/system';
 import { createSoundEngine } from './audio/sfx';
 import { createMatchManager } from './match/roundManager';
+import { createMultiplayerClient } from './net/multiplayer';
 import { createCrosshairController } from './ui/crosshair';
+import { createSettingsController } from './ui/settings';
+import { createLobbyController } from './ui/lobby';
 import { createAgentSelectController } from './ui/agentSelect';
 import { createBuyMenuController } from './ui/buyMenu';
 import { createMinimapController } from './ui/minimap';
@@ -55,7 +62,6 @@ function clamp(value: number, min: number, max: number): number {
 // ---------------------------------------------------------------------------
 // 1. Three.js Renderer, Scene & Perspective Camera Setup
 // ---------------------------------------------------------------------------
-const BASE_FOV_DEG = 75;
 const BASE_MOUSE_SENSITIVITY = 0.0022;
 
 const canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
@@ -63,7 +69,7 @@ const canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
 const scene = new THREE.Scene();
 
 const camera = new THREE.PerspectiveCamera(
-  BASE_FOV_DEG,
+  82,
   window.innerWidth / window.innerHeight,
   0.05,
   300
@@ -104,8 +110,24 @@ const sfx = createSoundEngine();
 const weapon = createWeaponSystem(camera, scene, player.colorId);
 const abilities = createAbilitySystem(scene);
 const match = createMatchManager(scene, abilities, weapon, sfx);
+const net = createMultiplayerClient();
 const crosshair = createCrosshairController();
+const settings = createSettingsController();
+crosshair.setModalDelegate({
+  open: () => settings.open('crosshair'),
+  close: () => settings.close(),
+  isOpen: () => settings.isOpen(),
+});
 const minimap = createMinimapController();
+
+let currentSettings: GameSettings = settings.getSettings();
+let baseFovDeg = currentSettings.fovDeg;
+let mouseSensMult = currentSettings.mouseSensitivity;
+let adsSensMult = currentSettings.adsSensitivityMult;
+let invertY = currentSettings.invertY;
+let showFps = currentSettings.showFps;
+let smoothedFps = 60;
+let fpsLastUiMs = 0;
 
 // While Agent Select is up (or before the very first LOCK IN) the simulation is frozen
 // and the main scene is drawn only once (`frozenDrawn`), so the stage owns the GPU.
@@ -153,12 +175,16 @@ const input: InputState = {
 // 3. HUD DOM References & State Helpers
 // ---------------------------------------------------------------------------
 const overlayEl = document.getElementById('overlay') as HTMLDivElement;
+const openSettingsFromOverlayBtn = document.getElementById(
+  'open-settings-from-overlay'
+) as HTMLButtonElement;
 const openXhairFromOverlayBtn = document.getElementById(
   'open-xhair-from-overlay'
 ) as HTMLButtonElement;
 const openMapFromOverlayBtn = document.getElementById(
   'open-map-from-overlay'
 ) as HTMLButtonElement;
+const fpsCounterEl = document.getElementById('fps-counter') as HTMLDivElement;
 const screenFxEl = document.getElementById('screen-fx') as HTMLDivElement;
 const scopeOverlayEl = document.getElementById('scope-overlay') as HTMLDivElement;
 const crosshairEl = document.getElementById('crosshair') as HTMLDivElement;
@@ -172,6 +198,7 @@ const spikeTopPillEl = document.getElementById('spike-top-pill') as HTMLDivEleme
 const spikeTopSiteEl = document.getElementById('spike-top-site') as HTMLSpanElement;
 const roundPhaseLabelEl = document.getElementById('round-phase-label') as HTMLDivElement;
 const roundClockEl = document.getElementById('round-clock') as HTMLDivElement;
+const matchFormatLabelEl = document.getElementById('match-format-label') as HTMLDivElement;
 const allyDotsEl = document.getElementById('ally-dots') as HTMLDivElement;
 const enemyDotsEl = document.getElementById('enemy-dots') as HTMLDivElement;
 
@@ -197,6 +224,7 @@ const ammoEl = document.getElementById('hud-ammo') as HTMLDivElement;
 const speedEl = document.getElementById('hud-speed') as HTMLDivElement;
 const hintBuyEl = document.getElementById('hint-buy') as HTMLDivElement;
 const hint3pEl = document.getElementById('hint-3p') as HTMLDivElement;
+const hintSettingsEl = document.getElementById('hint-settings') as HTMLDivElement;
 const hintXhairEl = document.getElementById('hint-xhair') as HTMLDivElement;
 const hintMapEl = document.getElementById('hint-map') as HTMLDivElement;
 const hintAgentsEl = document.getElementById('hint-agents') as HTMLDivElement;
@@ -281,13 +309,23 @@ function isPointerLocked(): boolean {
 }
 
 function isAnyModalOpen(): boolean {
-  return crosshair.isOpen() || mapViewer.isOpen() || agentSelect.isOpen() || buyMenu.isOpen();
+  return (
+    lobby.isOpen() ||
+    settings.isOpen() ||
+    crosshair.isOpen() ||
+    mapViewer.isOpen() ||
+    agentSelect.isOpen() ||
+    buyMenu.isOpen()
+  );
 }
 
 function syncOverlayVisibility(): void {
-  // Keep `#overlay` (Pause / Resume) hidden while playing (pointer locked) OR in any modal.
-  overlayEl.classList.toggle('hidden', isPointerLocked() || isAnyModalOpen());
+  const inFrontend = !gameStarted && (lobby.isOpen() || agentSelect.isOpen() || settings.isOpen());
+  document.body.classList.toggle('in-frontend', inFrontend || !gameStarted);
+  // Keep `#overlay` (Pause / Resume) hidden before game starts, while playing (pointer locked), OR in any modal.
+  overlayEl.classList.toggle('hidden', !gameStarted || isPointerLocked() || isAnyModalOpen());
   hintBuyEl.classList.toggle('active', buyMenu.isOpen());
+  hintSettingsEl.classList.toggle('active', settings.isOpen());
   hintXhairEl.classList.toggle('active', crosshair.isOpen());
   hintMapEl.classList.toggle('active', mapViewer.isOpen());
   hintAgentsEl.classList.toggle('active', agentSelect.isOpen());
@@ -318,7 +356,7 @@ function openBuyMenu(): void {
   if (isPointerLocked()) document.exitPointerLock();
   clearHeldInputs();
   minimap.setExpanded(false);
-  crosshair.close();
+  settings.close();
   mapViewer.close();
   buyMenu.open();
   syncOverlayVisibility();
@@ -330,9 +368,9 @@ function openAgentSelect(): void {
   clearHeldInputs();
   frozenDrawn = false;
   minimap.setExpanded(false);
+  settings.close();
   agentSelect.open(match.getPlayerCombatant().colorId);
   buyMenu.close();
-  crosshair.close();
   mapViewer.close();
   syncOverlayVisibility();
 }
@@ -366,17 +404,128 @@ const buyMenu = createBuyMenuController({
   },
   onClose: () => {
     syncOverlayVisibility();
-    if (!isAnyModalOpen()) {
+    if (gameStarted && !isAnyModalOpen()) {
       canvas.requestPointerLock();
     }
+  },
+});
+
+let syncingLobbySettings = false;
+
+function applySettings(s: GameSettings): void {
+  currentSettings = s;
+  mouseSensMult = s.mouseSensitivity;
+  adsSensMult = s.adsSensitivityMult;
+  invertY = s.invertY;
+  baseFovDeg = s.fovDeg;
+
+  if (!weapon.isScoped && !lastAbilityFeedback?.slideActive) {
+    camera.fov = baseFovDeg;
+    camera.updateProjectionMatrix();
+  }
+
+  if (renderer.shadowMap.enabled !== s.shadowsEnabled) {
+    renderer.shadowMap.enabled = s.shadowsEnabled;
+    renderer.shadowMap.needsUpdate = true;
+  }
+
+  minimap.setRotateMode(s.minimapRotate);
+  minimap.setSizePreset(s.minimapSize);
+  sfx.setMasterVolume(s.masterVolume);
+  sfx.setMuted(s.muted);
+
+  showFps = s.showFps;
+  fpsCounterEl.classList.toggle('hidden', !showFps);
+
+  match.setMatchConfig({
+    difficulty: s.difficulty,
+    winTarget: s.winTarget,
+  });
+
+  if (!syncingLobbySettings && !gameStarted && !net.isOnline()) {
+    syncingLobbySettings = true;
+    net.setConfig({
+      difficulty: s.difficulty,
+      winTarget: s.winTarget,
+    });
+    syncingLobbySettings = false;
+  }
+}
+
+const lobby = createLobbyController({
+  initialDifficulty: currentSettings.difficulty,
+  initialWinTarget: currentSettings.winTarget,
+  initialSide: currentSettings.defaultSide,
+  onJoinSide: (side: TacticalSide) => {
+    net.switchSide(side);
+  },
+  onDifficultyChange: (diff: AiDifficulty) => {
+    net.setConfig({ difficulty: diff });
+    if (!syncingLobbySettings) {
+      syncingLobbySettings = true;
+      settings.applyPatch({ difficulty: diff });
+      syncingLobbySettings = false;
+    }
+  },
+  onWinTargetChange: (winTarget: 10 | 6) => {
+    net.setConfig({ winTarget });
+    if (!syncingLobbySettings) {
+      syncingLobbySettings = true;
+      settings.applyPatch({ winTarget });
+      syncingLobbySettings = false;
+    }
+  },
+  onCallsignChange: (callsign: string) => {
+    if (!gameStarted) {
+      net.connect(callsign);
+    }
+  },
+  onRetryConnect: (callsign: string) => {
+    net.connect(callsign);
+  },
+  onOpenSettings: () => {
+    sfx.unlock();
+    crosshair.syncControls();
+    settings.open('controls');
+    syncOverlayVisibility();
+  },
+  onStartMatch: () => {
+    sfx.unlock();
+    net.startAgentSelect();
+  },
+  onClose: () => {
+    syncOverlayVisibility();
   },
 });
 
 const agentSelect = createAgentSelectController({
   getCurrentAgent: () => match.getPlayerCombatant().colorId,
   canDismiss: () => gameStarted,
+  onSelectAgent: (colorId: AgentColorId) => {
+    if (net.isOnline()) {
+      net.selectAgent(colorId);
+    }
+  },
   onDifficultyChange: (diff: AiDifficulty) => {
     match.setDifficulty(diff);
+    if (!gameStarted) {
+      net.setConfig({ difficulty: diff });
+    }
+  },
+  onBackToLobby: () => {
+    if (gameStarted) return;
+    if (!net.isOnline() || net.isHost()) {
+      net.returnToLobby();
+    } else {
+      agentSelect.close();
+      lobby.open();
+      syncOverlayVisibility();
+    }
+  },
+  onForceStart: () => {
+    if (net.isOnline() && net.isHost()) {
+      net.forceStartMatch();
+    }
   },
   onClose: () => {
     syncOverlayVisibility();
@@ -384,24 +533,117 @@ const agentSelect = createAgentSelectController({
   onLockIn: (colorId: AgentColorId, diff: AiDifficulty) => {
     sfx.unlock();
     sfx.playUiLockIn();
+    if (!gameStarted) {
+      net.lockIn(colorId);
+      return;
+    }
     match.setDifficulty(diff);
     match.selectPlayerAgent(colorId);
     syncLocalPlayerFromCombatant();
-    gameStarted = true;
+    if (net.isOnline()) {
+      net.selectAgent(colorId);
+    }
     frozenDrawn = false;
     syncOverlayVisibility();
-    // LOCK IN is a user gesture (click / Enter): lock the pointer and start immediately.
     canvas.requestPointerLock();
   },
 });
-match.setDifficulty(agentSelect.getDifficulty());
-// Launch straight into Agent Select (the plain `#overlay` stays a Pause/Resume menu on [Esc]).
-agentSelect.open(match.getPlayerCombatant().colorId);
+
+net.onLobbyUpdate((snapshot) => {
+  const localId = net.getLocalPlayerId();
+  lobby.syncFromNetState(snapshot, localId);
+  agentSelect.syncFromNetState(snapshot, localId);
+  match.setMatchConfig({
+    difficulty: snapshot.difficulty,
+    winTarget: snapshot.winTarget,
+  });
+
+  if (!gameStarted) {
+    if (snapshot.phase === 'agent_select' && lobby.isOpen()) {
+      lobby.close();
+      agentSelect.open(match.getPlayerCombatant().colorId);
+    } else if (snapshot.phase === 'lobby' && agentSelect.isOpen()) {
+      agentSelect.close();
+      lobby.open();
+    }
+    syncOverlayVisibility();
+  }
+});
+
+net.onMatchStart((snapshot) => {
+  sfx.unlock();
+  sfx.playUiLockIn();
+  lobby.close();
+  agentSelect.close();
+
+  const localId = net.getLocalPlayerId();
+  const localSlot = snapshot.players.find((p) => p.id === localId);
+  const chosenAgent = localSlot?.agentColor ?? agentSelect.getPreviewAgent();
+  const startingSide = localSlot?.side ?? lobby.getSelectedSide();
+
+  match.startNewMatch({
+    startingSide,
+    playerAgent: chosenAgent,
+    difficulty: snapshot.difficulty,
+    winTarget: snapshot.winTarget,
+    teamHumanSlots: snapshot.players,
+    localPlayerId: localId,
+  });
+  syncLocalPlayerFromCombatant();
+
+  gameStarted = true;
+  frozenDrawn = false;
+  syncOverlayVisibility();
+  canvas.requestPointerLock();
+});
+
+net.onDoorEvent((ev) => {
+  if (!gameStarted || ev.fromId === net.getLocalPlayerId()) return;
+  const door = getArenaDoors().find((d) => d.id === ev.doorId);
+  if (ev.action === 'toggle') {
+    if (door && door.status !== 'broken' && ev.state && door.status !== ev.state) {
+      const next = toggleArenaDoor(ev.doorId);
+      if (next) sfx.playDoorToggle(next === 'closed');
+    }
+  } else if (ev.action === 'damage' || ev.action === 'break') {
+    match.handleDoorShotHit(ev.doorId, ev.damage ?? 25);
+  }
+});
+
+net.onError((err) => {
+  lobby.showError(err.message);
+  if (agentSelect.isOpen()) {
+    agentSelect.showError(err.message);
+  }
+});
+
+settings.setOnChange((s) => {
+  applySettings(s);
+});
+
+settings.setOnClose(() => {
+  syncOverlayVisibility();
+  if (gameStarted && !isAnyModalOpen()) {
+    canvas.requestPointerLock();
+  }
+});
+
+// Apply persisted settings & launch into Custom Game Lobby first (`Lobby -> Agent Select -> Match`).
+applySettings(currentSettings);
+net.setConfig({
+  difficulty: currentSettings.difficulty,
+  winTarget: currentSettings.winTarget,
+});
+if (currentSettings.defaultSide !== 'attacker') {
+  net.switchSide(currentSettings.defaultSide);
+}
+lobby.open();
+net.connect(lobby.getCallsign());
 syncOverlayVisibility();
 
 crosshair.setOnClose(() => {
   syncOverlayVisibility();
-  if (!isAnyModalOpen()) {
+  if (gameStarted && !isAnyModalOpen()) {
     canvas.requestPointerLock();
   }
 });
@@ -410,22 +652,32 @@ mapViewer.setOnClose(() => {
   setArenaBuyBarriersVisible(lastHudPhase === 'buy');
   frozenDrawn = false;
   syncOverlayVisibility();
-  if (!isAnyModalOpen()) {
+  if (gameStarted && !isAnyModalOpen()) {
     canvas.requestPointerLock();
   }
 });
 
 overlayEl.addEventListener('click', () => {
-  if (isAnyModalOpen()) return;
+  if (!gameStarted || isAnyModalOpen()) return;
   sfx.unlock();
   canvas.requestPointerLock();
+});
+
+openSettingsFromOverlayBtn.addEventListener('click', (e: MouseEvent) => {
+  e.stopPropagation();
+  sfx.unlock();
+  minimap.setExpanded(false);
+  crosshair.syncControls();
+  settings.open('controls');
+  syncOverlayVisibility();
 });
 
 openXhairFromOverlayBtn.addEventListener('click', (e: MouseEvent) => {
   e.stopPropagation();
   sfx.unlock();
   minimap.setExpanded(false);
-  crosshair.open();
+  crosshair.syncControls();
+  settings.open('crosshair');
   syncOverlayVisibility();
 });
 
@@ -438,7 +690,7 @@ openMapFromOverlayBtn.addEventListener('click', (e: MouseEvent) => {
 });
 
 canvas.addEventListener('click', () => {
-  if (isAnyModalOpen()) return;
+  if (!gameStarted || isAnyModalOpen()) return;
   sfx.unlock();
   if (!isPointerLocked()) {
     canvas.requestPointerLock();
@@ -459,25 +711,23 @@ document.addEventListener('mousemove', (e: MouseEvent) => {
   if (!isPointerLocked() || isAnyModalOpen()) return;
 
   /**
-   * Focal-Length Zoomed Mouse Sensitivity Scaling:
-   * In a perspective projection, screen-space distance from center for angle θ is
-   * proportional to tan(θ) / tan(fov / 2). Therefore, to keep a 1-pixel mouse
-   * delta moving the world by the exact same number of screen pixels at 24° Sniper
-   * zoom as at 75° hipfire (1:1 focal-length sensitivity), we scale angular mouse
-   * sensitivity by:
-   *     tan(camera.fov * π / 360) / tan(75° * π / 360)
-   * Note that `fov * π / 360` is `(fov / 2)` converted from degrees to radians.
+   * Focal-Length Zoomed Mouse Sensitivity Scaling + Live Settings Multiplier
    */
   const adsFov = WEAPON_SPECS[weapon.currentWeaponId].adsFovDeg;
-  const zoomScale =
-    weapon.isScoped && adsFov !== null
-      ? Math.tan((camera.fov * Math.PI) / 360) /
-        Math.tan((BASE_FOV_DEG * Math.PI) / 360)
-      : 1.0;
+  const isAds = weapon.isScoped && adsFov !== null;
+  const zoomScale = isAds
+    ? Math.tan((camera.fov * Math.PI) / 360) /
+      Math.tan((baseFovDeg * Math.PI) / 360)
+    : 1.0;
 
-  const sens = BASE_MOUSE_SENSITIVITY * zoomScale;
+  const sens =
+    BASE_MOUSE_SENSITIVITY *
+    mouseSensMult *
+    zoomScale *
+    (isAds ? adsSensMult : 1.0);
+  const ySign = invertY ? -1 : 1;
   input.yaw -= e.movementX * sens;
-  input.pitch = clamp(input.pitch - e.movementY * sens, -1.48, 1.48);
+  input.pitch = clamp(input.pitch - e.movementY * sens * ySign, -1.48, 1.48);
 });
 
 window.addEventListener('contextmenu', (e: MouseEvent) => {
@@ -574,8 +824,16 @@ function handleKey(code: string, isDown: boolean): void {
 window.addEventListener('keydown', (e: KeyboardEvent) => {
   sfx.unlock();
 
-  // Keys already consumed by Agent Select / Buy Menu never reach gameplay.
+  // Keys already consumed by Agent Select / Buy Menu / Callsign input never reach gameplay.
   if (e.defaultPrevented) return;
+  const activeTag = document.activeElement?.tagName;
+  if (activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT') {
+    if (e.code === 'Escape' && settings.isOpen()) {
+      settings.close();
+      syncOverlayVisibility();
+    }
+    return;
+  }
 
   if (
     e.code === 'Space' ||
@@ -603,12 +861,54 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
   }
 
   if (!e.repeat) {
-    // [B] opens/closes Buyout Shop during the Buy phase (never overlaps Crosshair/MapViewer).
+    // [O] Settings Modal toggle (Controls tab)
+    if (e.code === 'KeyO') {
+      minimap.setExpanded(false);
+      const wasMapOpen = mapViewer.isOpen();
+      const wasBuyOpen = buyMenu.isOpen();
+      if (wasMapOpen) mapViewer.close();
+      if (wasBuyOpen) buyMenu.close();
+      crosshair.syncControls();
+      const nowOpen = settings.toggle('controls');
+      if (nowOpen && isPointerLocked()) {
+        document.exitPointerLock();
+      }
+      syncOverlayVisibility();
+      return;
+    }
+
+    // [C] Crosshair Customizer tab inside unified Settings Modal
+    if (e.code === 'KeyC' && !lobby.isOpen()) {
+      minimap.setExpanded(false);
+      const wasMapOpen = mapViewer.isOpen();
+      const wasBuyOpen = buyMenu.isOpen();
+      if (wasMapOpen) mapViewer.close();
+      if (wasBuyOpen) buyMenu.close();
+      crosshair.syncControls();
+      const nowOpen = settings.toggle('crosshair');
+      if (nowOpen && isPointerLocked()) {
+        document.exitPointerLock();
+      }
+      syncOverlayVisibility();
+      return;
+    }
+
+    if (e.code === 'Escape' && settings.isOpen()) {
+      settings.close();
+      syncOverlayVisibility();
+      return;
+    }
+
+    if (lobby.isOpen()) {
+      return;
+    }
+
+    // [B] opens/closes Buyout Shop during the Buy phase (never overlaps Settings/MapViewer).
     if (
       e.code === 'KeyB' &&
       gameStarted &&
       lastHudPhase === 'buy' &&
-      !crosshair.isOpen() &&
+      !settings.isOpen() &&
       !mapViewer.isOpen()
     ) {
       if (buyMenu.isOpen()) buyMenu.close();
@@ -621,7 +921,7 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
       e.code === 'KeyH' &&
       gameStarted &&
       lastHudPhase === 'buy' &&
-      !crosshair.isOpen() &&
+      !settings.isOpen() &&
       !mapViewer.isOpen() &&
       !buyMenu.isOpen()
     ) {
@@ -629,28 +929,13 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
       return;
     }
 
-    // [C] Crosshair Customizer modal toggle
-    if (e.code === 'KeyC') {
-      minimap.setExpanded(false);
-      const wasMapOpen = mapViewer.isOpen();
-      const wasBuyOpen = buyMenu.isOpen();
-      const nowOpen = crosshair.toggle();
-      if (wasMapOpen) mapViewer.close();
-      if (wasBuyOpen) buyMenu.close();
-      if (nowOpen && isPointerLocked()) {
-        document.exitPointerLock();
-      }
-      syncOverlayVisibility();
-      return;
-    }
-
-    // [M] Ascent 3D Orbit & 2D Blueprint Map Viewer toggle
+    // [M] Ascent 2D Tactical Map & 3D Flyover Viewer toggle
     if (e.code === 'KeyM') {
       minimap.setExpanded(false);
-      const wasCrosshairOpen = crosshair.isOpen();
+      const wasSettingsOpen = settings.isOpen();
       const wasBuyOpen = buyMenu.isOpen();
       const nowOpen = mapViewer.toggle();
-      if (wasCrosshairOpen) crosshair.close();
+      if (wasSettingsOpen) settings.close();
       if (wasBuyOpen) buyMenu.close();
       if (nowOpen && isPointerLocked()) {
         document.exitPointerLock();
@@ -660,7 +945,7 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
     }
 
     if (e.code === 'Escape' && isAnyModalOpen()) {
-      crosshair.close();
+      settings.close();
       mapViewer.close();
       buyMenu.close();
       syncOverlayVisibility();
@@ -679,7 +964,8 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
 
     // [N] Toggle Minimap Radar (player-centered) vs Fixed North-Up
     if (e.code === 'KeyN') {
-      minimap.toggleRotateMode();
+      const rotateNow = minimap.toggleRotateMode();
+      settings.applyPatch({ minimapRotate: rotateNow });
       return;
     }
 
@@ -721,7 +1007,16 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
     if (isPointerLocked()) {
       // [F] Fresh press toggles nearby Blast Door switch (hold still plants/defuses Spike)
       if (e.code === 'KeyF' && match.getPlayerCombatant().alive) {
-        match.tryInteractDoor(player);
+        const nearby = findNearbyDoorSwitch(player.position, 2.5);
+        const toggled = match.tryInteractDoor(player);
+        if (toggled && net.isOnline() && nearby) {
+          const doorState = getArenaDoors().find((d) => d.id === nearby.doorId)?.status;
+          net.sendDoorEvent({
+            doorId: nearby.doorId,
+            action: 'toggle',
+            state: doorState,
+          });
+        }
       }
 
       // [G] Drop carried Spike
@@ -1056,6 +1351,9 @@ function syncMatchHud(hud: MatchHudState): void {
   roundPhaseLabelEl.textContent = phaseText;
   roundClockEl.textContent =
     hud.phase === 'match_over' ? 'FINAL' : formatClock(hud.phase, hud.phaseTimerSec);
+  const wt = hud.winTarget ?? 10;
+  const sw = hud.swapInterval ?? 5;
+  matchFormatLabelEl.textContent = `FT${wt} • ${sw} ATK / ${sw} DEF SWAP`;
 
   syncSpikeAndEconomyHud(hud);
 
@@ -1129,16 +1427,26 @@ let lastTime = performance.now();
 function tick(now: number): void {
   requestAnimationFrame(tick);
 
+  const rawDt = Math.max(0.001, (now - lastTime) / 1000);
   // Clamp dt to 50ms so tab-switching or frame hitches never tunnel through walls.
-  const dt = Math.min((now - lastTime) / 1000, 0.05);
+  const dt = Math.min(rawDt, 0.05);
   lastTime = now;
 
+  if (showFps) {
+    const instFps = Math.min(999, 1 / rawDt);
+    smoothedFps = smoothedFps * 0.9 + instFps * 0.1;
+    if (now - fpsLastUiMs >= 200) {
+      fpsLastUiMs = now;
+      fpsCounterEl.textContent = `${Math.round(smoothedFps)} FPS`;
+    }
+  }
+
   // -------------------------------------------------------------------------
-  // Frozen state: Agent Select is open (or the match has not started yet).
+  // Frozen state: Lobby or Agent Select is open (or the match has not started yet).
   // The simulation is paused, the Agent Select stage renders ONLY while open,
   // and the main scene is drawn once as a static backdrop.
   // -------------------------------------------------------------------------
-  if (agentSelect.isOpen() || !gameStarted) {
+  if (lobby.isOpen() || agentSelect.isOpen() || !gameStarted) {
     if (agentSelect.isOpen()) {
       agentSelect.render(dt);
     }
@@ -1161,7 +1469,7 @@ function tick(now: number): void {
       }
       frozenDrawn = true;
     }
-    if (!agentSelect.isOpen() && mapViewer.isOpen()) {
+    if (!lobby.isOpen() && !agentSelect.isOpen() && mapViewer.isOpen()) {
       if (mapViewer.is3DViewActive()) {
         updateArenaDoors(dt);
         mapViewer.render3D(renderer, scene);
@@ -1266,14 +1574,14 @@ function tick(now: number): void {
   slideTiltSmoothed += (slideTiltTarget - slideTiltSmoothed) * (1 - Math.exp(-14 * dt));
 
   // Target FOV: smooth optical zoom when scoped with an ADS-capable weapon,
-  // otherwise hipfire 75° + Crimson Dash punch, or a wide 85° during Power-Slide.
+  // otherwise configured base FOV + Crimson Dash punch, or wide FOV during Power-Slide.
   const adsFov = activeSpec.adsFovDeg;
   const targetFov =
     isAlive && weapon.isScoped && adsFov != null
       ? adsFov
       : feedback.slideActive
-        ? 85
-        : BASE_FOV_DEG + feedback.dashAlpha * 15;
+        ? Math.max(baseFovDeg + 6, 85)
+        : baseFovDeg + feedback.dashAlpha * 15;
 
   if (Math.abs(camera.fov - targetFov) > 0.01) {
     const alpha = 1 - Math.exp(-18 * dt);
@@ -1370,7 +1678,17 @@ function tick(now: number): void {
       sfx.playWeaponShot(weapon.currentWeaponId, feedback.stimActive, 0);
 
       if (shot.hitDoorId) {
-        match.handleDoorShotHit(shot.hitDoorId, shot.doorDamageDealt ?? 25);
+        const dmg = shot.doorDamageDealt ?? 25;
+        match.handleDoorShotHit(shot.hitDoorId, dmg);
+        if (net.isOnline()) {
+          const doorState = getArenaDoors().find((d) => d.id === shot.hitDoorId)?.status;
+          net.sendDoorEvent({
+            doorId: shot.hitDoorId,
+            action: doorState === 'broken' ? 'break' : 'damage',
+            state: doorState,
+            damage: dmg,
+          });
+        }
       }
 
       // Low-ammo warning click on the last few rounds of a magazine.
@@ -1403,6 +1721,24 @@ function tick(now: number): void {
     dropSpikePressed
   );
   dropSpikePressed = false;
+  if (net.isOnline() && gameStarted) {
+    net.sendPlayerState({
+      side: lastPlayerSide,
+      agentColor: player.colorId,
+      position: player.position,
+      velocity: player.velocity,
+      yaw: input.yaw,
+      pitch: input.pitch,
+      health: player.health,
+      armor: player.armor ?? 0,
+      alive: isAlive,
+      weaponId: weapon.currentWeaponId,
+      firing: firedThisFrame,
+      sliding: Boolean(feedback.slideActive),
+      ultActive: (playerCombatant.ultActiveTimer ?? 0) > 0,
+    });
+    match.applyRemotePlayers(net.getRemotePlayers());
+  }
   const ultRevealActive = Boolean(lastAbilityFeedback?.ultRevealActive);
   const hud = match.update(dt, player, camera.position, feedback.activeSmokes, ultRevealActive);
   if (!(mapViewer.isOpen() && mapViewer.is3DViewActive())) {

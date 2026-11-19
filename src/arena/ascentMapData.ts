@@ -374,7 +374,20 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "z": -27.5
       },
       "max": {
-        "x": 1.75,
+        "x": -9.8,
+        "y": 5.6,
+        "z": -22.5
+      },
+      "tag": "wall"
+    },
+    {
+      "min": {
+        "x": -5.6,
+        "y": 0.0,
+        "z": -27.5
+      },
+      "max": {
+        "x": -4.75,
         "y": 5.6,
         "z": -22.5
       },
@@ -435,7 +448,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
     {
       "min": {
         "x": -16.25,
-        "y": 3.15,
+        "y": 3.2,
         "z": 6.25
       },
       "max": {
@@ -478,7 +491,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "z": 5.75
       },
       "max": {
-        "x": -15.75,
+        "x": -16.25,
         "y": 5.4,
         "z": 6.25
       },
@@ -657,7 +670,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "min": {
         "x": -41.4,
         "y": 0.0,
-        "z": -1.0
+        "z": -0.8
       },
       "max": {
         "x": -31.0,
@@ -673,61 +686,100 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "z": -8.25
       },
       "max": {
-        "x": -38.5,
+        "x": -40.2,
         "y": 5.6,
-        "z": -1.0
+        "z": -0.8
       },
       "tag": "wall"
     },
     {
       "min": {
-        "x": -38.5,
+        "x": -40.2,
         "y": 0.0,
         "z": -8.25
       },
       "max": {
         "x": -31.0,
         "y": 5.4,
-        "z": -7.5
+        "z": -7.6
       },
       "tag": "wall"
     },
     {
       "min": {
-        "x": -31.5,
-        "y": 3.1,
-        "z": -6.8
+        "x": -31.6,
+        "y": 0.0,
+        "z": -7.6
       },
       "max": {
         "x": -31.0,
         "y": 5.4,
-        "z": -1.5
+        "z": -7.0
       },
       "tag": "wall"
     },
     {
       "min": {
-        "x": -38.3,
-        "y": 0.0,
-        "z": -6.8
+        "x": -31.6,
+        "y": 3.15,
+        "z": -7.0
       },
       "max": {
-        "x": -36.4,
-        "y": 2.05,
-        "z": -2.0
+        "x": -31.0,
+        "y": 5.4,
+        "z": -1.4
+      },
+      "tag": "wall"
+    },
+    {
+      "min": {
+        "x": -31.6,
+        "y": 0.0,
+        "z": -1.4
+      },
+      "max": {
+        "x": -31.0,
+        "y": 5.4,
+        "z": -0.8
+      },
+      "tag": "wall"
+    },
+    {
+      "min": {
+        "x": -40.2,
+        "y": 4.25,
+        "z": -8.2
+      },
+      "max": {
+        "x": -31.0,
+        "y": 4.65,
+        "z": -0.8
+      },
+      "tag": "wall"
+    },
+    {
+      "min": {
+        "x": -40.0,
+        "y": 0.0,
+        "z": -6.9
+      },
+      "max": {
+        "x": -38.1,
+        "y": 2.08,
+        "z": -1.9
       },
       "tag": "cover"
     },
     {
       "min": {
-        "x": -35.2,
+        "x": -36.9,
         "y": 0.0,
-        "z": -7.4
+        "z": -7.45
       },
       "max": {
-        "x": -33.6,
-        "y": 1.25,
-        "z": -5.9
+        "x": -35.0,
+        "y": 1.24,
+        "z": -5.85
       },
       "tag": "cover"
     },
@@ -843,7 +895,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       },
       "max": {
         "x": -19.75,
-        "y": 2.22,
+        "y": 2.24,
         "z": -13.15
       },
       "tag": "cover"
@@ -954,6 +1006,32 @@ export const ASCENT_MAP_DATA: AscentMapData = {
     },
     {
       "min": {
+        "x": -33.6,
+        "y": 0.0,
+        "z": -31.5
+      },
+      "max": {
+        "x": -31.8,
+        "y": 1.32,
+        "z": -29.7
+      },
+      "tag": "cover"
+    },
+    {
+      "min": {
+        "x": -22.4,
+        "y": 0.0,
+        "z": -31.6
+      },
+      "max": {
+        "x": -20.8,
+        "y": 1.18,
+        "z": -30.2
+      },
+      "tag": "cover"
+    },
+    {
+      "min": {
         "x": -34.0,
         "y": 2.65,
         "z": -32.0
@@ -1016,6 +1094,19 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "z": -36.8
       },
       "tag": "wall"
+    },
+    {
+      "min": {
+        "x": -31.6,
+        "y": 3.0,
+        "z": -27.4
+      },
+      "max": {
+        "x": -29.8,
+        "y": 4.24,
+        "z": -25.6
+      },
+      "tag": "cover"
     },
     {
       "min": {
@@ -1162,6 +1253,45 @@ export const ASCENT_MAP_DATA: AscentMapData = {
     },
     {
       "min": {
+        "x": -9.8,
+        "y": 3.25,
+        "z": -23.0
+      },
+      "max": {
+        "x": -5.6,
+        "y": 5.6,
+        "z": -22.5
+      },
+      "tag": "wall"
+    },
+    {
+      "min": {
+        "x": -9.8,
+        "y": 3.25,
+        "z": -27.5
+      },
+      "max": {
+        "x": -5.6,
+        "y": 5.6,
+        "z": -27.0
+      },
+      "tag": "wall"
+    },
+    {
+      "min": {
+        "x": -9.8,
+        "y": 3.9,
+        "z": -27.5
+      },
+      "max": {
+        "x": -5.6,
+        "y": 5.6,
+        "z": -22.5
+      },
+      "tag": "wall"
+    },
+    {
+      "min": {
         "x": -5.25,
         "y": 0.0,
         "z": -22.5
@@ -1175,14 +1305,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
     },
     {
       "min": {
-        "x": -9.2,
+        "x": -9.5,
         "y": 0.0,
-        "z": -15.3
+        "z": -14.9
       },
       "max": {
-        "x": -7.2,
-        "y": 1.22,
-        "z": -13.3
+        "x": -7.3,
+        "y": 1.14,
+        "z": -12.7
       },
       "tag": "cover"
     },
@@ -1216,25 +1346,38 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "min": {
         "x": -7.6,
         "y": 0.0,
-        "z": -2.4
+        "z": -1.8
       },
       "max": {
         "x": -6.45,
         "y": 0.425,
-        "z": 0.8
+        "z": 0.85
       },
       "tag": "floor"
     },
     {
       "min": {
+        "x": -8.95,
+        "y": 0.85,
+        "z": -6.2
+      },
+      "max": {
+        "x": -7.65,
+        "y": 2.02,
+        "z": -4.9
+      },
+      "tag": "cover"
+    },
+    {
+      "min": {
         "x": -7.96,
         "y": 0.85,
-        "z": -6.8
+        "z": -4.9
       },
       "max": {
         "x": -7.6,
         "y": 1.95,
-        "z": -2.6
+        "z": -2.0
       },
       "tag": "cover"
     },
@@ -1292,53 +1435,92 @@ export const ASCENT_MAP_DATA: AscentMapData = {
     },
     {
       "min": {
-        "x": -1.5,
+        "x": -5.25,
         "y": 0.0,
-        "z": 0.8
+        "z": -7.75
       },
       "max": {
-        "x": 1.5,
-        "y": 1.28,
-        "z": 3.8
+        "x": -4.75,
+        "y": 3.12,
+        "z": -5.0
       },
-      "tag": "cover"
+      "tag": "wall"
     },
     {
       "min": {
-        "x": -6.8,
+        "x": -1.4,
         "y": 0.0,
-        "z": -10.4
+        "z": 2.6
       },
       "max": {
-        "x": -4.6,
-        "y": 1.1,
-        "z": -8.2
-      },
-      "tag": "cover"
-    },
-    {
-      "min": {
-        "x": -6.68,
-        "y": 1.1,
-        "z": -10.28
-      },
-      "max": {
-        "x": -4.72,
-        "y": 2.18,
-        "z": -8.32
-      },
-      "tag": "cover"
-    },
-    {
-      "min": {
-        "x": 7.2,
-        "y": 0.0,
-        "z": -2.2
-      },
-      "max": {
-        "x": 9.0,
+        "x": 1.4,
         "y": 1.25,
-        "z": -0.4
+        "z": 5.4
+      },
+      "tag": "cover"
+    },
+    {
+      "min": {
+        "x": 1.6,
+        "y": 0.0,
+        "z": -5.6
+      },
+      "max": {
+        "x": 3.9,
+        "y": 1.12,
+        "z": -3.3
+      },
+      "tag": "cover"
+    },
+    {
+      "min": {
+        "x": 1.75,
+        "y": 1.12,
+        "z": -5.45
+      },
+      "max": {
+        "x": 3.75,
+        "y": 2.24,
+        "z": -3.45
+      },
+      "tag": "cover"
+    },
+    {
+      "min": {
+        "x": 0.3,
+        "y": 0.0,
+        "z": -5.2
+      },
+      "max": {
+        "x": 1.6,
+        "y": 1.15,
+        "z": -3.7
+      },
+      "tag": "cover"
+    },
+    {
+      "min": {
+        "x": 8.2,
+        "y": 0.0,
+        "z": -2.0
+      },
+      "max": {
+        "x": 10.0,
+        "y": 1.25,
+        "z": -0.2
+      },
+      "tag": "cover"
+    },
+    {
+      "min": {
+        "x": -4.75,
+        "y": 0.0,
+        "z": -14.8
+      },
+      "max": {
+        "x": -3.45,
+        "y": 1.2,
+        "z": -11.4
       },
       "tag": "cover"
     },
@@ -1349,7 +1531,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "z": -16.25
       },
       "max": {
-        "x": 2.25,
+        "x": -2.6,
         "y": 5.4,
         "z": -15.75
       },
@@ -1357,14 +1539,92 @@ export const ASCENT_MAP_DATA: AscentMapData = {
     },
     {
       "min": {
-        "x": -3.9,
-        "y": 0.0,
-        "z": -15.75
+        "x": -2.6,
+        "y": 3.25,
+        "z": -16.25
       },
       "max": {
-        "x": -1.3,
-        "y": 1.2,
-        "z": -14.55
+        "x": 1.2,
+        "y": 5.4,
+        "z": -15.75
+      },
+      "tag": "wall"
+    },
+    {
+      "min": {
+        "x": 1.2,
+        "y": 0.0,
+        "z": -16.25
+      },
+      "max": {
+        "x": 1.75,
+        "y": 5.4,
+        "z": -15.75
+      },
+      "tag": "wall"
+    },
+    {
+      "min": {
+        "x": -4.75,
+        "y": 0.0,
+        "z": -27.5
+      },
+      "max": {
+        "x": -2.6,
+        "y": 5.4,
+        "z": -27.0
+      },
+      "tag": "wall"
+    },
+    {
+      "min": {
+        "x": -2.6,
+        "y": 3.25,
+        "z": -27.5
+      },
+      "max": {
+        "x": 1.2,
+        "y": 5.4,
+        "z": -27.0
+      },
+      "tag": "wall"
+    },
+    {
+      "min": {
+        "x": 1.2,
+        "y": 0.0,
+        "z": -27.5
+      },
+      "max": {
+        "x": 1.75,
+        "y": 5.4,
+        "z": -27.0
+      },
+      "tag": "wall"
+    },
+    {
+      "min": {
+        "x": -4.75,
+        "y": 3.9,
+        "z": -27.5
+      },
+      "max": {
+        "x": 1.75,
+        "y": 5.4,
+        "z": -21.5
+      },
+      "tag": "wall"
+    },
+    {
+      "min": {
+        "x": -4.65,
+        "y": 0.0,
+        "z": -21.8
+      },
+      "max": {
+        "x": -3.3,
+        "y": 1.25,
+        "z": -19.8
       },
       "tag": "cover"
     },
@@ -1372,11 +1632,24 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "min": {
         "x": 1.75,
         "y": 0.0,
-        "z": -25.5
+        "z": -27.5
       },
       "max": {
         "x": 2.25,
         "y": 5.4,
+        "z": -26.0
+      },
+      "tag": "wall"
+    },
+    {
+      "min": {
+        "x": 1.75,
+        "y": 0.0,
+        "z": -26.0
+      },
+      "max": {
+        "x": 2.25,
+        "y": 4.2,
         "z": -15.1
       },
       "tag": "wall"
@@ -1389,7 +1662,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       },
       "max": {
         "x": 2.6,
-        "y": 5.4,
+        "y": 4.2,
         "z": -14.85
       },
       "tag": "wall"
@@ -1402,7 +1675,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       },
       "max": {
         "x": 6.0,
-        "y": 5.4,
+        "y": 4.2,
         "z": -14.85
       },
       "tag": "wall"
@@ -1415,7 +1688,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       },
       "max": {
         "x": 7.0,
-        "y": 5.4,
+        "y": 4.2,
         "z": -14.85
       },
       "tag": "wall"
@@ -1441,7 +1714,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       },
       "max": {
         "x": 11.4,
-        "y": 5.4,
+        "y": 4.2,
         "z": -14.85
       },
       "tag": "wall"
@@ -1454,7 +1727,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       },
       "max": {
         "x": 14.25,
-        "y": 5.4,
+        "y": 4.2,
         "z": -14.85
       },
       "tag": "wall"
@@ -1467,7 +1740,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       },
       "max": {
         "x": 5.2,
-        "y": 5.4,
+        "y": 4.2,
         "z": -25.5
       },
       "tag": "wall"
@@ -1480,7 +1753,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       },
       "max": {
         "x": 9.4,
-        "y": 5.4,
+        "y": 4.2,
         "z": -25.5
       },
       "tag": "wall"
@@ -1493,7 +1766,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       },
       "max": {
         "x": 14.25,
-        "y": 5.4,
+        "y": 4.2,
         "z": -25.5
       },
       "tag": "wall"
@@ -1502,7 +1775,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "min": {
         "x": 13.75,
         "y": 0.0,
-        "z": -19.4
+        "z": -14.85
       },
       "max": {
         "x": 14.25,
@@ -1515,11 +1788,24 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "min": {
         "x": 13.75,
         "y": 0.0,
+        "z": -19.4
+      },
+      "max": {
+        "x": 14.25,
+        "y": 4.2,
+        "z": -14.85
+      },
+      "tag": "wall"
+    },
+    {
+      "min": {
+        "x": 13.75,
+        "y": 0.0,
         "z": -26.0
       },
       "max": {
         "x": 14.25,
-        "y": 5.4,
+        "y": 4.2,
         "z": -22.6
       },
       "tag": "wall"
@@ -1532,29 +1818,42 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       },
       "max": {
         "x": 14.25,
-        "y": 4.35,
+        "y": 4.4,
         "z": -14.85
       },
       "tag": "wall"
     },
     {
       "min": {
-        "x": 3.0,
+        "x": 2.4,
         "y": 0.0,
-        "z": -22.8
+        "z": -23.4
       },
       "max": {
-        "x": 4.8,
+        "x": 4.1,
         "y": 1.22,
-        "z": -20.2
+        "z": -20.6
       },
       "tag": "cover"
     },
     {
       "min": {
-        "x": 35.0,
+        "x": 38.0,
         "y": 0.0,
         "z": -7.75
+      },
+      "max": {
+        "x": 41.4,
+        "y": 5.6,
+        "z": -3.0
+      },
+      "tag": "wall"
+    },
+    {
+      "min": {
+        "x": 35.0,
+        "y": 0.0,
+        "z": -3.0
       },
       "max": {
         "x": 41.4,
@@ -1617,6 +1916,45 @@ export const ASCENT_MAP_DATA: AscentMapData = {
     },
     {
       "min": {
+        "x": 17.5,
+        "y": 3.95,
+        "z": -8.25
+      },
+      "max": {
+        "x": 38.0,
+        "y": 4.45,
+        "z": 4.25
+      },
+      "tag": "wall"
+    },
+    {
+      "min": {
+        "x": 30.9,
+        "y": 0.0,
+        "z": -7.6
+      },
+      "max": {
+        "x": 32.7,
+        "y": 1.38,
+        "z": -5.8
+      },
+      "tag": "cover"
+    },
+    {
+      "min": {
+        "x": 21.8,
+        "y": 0.0,
+        "z": -7.6
+      },
+      "max": {
+        "x": 23.4,
+        "y": 1.28,
+        "z": -6.1
+      },
+      "tag": "cover"
+    },
+    {
+      "min": {
         "x": 14.25,
         "y": 0.0,
         "z": -8.25
@@ -1666,6 +2004,19 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "z": -7.75
       },
       "tag": "wall"
+    },
+    {
+      "min": {
+        "x": 22.0,
+        "y": 0.0,
+        "z": -11.4
+      },
+      "max": {
+        "x": 24.4,
+        "y": 1.32,
+        "z": -9.4
+      },
+      "tag": "cover"
     },
     {
       "min": {
@@ -1760,6 +2111,58 @@ export const ASCENT_MAP_DATA: AscentMapData = {
     },
     {
       "min": {
+        "x": 14.25,
+        "y": 0.0,
+        "z": -16.75
+      },
+      "max": {
+        "x": 17.45,
+        "y": 3.05,
+        "z": -16.35
+      },
+      "tag": "wall"
+    },
+    {
+      "min": {
+        "x": 17.15,
+        "y": 0.0,
+        "z": -19.2
+      },
+      "max": {
+        "x": 17.45,
+        "y": 3.05,
+        "z": -18.9
+      },
+      "tag": "wall"
+    },
+    {
+      "min": {
+        "x": 16.35,
+        "y": 0.0,
+        "z": -17.55
+      },
+      "max": {
+        "x": 17.35,
+        "y": 1.22,
+        "z": -16.75
+      },
+      "tag": "cover"
+    },
+    {
+      "min": {
+        "x": 14.25,
+        "y": 3.05,
+        "z": -19.35
+      },
+      "max": {
+        "x": 17.75,
+        "y": 3.85,
+        "z": -16.25
+      },
+      "tag": "wall"
+    },
+    {
+      "min": {
         "x": 21.2,
         "y": 0.0,
         "z": -22.4
@@ -1799,27 +2202,40 @@ export const ASCENT_MAP_DATA: AscentMapData = {
     },
     {
       "min": {
-        "x": 15.8,
+        "x": 24.4,
         "y": 0.0,
-        "z": -18.2
+        "z": -23.9
       },
       "max": {
-        "x": 17.4,
-        "y": 1.25,
-        "z": -16.6
+        "x": 26.2,
+        "y": 1.32,
+        "z": -22.4
       },
       "tag": "cover"
     },
     {
       "min": {
-        "x": 25.4,
+        "x": 29.4,
+        "y": 0.0,
+        "z": -22.2
+      },
+      "max": {
+        "x": 31.0,
+        "y": 1.22,
+        "z": -20.6
+      },
+      "tag": "cover"
+    },
+    {
+      "min": {
+        "x": 26.2,
         "y": 0.0,
         "z": -13.8
       },
       "max": {
-        "x": 28.2,
-        "y": 1.28,
-        "z": -12.2
+        "x": 28.6,
+        "y": 1.26,
+        "z": -12.4
       },
       "tag": "cover"
     },
@@ -2212,6 +2628,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "side": "defender"
     },
     {
+      "x0": -2.6,
+      "x1": 1.2,
+      "z": -16.0,
+      "baseY": 0.0,
+      "height": 3.25,
+      "side": "defender"
+    },
+    {
       "x0": 2.25,
       "x1": 13.75,
       "z": -16.0,
@@ -2240,43 +2664,40 @@ export const ASCENT_MAP_DATA: AscentMapData = {
     {
       "id": "wp_0",
       "pos": {
-        "x": -34.0,
+        "x": -36.0,
         "y": 0.0,
-        "z": -22.0
+        "z": -4.0
       },
       "neighbors": [
         "wp_1",
-        "wp_18",
-        "wp_19",
-        "wp_20"
+        "wp_9",
+        "wp_10",
+        "wp_11"
       ],
-      "zone": "site_a"
+      "zone": "flank"
     },
     {
       "id": "wp_1",
       "pos": {
-        "x": -34.0,
+        "x": -36.0,
         "y": 0.0,
-        "z": -20.0
+        "z": -2.0
       },
       "neighbors": [
         "wp_0",
-        "wp_2",
-        "wp_19",
-        "wp_20",
-        "wp_21"
+        "wp_10",
+        "wp_11"
       ],
-      "zone": "site_a"
+      "zone": "flank"
     },
     {
       "id": "wp_2",
       "pos": {
         "x": -34.0,
         "y": 0.0,
-        "z": -18.0
+        "z": -22.0
       },
       "neighbors": [
-        "wp_1",
         "wp_3",
         "wp_20",
         "wp_21",
@@ -2289,13 +2710,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -34.0,
         "y": 0.0,
-        "z": -16.0
+        "z": -20.0
       },
       "neighbors": [
         "wp_2",
         "wp_4",
         "wp_21",
-        "wp_22"
+        "wp_22",
+        "wp_23"
       ],
       "zone": "site_a"
     },
@@ -2304,11 +2726,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -34.0,
         "y": 0.0,
-        "z": -14.0
+        "z": -18.0
       },
       "neighbors": [
         "wp_3",
-        "wp_5"
+        "wp_5",
+        "wp_22",
+        "wp_23",
+        "wp_24"
       ],
       "zone": "site_a"
     },
@@ -2317,7 +2742,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -34.0,
         "y": 0.0,
-        "z": -12.0
+        "z": -16.0
       },
       "neighbors": [
         "wp_4",
@@ -2332,12 +2757,11 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -34.0,
         "y": 0.0,
-        "z": -10.0
+        "z": -14.0
       },
       "neighbors": [
         "wp_5",
-        "wp_23",
-        "wp_24"
+        "wp_7"
       ],
       "zone": "site_a"
     },
@@ -2346,42 +2770,43 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -34.0,
         "y": 0.0,
-        "z": -4.0
+        "z": -12.0
       },
       "neighbors": [
+        "wp_6",
         "wp_8",
         "wp_25",
-        "wp_26",
-        "wp_27",
-        "wp_1152"
+        "wp_26"
       ],
-      "zone": "flank"
+      "zone": "site_a"
     },
     {
       "id": "wp_8",
       "pos": {
         "x": -34.0,
         "y": 0.0,
-        "z": -2.0
+        "z": -10.0
       },
       "neighbors": [
         "wp_7",
-        "wp_26",
-        "wp_27"
+        "wp_25",
+        "wp_26"
       ],
-      "zone": "flank"
+      "zone": "site_a"
     },
     {
       "id": "wp_9",
       "pos": {
         "x": -34.0,
         "y": 0.0,
-        "z": 8.0
+        "z": -6.0
       },
       "neighbors": [
+        "wp_0",
         "wp_10",
+        "wp_27",
         "wp_28",
-        "wp_29"
+        "wp_1194"
       ],
       "zone": "flank"
     },
@@ -2390,14 +2815,17 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -34.0,
         "y": 0.0,
-        "z": 10.0
+        "z": -4.0
       },
       "neighbors": [
+        "wp_0",
+        "wp_1",
         "wp_9",
         "wp_11",
+        "wp_27",
         "wp_28",
         "wp_29",
-        "wp_30"
+        "wp_1194"
       ],
       "zone": "flank"
     },
@@ -2406,14 +2834,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -34.0,
         "y": 0.0,
-        "z": 12.0
+        "z": -2.0
       },
       "neighbors": [
+        "wp_0",
+        "wp_1",
         "wp_10",
-        "wp_12",
-        "wp_29",
-        "wp_30",
-        "wp_31"
+        "wp_28",
+        "wp_29"
       ],
       "zone": "flank"
     },
@@ -2422,14 +2850,12 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -34.0,
         "y": 0.0,
-        "z": 14.0
+        "z": 8.0
       },
       "neighbors": [
-        "wp_11",
         "wp_13",
         "wp_30",
-        "wp_31",
-        "wp_32"
+        "wp_31"
       ],
       "zone": "flank"
     },
@@ -2438,14 +2864,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -34.0,
         "y": 0.0,
-        "z": 16.0
+        "z": 10.0
       },
       "neighbors": [
         "wp_12",
         "wp_14",
+        "wp_30",
         "wp_31",
-        "wp_32",
-        "wp_33"
+        "wp_32"
       ],
       "zone": "flank"
     },
@@ -2454,10 +2880,12 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -34.0,
         "y": 0.0,
-        "z": 18.0
+        "z": 12.0
       },
       "neighbors": [
         "wp_13",
+        "wp_15",
+        "wp_31",
         "wp_32",
         "wp_33"
       ],
@@ -2466,62 +2894,57 @@ export const ASCENT_MAP_DATA: AscentMapData = {
     {
       "id": "wp_15",
       "pos": {
-        "x": -32.0,
+        "x": -34.0,
         "y": 0.0,
-        "z": -30.0
+        "z": 14.0
       },
       "neighbors": [
+        "wp_14",
         "wp_16",
-        "wp_34",
-        "wp_35",
-        "wp_1141"
+        "wp_32",
+        "wp_33",
+        "wp_34"
       ],
-      "zone": "site_a"
+      "zone": "flank"
     },
     {
       "id": "wp_16",
       "pos": {
-        "x": -32.0,
+        "x": -34.0,
         "y": 0.0,
-        "z": -28.0
+        "z": 16.0
       },
       "neighbors": [
         "wp_15",
         "wp_17",
+        "wp_33",
         "wp_34",
-        "wp_35",
-        "wp_36",
-        "wp_1141"
+        "wp_35"
       ],
-      "zone": "site_a"
+      "zone": "flank"
     },
     {
       "id": "wp_17",
       "pos": {
-        "x": -32.0,
+        "x": -34.0,
         "y": 0.0,
-        "z": -26.0
+        "z": 18.0
       },
       "neighbors": [
         "wp_16",
-        "wp_18",
-        "wp_35",
-        "wp_36",
-        "wp_37",
-        "wp_1141"
+        "wp_34",
+        "wp_35"
       ],
-      "zone": "site_a"
+      "zone": "flank"
     },
     {
       "id": "wp_18",
       "pos": {
         "x": -32.0,
         "y": 0.0,
-        "z": -24.0
+        "z": -28.0
       },
       "neighbors": [
-        "wp_0",
-        "wp_17",
         "wp_19",
         "wp_36",
         "wp_37",
@@ -2534,11 +2957,9 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -32.0,
         "y": 0.0,
-        "z": -22.0
+        "z": -26.0
       },
       "neighbors": [
-        "wp_0",
-        "wp_1",
         "wp_18",
         "wp_20",
         "wp_37",
@@ -2552,11 +2973,9 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -32.0,
         "y": 0.0,
-        "z": -20.0
+        "z": -24.0
       },
       "neighbors": [
-        "wp_0",
-        "wp_1",
         "wp_2",
         "wp_19",
         "wp_21",
@@ -2571,10 +2990,9 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -32.0,
         "y": 0.0,
-        "z": -18.0
+        "z": -22.0
       },
       "neighbors": [
-        "wp_1",
         "wp_2",
         "wp_3",
         "wp_20",
@@ -2590,12 +3008,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -32.0,
         "y": 0.0,
-        "z": -16.0
+        "z": -20.0
       },
       "neighbors": [
         "wp_2",
         "wp_3",
+        "wp_4",
         "wp_21",
+        "wp_23",
         "wp_40",
         "wp_41",
         "wp_42"
@@ -2607,15 +3027,17 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -32.0,
         "y": 0.0,
-        "z": -12.0
+        "z": -18.0
       },
       "neighbors": [
+        "wp_3",
+        "wp_4",
         "wp_5",
-        "wp_6",
+        "wp_22",
         "wp_24",
+        "wp_41",
         "wp_42",
-        "wp_43",
-        "wp_44"
+        "wp_43"
       ],
       "zone": "site_a"
     },
@@ -2624,12 +3046,13 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -32.0,
         "y": 0.0,
-        "z": -10.0
+        "z": -16.0
       },
       "neighbors": [
+        "wp_4",
         "wp_5",
-        "wp_6",
         "wp_23",
+        "wp_42",
         "wp_43",
         "wp_44"
       ],
@@ -2640,50 +3063,48 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -32.0,
         "y": 0.0,
-        "z": -6.0
+        "z": -12.0
       },
       "neighbors": [
         "wp_7",
+        "wp_8",
         "wp_26",
+        "wp_44",
         "wp_45",
-        "wp_46",
-        "wp_1152"
+        "wp_46"
       ],
-      "zone": "flank"
+      "zone": "site_a"
     },
     {
       "id": "wp_26",
       "pos": {
         "x": -32.0,
         "y": 0.0,
-        "z": -4.0
+        "z": -10.0
       },
       "neighbors": [
         "wp_7",
         "wp_8",
         "wp_25",
-        "wp_27",
         "wp_45",
-        "wp_46",
-        "wp_47",
-        "wp_1152"
+        "wp_46"
       ],
-      "zone": "flank"
+      "zone": "site_a"
     },
     {
       "id": "wp_27",
       "pos": {
         "x": -32.0,
         "y": 0.0,
-        "z": -2.0
+        "z": -6.0
       },
       "neighbors": [
-        "wp_7",
-        "wp_8",
-        "wp_26",
-        "wp_46",
+        "wp_9",
+        "wp_10",
+        "wp_28",
         "wp_47",
-        "wp_1152"
+        "wp_48",
+        "wp_1194"
       ],
       "zone": "flank"
     },
@@ -2692,15 +3113,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -32.0,
         "y": 0.0,
-        "z": 8.0
+        "z": -4.0
       },
       "neighbors": [
         "wp_9",
         "wp_10",
+        "wp_11",
+        "wp_27",
         "wp_29",
-        "wp_51",
-        "wp_52",
-        "wp_53"
+        "wp_47",
+        "wp_48",
+        "wp_49",
+        "wp_1194"
       ],
       "zone": "flank"
     },
@@ -2709,17 +3133,15 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -32.0,
         "y": 0.0,
-        "z": 10.0
+        "z": -2.0
       },
       "neighbors": [
-        "wp_9",
         "wp_10",
         "wp_11",
         "wp_28",
-        "wp_30",
-        "wp_52",
-        "wp_53",
-        "wp_54"
+        "wp_48",
+        "wp_49",
+        "wp_1194"
       ],
       "zone": "flank"
     },
@@ -2728,16 +3150,15 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -32.0,
         "y": 0.0,
-        "z": 12.0
+        "z": 8.0
       },
       "neighbors": [
-        "wp_10",
-        "wp_11",
         "wp_12",
-        "wp_29",
+        "wp_13",
         "wp_31",
         "wp_53",
-        "wp_54"
+        "wp_54",
+        "wp_55"
       ],
       "zone": "flank"
     },
@@ -2746,16 +3167,17 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -32.0,
         "y": 0.0,
-        "z": 14.0
+        "z": 10.0
       },
       "neighbors": [
-        "wp_11",
         "wp_12",
         "wp_13",
+        "wp_14",
         "wp_30",
         "wp_32",
         "wp_54",
-        "wp_55"
+        "wp_55",
+        "wp_56"
       ],
       "zone": "flank"
     },
@@ -2764,12 +3186,12 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -32.0,
         "y": 0.0,
-        "z": 16.0
+        "z": 12.0
       },
       "neighbors": [
-        "wp_12",
         "wp_13",
         "wp_14",
+        "wp_15",
         "wp_31",
         "wp_33",
         "wp_55",
@@ -2782,72 +3204,66 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -32.0,
         "y": 0.0,
-        "z": 18.0
+        "z": 14.0
       },
       "neighbors": [
-        "wp_13",
         "wp_14",
+        "wp_15",
+        "wp_16",
         "wp_32",
-        "wp_55",
-        "wp_56"
+        "wp_34",
+        "wp_56",
+        "wp_57"
       ],
       "zone": "flank"
     },
     {
       "id": "wp_34",
       "pos": {
-        "x": -30.0,
+        "x": -32.0,
         "y": 0.0,
-        "z": -30.0
-      },
-      "neighbors": [
-        "wp_15",
-        "wp_16",
-        "wp_35",
-        "wp_69",
-        "wp_70",
-        "wp_1141",
-        "wp_1142"
-      ],
-      "zone": "site_a"
-    },
-    {
-      "id": "wp_35",
-      "pos": {
-        "x": -30.0,
-        "y": 0.0,
-        "z": -28.0
+        "z": 16.0
       },
       "neighbors": [
         "wp_15",
         "wp_16",
         "wp_17",
-        "wp_34",
-        "wp_36",
-        "wp_69",
-        "wp_70",
-        "wp_71",
-        "wp_1141",
-        "wp_1142"
+        "wp_33",
+        "wp_35",
+        "wp_57",
+        "wp_58"
       ],
-      "zone": "site_a"
+      "zone": "flank"
+    },
+    {
+      "id": "wp_35",
+      "pos": {
+        "x": -32.0,
+        "y": 0.0,
+        "z": 18.0
+      },
+      "neighbors": [
+        "wp_16",
+        "wp_17",
+        "wp_34",
+        "wp_57",
+        "wp_58"
+      ],
+      "zone": "flank"
     },
     {
       "id": "wp_36",
       "pos": {
         "x": -30.0,
         "y": 0.0,
-        "z": -26.0
+        "z": -30.0
       },
       "neighbors": [
-        "wp_16",
-        "wp_17",
         "wp_18",
-        "wp_35",
         "wp_37",
-        "wp_70",
         "wp_71",
-        "wp_1141"
+        "wp_72",
+        "wp_1184"
       ],
       "zone": "site_a"
     },
@@ -2856,16 +3272,17 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -30.0,
         "y": 0.0,
-        "z": -24.0
+        "z": -28.0
       },
       "neighbors": [
-        "wp_17",
         "wp_18",
         "wp_19",
         "wp_36",
         "wp_38",
         "wp_71",
-        "wp_72"
+        "wp_72",
+        "wp_73",
+        "wp_1184"
       ],
       "zone": "site_a"
     },
@@ -2874,7 +3291,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -30.0,
         "y": 0.0,
-        "z": -22.0
+        "z": -26.0
       },
       "neighbors": [
         "wp_18",
@@ -2882,7 +3299,8 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "wp_20",
         "wp_37",
         "wp_39",
-        "wp_72"
+        "wp_72",
+        "wp_73"
       ],
       "zone": "site_a"
     },
@@ -2891,7 +3309,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -30.0,
         "y": 0.0,
-        "z": -20.0
+        "z": -24.0
       },
       "neighbors": [
         "wp_19",
@@ -2899,8 +3317,8 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "wp_21",
         "wp_38",
         "wp_40",
-        "wp_72",
-        "wp_73"
+        "wp_73",
+        "wp_74"
       ],
       "zone": "site_a"
     },
@@ -2909,7 +3327,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -30.0,
         "y": 0.0,
-        "z": -18.0
+        "z": -22.0
       },
       "neighbors": [
         "wp_20",
@@ -2917,7 +3335,6 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "wp_22",
         "wp_39",
         "wp_41",
-        "wp_73",
         "wp_74"
       ],
       "zone": "site_a"
@@ -2927,14 +3344,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -30.0,
         "y": 0.0,
-        "z": -16.0
+        "z": -20.0
       },
       "neighbors": [
         "wp_21",
         "wp_22",
+        "wp_23",
         "wp_40",
         "wp_42",
-        "wp_73",
         "wp_74",
         "wp_75"
       ],
@@ -2945,14 +3362,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -30.0,
         "y": 0.0,
-        "z": -14.0
+        "z": -18.0
       },
       "neighbors": [
         "wp_22",
         "wp_23",
+        "wp_24",
         "wp_41",
         "wp_43",
-        "wp_74",
         "wp_75",
         "wp_76"
       ],
@@ -2963,7 +3380,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -30.0,
         "y": 0.0,
-        "z": -12.0
+        "z": -16.0
       },
       "neighbors": [
         "wp_23",
@@ -2981,12 +3398,13 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -30.0,
         "y": 0.0,
-        "z": -10.0
+        "z": -14.0
       },
       "neighbors": [
-        "wp_23",
         "wp_24",
+        "wp_25",
         "wp_43",
+        "wp_45",
         "wp_76",
         "wp_77",
         "wp_78"
@@ -2998,55 +3416,51 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -30.0,
         "y": 0.0,
-        "z": -6.0
+        "z": -12.0
       },
       "neighbors": [
         "wp_25",
         "wp_26",
+        "wp_44",
         "wp_46",
+        "wp_77",
         "wp_78",
-        "wp_79",
-        "wp_80",
-        "wp_1152"
+        "wp_79"
       ],
-      "zone": "flank"
+      "zone": "site_a"
     },
     {
       "id": "wp_46",
       "pos": {
         "x": -30.0,
         "y": 0.0,
-        "z": -4.0
+        "z": -10.0
       },
       "neighbors": [
         "wp_25",
         "wp_26",
-        "wp_27",
         "wp_45",
-        "wp_47",
+        "wp_78",
         "wp_79",
-        "wp_80",
-        "wp_81",
-        "wp_1152"
+        "wp_80"
       ],
-      "zone": "flank"
+      "zone": "site_a"
     },
     {
       "id": "wp_47",
       "pos": {
         "x": -30.0,
         "y": 0.0,
-        "z": -2.0
+        "z": -6.0
       },
       "neighbors": [
-        "wp_26",
         "wp_27",
-        "wp_46",
+        "wp_28",
         "wp_48",
         "wp_80",
         "wp_81",
         "wp_82",
-        "wp_1152"
+        "wp_1194"
       ],
       "zone": "flank"
     },
@@ -3055,14 +3469,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -30.0,
         "y": 0.0,
-        "z": 0.0
+        "z": -4.0
       },
       "neighbors": [
+        "wp_27",
+        "wp_28",
+        "wp_29",
         "wp_47",
         "wp_49",
         "wp_81",
         "wp_82",
-        "wp_83"
+        "wp_83",
+        "wp_1194"
       ],
       "zone": "flank"
     },
@@ -3071,14 +3489,17 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -30.0,
         "y": 0.0,
-        "z": 2.0
+        "z": -2.0
       },
       "neighbors": [
+        "wp_28",
+        "wp_29",
         "wp_48",
         "wp_50",
         "wp_82",
         "wp_83",
-        "wp_84"
+        "wp_84",
+        "wp_1194"
       ],
       "zone": "flank"
     },
@@ -3087,7 +3508,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -30.0,
         "y": 0.0,
-        "z": 4.0
+        "z": 0.0
       },
       "neighbors": [
         "wp_49",
@@ -3103,10 +3524,9 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -30.0,
         "y": 0.0,
-        "z": 6.0
+        "z": 2.0
       },
       "neighbors": [
-        "wp_28",
         "wp_50",
         "wp_52",
         "wp_84",
@@ -3120,11 +3540,9 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -30.0,
         "y": 0.0,
-        "z": 8.0
+        "z": 4.0
       },
       "neighbors": [
-        "wp_28",
-        "wp_29",
         "wp_51",
         "wp_53",
         "wp_85",
@@ -3138,11 +3556,9 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -30.0,
         "y": 0.0,
-        "z": 10.0
+        "z": 6.0
       },
       "neighbors": [
-        "wp_28",
-        "wp_29",
         "wp_30",
         "wp_52",
         "wp_54",
@@ -3157,15 +3573,16 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -30.0,
         "y": 0.0,
-        "z": 12.0
+        "z": 8.0
       },
       "neighbors": [
-        "wp_29",
         "wp_30",
         "wp_31",
         "wp_53",
+        "wp_55",
         "wp_87",
-        "wp_88"
+        "wp_88",
+        "wp_89"
       ],
       "zone": "flank"
     },
@@ -3174,13 +3591,15 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -30.0,
         "y": 0.0,
-        "z": 16.0
+        "z": 10.0
       },
       "neighbors": [
+        "wp_30",
         "wp_31",
         "wp_32",
-        "wp_33",
+        "wp_54",
         "wp_56",
+        "wp_88",
         "wp_89",
         "wp_90"
       ],
@@ -3191,9 +3610,10 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -30.0,
         "y": 0.0,
-        "z": 18.0
+        "z": 12.0
       },
       "neighbors": [
+        "wp_31",
         "wp_32",
         "wp_33",
         "wp_55",
@@ -3207,42 +3627,43 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -30.0,
         "y": 0.0,
-        "z": 22.0
+        "z": 16.0
       },
       "neighbors": [
+        "wp_33",
+        "wp_34",
+        "wp_35",
         "wp_58",
         "wp_91",
         "wp_92"
       ],
-      "zone": "spawn"
+      "zone": "flank"
     },
     {
       "id": "wp_58",
       "pos": {
         "x": -30.0,
         "y": 0.0,
-        "z": 24.0
+        "z": 18.0
       },
       "neighbors": [
+        "wp_34",
+        "wp_35",
         "wp_57",
-        "wp_59",
         "wp_91",
-        "wp_92",
-        "wp_93"
+        "wp_92"
       ],
-      "zone": "spawn"
+      "zone": "flank"
     },
     {
       "id": "wp_59",
       "pos": {
         "x": -30.0,
         "y": 0.0,
-        "z": 26.0
+        "z": 22.0
       },
       "neighbors": [
-        "wp_58",
         "wp_60",
-        "wp_92",
         "wp_93",
         "wp_94"
       ],
@@ -3253,7 +3674,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -30.0,
         "y": 0.0,
-        "z": 28.0
+        "z": 24.0
       },
       "neighbors": [
         "wp_59",
@@ -3269,7 +3690,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -30.0,
         "y": 0.0,
-        "z": 30.0
+        "z": 26.0
       },
       "neighbors": [
         "wp_60",
@@ -3285,7 +3706,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -30.0,
         "y": 0.0,
-        "z": 32.0
+        "z": 28.0
       },
       "neighbors": [
         "wp_61",
@@ -3301,7 +3722,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -30.0,
         "y": 0.0,
-        "z": 34.0
+        "z": 30.0
       },
       "neighbors": [
         "wp_62",
@@ -3317,7 +3738,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -30.0,
         "y": 0.0,
-        "z": 36.0
+        "z": 32.0
       },
       "neighbors": [
         "wp_63",
@@ -3333,7 +3754,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -30.0,
         "y": 0.0,
-        "z": 38.0
+        "z": 34.0
       },
       "neighbors": [
         "wp_64",
@@ -3349,7 +3770,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -30.0,
         "y": 0.0,
-        "z": 40.0
+        "z": 36.0
       },
       "neighbors": [
         "wp_65",
@@ -3365,7 +3786,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -30.0,
         "y": 0.0,
-        "z": 42.0
+        "z": 38.0
       },
       "neighbors": [
         "wp_66",
@@ -3381,68 +3802,61 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -30.0,
         "y": 0.0,
-        "z": 44.0
+        "z": 40.0
       },
       "neighbors": [
         "wp_67",
+        "wp_69",
         "wp_101",
-        "wp_102"
+        "wp_102",
+        "wp_103"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_69",
       "pos": {
-        "x": -28.0,
+        "x": -30.0,
         "y": 0.0,
-        "z": -30.0
+        "z": 42.0
       },
       "neighbors": [
-        "wp_34",
-        "wp_35",
+        "wp_68",
         "wp_70",
+        "wp_102",
         "wp_103",
-        "wp_104",
-        "wp_1142"
+        "wp_104"
       ],
-      "zone": "site_a"
+      "zone": "spawn"
     },
     {
       "id": "wp_70",
       "pos": {
-        "x": -28.0,
+        "x": -30.0,
         "y": 0.0,
-        "z": -28.0
+        "z": 44.0
       },
       "neighbors": [
-        "wp_34",
-        "wp_35",
-        "wp_36",
         "wp_69",
-        "wp_71",
         "wp_103",
-        "wp_104",
-        "wp_105",
-        "wp_1141",
-        "wp_1142"
+        "wp_104"
       ],
-      "zone": "site_a"
+      "zone": "spawn"
     },
     {
       "id": "wp_71",
       "pos": {
         "x": -28.0,
         "y": 0.0,
-        "z": -26.0
+        "z": -30.0
       },
       "neighbors": [
-        "wp_35",
         "wp_36",
         "wp_37",
-        "wp_70",
-        "wp_104",
+        "wp_72",
         "wp_105",
-        "wp_1142"
+        "wp_106",
+        "wp_1184"
       ],
       "zone": "site_a"
     },
@@ -3451,14 +3865,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -28.0,
         "y": 0.0,
-        "z": -22.0
+        "z": -28.0
       },
       "neighbors": [
+        "wp_36",
         "wp_37",
         "wp_38",
-        "wp_39",
+        "wp_71",
+        "wp_73",
+        "wp_105",
         "wp_106",
-        "wp_107"
+        "wp_107",
+        "wp_1184"
       ],
       "zone": "site_a"
     },
@@ -3467,15 +3885,16 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -28.0,
         "y": 0.0,
-        "z": -18.0
+        "z": -26.0
       },
       "neighbors": [
+        "wp_37",
+        "wp_38",
         "wp_39",
-        "wp_40",
-        "wp_41",
-        "wp_74",
-        "wp_108",
-        "wp_109"
+        "wp_72",
+        "wp_106",
+        "wp_107",
+        "wp_1184"
       ],
       "zone": "site_a"
     },
@@ -3484,17 +3903,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -28.0,
         "y": 0.0,
-        "z": -16.0
+        "z": -22.0
       },
       "neighbors": [
+        "wp_39",
         "wp_40",
         "wp_41",
-        "wp_42",
-        "wp_73",
-        "wp_75",
         "wp_108",
-        "wp_109",
-        "wp_110"
+        "wp_109"
       ],
       "zone": "site_a"
     },
@@ -3503,15 +3919,13 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -28.0,
         "y": 0.0,
-        "z": -14.0
+        "z": -18.0
       },
       "neighbors": [
         "wp_41",
         "wp_42",
         "wp_43",
-        "wp_74",
         "wp_76",
-        "wp_109",
         "wp_110",
         "wp_111"
       ],
@@ -3522,7 +3936,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -28.0,
         "y": 0.0,
-        "z": -12.0
+        "z": -16.0
       },
       "neighbors": [
         "wp_42",
@@ -3541,11 +3955,12 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -28.0,
         "y": 0.0,
-        "z": -10.0
+        "z": -14.0
       },
       "neighbors": [
         "wp_43",
         "wp_44",
+        "wp_45",
         "wp_76",
         "wp_78",
         "wp_111",
@@ -3559,25 +3974,26 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -28.0,
         "y": 0.0,
-        "z": -8.0
+        "z": -12.0
       },
       "neighbors": [
         "wp_44",
         "wp_45",
+        "wp_46",
         "wp_77",
         "wp_79",
         "wp_112",
         "wp_113",
         "wp_114"
       ],
-      "zone": "flank"
+      "zone": "site_a"
     },
     {
       "id": "wp_79",
       "pos": {
         "x": -28.0,
         "y": 0.0,
-        "z": -6.0
+        "z": -10.0
       },
       "neighbors": [
         "wp_45",
@@ -3588,25 +4004,23 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "wp_114",
         "wp_115"
       ],
-      "zone": "flank"
+      "zone": "site_a"
     },
     {
       "id": "wp_80",
       "pos": {
         "x": -28.0,
         "y": 0.0,
-        "z": -4.0
+        "z": -8.0
       },
       "neighbors": [
-        "wp_45",
         "wp_46",
         "wp_47",
         "wp_79",
         "wp_81",
         "wp_114",
         "wp_115",
-        "wp_116",
-        "wp_1152"
+        "wp_116"
       ],
       "zone": "flank"
     },
@@ -3615,10 +4029,9 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -28.0,
         "y": 0.0,
-        "z": -2.0
+        "z": -6.0
       },
       "neighbors": [
-        "wp_46",
         "wp_47",
         "wp_48",
         "wp_80",
@@ -3634,7 +4047,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -28.0,
         "y": 0.0,
-        "z": 0.0
+        "z": -4.0
       },
       "neighbors": [
         "wp_47",
@@ -3644,7 +4057,8 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "wp_83",
         "wp_116",
         "wp_117",
-        "wp_118"
+        "wp_118",
+        "wp_1194"
       ],
       "zone": "flank"
     },
@@ -3653,7 +4067,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -28.0,
         "y": 0.0,
-        "z": 2.0
+        "z": -2.0
       },
       "neighbors": [
         "wp_48",
@@ -3672,7 +4086,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -28.0,
         "y": 0.0,
-        "z": 4.0
+        "z": 0.0
       },
       "neighbors": [
         "wp_49",
@@ -3691,7 +4105,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -28.0,
         "y": 0.0,
-        "z": 6.0
+        "z": 2.0
       },
       "neighbors": [
         "wp_50",
@@ -3710,7 +4124,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -28.0,
         "y": 0.0,
-        "z": 8.0
+        "z": 4.0
       },
       "neighbors": [
         "wp_51",
@@ -3729,7 +4143,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -28.0,
         "y": 0.0,
-        "z": 10.0
+        "z": 6.0
       },
       "neighbors": [
         "wp_52",
@@ -3748,14 +4162,17 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -28.0,
         "y": 0.0,
-        "z": 12.0
+        "z": 8.0
       },
       "neighbors": [
         "wp_53",
         "wp_54",
+        "wp_55",
         "wp_87",
+        "wp_89",
         "wp_122",
-        "wp_123"
+        "wp_123",
+        "wp_124"
       ],
       "zone": "flank"
     },
@@ -3764,12 +4181,15 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -28.0,
         "y": 0.0,
-        "z": 16.0
+        "z": 10.0
       },
       "neighbors": [
+        "wp_54",
         "wp_55",
         "wp_56",
+        "wp_88",
         "wp_90",
+        "wp_123",
         "wp_124",
         "wp_125"
       ],
@@ -3780,15 +4200,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -28.0,
         "y": 0.0,
-        "z": 18.0
+        "z": 12.0
       },
       "neighbors": [
         "wp_55",
         "wp_56",
         "wp_89",
         "wp_124",
-        "wp_125",
-        "wp_126"
+        "wp_125"
       ],
       "zone": "flank"
     },
@@ -3797,49 +4216,44 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -28.0,
         "y": 0.0,
-        "z": 22.0
+        "z": 16.0
       },
       "neighbors": [
         "wp_57",
         "wp_58",
         "wp_92",
         "wp_126",
-        "wp_127",
-        "wp_128"
+        "wp_127"
       ],
-      "zone": "spawn"
+      "zone": "flank"
     },
     {
       "id": "wp_92",
       "pos": {
         "x": -28.0,
         "y": 0.0,
-        "z": 24.0
+        "z": 18.0
       },
       "neighbors": [
         "wp_57",
         "wp_58",
-        "wp_59",
         "wp_91",
-        "wp_93",
+        "wp_126",
         "wp_127",
-        "wp_128",
-        "wp_129"
+        "wp_128"
       ],
-      "zone": "spawn"
+      "zone": "flank"
     },
     {
       "id": "wp_93",
       "pos": {
         "x": -28.0,
         "y": 0.0,
-        "z": 26.0
+        "z": 22.0
       },
       "neighbors": [
-        "wp_58",
         "wp_59",
         "wp_60",
-        "wp_92",
         "wp_94",
         "wp_128",
         "wp_129",
@@ -3852,7 +4266,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -28.0,
         "y": 0.0,
-        "z": 28.0
+        "z": 24.0
       },
       "neighbors": [
         "wp_59",
@@ -3871,7 +4285,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -28.0,
         "y": 0.0,
-        "z": 30.0
+        "z": 26.0
       },
       "neighbors": [
         "wp_60",
@@ -3890,7 +4304,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -28.0,
         "y": 0.0,
-        "z": 32.0
+        "z": 28.0
       },
       "neighbors": [
         "wp_61",
@@ -3909,7 +4323,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -28.0,
         "y": 0.0,
-        "z": 34.0
+        "z": 30.0
       },
       "neighbors": [
         "wp_62",
@@ -3928,7 +4342,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -28.0,
         "y": 0.0,
-        "z": 36.0
+        "z": 32.0
       },
       "neighbors": [
         "wp_63",
@@ -3947,7 +4361,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -28.0,
         "y": 0.0,
-        "z": 38.0
+        "z": 34.0
       },
       "neighbors": [
         "wp_64",
@@ -3966,7 +4380,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -28.0,
         "y": 0.0,
-        "z": 40.0
+        "z": 36.0
       },
       "neighbors": [
         "wp_65",
@@ -3985,7 +4399,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -28.0,
         "y": 0.0,
-        "z": 42.0
+        "z": 38.0
       },
       "neighbors": [
         "wp_66",
@@ -4004,71 +4418,69 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -28.0,
         "y": 0.0,
-        "z": 44.0
+        "z": 40.0
       },
       "neighbors": [
         "wp_67",
         "wp_68",
+        "wp_69",
         "wp_101",
+        "wp_103",
         "wp_137",
-        "wp_138"
+        "wp_138",
+        "wp_139"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_103",
       "pos": {
-        "x": -26.0,
+        "x": -28.0,
         "y": 0.0,
-        "z": -30.0
+        "z": 42.0
       },
       "neighbors": [
+        "wp_68",
         "wp_69",
         "wp_70",
+        "wp_102",
         "wp_104",
+        "wp_138",
         "wp_139",
-        "wp_140",
-        "wp_1142"
+        "wp_140"
       ],
-      "zone": "site_a"
+      "zone": "spawn"
     },
     {
       "id": "wp_104",
       "pos": {
-        "x": -26.0,
+        "x": -28.0,
         "y": 0.0,
-        "z": -28.0
+        "z": 44.0
       },
       "neighbors": [
         "wp_69",
         "wp_70",
-        "wp_71",
         "wp_103",
-        "wp_105",
         "wp_139",
-        "wp_140",
-        "wp_141",
-        "wp_1142",
-        "wp_1143"
+        "wp_140"
       ],
-      "zone": "site_a"
+      "zone": "spawn"
     },
     {
       "id": "wp_105",
       "pos": {
         "x": -26.0,
         "y": 0.0,
-        "z": -26.0
+        "z": -30.0
       },
       "neighbors": [
-        "wp_70",
         "wp_71",
-        "wp_104",
+        "wp_72",
         "wp_106",
-        "wp_140",
         "wp_141",
         "wp_142",
-        "wp_1142"
+        "wp_1184"
       ],
       "zone": "site_a"
     },
@@ -4077,15 +4489,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -26.0,
         "y": 0.0,
-        "z": -24.0
+        "z": -28.0
       },
       "neighbors": [
+        "wp_71",
         "wp_72",
+        "wp_73",
         "wp_105",
         "wp_107",
         "wp_141",
         "wp_142",
-        "wp_143"
+        "wp_143",
+        "wp_1184"
       ],
       "zone": "site_a"
     },
@@ -4094,13 +4509,17 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -26.0,
         "y": 0.0,
-        "z": -22.0
+        "z": -26.0
       },
       "neighbors": [
         "wp_72",
+        "wp_73",
         "wp_106",
+        "wp_108",
         "wp_142",
-        "wp_143"
+        "wp_143",
+        "wp_144",
+        "wp_1184"
       ],
       "zone": "site_a"
     },
@@ -4109,14 +4528,15 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -26.0,
         "y": 0.0,
-        "z": -18.0
+        "z": -24.0
       },
       "neighbors": [
-        "wp_73",
         "wp_74",
+        "wp_107",
         "wp_109",
-        "wp_145",
-        "wp_146"
+        "wp_143",
+        "wp_144",
+        "wp_145"
       ],
       "zone": "site_a"
     },
@@ -4125,17 +4545,13 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -26.0,
         "y": 0.0,
-        "z": -16.0
+        "z": -22.0
       },
       "neighbors": [
-        "wp_73",
         "wp_74",
-        "wp_75",
         "wp_108",
-        "wp_110",
-        "wp_145",
-        "wp_146",
-        "wp_147"
+        "wp_144",
+        "wp_145"
       ],
       "zone": "site_a"
     },
@@ -4144,15 +4560,12 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -26.0,
         "y": 0.0,
-        "z": -14.0
+        "z": -18.0
       },
       "neighbors": [
-        "wp_74",
         "wp_75",
         "wp_76",
-        "wp_109",
         "wp_111",
-        "wp_146",
         "wp_147",
         "wp_148"
       ],
@@ -4163,7 +4576,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -26.0,
         "y": 0.0,
-        "z": -12.0
+        "z": -16.0
       },
       "neighbors": [
         "wp_75",
@@ -4182,7 +4595,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -26.0,
         "y": 0.0,
-        "z": -10.0
+        "z": -14.0
       },
       "neighbors": [
         "wp_76",
@@ -4191,7 +4604,8 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "wp_111",
         "wp_113",
         "wp_148",
-        "wp_149"
+        "wp_149",
+        "wp_150"
       ],
       "zone": "site_a"
     },
@@ -4200,7 +4614,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -26.0,
         "y": 0.0,
-        "z": -8.0
+        "z": -12.0
       },
       "neighbors": [
         "wp_77",
@@ -4208,39 +4622,44 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "wp_79",
         "wp_112",
         "wp_114",
-        "wp_149"
+        "wp_149",
+        "wp_150",
+        "wp_151"
       ],
-      "zone": "flank"
+      "zone": "site_a"
     },
     {
       "id": "wp_114",
       "pos": {
         "x": -26.0,
         "y": 0.0,
-        "z": -6.0
+        "z": -10.0
       },
       "neighbors": [
         "wp_78",
         "wp_79",
         "wp_80",
         "wp_113",
-        "wp_115"
+        "wp_115",
+        "wp_150",
+        "wp_151"
       ],
-      "zone": "flank"
+      "zone": "site_a"
     },
     {
       "id": "wp_115",
       "pos": {
         "x": -26.0,
         "y": 0.0,
-        "z": -4.0
+        "z": -8.0
       },
       "neighbors": [
         "wp_79",
         "wp_80",
         "wp_81",
         "wp_114",
-        "wp_116"
+        "wp_116",
+        "wp_151"
       ],
       "zone": "flank"
     },
@@ -4249,7 +4668,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -26.0,
         "y": 0.0,
-        "z": -2.0
+        "z": -6.0
       },
       "neighbors": [
         "wp_80",
@@ -4265,7 +4684,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -26.0,
         "y": 0.0,
-        "z": 0.0
+        "z": -4.0
       },
       "neighbors": [
         "wp_81",
@@ -4281,7 +4700,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -26.0,
         "y": 0.0,
-        "z": 2.0
+        "z": -2.0
       },
       "neighbors": [
         "wp_82",
@@ -4297,7 +4716,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -26.0,
         "y": 0.0,
-        "z": 4.0
+        "z": 0.0
       },
       "neighbors": [
         "wp_83",
@@ -4313,15 +4732,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -26.0,
         "y": 0.0,
-        "z": 6.0
+        "z": 2.0
       },
       "neighbors": [
         "wp_84",
         "wp_85",
         "wp_86",
         "wp_119",
-        "wp_121",
-        "wp_150"
+        "wp_121"
       ],
       "zone": "flank"
     },
@@ -4330,16 +4748,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -26.0,
         "y": 0.0,
-        "z": 8.0
+        "z": 4.0
       },
       "neighbors": [
         "wp_85",
         "wp_86",
         "wp_87",
         "wp_120",
-        "wp_122",
-        "wp_150",
-        "wp_151"
+        "wp_122"
       ],
       "zone": "flank"
     },
@@ -4348,7 +4764,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -26.0,
         "y": 0.0,
-        "z": 10.0
+        "z": 6.0
       },
       "neighbors": [
         "wp_86",
@@ -4356,8 +4772,6 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "wp_88",
         "wp_121",
         "wp_123",
-        "wp_150",
-        "wp_151",
         "wp_152"
       ],
       "zone": "flank"
@@ -4367,14 +4781,16 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -26.0,
         "y": 0.0,
-        "z": 12.0
+        "z": 8.0
       },
       "neighbors": [
         "wp_87",
         "wp_88",
+        "wp_89",
         "wp_122",
-        "wp_151",
-        "wp_152"
+        "wp_124",
+        "wp_152",
+        "wp_153"
       ],
       "zone": "flank"
     },
@@ -4383,12 +4799,15 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -26.0,
         "y": 0.0,
-        "z": 16.0
+        "z": 10.0
       },
       "neighbors": [
+        "wp_88",
         "wp_89",
         "wp_90",
+        "wp_123",
         "wp_125",
+        "wp_152",
         "wp_153",
         "wp_154"
       ],
@@ -4399,16 +4818,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -26.0,
         "y": 0.0,
-        "z": 18.0
+        "z": 12.0
       },
       "neighbors": [
         "wp_89",
         "wp_90",
         "wp_124",
-        "wp_126",
         "wp_153",
-        "wp_154",
-        "wp_155"
+        "wp_154"
       ],
       "zone": "flank"
     },
@@ -4417,14 +4834,12 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -26.0,
         "y": 0.0,
-        "z": 20.0
+        "z": 16.0
       },
       "neighbors": [
-        "wp_90",
         "wp_91",
-        "wp_125",
+        "wp_92",
         "wp_127",
-        "wp_154",
         "wp_155",
         "wp_156"
       ],
@@ -4435,7 +4850,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -26.0,
         "y": 0.0,
-        "z": 22.0
+        "z": 18.0
       },
       "neighbors": [
         "wp_91",
@@ -4446,17 +4861,16 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "wp_156",
         "wp_157"
       ],
-      "zone": "spawn"
+      "zone": "flank"
     },
     {
       "id": "wp_128",
       "pos": {
         "x": -26.0,
         "y": 0.0,
-        "z": 24.0
+        "z": 20.0
       },
       "neighbors": [
-        "wp_91",
         "wp_92",
         "wp_93",
         "wp_127",
@@ -4465,17 +4879,16 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "wp_157",
         "wp_158"
       ],
-      "zone": "spawn"
+      "zone": "flank"
     },
     {
       "id": "wp_129",
       "pos": {
         "x": -26.0,
         "y": 0.0,
-        "z": 26.0
+        "z": 22.0
       },
       "neighbors": [
-        "wp_92",
         "wp_93",
         "wp_94",
         "wp_128",
@@ -4491,7 +4904,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -26.0,
         "y": 0.0,
-        "z": 28.0
+        "z": 24.0
       },
       "neighbors": [
         "wp_93",
@@ -4510,7 +4923,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -26.0,
         "y": 0.0,
-        "z": 30.0
+        "z": 26.0
       },
       "neighbors": [
         "wp_94",
@@ -4529,7 +4942,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -26.0,
         "y": 0.0,
-        "z": 32.0
+        "z": 28.0
       },
       "neighbors": [
         "wp_95",
@@ -4548,7 +4961,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -26.0,
         "y": 0.0,
-        "z": 34.0
+        "z": 30.0
       },
       "neighbors": [
         "wp_96",
@@ -4567,7 +4980,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -26.0,
         "y": 0.0,
-        "z": 36.0
+        "z": 32.0
       },
       "neighbors": [
         "wp_97",
@@ -4586,7 +4999,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -26.0,
         "y": 0.0,
-        "z": 38.0
+        "z": 34.0
       },
       "neighbors": [
         "wp_98",
@@ -4605,7 +5018,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -26.0,
         "y": 0.0,
-        "z": 40.0
+        "z": 36.0
       },
       "neighbors": [
         "wp_99",
@@ -4624,7 +5037,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -26.0,
         "y": 0.0,
-        "z": 42.0
+        "z": 38.0
       },
       "neighbors": [
         "wp_100",
@@ -4643,73 +5056,68 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -26.0,
         "y": 0.0,
-        "z": 44.0
+        "z": 40.0
       },
       "neighbors": [
         "wp_101",
         "wp_102",
+        "wp_103",
         "wp_137",
+        "wp_139",
         "wp_166",
-        "wp_167"
+        "wp_167",
+        "wp_168"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_139",
       "pos": {
-        "x": -24.0,
+        "x": -26.0,
         "y": 0.0,
-        "z": -30.0
+        "z": 42.0
       },
       "neighbors": [
+        "wp_102",
         "wp_103",
         "wp_104",
+        "wp_138",
         "wp_140",
+        "wp_167",
         "wp_168",
-        "wp_169",
-        "wp_1142",
-        "wp_1143"
+        "wp_169"
       ],
-      "zone": "site_a"
+      "zone": "spawn"
     },
     {
       "id": "wp_140",
       "pos": {
-        "x": -24.0,
+        "x": -26.0,
         "y": 0.0,
-        "z": -28.0
+        "z": 44.0
       },
       "neighbors": [
         "wp_103",
         "wp_104",
-        "wp_105",
         "wp_139",
-        "wp_141",
         "wp_168",
-        "wp_169",
-        "wp_170",
-        "wp_1142",
-        "wp_1143"
+        "wp_169"
       ],
-      "zone": "site_a"
+      "zone": "spawn"
     },
     {
       "id": "wp_141",
       "pos": {
         "x": -24.0,
         "y": 0.0,
-        "z": -26.0
+        "z": -30.0
       },
       "neighbors": [
-        "wp_104",
         "wp_105",
         "wp_106",
-        "wp_140",
         "wp_142",
-        "wp_169",
         "wp_170",
-        "wp_171",
-        "wp_1143"
+        "wp_1184"
       ],
       "zone": "site_a"
     },
@@ -4718,7 +5126,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -24.0,
         "y": 0.0,
-        "z": -24.0
+        "z": -28.0
       },
       "neighbors": [
         "wp_105",
@@ -4728,7 +5136,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "wp_143",
         "wp_170",
         "wp_171",
-        "wp_172"
+        "wp_1184"
       ],
       "zone": "site_a"
     },
@@ -4737,16 +5145,17 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -24.0,
         "y": 0.0,
-        "z": -22.0
+        "z": -26.0
       },
       "neighbors": [
         "wp_106",
         "wp_107",
+        "wp_108",
         "wp_142",
         "wp_144",
+        "wp_170",
         "wp_171",
-        "wp_172",
-        "wp_173"
+        "wp_172"
       ],
       "zone": "site_a"
     },
@@ -4755,14 +5164,17 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -24.0,
         "y": 0.0,
-        "z": -20.0
+        "z": -24.0
       },
       "neighbors": [
+        "wp_107",
+        "wp_108",
+        "wp_109",
         "wp_143",
         "wp_145",
+        "wp_171",
         "wp_172",
-        "wp_173",
-        "wp_174"
+        "wp_173"
       ],
       "zone": "site_a"
     },
@@ -4771,16 +5183,16 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -24.0,
         "y": 0.0,
-        "z": -18.0
+        "z": -22.0
       },
       "neighbors": [
         "wp_108",
         "wp_109",
         "wp_144",
         "wp_146",
+        "wp_172",
         "wp_173",
-        "wp_174",
-        "wp_175"
+        "wp_174"
       ],
       "zone": "site_a"
     },
@@ -4789,14 +5201,12 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -24.0,
         "y": 0.0,
-        "z": -16.0
+        "z": -20.0
       },
       "neighbors": [
-        "wp_108",
-        "wp_109",
-        "wp_110",
         "wp_145",
         "wp_147",
+        "wp_173",
         "wp_174",
         "wp_175"
       ],
@@ -4807,14 +5217,16 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -24.0,
         "y": 0.0,
-        "z": -14.0
+        "z": -18.0
       },
       "neighbors": [
-        "wp_109",
         "wp_110",
         "wp_111",
         "wp_146",
-        "wp_148"
+        "wp_148",
+        "wp_174",
+        "wp_175",
+        "wp_176"
       ],
       "zone": "site_a"
     },
@@ -4823,7 +5235,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -24.0,
         "y": 0.0,
-        "z": -12.0
+        "z": -16.0
       },
       "neighbors": [
         "wp_110",
@@ -4831,8 +5243,8 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "wp_112",
         "wp_147",
         "wp_149",
-        "wp_176",
-        "wp_177"
+        "wp_175",
+        "wp_176"
       ],
       "zone": "site_a"
     },
@@ -4841,15 +5253,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -24.0,
         "y": 0.0,
-        "z": -10.0
+        "z": -14.0
       },
       "neighbors": [
         "wp_111",
         "wp_112",
         "wp_113",
         "wp_148",
-        "wp_176",
-        "wp_177"
+        "wp_150"
       ],
       "zone": "site_a"
     },
@@ -4858,48 +5269,48 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -24.0,
         "y": 0.0,
-        "z": 8.0
+        "z": -12.0
       },
       "neighbors": [
-        "wp_120",
-        "wp_121",
-        "wp_122",
+        "wp_112",
+        "wp_113",
+        "wp_114",
+        "wp_149",
         "wp_151",
-        "wp_178",
-        "wp_179"
+        "wp_177",
+        "wp_178"
       ],
-      "zone": "flank"
+      "zone": "site_a"
     },
     {
       "id": "wp_151",
       "pos": {
         "x": -24.0,
         "y": 0.0,
-        "z": 10.0
+        "z": -10.0
       },
       "neighbors": [
-        "wp_121",
-        "wp_122",
-        "wp_123",
+        "wp_113",
+        "wp_114",
+        "wp_115",
         "wp_150",
-        "wp_152",
-        "wp_178",
-        "wp_179",
-        "wp_180"
+        "wp_177",
+        "wp_178"
       ],
-      "zone": "flank"
+      "zone": "site_a"
     },
     {
       "id": "wp_152",
       "pos": {
         "x": -24.0,
         "y": 0.0,
-        "z": 12.0
+        "z": 8.0
       },
       "neighbors": [
         "wp_122",
         "wp_123",
-        "wp_151",
+        "wp_124",
+        "wp_153",
         "wp_179",
         "wp_180"
       ],
@@ -4910,14 +5321,17 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -24.0,
         "y": 0.0,
-        "z": 16.0
+        "z": 10.0
       },
       "neighbors": [
+        "wp_123",
         "wp_124",
         "wp_125",
+        "wp_152",
         "wp_154",
-        "wp_181",
-        "wp_182"
+        "wp_179",
+        "wp_180",
+        "wp_181"
       ],
       "zone": "flank"
     },
@@ -4926,16 +5340,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -24.0,
         "y": 0.0,
-        "z": 18.0
+        "z": 12.0
       },
       "neighbors": [
         "wp_124",
         "wp_125",
-        "wp_126",
         "wp_153",
-        "wp_155",
-        "wp_181",
-        "wp_182"
+        "wp_180",
+        "wp_181"
       ],
       "zone": "flank"
     },
@@ -4944,13 +5356,11 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -24.0,
         "y": 0.0,
-        "z": 20.0
+        "z": 16.0
       },
       "neighbors": [
-        "wp_125",
         "wp_126",
         "wp_127",
-        "wp_154",
         "wp_156",
         "wp_182",
         "wp_183"
@@ -4962,7 +5372,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -24.0,
         "y": 0.0,
-        "z": 22.0
+        "z": 18.0
       },
       "neighbors": [
         "wp_126",
@@ -4970,17 +5380,17 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "wp_128",
         "wp_155",
         "wp_157",
-        "wp_183",
-        "wp_184"
+        "wp_182",
+        "wp_183"
       ],
-      "zone": "spawn"
+      "zone": "flank"
     },
     {
       "id": "wp_157",
       "pos": {
         "x": -24.0,
         "y": 0.0,
-        "z": 24.0
+        "z": 20.0
       },
       "neighbors": [
         "wp_127",
@@ -4989,17 +5399,16 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "wp_156",
         "wp_158",
         "wp_183",
-        "wp_184",
-        "wp_185"
+        "wp_184"
       ],
-      "zone": "spawn"
+      "zone": "flank"
     },
     {
       "id": "wp_158",
       "pos": {
         "x": -24.0,
         "y": 0.0,
-        "z": 26.0
+        "z": 22.0
       },
       "neighbors": [
         "wp_128",
@@ -5008,8 +5417,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "wp_157",
         "wp_159",
         "wp_184",
-        "wp_185",
-        "wp_186"
+        "wp_185"
       ],
       "zone": "spawn"
     },
@@ -5018,7 +5426,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -24.0,
         "y": 0.0,
-        "z": 28.0
+        "z": 24.0
       },
       "neighbors": [
         "wp_129",
@@ -5026,9 +5434,9 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "wp_131",
         "wp_158",
         "wp_160",
+        "wp_184",
         "wp_185",
-        "wp_186",
-        "wp_187"
+        "wp_186"
       ],
       "zone": "spawn"
     },
@@ -5037,7 +5445,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -24.0,
         "y": 0.0,
-        "z": 30.0
+        "z": 26.0
       },
       "neighbors": [
         "wp_130",
@@ -5045,9 +5453,9 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "wp_132",
         "wp_159",
         "wp_161",
+        "wp_185",
         "wp_186",
-        "wp_187",
-        "wp_188"
+        "wp_187"
       ],
       "zone": "spawn"
     },
@@ -5056,7 +5464,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -24.0,
         "y": 0.0,
-        "z": 32.0
+        "z": 28.0
       },
       "neighbors": [
         "wp_131",
@@ -5064,9 +5472,9 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "wp_133",
         "wp_160",
         "wp_162",
+        "wp_186",
         "wp_187",
-        "wp_188",
-        "wp_189"
+        "wp_188"
       ],
       "zone": "spawn"
     },
@@ -5075,7 +5483,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -24.0,
         "y": 0.0,
-        "z": 34.0
+        "z": 30.0
       },
       "neighbors": [
         "wp_132",
@@ -5083,9 +5491,9 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "wp_134",
         "wp_161",
         "wp_163",
+        "wp_187",
         "wp_188",
-        "wp_189",
-        "wp_190"
+        "wp_189"
       ],
       "zone": "spawn"
     },
@@ -5094,7 +5502,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -24.0,
         "y": 0.0,
-        "z": 36.0
+        "z": 32.0
       },
       "neighbors": [
         "wp_133",
@@ -5102,9 +5510,9 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "wp_135",
         "wp_162",
         "wp_164",
+        "wp_188",
         "wp_189",
-        "wp_190",
-        "wp_191"
+        "wp_190"
       ],
       "zone": "spawn"
     },
@@ -5113,7 +5521,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -24.0,
         "y": 0.0,
-        "z": 38.0
+        "z": 34.0
       },
       "neighbors": [
         "wp_134",
@@ -5121,9 +5529,9 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "wp_136",
         "wp_163",
         "wp_165",
+        "wp_189",
         "wp_190",
-        "wp_191",
-        "wp_192"
+        "wp_191"
       ],
       "zone": "spawn"
     },
@@ -5132,7 +5540,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -24.0,
         "y": 0.0,
-        "z": 40.0
+        "z": 36.0
       },
       "neighbors": [
         "wp_135",
@@ -5140,9 +5548,9 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "wp_137",
         "wp_164",
         "wp_166",
+        "wp_190",
         "wp_191",
-        "wp_192",
-        "wp_193"
+        "wp_192"
       ],
       "zone": "spawn"
     },
@@ -5151,7 +5559,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -24.0,
         "y": 0.0,
-        "z": 42.0
+        "z": 38.0
       },
       "neighbors": [
         "wp_136",
@@ -5159,9 +5567,9 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "wp_138",
         "wp_165",
         "wp_167",
+        "wp_191",
         "wp_192",
-        "wp_193",
-        "wp_194"
+        "wp_193"
       ],
       "zone": "spawn"
     },
@@ -5170,12 +5578,15 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -24.0,
         "y": 0.0,
-        "z": 44.0
+        "z": 40.0
       },
       "neighbors": [
         "wp_137",
         "wp_138",
+        "wp_139",
         "wp_166",
+        "wp_168",
+        "wp_192",
         "wp_193",
         "wp_194"
       ],
@@ -5184,49 +5595,50 @@ export const ASCENT_MAP_DATA: AscentMapData = {
     {
       "id": "wp_168",
       "pos": {
-        "x": -22.0,
+        "x": -24.0,
         "y": 0.0,
-        "z": -30.0
+        "z": 42.0
       },
       "neighbors": [
+        "wp_138",
         "wp_139",
         "wp_140",
+        "wp_167",
         "wp_169",
-        "wp_1143"
+        "wp_193",
+        "wp_194",
+        "wp_195"
       ],
-      "zone": "site_a"
+      "zone": "spawn"
     },
     {
       "id": "wp_169",
       "pos": {
-        "x": -22.0,
+        "x": -24.0,
         "y": 0.0,
-        "z": -28.0
+        "z": 44.0
       },
       "neighbors": [
         "wp_139",
         "wp_140",
-        "wp_141",
         "wp_168",
-        "wp_170",
-        "wp_1143"
+        "wp_194",
+        "wp_195"
       ],
-      "zone": "site_a"
+      "zone": "spawn"
     },
     {
       "id": "wp_170",
       "pos": {
         "x": -22.0,
         "y": 0.0,
-        "z": -26.0
+        "z": -28.0
       },
       "neighbors": [
-        "wp_140",
         "wp_141",
         "wp_142",
-        "wp_169",
-        "wp_171",
-        "wp_1143"
+        "wp_143",
+        "wp_171"
       ],
       "zone": "site_a"
     },
@@ -5235,15 +5647,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -22.0,
         "y": 0.0,
-        "z": -24.0
+        "z": -26.0
       },
       "neighbors": [
-        "wp_141",
         "wp_142",
         "wp_143",
+        "wp_144",
         "wp_170",
-        "wp_172",
-        "wp_195"
+        "wp_172"
       ],
       "zone": "site_a"
     },
@@ -5252,15 +5663,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -22.0,
         "y": 0.0,
-        "z": -22.0
+        "z": -24.0
       },
       "neighbors": [
-        "wp_142",
         "wp_143",
         "wp_144",
+        "wp_145",
         "wp_171",
         "wp_173",
-        "wp_195",
         "wp_196"
       ],
       "zone": "site_a"
@@ -5270,15 +5680,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -22.0,
         "y": 0.0,
-        "z": -20.0
+        "z": -22.0
       },
       "neighbors": [
-        "wp_143",
         "wp_144",
         "wp_145",
+        "wp_146",
         "wp_172",
         "wp_174",
-        "wp_195",
         "wp_196",
         "wp_197"
       ],
@@ -5289,12 +5698,12 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -22.0,
         "y": 0.0,
-        "z": -18.0
+        "z": -20.0
       },
       "neighbors": [
-        "wp_144",
         "wp_145",
         "wp_146",
+        "wp_147",
         "wp_173",
         "wp_175",
         "wp_196",
@@ -5308,14 +5717,17 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -22.0,
         "y": 0.0,
-        "z": -16.0
+        "z": -18.0
       },
       "neighbors": [
-        "wp_145",
         "wp_146",
+        "wp_147",
+        "wp_148",
         "wp_174",
+        "wp_176",
         "wp_197",
-        "wp_198"
+        "wp_198",
+        "wp_199"
       ],
       "zone": "site_a"
     },
@@ -5324,14 +5736,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -22.0,
         "y": 0.0,
-        "z": -12.0
+        "z": -16.0
       },
       "neighbors": [
+        "wp_147",
         "wp_148",
-        "wp_149",
-        "wp_177",
-        "wp_199",
-        "wp_200"
+        "wp_175",
+        "wp_198",
+        "wp_199"
       ],
       "zone": "site_a"
     },
@@ -5340,14 +5752,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -22.0,
         "y": 0.0,
-        "z": -10.0
+        "z": -12.0
       },
       "neighbors": [
-        "wp_148",
-        "wp_149",
-        "wp_176",
-        "wp_199",
-        "wp_200"
+        "wp_150",
+        "wp_151",
+        "wp_178",
+        "wp_200",
+        "wp_201"
       ],
       "zone": "site_a"
     },
@@ -5356,31 +5768,28 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -22.0,
         "y": 0.0,
-        "z": 8.0
+        "z": -10.0
       },
       "neighbors": [
         "wp_150",
         "wp_151",
-        "wp_179",
-        "wp_201",
-        "wp_202"
+        "wp_177",
+        "wp_200",
+        "wp_201"
       ],
-      "zone": "flank"
+      "zone": "site_a"
     },
     {
       "id": "wp_179",
       "pos": {
         "x": -22.0,
         "y": 0.0,
-        "z": 10.0
+        "z": 8.0
       },
       "neighbors": [
-        "wp_150",
-        "wp_151",
         "wp_152",
-        "wp_178",
+        "wp_153",
         "wp_180",
-        "wp_201",
         "wp_202",
         "wp_203"
       ],
@@ -5391,14 +5800,17 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -22.0,
         "y": 0.0,
-        "z": 12.0
+        "z": 10.0
       },
       "neighbors": [
-        "wp_151",
         "wp_152",
+        "wp_153",
+        "wp_154",
         "wp_179",
+        "wp_181",
         "wp_202",
-        "wp_203"
+        "wp_203",
+        "wp_204"
       ],
       "zone": "flank"
     },
@@ -5407,14 +5819,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -22.0,
         "y": 0.0,
-        "z": 16.0
+        "z": 12.0
       },
       "neighbors": [
         "wp_153",
         "wp_154",
-        "wp_182",
-        "wp_204",
-        "wp_205"
+        "wp_180",
+        "wp_203",
+        "wp_204"
       ],
       "zone": "flank"
     },
@@ -5423,15 +5835,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -22.0,
         "y": 0.0,
-        "z": 18.0
+        "z": 16.0
       },
       "neighbors": [
-        "wp_153",
-        "wp_154",
         "wp_155",
-        "wp_181",
-        "wp_204",
-        "wp_205"
+        "wp_156",
+        "wp_183",
+        "wp_205",
+        "wp_206"
       ],
       "zone": "flank"
     },
@@ -5440,32 +5851,30 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -22.0,
         "y": 0.0,
-        "z": 22.0
+        "z": 18.0
       },
       "neighbors": [
         "wp_155",
         "wp_156",
         "wp_157",
-        "wp_184",
-        "wp_206",
-        "wp_207"
+        "wp_182",
+        "wp_205",
+        "wp_206"
       ],
-      "zone": "spawn"
+      "zone": "flank"
     },
     {
       "id": "wp_184",
       "pos": {
         "x": -22.0,
         "y": 0.0,
-        "z": 24.0
+        "z": 22.0
       },
       "neighbors": [
-        "wp_156",
         "wp_157",
         "wp_158",
-        "wp_183",
+        "wp_159",
         "wp_185",
-        "wp_206",
         "wp_207",
         "wp_208"
       ],
@@ -5476,12 +5885,12 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -22.0,
         "y": 0.0,
-        "z": 26.0
+        "z": 24.0
       },
       "neighbors": [
-        "wp_157",
         "wp_158",
         "wp_159",
+        "wp_160",
         "wp_184",
         "wp_186",
         "wp_207",
@@ -5495,12 +5904,12 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -22.0,
         "y": 0.0,
-        "z": 28.0
+        "z": 26.0
       },
       "neighbors": [
-        "wp_158",
         "wp_159",
         "wp_160",
+        "wp_161",
         "wp_185",
         "wp_187",
         "wp_208",
@@ -5514,12 +5923,12 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -22.0,
         "y": 0.0,
-        "z": 30.0
+        "z": 28.0
       },
       "neighbors": [
-        "wp_159",
         "wp_160",
         "wp_161",
+        "wp_162",
         "wp_186",
         "wp_188",
         "wp_209",
@@ -5533,12 +5942,12 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -22.0,
         "y": 0.0,
-        "z": 32.0
+        "z": 30.0
       },
       "neighbors": [
-        "wp_160",
         "wp_161",
         "wp_162",
+        "wp_163",
         "wp_187",
         "wp_189",
         "wp_210",
@@ -5552,12 +5961,12 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -22.0,
         "y": 0.0,
-        "z": 34.0
+        "z": 32.0
       },
       "neighbors": [
-        "wp_161",
         "wp_162",
         "wp_163",
+        "wp_164",
         "wp_188",
         "wp_190",
         "wp_211",
@@ -5571,12 +5980,12 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -22.0,
         "y": 0.0,
-        "z": 36.0
+        "z": 34.0
       },
       "neighbors": [
-        "wp_162",
         "wp_163",
         "wp_164",
+        "wp_165",
         "wp_189",
         "wp_191",
         "wp_212",
@@ -5590,12 +5999,12 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -22.0,
         "y": 0.0,
-        "z": 38.0
+        "z": 36.0
       },
       "neighbors": [
-        "wp_163",
         "wp_164",
         "wp_165",
+        "wp_166",
         "wp_190",
         "wp_192",
         "wp_213",
@@ -5609,12 +6018,12 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -22.0,
         "y": 0.0,
-        "z": 40.0
+        "z": 38.0
       },
       "neighbors": [
-        "wp_164",
         "wp_165",
         "wp_166",
+        "wp_167",
         "wp_191",
         "wp_193",
         "wp_214",
@@ -5628,12 +6037,12 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -22.0,
         "y": 0.0,
-        "z": 42.0
+        "z": 40.0
       },
       "neighbors": [
-        "wp_165",
         "wp_166",
         "wp_167",
+        "wp_168",
         "wp_192",
         "wp_194",
         "wp_215",
@@ -5647,47 +6056,47 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -22.0,
         "y": 0.0,
-        "z": 44.0
+        "z": 42.0
       },
       "neighbors": [
-        "wp_166",
         "wp_167",
+        "wp_168",
+        "wp_169",
         "wp_193",
+        "wp_195",
         "wp_216",
-        "wp_217"
+        "wp_217",
+        "wp_218"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_195",
       "pos": {
-        "x": -20.0,
+        "x": -22.0,
         "y": 0.0,
-        "z": -22.0
+        "z": 44.0
       },
       "neighbors": [
-        "wp_171",
-        "wp_172",
-        "wp_173",
-        "wp_196",
-        "wp_221",
-        "wp_222",
-        "wp_223"
+        "wp_168",
+        "wp_169",
+        "wp_194",
+        "wp_217",
+        "wp_218"
       ],
-      "zone": "site_a"
+      "zone": "spawn"
     },
     {
       "id": "wp_196",
       "pos": {
         "x": -20.0,
         "y": 0.0,
-        "z": -20.0
+        "z": -22.0
       },
       "neighbors": [
         "wp_172",
         "wp_173",
         "wp_174",
-        "wp_195",
         "wp_197",
         "wp_222",
         "wp_223",
@@ -5700,7 +6109,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -20.0,
         "y": 0.0,
-        "z": -18.0
+        "z": -20.0
       },
       "neighbors": [
         "wp_173",
@@ -5719,12 +6128,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -20.0,
         "y": 0.0,
-        "z": -16.0
+        "z": -18.0
       },
       "neighbors": [
         "wp_174",
         "wp_175",
+        "wp_176",
         "wp_197",
+        "wp_199",
         "wp_224",
         "wp_225",
         "wp_226"
@@ -5736,15 +6147,15 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -20.0,
         "y": 0.0,
-        "z": -12.0
+        "z": -16.0
       },
       "neighbors": [
+        "wp_175",
         "wp_176",
-        "wp_177",
-        "wp_200",
+        "wp_198",
+        "wp_225",
         "wp_226",
-        "wp_227",
-        "wp_228"
+        "wp_227"
       ],
       "zone": "site_a"
     },
@@ -5753,14 +6164,15 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -20.0,
         "y": 0.0,
-        "z": -10.0
+        "z": -12.0
       },
       "neighbors": [
-        "wp_176",
         "wp_177",
-        "wp_199",
+        "wp_178",
+        "wp_201",
         "wp_227",
-        "wp_228"
+        "wp_228",
+        "wp_229"
       ],
       "zone": "site_a"
     },
@@ -5769,31 +6181,28 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -20.0,
         "y": 0.0,
-        "z": 8.0
+        "z": -10.0
       },
       "neighbors": [
+        "wp_177",
         "wp_178",
-        "wp_179",
-        "wp_202",
-        "wp_229",
-        "wp_230"
+        "wp_200",
+        "wp_228",
+        "wp_229"
       ],
-      "zone": "flank"
+      "zone": "site_a"
     },
     {
       "id": "wp_202",
       "pos": {
         "x": -20.0,
         "y": 0.0,
-        "z": 10.0
+        "z": 8.0
       },
       "neighbors": [
-        "wp_178",
         "wp_179",
         "wp_180",
-        "wp_201",
         "wp_203",
-        "wp_229",
         "wp_230",
         "wp_231"
       ],
@@ -5804,14 +6213,17 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -20.0,
         "y": 0.0,
-        "z": 12.0
+        "z": 10.0
       },
       "neighbors": [
         "wp_179",
         "wp_180",
+        "wp_181",
         "wp_202",
+        "wp_204",
         "wp_230",
-        "wp_231"
+        "wp_231",
+        "wp_232"
       ],
       "zone": "flank"
     },
@@ -5820,14 +6232,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -20.0,
         "y": 0.0,
-        "z": 16.0
+        "z": 12.0
       },
       "neighbors": [
+        "wp_180",
         "wp_181",
-        "wp_182",
-        "wp_205",
-        "wp_232",
-        "wp_233"
+        "wp_203",
+        "wp_231",
+        "wp_232"
       ],
       "zone": "flank"
     },
@@ -5836,14 +6248,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -20.0,
         "y": 0.0,
-        "z": 18.0
+        "z": 16.0
       },
       "neighbors": [
-        "wp_181",
         "wp_182",
-        "wp_204",
-        "wp_232",
-        "wp_233"
+        "wp_183",
+        "wp_206",
+        "wp_233",
+        "wp_234"
       ],
       "zone": "flank"
     },
@@ -5852,31 +6264,28 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -20.0,
         "y": 0.0,
-        "z": 22.0
+        "z": 18.0
       },
       "neighbors": [
+        "wp_182",
         "wp_183",
-        "wp_184",
-        "wp_207",
-        "wp_234",
-        "wp_235"
+        "wp_205",
+        "wp_233",
+        "wp_234"
       ],
-      "zone": "spawn"
+      "zone": "flank"
     },
     {
       "id": "wp_207",
       "pos": {
         "x": -20.0,
         "y": 0.0,
-        "z": 24.0
+        "z": 22.0
       },
       "neighbors": [
-        "wp_183",
         "wp_184",
         "wp_185",
-        "wp_206",
         "wp_208",
-        "wp_234",
         "wp_235",
         "wp_236"
       ],
@@ -5887,7 +6296,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -20.0,
         "y": 0.0,
-        "z": 26.0
+        "z": 24.0
       },
       "neighbors": [
         "wp_184",
@@ -5906,7 +6315,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -20.0,
         "y": 0.0,
-        "z": 28.0
+        "z": 26.0
       },
       "neighbors": [
         "wp_185",
@@ -5925,7 +6334,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -20.0,
         "y": 0.0,
-        "z": 30.0
+        "z": 28.0
       },
       "neighbors": [
         "wp_186",
@@ -5944,7 +6353,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -20.0,
         "y": 0.0,
-        "z": 32.0
+        "z": 30.0
       },
       "neighbors": [
         "wp_187",
@@ -5963,7 +6372,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -20.0,
         "y": 0.0,
-        "z": 34.0
+        "z": 32.0
       },
       "neighbors": [
         "wp_188",
@@ -5982,7 +6391,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -20.0,
         "y": 0.0,
-        "z": 36.0
+        "z": 34.0
       },
       "neighbors": [
         "wp_189",
@@ -6001,7 +6410,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -20.0,
         "y": 0.0,
-        "z": 38.0
+        "z": 36.0
       },
       "neighbors": [
         "wp_190",
@@ -6020,7 +6429,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -20.0,
         "y": 0.0,
-        "z": 40.0
+        "z": 38.0
       },
       "neighbors": [
         "wp_191",
@@ -6039,7 +6448,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -20.0,
         "y": 0.0,
-        "z": 42.0
+        "z": 40.0
       },
       "neighbors": [
         "wp_192",
@@ -6058,42 +6467,45 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -20.0,
         "y": 0.0,
-        "z": 44.0
+        "z": 42.0
       },
       "neighbors": [
         "wp_193",
         "wp_194",
+        "wp_195",
         "wp_216",
+        "wp_218",
         "wp_244",
-        "wp_245"
+        "wp_245",
+        "wp_246"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_218",
       "pos": {
-        "x": -18.0,
+        "x": -20.0,
         "y": 0.0,
-        "z": -30.0
+        "z": 44.0
       },
       "neighbors": [
-        "wp_219",
-        "wp_246",
-        "wp_247"
+        "wp_194",
+        "wp_195",
+        "wp_217",
+        "wp_245",
+        "wp_246"
       ],
-      "zone": "site_a"
+      "zone": "spawn"
     },
     {
       "id": "wp_219",
       "pos": {
         "x": -18.0,
         "y": 0.0,
-        "z": -28.0
+        "z": -30.0
       },
       "neighbors": [
-        "wp_218",
         "wp_220",
-        "wp_246",
         "wp_247",
         "wp_248"
       ],
@@ -6104,15 +6516,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -18.0,
         "y": 0.0,
-        "z": -26.0
+        "z": -28.0
       },
       "neighbors": [
         "wp_219",
         "wp_221",
         "wp_247",
         "wp_248",
-        "wp_249",
-        "wp_1130"
+        "wp_249"
       ],
       "zone": "site_a"
     },
@@ -6121,16 +6532,15 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -18.0,
         "y": 0.0,
-        "z": -24.0
+        "z": -26.0
       },
       "neighbors": [
-        "wp_195",
         "wp_220",
         "wp_222",
         "wp_248",
         "wp_249",
         "wp_250",
-        "wp_1130"
+        "wp_1163"
       ],
       "zone": "site_a"
     },
@@ -6139,17 +6549,16 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -18.0,
         "y": 0.0,
-        "z": -22.0
+        "z": -24.0
       },
       "neighbors": [
-        "wp_195",
         "wp_196",
         "wp_221",
         "wp_223",
         "wp_249",
         "wp_250",
         "wp_251",
-        "wp_1130"
+        "wp_1163"
       ],
       "zone": "site_a"
     },
@@ -6158,17 +6567,17 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -18.0,
         "y": 0.0,
-        "z": -20.0
+        "z": -22.0
       },
       "neighbors": [
-        "wp_195",
         "wp_196",
         "wp_197",
         "wp_222",
         "wp_224",
         "wp_250",
         "wp_251",
-        "wp_252"
+        "wp_252",
+        "wp_1163"
       ],
       "zone": "site_a"
     },
@@ -6177,7 +6586,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -18.0,
         "y": 0.0,
-        "z": -18.0
+        "z": -20.0
       },
       "neighbors": [
         "wp_196",
@@ -6187,8 +6596,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "wp_225",
         "wp_251",
         "wp_252",
-        "wp_253",
-        "wp_1131"
+        "wp_253"
       ],
       "zone": "site_a"
     },
@@ -6197,16 +6605,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -18.0,
         "y": 0.0,
-        "z": -16.0
+        "z": -18.0
       },
       "neighbors": [
         "wp_197",
         "wp_198",
+        "wp_199",
         "wp_224",
         "wp_226",
         "wp_252",
         "wp_253",
-        "wp_254"
+        "wp_254",
+        "wp_1173"
       ],
       "zone": "site_a"
     },
@@ -6215,7 +6625,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -18.0,
         "y": 0.0,
-        "z": -14.0
+        "z": -16.0
       },
       "neighbors": [
         "wp_198",
@@ -6233,7 +6643,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -18.0,
         "y": 0.0,
-        "z": -12.0
+        "z": -14.0
       },
       "neighbors": [
         "wp_199",
@@ -6251,14 +6661,16 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -18.0,
         "y": 0.0,
-        "z": -10.0
+        "z": -12.0
       },
       "neighbors": [
-        "wp_199",
         "wp_200",
+        "wp_201",
         "wp_227",
+        "wp_229",
         "wp_255",
-        "wp_256"
+        "wp_256",
+        "wp_257"
       ],
       "zone": "site_a"
     },
@@ -6267,30 +6679,29 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -18.0,
         "y": 0.0,
-        "z": 8.0
+        "z": -10.0
       },
       "neighbors": [
+        "wp_200",
         "wp_201",
-        "wp_202",
-        "wp_230",
+        "wp_228",
+        "wp_256",
         "wp_257"
       ],
-      "zone": "flank"
+      "zone": "site_a"
     },
     {
       "id": "wp_230",
       "pos": {
         "x": -18.0,
         "y": 0.0,
-        "z": 10.0
+        "z": 8.0
       },
       "neighbors": [
-        "wp_201",
         "wp_202",
         "wp_203",
-        "wp_229",
         "wp_231",
-        "wp_257"
+        "wp_258"
       ],
       "zone": "flank"
     },
@@ -6299,12 +6710,15 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -18.0,
         "y": 0.0,
-        "z": 12.0
+        "z": 10.0
       },
       "neighbors": [
         "wp_202",
         "wp_203",
-        "wp_230"
+        "wp_204",
+        "wp_230",
+        "wp_232",
+        "wp_258"
       ],
       "zone": "flank"
     },
@@ -6313,12 +6727,12 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -18.0,
         "y": 0.0,
-        "z": 16.0
+        "z": 12.0
       },
       "neighbors": [
+        "wp_203",
         "wp_204",
-        "wp_205",
-        "wp_233"
+        "wp_231"
       ],
       "zone": "flank"
     },
@@ -6327,12 +6741,12 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -18.0,
         "y": 0.0,
-        "z": 18.0
+        "z": 16.0
       },
       "neighbors": [
-        "wp_204",
         "wp_205",
-        "wp_232"
+        "wp_206",
+        "wp_234"
       ],
       "zone": "flank"
     },
@@ -6341,27 +6755,25 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -18.0,
         "y": 0.0,
-        "z": 22.0
+        "z": 18.0
       },
       "neighbors": [
+        "wp_205",
         "wp_206",
-        "wp_207",
-        "wp_235"
+        "wp_233"
       ],
-      "zone": "spawn"
+      "zone": "flank"
     },
     {
       "id": "wp_235",
       "pos": {
         "x": -18.0,
         "y": 0.0,
-        "z": 24.0
+        "z": 22.0
       },
       "neighbors": [
-        "wp_206",
         "wp_207",
         "wp_208",
-        "wp_234",
         "wp_236"
       ],
       "zone": "spawn"
@@ -6371,7 +6783,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -18.0,
         "y": 0.0,
-        "z": 26.0
+        "z": 24.0
       },
       "neighbors": [
         "wp_207",
@@ -6387,15 +6799,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -18.0,
         "y": 0.0,
-        "z": 28.0
+        "z": 26.0
       },
       "neighbors": [
         "wp_208",
         "wp_209",
         "wp_210",
         "wp_236",
-        "wp_238",
-        "wp_258"
+        "wp_238"
       ],
       "zone": "spawn"
     },
@@ -6404,7 +6815,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -18.0,
         "y": 0.0,
-        "z": 30.0
+        "z": 28.0
       },
       "neighbors": [
         "wp_209",
@@ -6412,7 +6823,6 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "wp_211",
         "wp_237",
         "wp_239",
-        "wp_258",
         "wp_259"
       ],
       "zone": "spawn"
@@ -6422,7 +6832,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -18.0,
         "y": 0.0,
-        "z": 32.0
+        "z": 30.0
       },
       "neighbors": [
         "wp_210",
@@ -6430,7 +6840,6 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "wp_212",
         "wp_238",
         "wp_240",
-        "wp_258",
         "wp_259",
         "wp_260"
       ],
@@ -6441,7 +6850,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -18.0,
         "y": 0.0,
-        "z": 34.0
+        "z": 32.0
       },
       "neighbors": [
         "wp_211",
@@ -6460,7 +6869,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -18.0,
         "y": 0.0,
-        "z": 36.0
+        "z": 34.0
       },
       "neighbors": [
         "wp_212",
@@ -6479,7 +6888,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -18.0,
         "y": 0.0,
-        "z": 38.0
+        "z": 36.0
       },
       "neighbors": [
         "wp_213",
@@ -6498,7 +6907,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -18.0,
         "y": 0.0,
-        "z": 40.0
+        "z": 38.0
       },
       "neighbors": [
         "wp_214",
@@ -6517,7 +6926,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -18.0,
         "y": 0.0,
-        "z": 42.0
+        "z": 40.0
       },
       "neighbors": [
         "wp_215",
@@ -6536,49 +6945,50 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -18.0,
         "y": 0.0,
-        "z": 44.0
+        "z": 42.0
       },
       "neighbors": [
         "wp_216",
         "wp_217",
+        "wp_218",
         "wp_244",
+        "wp_246",
         "wp_264",
-        "wp_265"
+        "wp_265",
+        "wp_266"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_246",
       "pos": {
-        "x": -16.0,
+        "x": -18.0,
         "y": 0.0,
-        "z": -30.0
+        "z": 44.0
       },
       "neighbors": [
+        "wp_217",
         "wp_218",
-        "wp_219",
-        "wp_247",
-        "wp_266",
-        "wp_267",
-        "wp_1129"
+        "wp_245",
+        "wp_265",
+        "wp_266"
       ],
-      "zone": "site_a"
+      "zone": "spawn"
     },
     {
       "id": "wp_247",
       "pos": {
         "x": -16.0,
         "y": 0.0,
-        "z": -28.0
+        "z": -30.0
       },
       "neighbors": [
-        "wp_218",
         "wp_219",
         "wp_220",
-        "wp_246",
         "wp_248",
-        "wp_266",
-        "wp_267"
+        "wp_267",
+        "wp_268",
+        "wp_1162"
       ],
       "zone": "site_a"
     },
@@ -6587,7 +6997,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -16.0,
         "y": 0.0,
-        "z": -26.0
+        "z": -28.0
       },
       "neighbors": [
         "wp_219",
@@ -6595,7 +7005,8 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "wp_221",
         "wp_247",
         "wp_249",
-        "wp_1130"
+        "wp_267",
+        "wp_268"
       ],
       "zone": "site_a"
     },
@@ -6604,7 +7015,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -16.0,
         "y": 0.0,
-        "z": -24.0
+        "z": -26.0
       },
       "neighbors": [
         "wp_220",
@@ -6612,7 +7023,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "wp_222",
         "wp_248",
         "wp_250",
-        "wp_1130"
+        "wp_1163"
       ],
       "zone": "site_a"
     },
@@ -6621,7 +7032,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -16.0,
         "y": 0.0,
-        "z": -22.0
+        "z": -24.0
       },
       "neighbors": [
         "wp_221",
@@ -6629,7 +7040,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "wp_223",
         "wp_249",
         "wp_251",
-        "wp_1130"
+        "wp_1163"
       ],
       "zone": "site_a"
     },
@@ -6638,7 +7049,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -16.0,
         "y": 0.0,
-        "z": -20.0
+        "z": -22.0
       },
       "neighbors": [
         "wp_222",
@@ -6646,8 +7057,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "wp_224",
         "wp_250",
         "wp_252",
-        "wp_268",
-        "wp_1131"
+        "wp_1163"
       ],
       "zone": "site_a"
     },
@@ -6656,7 +7066,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -16.0,
         "y": 0.0,
-        "z": -18.0
+        "z": -20.0
       },
       "neighbors": [
         "wp_223",
@@ -6664,9 +7074,8 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "wp_225",
         "wp_251",
         "wp_253",
-        "wp_268",
-        "wp_1131",
-        "wp_1132"
+        "wp_269",
+        "wp_1173"
       ],
       "zone": "site_a"
     },
@@ -6675,7 +7084,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -16.0,
         "y": 0.0,
-        "z": -16.0
+        "z": -18.0
       },
       "neighbors": [
         "wp_224",
@@ -6683,8 +7092,9 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "wp_226",
         "wp_252",
         "wp_254",
-        "wp_268",
-        "wp_1131"
+        "wp_269",
+        "wp_1173",
+        "wp_1174"
       ],
       "zone": "site_a"
     },
@@ -6693,14 +7103,16 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -16.0,
         "y": 0.0,
-        "z": -14.0
+        "z": -16.0
       },
       "neighbors": [
         "wp_225",
         "wp_226",
         "wp_227",
         "wp_253",
-        "wp_255"
+        "wp_255",
+        "wp_269",
+        "wp_1173"
       ],
       "zone": "site_a"
     },
@@ -6709,7 +7121,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -16.0,
         "y": 0.0,
-        "z": -12.0
+        "z": -14.0
       },
       "neighbors": [
         "wp_226",
@@ -6725,12 +7137,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -16.0,
         "y": 0.0,
-        "z": -10.0
+        "z": -12.0
       },
       "neighbors": [
         "wp_227",
         "wp_228",
-        "wp_255"
+        "wp_229",
+        "wp_255",
+        "wp_257"
       ],
       "zone": "site_a"
     },
@@ -6739,46 +7153,41 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -16.0,
         "y": 0.0,
-        "z": 8.0
+        "z": -10.0
       },
       "neighbors": [
+        "wp_228",
         "wp_229",
-        "wp_230",
-        "wp_270",
-        "wp_271"
+        "wp_256"
       ],
-      "zone": "flank"
+      "zone": "site_a"
     },
     {
       "id": "wp_258",
       "pos": {
         "x": -16.0,
         "y": 0.0,
-        "z": 30.0
+        "z": 8.0
       },
       "neighbors": [
-        "wp_237",
-        "wp_238",
-        "wp_239",
-        "wp_259",
-        "wp_275",
-        "wp_276",
-        "wp_277"
+        "wp_230",
+        "wp_231",
+        "wp_271",
+        "wp_272"
       ],
-      "zone": "spawn"
+      "zone": "flank"
     },
     {
       "id": "wp_259",
       "pos": {
         "x": -16.0,
         "y": 0.0,
-        "z": 32.0
+        "z": 30.0
       },
       "neighbors": [
         "wp_238",
         "wp_239",
         "wp_240",
-        "wp_258",
         "wp_260",
         "wp_276",
         "wp_277",
@@ -6791,7 +7200,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -16.0,
         "y": 0.0,
-        "z": 34.0
+        "z": 32.0
       },
       "neighbors": [
         "wp_239",
@@ -6810,7 +7219,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -16.0,
         "y": 0.0,
-        "z": 36.0
+        "z": 34.0
       },
       "neighbors": [
         "wp_240",
@@ -6829,7 +7238,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -16.0,
         "y": 0.0,
-        "z": 38.0
+        "z": 36.0
       },
       "neighbors": [
         "wp_241",
@@ -6848,7 +7257,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -16.0,
         "y": 0.0,
-        "z": 40.0
+        "z": 38.0
       },
       "neighbors": [
         "wp_242",
@@ -6867,7 +7276,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -16.0,
         "y": 0.0,
-        "z": 42.0
+        "z": 40.0
       },
       "neighbors": [
         "wp_243",
@@ -6886,44 +7295,51 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -16.0,
         "y": 0.0,
-        "z": 44.0
+        "z": 42.0
       },
       "neighbors": [
         "wp_244",
         "wp_245",
+        "wp_246",
         "wp_264",
+        "wp_266",
         "wp_282",
-        "wp_283"
+        "wp_283",
+        "wp_284"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_266",
       "pos": {
-        "x": -14.0,
+        "x": -16.0,
         "y": 0.0,
-        "z": -30.0
+        "z": 44.0
       },
       "neighbors": [
+        "wp_245",
         "wp_246",
-        "wp_247",
-        "wp_267",
-        "wp_1129"
+        "wp_265",
+        "wp_283",
+        "wp_284"
       ],
-      "zone": "flank"
+      "zone": "spawn"
     },
     {
       "id": "wp_267",
       "pos": {
         "x": -14.0,
         "y": 0.0,
-        "z": -28.0
+        "z": -30.0
       },
       "neighbors": [
-        "wp_246",
         "wp_247",
-        "wp_266",
-        "wp_1129"
+        "wp_248",
+        "wp_268",
+        "wp_291",
+        "wp_292",
+        "wp_293",
+        "wp_1162"
       ],
       "zone": "flank"
     },
@@ -6932,17 +7348,15 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -14.0,
         "y": 0.0,
-        "z": -18.0
+        "z": -28.0
       },
       "neighbors": [
-        "wp_251",
-        "wp_252",
-        "wp_253",
-        "wp_291",
+        "wp_247",
+        "wp_248",
+        "wp_267",
         "wp_292",
         "wp_293",
-        "wp_1131",
-        "wp_1132"
+        "wp_1162"
       ],
       "zone": "flank"
     },
@@ -6951,12 +7365,17 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -14.0,
         "y": 0.0,
-        "z": 4.0
+        "z": -18.0
       },
       "neighbors": [
-        "wp_270",
+        "wp_252",
+        "wp_253",
+        "wp_254",
+        "wp_295",
+        "wp_296",
         "wp_297",
-        "wp_298"
+        "wp_1173",
+        "wp_1174"
       ],
       "zone": "flank"
     },
@@ -6965,15 +7384,12 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -14.0,
         "y": 0.0,
-        "z": 6.0
+        "z": 4.0
       },
       "neighbors": [
-        "wp_257",
-        "wp_269",
         "wp_271",
-        "wp_297",
-        "wp_298",
-        "wp_299"
+        "wp_301",
+        "wp_302"
       ],
       "zone": "flank"
     },
@@ -6982,13 +7398,15 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -14.0,
         "y": 0.0,
-        "z": 8.0
+        "z": 6.0
       },
       "neighbors": [
-        "wp_257",
+        "wp_258",
         "wp_270",
-        "wp_298",
-        "wp_299"
+        "wp_272",
+        "wp_301",
+        "wp_302",
+        "wp_303"
       ],
       "zone": "flank"
     },
@@ -6997,28 +7415,27 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -14.0,
         "y": 0.0,
-        "z": 22.0
+        "z": 8.0
       },
       "neighbors": [
-        "wp_273",
-        "wp_300",
-        "wp_301"
+        "wp_258",
+        "wp_271",
+        "wp_302",
+        "wp_303"
       ],
-      "zone": "spawn"
+      "zone": "flank"
     },
     {
       "id": "wp_273",
       "pos": {
         "x": -14.0,
         "y": 0.0,
-        "z": 24.0
+        "z": 22.0
       },
       "neighbors": [
-        "wp_272",
         "wp_274",
-        "wp_300",
-        "wp_301",
-        "wp_302"
+        "wp_304",
+        "wp_305"
       ],
       "zone": "spawn"
     },
@@ -7027,14 +7444,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -14.0,
         "y": 0.0,
-        "z": 26.0
+        "z": 24.0
       },
       "neighbors": [
         "wp_273",
         "wp_275",
-        "wp_301",
-        "wp_302",
-        "wp_303"
+        "wp_304",
+        "wp_305",
+        "wp_306"
       ],
       "zone": "spawn"
     },
@@ -7043,15 +7460,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -14.0,
         "y": 0.0,
-        "z": 28.0
+        "z": 26.0
       },
       "neighbors": [
-        "wp_258",
         "wp_274",
         "wp_276",
-        "wp_302",
-        "wp_303",
-        "wp_304"
+        "wp_305",
+        "wp_306",
+        "wp_307"
       ],
       "zone": "spawn"
     },
@@ -7060,16 +7476,15 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -14.0,
         "y": 0.0,
-        "z": 30.0
+        "z": 28.0
       },
       "neighbors": [
-        "wp_258",
         "wp_259",
         "wp_275",
         "wp_277",
-        "wp_303",
-        "wp_304",
-        "wp_305"
+        "wp_306",
+        "wp_307",
+        "wp_308"
       ],
       "zone": "spawn"
     },
@@ -7078,17 +7493,16 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -14.0,
         "y": 0.0,
-        "z": 32.0
+        "z": 30.0
       },
       "neighbors": [
-        "wp_258",
         "wp_259",
         "wp_260",
         "wp_276",
         "wp_278",
-        "wp_304",
-        "wp_305",
-        "wp_306"
+        "wp_307",
+        "wp_308",
+        "wp_309"
       ],
       "zone": "spawn"
     },
@@ -7097,7 +7511,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -14.0,
         "y": 0.0,
-        "z": 34.0
+        "z": 32.0
       },
       "neighbors": [
         "wp_259",
@@ -7105,9 +7519,9 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "wp_261",
         "wp_277",
         "wp_279",
-        "wp_305",
-        "wp_306",
-        "wp_307"
+        "wp_308",
+        "wp_309",
+        "wp_310"
       ],
       "zone": "spawn"
     },
@@ -7116,7 +7530,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -14.0,
         "y": 0.0,
-        "z": 36.0
+        "z": 34.0
       },
       "neighbors": [
         "wp_260",
@@ -7124,9 +7538,9 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "wp_262",
         "wp_278",
         "wp_280",
-        "wp_306",
-        "wp_307",
-        "wp_308"
+        "wp_309",
+        "wp_310",
+        "wp_311"
       ],
       "zone": "spawn"
     },
@@ -7135,7 +7549,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -14.0,
         "y": 0.0,
-        "z": 38.0
+        "z": 36.0
       },
       "neighbors": [
         "wp_261",
@@ -7143,9 +7557,9 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "wp_263",
         "wp_279",
         "wp_281",
-        "wp_307",
-        "wp_308",
-        "wp_309"
+        "wp_310",
+        "wp_311",
+        "wp_312"
       ],
       "zone": "spawn"
     },
@@ -7154,7 +7568,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -14.0,
         "y": 0.0,
-        "z": 40.0
+        "z": 38.0
       },
       "neighbors": [
         "wp_262",
@@ -7162,9 +7576,9 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "wp_264",
         "wp_280",
         "wp_282",
-        "wp_308",
-        "wp_309",
-        "wp_310"
+        "wp_311",
+        "wp_312",
+        "wp_313"
       ],
       "zone": "spawn"
     },
@@ -7173,7 +7587,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -14.0,
         "y": 0.0,
-        "z": 42.0
+        "z": 40.0
       },
       "neighbors": [
         "wp_263",
@@ -7181,9 +7595,9 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "wp_265",
         "wp_281",
         "wp_283",
-        "wp_309",
-        "wp_310",
-        "wp_311"
+        "wp_312",
+        "wp_313",
+        "wp_314"
       ],
       "zone": "spawn"
     },
@@ -7192,28 +7606,33 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -14.0,
         "y": 0.0,
-        "z": 44.0
+        "z": 42.0
       },
       "neighbors": [
         "wp_264",
         "wp_265",
+        "wp_266",
         "wp_282",
-        "wp_310",
-        "wp_311"
+        "wp_284",
+        "wp_313",
+        "wp_314",
+        "wp_315"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_284",
       "pos": {
-        "x": -12.0,
+        "x": -14.0,
         "y": 0.0,
-        "z": -44.0
+        "z": 44.0
       },
       "neighbors": [
-        "wp_285",
-        "wp_312",
-        "wp_313"
+        "wp_265",
+        "wp_266",
+        "wp_283",
+        "wp_314",
+        "wp_315"
       ],
       "zone": "spawn"
     },
@@ -7222,14 +7641,12 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -12.0,
         "y": 0.0,
-        "z": -42.0
+        "z": -44.0
       },
       "neighbors": [
-        "wp_284",
         "wp_286",
-        "wp_312",
-        "wp_313",
-        "wp_314"
+        "wp_316",
+        "wp_317"
       ],
       "zone": "spawn"
     },
@@ -7238,14 +7655,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -12.0,
         "y": 0.0,
-        "z": -40.0
+        "z": -42.0
       },
       "neighbors": [
         "wp_285",
         "wp_287",
-        "wp_313",
-        "wp_314",
-        "wp_315"
+        "wp_316",
+        "wp_317",
+        "wp_318"
       ],
       "zone": "spawn"
     },
@@ -7254,15 +7671,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -12.0,
         "y": 0.0,
-        "z": -38.0
+        "z": -40.0
       },
       "neighbors": [
         "wp_286",
         "wp_288",
-        "wp_314",
-        "wp_315",
-        "wp_316",
-        "wp_1136"
+        "wp_317",
+        "wp_318",
+        "wp_319"
       ],
       "zone": "spawn"
     },
@@ -7271,16 +7687,15 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -12.0,
         "y": 0.0,
-        "z": -36.0
+        "z": -38.0
       },
       "neighbors": [
         "wp_287",
         "wp_289",
-        "wp_315",
-        "wp_316",
-        "wp_317",
-        "wp_1089",
-        "wp_1136"
+        "wp_318",
+        "wp_319",
+        "wp_320",
+        "wp_1178"
       ],
       "zone": "spawn"
     },
@@ -7289,15 +7704,16 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -12.0,
         "y": 0.0,
-        "z": -34.0
+        "z": -36.0
       },
       "neighbors": [
         "wp_288",
-        "wp_316",
-        "wp_317",
-        "wp_1089",
-        "wp_1090",
-        "wp_1136"
+        "wp_290",
+        "wp_319",
+        "wp_320",
+        "wp_321",
+        "wp_1117",
+        "wp_1178"
       ],
       "zone": "spawn"
     },
@@ -7306,83 +7722,86 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -12.0,
         "y": 0.0,
-        "z": -22.0
+        "z": -34.0
       },
       "neighbors": [
+        "wp_289",
         "wp_291",
-        "wp_318",
-        "wp_319"
+        "wp_320",
+        "wp_321",
+        "wp_322",
+        "wp_1117",
+        "wp_1118",
+        "wp_1178"
       ],
-      "zone": "mid"
+      "zone": "spawn"
     },
     {
       "id": "wp_291",
       "pos": {
         "x": -12.0,
         "y": 0.0,
-        "z": -20.0
+        "z": -32.0
       },
       "neighbors": [
-        "wp_268",
+        "wp_267",
         "wp_290",
         "wp_292",
-        "wp_318",
-        "wp_319",
-        "wp_320",
-        "wp_1132"
+        "wp_321",
+        "wp_322",
+        "wp_323",
+        "wp_1162",
+        "wp_1178"
       ],
-      "zone": "mid"
+      "zone": "flank"
     },
     {
       "id": "wp_292",
       "pos": {
         "x": -12.0,
         "y": 0.0,
-        "z": -18.0
+        "z": -30.0
       },
       "neighbors": [
+        "wp_267",
         "wp_268",
         "wp_291",
         "wp_293",
-        "wp_319",
-        "wp_320",
-        "wp_321",
-        "wp_1131",
-        "wp_1132"
+        "wp_322",
+        "wp_323",
+        "wp_324",
+        "wp_1162"
       ],
-      "zone": "mid"
+      "zone": "flank"
     },
     {
       "id": "wp_293",
       "pos": {
         "x": -12.0,
         "y": 0.0,
-        "z": -16.0
+        "z": -28.0
       },
       "neighbors": [
+        "wp_267",
         "wp_268",
         "wp_292",
-        "wp_294",
-        "wp_320",
-        "wp_321",
-        "wp_322",
-        "wp_1132"
+        "wp_323",
+        "wp_324",
+        "wp_1162"
       ],
-      "zone": "mid"
+      "zone": "flank"
     },
     {
       "id": "wp_294",
       "pos": {
         "x": -12.0,
         "y": 0.0,
-        "z": -14.0
+        "z": -22.0
       },
       "neighbors": [
-        "wp_293",
         "wp_295",
-        "wp_321",
-        "wp_322",
-        "wp_323"
+        "wp_325",
+        "wp_326"
       ],
       "zone": "mid"
     },
@@ -7391,14 +7810,16 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -12.0,
         "y": 0.0,
-        "z": -12.0
+        "z": -20.0
       },
       "neighbors": [
+        "wp_269",
         "wp_294",
         "wp_296",
-        "wp_322",
-        "wp_323",
-        "wp_324"
+        "wp_325",
+        "wp_326",
+        "wp_327",
+        "wp_1174"
       ],
       "zone": "mid"
     },
@@ -7407,12 +7828,17 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -12.0,
         "y": 0.0,
-        "z": -10.0
+        "z": -18.0
       },
       "neighbors": [
+        "wp_269",
         "wp_295",
-        "wp_323",
-        "wp_324"
+        "wp_297",
+        "wp_326",
+        "wp_327",
+        "wp_328",
+        "wp_1173",
+        "wp_1174"
       ],
       "zone": "mid"
     },
@@ -7421,15 +7847,16 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -12.0,
         "y": 0.0,
-        "z": 4.0
+        "z": -16.0
       },
       "neighbors": [
         "wp_269",
-        "wp_270",
+        "wp_296",
         "wp_298",
-        "wp_325",
-        "wp_326",
-        "wp_1137"
+        "wp_327",
+        "wp_328",
+        "wp_329",
+        "wp_1174"
       ],
       "zone": "mid"
     },
@@ -7438,17 +7865,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -12.0,
         "y": 0.0,
-        "z": 6.0
+        "z": -14.0
       },
       "neighbors": [
-        "wp_269",
-        "wp_270",
-        "wp_271",
         "wp_297",
         "wp_299",
-        "wp_325",
-        "wp_326",
-        "wp_327"
+        "wp_328",
+        "wp_329",
+        "wp_330"
       ],
       "zone": "mid"
     },
@@ -7457,14 +7881,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -12.0,
         "y": 0.0,
-        "z": 8.0
+        "z": -12.0
       },
       "neighbors": [
-        "wp_270",
-        "wp_271",
         "wp_298",
-        "wp_326",
-        "wp_327"
+        "wp_300",
+        "wp_329",
+        "wp_330",
+        "wp_331"
       ],
       "zone": "mid"
     },
@@ -7473,90 +7897,80 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -12.0,
         "y": 0.0,
-        "z": 22.0
+        "z": -10.0
       },
       "neighbors": [
-        "wp_272",
-        "wp_273",
-        "wp_301",
-        "wp_328",
-        "wp_329"
+        "wp_299",
+        "wp_330",
+        "wp_331"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_301",
       "pos": {
         "x": -12.0,
         "y": 0.0,
-        "z": 24.0
+        "z": 4.0
       },
       "neighbors": [
-        "wp_272",
-        "wp_273",
-        "wp_274",
-        "wp_300",
+        "wp_270",
+        "wp_271",
         "wp_302",
-        "wp_328",
-        "wp_329",
-        "wp_330"
+        "wp_332",
+        "wp_333",
+        "wp_1179"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_302",
       "pos": {
         "x": -12.0,
         "y": 0.0,
-        "z": 26.0
+        "z": 6.0
       },
       "neighbors": [
-        "wp_273",
-        "wp_274",
-        "wp_275",
+        "wp_270",
+        "wp_271",
+        "wp_272",
         "wp_301",
         "wp_303",
-        "wp_329",
-        "wp_330",
-        "wp_331"
+        "wp_332",
+        "wp_333",
+        "wp_334"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_303",
       "pos": {
         "x": -12.0,
         "y": 0.0,
-        "z": 28.0
+        "z": 8.0
       },
       "neighbors": [
-        "wp_274",
-        "wp_275",
-        "wp_276",
+        "wp_271",
+        "wp_272",
         "wp_302",
-        "wp_304",
-        "wp_330",
-        "wp_331",
-        "wp_332"
+        "wp_333",
+        "wp_334"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_304",
       "pos": {
         "x": -12.0,
         "y": 0.0,
-        "z": 30.0
+        "z": 22.0
       },
       "neighbors": [
-        "wp_275",
-        "wp_276",
-        "wp_277",
-        "wp_303",
+        "wp_273",
+        "wp_274",
         "wp_305",
-        "wp_331",
-        "wp_332",
-        "wp_333"
+        "wp_335",
+        "wp_336"
       ],
       "zone": "spawn"
     },
@@ -7565,17 +7979,17 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -12.0,
         "y": 0.0,
-        "z": 32.0
+        "z": 24.0
       },
       "neighbors": [
-        "wp_276",
-        "wp_277",
-        "wp_278",
+        "wp_273",
+        "wp_274",
+        "wp_275",
         "wp_304",
         "wp_306",
-        "wp_332",
-        "wp_333",
-        "wp_334"
+        "wp_335",
+        "wp_336",
+        "wp_337"
       ],
       "zone": "spawn"
     },
@@ -7584,17 +7998,17 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -12.0,
         "y": 0.0,
-        "z": 34.0
+        "z": 26.0
       },
       "neighbors": [
-        "wp_277",
-        "wp_278",
-        "wp_279",
+        "wp_274",
+        "wp_275",
+        "wp_276",
         "wp_305",
         "wp_307",
-        "wp_333",
-        "wp_334",
-        "wp_335"
+        "wp_336",
+        "wp_337",
+        "wp_338"
       ],
       "zone": "spawn"
     },
@@ -7603,17 +8017,17 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -12.0,
         "y": 0.0,
-        "z": 36.0
+        "z": 28.0
       },
       "neighbors": [
-        "wp_278",
-        "wp_279",
-        "wp_280",
+        "wp_275",
+        "wp_276",
+        "wp_277",
         "wp_306",
         "wp_308",
-        "wp_334",
-        "wp_335",
-        "wp_336"
+        "wp_337",
+        "wp_338",
+        "wp_339"
       ],
       "zone": "spawn"
     },
@@ -7622,17 +8036,17 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -12.0,
         "y": 0.0,
-        "z": 38.0
+        "z": 30.0
       },
       "neighbors": [
-        "wp_279",
-        "wp_280",
-        "wp_281",
+        "wp_276",
+        "wp_277",
+        "wp_278",
         "wp_307",
         "wp_309",
-        "wp_335",
-        "wp_336",
-        "wp_337"
+        "wp_338",
+        "wp_339",
+        "wp_340"
       ],
       "zone": "spawn"
     },
@@ -7641,17 +8055,17 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -12.0,
         "y": 0.0,
-        "z": 40.0
+        "z": 32.0
       },
       "neighbors": [
-        "wp_280",
-        "wp_281",
-        "wp_282",
+        "wp_277",
+        "wp_278",
+        "wp_279",
         "wp_308",
         "wp_310",
-        "wp_336",
-        "wp_337",
-        "wp_338"
+        "wp_339",
+        "wp_340",
+        "wp_341"
       ],
       "zone": "spawn"
     },
@@ -7660,17 +8074,17 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -12.0,
         "y": 0.0,
-        "z": 42.0
+        "z": 34.0
       },
       "neighbors": [
-        "wp_281",
-        "wp_282",
-        "wp_283",
+        "wp_278",
+        "wp_279",
+        "wp_280",
         "wp_309",
         "wp_311",
-        "wp_337",
-        "wp_338",
-        "wp_339"
+        "wp_340",
+        "wp_341",
+        "wp_342"
       ],
       "zone": "spawn"
     },
@@ -7679,65 +8093,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -12.0,
         "y": 0.0,
-        "z": 44.0
+        "z": 36.0
       },
       "neighbors": [
-        "wp_282",
-        "wp_283",
+        "wp_279",
+        "wp_280",
+        "wp_281",
         "wp_310",
-        "wp_338",
-        "wp_339"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_312",
-      "pos": {
-        "x": -10.0,
-        "y": 0.0,
-        "z": -44.0
-      },
-      "neighbors": [
-        "wp_284",
-        "wp_285",
-        "wp_313",
-        "wp_340",
-        "wp_341"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_313",
-      "pos": {
-        "x": -10.0,
-        "y": 0.0,
-        "z": -42.0
-      },
-      "neighbors": [
-        "wp_284",
-        "wp_285",
-        "wp_286",
         "wp_312",
-        "wp_314",
-        "wp_340",
-        "wp_341",
-        "wp_342"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_314",
-      "pos": {
-        "x": -10.0,
-        "y": 0.0,
-        "z": -40.0
-      },
-      "neighbors": [
-        "wp_285",
-        "wp_286",
-        "wp_287",
-        "wp_313",
-        "wp_315",
         "wp_341",
         "wp_342",
         "wp_343"
@@ -7745,21 +8108,75 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_315",
+      "id": "wp_312",
       "pos": {
-        "x": -10.0,
+        "x": -12.0,
         "y": 0.0,
-        "z": -38.0
+        "z": 38.0
       },
       "neighbors": [
-        "wp_286",
-        "wp_287",
-        "wp_288",
-        "wp_314",
-        "wp_316",
+        "wp_280",
+        "wp_281",
+        "wp_282",
+        "wp_311",
+        "wp_313",
         "wp_342",
         "wp_343",
         "wp_344"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_313",
+      "pos": {
+        "x": -12.0,
+        "y": 0.0,
+        "z": 40.0
+      },
+      "neighbors": [
+        "wp_281",
+        "wp_282",
+        "wp_283",
+        "wp_312",
+        "wp_314",
+        "wp_343",
+        "wp_344",
+        "wp_345"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_314",
+      "pos": {
+        "x": -12.0,
+        "y": 0.0,
+        "z": 42.0
+      },
+      "neighbors": [
+        "wp_282",
+        "wp_283",
+        "wp_284",
+        "wp_313",
+        "wp_315",
+        "wp_344",
+        "wp_345",
+        "wp_346"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_315",
+      "pos": {
+        "x": -12.0,
+        "y": 0.0,
+        "z": 44.0
+      },
+      "neighbors": [
+        "wp_283",
+        "wp_284",
+        "wp_314",
+        "wp_345",
+        "wp_346"
       ],
       "zone": "spawn"
     },
@@ -7768,18 +8185,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -10.0,
         "y": 0.0,
-        "z": -36.0
+        "z": -44.0
       },
       "neighbors": [
-        "wp_287",
-        "wp_288",
-        "wp_289",
-        "wp_315",
+        "wp_285",
+        "wp_286",
         "wp_317",
-        "wp_343",
-        "wp_344",
-        "wp_345",
-        "wp_1136"
+        "wp_347",
+        "wp_348"
       ],
       "zone": "spawn"
     },
@@ -7788,15 +8201,17 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -10.0,
         "y": 0.0,
-        "z": -34.0
+        "z": -42.0
       },
       "neighbors": [
-        "wp_288",
-        "wp_289",
+        "wp_285",
+        "wp_286",
+        "wp_287",
         "wp_316",
-        "wp_344",
-        "wp_345",
-        "wp_1136"
+        "wp_318",
+        "wp_347",
+        "wp_348",
+        "wp_349"
       ],
       "zone": "spawn"
     },
@@ -7805,140 +8220,148 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -10.0,
         "y": 0.0,
-        "z": -22.0
+        "z": -40.0
       },
       "neighbors": [
-        "wp_290",
-        "wp_291",
+        "wp_286",
+        "wp_287",
+        "wp_288",
+        "wp_317",
         "wp_319",
-        "wp_346",
-        "wp_347"
+        "wp_348",
+        "wp_349",
+        "wp_350"
       ],
-      "zone": "mid"
+      "zone": "spawn"
     },
     {
       "id": "wp_319",
       "pos": {
         "x": -10.0,
         "y": 0.0,
-        "z": -20.0
+        "z": -38.0
       },
       "neighbors": [
-        "wp_290",
-        "wp_291",
-        "wp_292",
+        "wp_287",
+        "wp_288",
+        "wp_289",
         "wp_318",
         "wp_320",
-        "wp_346",
-        "wp_347",
-        "wp_348"
+        "wp_349",
+        "wp_350",
+        "wp_351"
       ],
-      "zone": "mid"
+      "zone": "spawn"
     },
     {
       "id": "wp_320",
       "pos": {
         "x": -10.0,
         "y": 0.0,
-        "z": -18.0
+        "z": -36.0
       },
       "neighbors": [
-        "wp_291",
-        "wp_292",
-        "wp_293",
+        "wp_288",
+        "wp_289",
+        "wp_290",
         "wp_319",
         "wp_321",
-        "wp_347",
-        "wp_348",
-        "wp_349",
-        "wp_1132"
+        "wp_350",
+        "wp_351",
+        "wp_352",
+        "wp_1178"
       ],
-      "zone": "mid"
+      "zone": "spawn"
     },
     {
       "id": "wp_321",
       "pos": {
         "x": -10.0,
         "y": 0.0,
-        "z": -16.0
+        "z": -34.0
       },
       "neighbors": [
-        "wp_292",
-        "wp_293",
-        "wp_294",
+        "wp_289",
+        "wp_290",
+        "wp_291",
         "wp_320",
         "wp_322",
-        "wp_348",
-        "wp_349"
+        "wp_351",
+        "wp_352",
+        "wp_353",
+        "wp_1178"
       ],
-      "zone": "mid"
+      "zone": "spawn"
     },
     {
       "id": "wp_322",
       "pos": {
         "x": -10.0,
         "y": 0.0,
-        "z": -14.0
+        "z": -32.0
       },
       "neighbors": [
-        "wp_293",
-        "wp_294",
-        "wp_295",
+        "wp_290",
+        "wp_291",
+        "wp_292",
         "wp_321",
-        "wp_323"
+        "wp_323",
+        "wp_352",
+        "wp_353",
+        "wp_354"
       ],
-      "zone": "mid"
+      "zone": "flank"
     },
     {
       "id": "wp_323",
       "pos": {
         "x": -10.0,
         "y": 0.0,
-        "z": -12.0
+        "z": -30.0
       },
       "neighbors": [
-        "wp_294",
-        "wp_295",
-        "wp_296",
+        "wp_291",
+        "wp_292",
+        "wp_293",
         "wp_322",
         "wp_324",
-        "wp_350",
-        "wp_351"
+        "wp_353",
+        "wp_354",
+        "wp_355",
+        "wp_1162"
       ],
-      "zone": "mid"
+      "zone": "flank"
     },
     {
       "id": "wp_324",
       "pos": {
         "x": -10.0,
         "y": 0.0,
-        "z": -10.0
+        "z": -28.0
       },
       "neighbors": [
-        "wp_295",
-        "wp_296",
+        "wp_292",
+        "wp_293",
         "wp_323",
-        "wp_350",
-        "wp_351",
-        "wp_1068"
+        "wp_354",
+        "wp_355"
       ],
-      "zone": "mid"
+      "zone": "flank"
     },
     {
       "id": "wp_325",
       "pos": {
         "x": -10.0,
         "y": 0.0,
-        "z": 4.0
+        "z": -22.0
       },
       "neighbors": [
-        "wp_297",
-        "wp_298",
+        "wp_294",
+        "wp_295",
         "wp_326",
-        "wp_352",
-        "wp_353",
-        "wp_1067",
-        "wp_1137"
+        "wp_358",
+        "wp_359",
+        "wp_1164"
       ],
       "zone": "mid"
     },
@@ -7947,18 +8370,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -10.0,
         "y": 0.0,
-        "z": 6.0
+        "z": -20.0
       },
       "neighbors": [
-        "wp_297",
-        "wp_298",
-        "wp_299",
+        "wp_294",
+        "wp_295",
+        "wp_296",
         "wp_325",
         "wp_327",
-        "wp_352",
-        "wp_353",
-        "wp_354",
-        "wp_1137"
+        "wp_358",
+        "wp_359",
+        "wp_360",
+        "wp_1164"
       ],
       "zone": "mid"
     },
@@ -7967,14 +8390,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -10.0,
         "y": 0.0,
-        "z": 8.0
+        "z": -18.0
       },
       "neighbors": [
-        "wp_298",
-        "wp_299",
+        "wp_295",
+        "wp_296",
+        "wp_297",
         "wp_326",
-        "wp_353",
-        "wp_354"
+        "wp_328",
+        "wp_359",
+        "wp_360",
+        "wp_361",
+        "wp_1174"
       ],
       "zone": "mid"
     },
@@ -7983,147 +8410,137 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -10.0,
         "y": 0.0,
-        "z": 22.0
+        "z": -16.0
       },
       "neighbors": [
-        "wp_300",
-        "wp_301",
+        "wp_296",
+        "wp_297",
+        "wp_298",
+        "wp_327",
         "wp_329",
-        "wp_355",
-        "wp_356"
+        "wp_360",
+        "wp_361"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_329",
       "pos": {
         "x": -10.0,
         "y": 0.0,
-        "z": 24.0
+        "z": -14.0
       },
       "neighbors": [
-        "wp_300",
-        "wp_301",
-        "wp_302",
+        "wp_297",
+        "wp_298",
+        "wp_299",
         "wp_328",
-        "wp_330",
-        "wp_355",
-        "wp_356",
-        "wp_357"
+        "wp_330"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_330",
       "pos": {
         "x": -10.0,
         "y": 0.0,
-        "z": 26.0
+        "z": -12.0
       },
       "neighbors": [
-        "wp_301",
-        "wp_302",
-        "wp_303",
+        "wp_298",
+        "wp_299",
+        "wp_300",
         "wp_329",
         "wp_331",
-        "wp_356",
-        "wp_357",
-        "wp_358"
+        "wp_362",
+        "wp_363"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_331",
       "pos": {
         "x": -10.0,
         "y": 0.0,
-        "z": 28.0
+        "z": -10.0
       },
       "neighbors": [
-        "wp_302",
-        "wp_303",
-        "wp_304",
+        "wp_299",
+        "wp_300",
         "wp_330",
-        "wp_332",
-        "wp_357",
-        "wp_358",
-        "wp_359"
+        "wp_362",
+        "wp_363",
+        "wp_1096"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_332",
       "pos": {
         "x": -10.0,
         "y": 0.0,
-        "z": 30.0
+        "z": 4.0
       },
       "neighbors": [
-        "wp_303",
-        "wp_304",
-        "wp_305",
-        "wp_331",
+        "wp_301",
+        "wp_302",
         "wp_333",
-        "wp_358",
-        "wp_359",
-        "wp_360"
+        "wp_364",
+        "wp_365",
+        "wp_1095",
+        "wp_1179"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_333",
       "pos": {
         "x": -10.0,
         "y": 0.0,
-        "z": 32.0
+        "z": 6.0
       },
       "neighbors": [
-        "wp_304",
-        "wp_305",
-        "wp_306",
+        "wp_301",
+        "wp_302",
+        "wp_303",
         "wp_332",
         "wp_334",
-        "wp_359",
-        "wp_360",
-        "wp_361"
+        "wp_364",
+        "wp_365",
+        "wp_366",
+        "wp_1179"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_334",
       "pos": {
         "x": -10.0,
         "y": 0.0,
-        "z": 34.0
+        "z": 8.0
       },
       "neighbors": [
-        "wp_305",
-        "wp_306",
-        "wp_307",
+        "wp_302",
+        "wp_303",
         "wp_333",
-        "wp_335",
-        "wp_360",
-        "wp_361",
-        "wp_362"
+        "wp_365",
+        "wp_366"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_335",
       "pos": {
         "x": -10.0,
         "y": 0.0,
-        "z": 36.0
+        "z": 22.0
       },
       "neighbors": [
-        "wp_306",
-        "wp_307",
-        "wp_308",
-        "wp_334",
+        "wp_304",
+        "wp_305",
         "wp_336",
-        "wp_361",
-        "wp_362",
-        "wp_363"
+        "wp_367",
+        "wp_368"
       ],
       "zone": "spawn"
     },
@@ -8132,17 +8549,17 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -10.0,
         "y": 0.0,
-        "z": 38.0
+        "z": 24.0
       },
       "neighbors": [
-        "wp_307",
-        "wp_308",
-        "wp_309",
+        "wp_304",
+        "wp_305",
+        "wp_306",
         "wp_335",
         "wp_337",
-        "wp_362",
-        "wp_363",
-        "wp_364"
+        "wp_367",
+        "wp_368",
+        "wp_369"
       ],
       "zone": "spawn"
     },
@@ -8151,16 +8568,17 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -10.0,
         "y": 0.0,
-        "z": 40.0
+        "z": 26.0
       },
       "neighbors": [
-        "wp_308",
-        "wp_309",
-        "wp_310",
+        "wp_305",
+        "wp_306",
+        "wp_307",
         "wp_336",
         "wp_338",
-        "wp_363",
-        "wp_364"
+        "wp_368",
+        "wp_369",
+        "wp_370"
       ],
       "zone": "spawn"
     },
@@ -8169,15 +8587,17 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -10.0,
         "y": 0.0,
-        "z": 42.0
+        "z": 28.0
       },
       "neighbors": [
-        "wp_309",
-        "wp_310",
-        "wp_311",
+        "wp_306",
+        "wp_307",
+        "wp_308",
         "wp_337",
         "wp_339",
-        "wp_364"
+        "wp_369",
+        "wp_370",
+        "wp_371"
       ],
       "zone": "spawn"
     },
@@ -8186,784 +8606,831 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -10.0,
         "y": 0.0,
-        "z": 44.0
+        "z": 30.0
       },
       "neighbors": [
-        "wp_310",
-        "wp_311",
+        "wp_307",
+        "wp_308",
+        "wp_309",
         "wp_338",
-        "wp_365"
+        "wp_340",
+        "wp_370",
+        "wp_371",
+        "wp_372"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_340",
       "pos": {
-        "x": -8.0,
+        "x": -10.0,
         "y": 0.0,
-        "z": -44.0
+        "z": 32.0
       },
       "neighbors": [
-        "wp_312",
-        "wp_313",
+        "wp_308",
+        "wp_309",
+        "wp_310",
+        "wp_339",
         "wp_341",
-        "wp_366",
-        "wp_367"
+        "wp_371",
+        "wp_372",
+        "wp_373"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_341",
       "pos": {
-        "x": -8.0,
+        "x": -10.0,
         "y": 0.0,
-        "z": -42.0
+        "z": 34.0
       },
       "neighbors": [
-        "wp_312",
-        "wp_313",
-        "wp_314",
+        "wp_309",
+        "wp_310",
+        "wp_311",
         "wp_340",
         "wp_342",
-        "wp_366",
-        "wp_367",
-        "wp_368"
+        "wp_372",
+        "wp_373",
+        "wp_374"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_342",
       "pos": {
-        "x": -8.0,
+        "x": -10.0,
         "y": 0.0,
-        "z": -40.0
+        "z": 36.0
       },
       "neighbors": [
-        "wp_313",
-        "wp_314",
-        "wp_315",
+        "wp_310",
+        "wp_311",
+        "wp_312",
         "wp_341",
         "wp_343",
-        "wp_367",
-        "wp_368",
-        "wp_369"
+        "wp_373",
+        "wp_374",
+        "wp_375"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_343",
       "pos": {
-        "x": -8.0,
+        "x": -10.0,
         "y": 0.0,
-        "z": -38.0
+        "z": 38.0
       },
       "neighbors": [
-        "wp_314",
-        "wp_315",
-        "wp_316",
+        "wp_311",
+        "wp_312",
+        "wp_313",
         "wp_342",
         "wp_344",
-        "wp_368",
-        "wp_369",
-        "wp_370"
+        "wp_374",
+        "wp_375",
+        "wp_376"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_344",
       "pos": {
-        "x": -8.0,
+        "x": -10.0,
         "y": 0.0,
-        "z": -36.0
+        "z": 40.0
       },
       "neighbors": [
-        "wp_315",
-        "wp_316",
-        "wp_317",
+        "wp_312",
+        "wp_313",
+        "wp_314",
         "wp_343",
         "wp_345",
-        "wp_369",
-        "wp_370",
-        "wp_371"
+        "wp_375",
+        "wp_376"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_345",
       "pos": {
-        "x": -8.0,
+        "x": -10.0,
         "y": 0.0,
-        "z": -34.0
+        "z": 42.0
       },
       "neighbors": [
-        "wp_316",
-        "wp_317",
+        "wp_313",
+        "wp_314",
+        "wp_315",
         "wp_344",
-        "wp_370",
-        "wp_371"
+        "wp_346",
+        "wp_376"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_346",
       "pos": {
-        "x": -8.0,
+        "x": -10.0,
         "y": 0.0,
-        "z": -22.0
+        "z": 44.0
       },
       "neighbors": [
-        "wp_318",
-        "wp_319",
-        "wp_347",
-        "wp_372",
-        "wp_373"
+        "wp_314",
+        "wp_315",
+        "wp_345",
+        "wp_377"
       ],
-      "zone": "mid"
+      "zone": "spawn"
     },
     {
       "id": "wp_347",
       "pos": {
         "x": -8.0,
         "y": 0.0,
-        "z": -20.0
+        "z": -44.0
       },
       "neighbors": [
-        "wp_318",
-        "wp_319",
-        "wp_320",
-        "wp_346",
+        "wp_316",
+        "wp_317",
         "wp_348",
-        "wp_372",
-        "wp_373",
-        "wp_374"
+        "wp_378",
+        "wp_379"
       ],
-      "zone": "mid"
+      "zone": "spawn"
     },
     {
       "id": "wp_348",
       "pos": {
         "x": -8.0,
         "y": 0.0,
-        "z": -18.0
+        "z": -42.0
       },
       "neighbors": [
-        "wp_319",
-        "wp_320",
-        "wp_321",
+        "wp_316",
+        "wp_317",
+        "wp_318",
         "wp_347",
         "wp_349",
-        "wp_373",
-        "wp_374",
-        "wp_375"
+        "wp_378",
+        "wp_379",
+        "wp_380"
       ],
-      "zone": "mid"
+      "zone": "spawn"
     },
     {
       "id": "wp_349",
       "pos": {
         "x": -8.0,
         "y": 0.0,
-        "z": -16.0
+        "z": -40.0
       },
       "neighbors": [
-        "wp_320",
-        "wp_321",
+        "wp_317",
+        "wp_318",
+        "wp_319",
         "wp_348",
-        "wp_374",
-        "wp_375"
+        "wp_350",
+        "wp_379",
+        "wp_380",
+        "wp_381"
       ],
-      "zone": "mid"
+      "zone": "spawn"
     },
     {
       "id": "wp_350",
       "pos": {
         "x": -8.0,
         "y": 0.0,
-        "z": -12.0
+        "z": -38.0
       },
       "neighbors": [
-        "wp_323",
-        "wp_324",
+        "wp_318",
+        "wp_319",
+        "wp_320",
+        "wp_349",
         "wp_351",
-        "wp_377"
+        "wp_380",
+        "wp_381",
+        "wp_382"
       ],
-      "zone": "mid"
+      "zone": "spawn"
     },
     {
       "id": "wp_351",
       "pos": {
         "x": -8.0,
         "y": 0.0,
-        "z": -10.0
+        "z": -36.0
       },
       "neighbors": [
-        "wp_323",
-        "wp_324",
+        "wp_319",
+        "wp_320",
+        "wp_321",
         "wp_350",
-        "wp_377",
-        "wp_1068"
+        "wp_352",
+        "wp_381",
+        "wp_382",
+        "wp_383"
       ],
-      "zone": "mid"
+      "zone": "spawn"
     },
     {
       "id": "wp_352",
       "pos": {
         "x": -8.0,
         "y": 0.0,
-        "z": 4.0
+        "z": -34.0
       },
       "neighbors": [
-        "wp_325",
-        "wp_326",
+        "wp_320",
+        "wp_321",
+        "wp_322",
+        "wp_351",
         "wp_353",
         "wp_382",
         "wp_383",
-        "wp_384",
-        "wp_1137"
+        "wp_384"
       ],
-      "zone": "mid"
+      "zone": "spawn"
     },
     {
       "id": "wp_353",
       "pos": {
         "x": -8.0,
         "y": 0.0,
-        "z": 6.0
+        "z": -32.0
       },
       "neighbors": [
-        "wp_325",
-        "wp_326",
-        "wp_327",
+        "wp_321",
+        "wp_322",
+        "wp_323",
         "wp_352",
         "wp_354",
         "wp_383",
         "wp_384",
         "wp_385"
       ],
-      "zone": "mid"
+      "zone": "flank"
     },
     {
       "id": "wp_354",
       "pos": {
         "x": -8.0,
         "y": 0.0,
-        "z": 8.0
+        "z": -30.0
       },
       "neighbors": [
-        "wp_326",
-        "wp_327",
+        "wp_322",
+        "wp_323",
+        "wp_324",
         "wp_353",
+        "wp_355",
         "wp_384",
         "wp_385",
-        "wp_386"
+        "wp_386",
+        "wp_1167"
       ],
-      "zone": "mid"
+      "zone": "flank"
     },
     {
       "id": "wp_355",
       "pos": {
         "x": -8.0,
         "y": 0.0,
-        "z": 22.0
+        "z": -28.0
       },
       "neighbors": [
-        "wp_328",
-        "wp_329",
+        "wp_323",
+        "wp_324",
+        "wp_354",
         "wp_356",
-        "wp_391",
-        "wp_392"
+        "wp_385",
+        "wp_386",
+        "wp_1166",
+        "wp_1167"
       ],
-      "zone": "spawn"
+      "zone": "flank"
     },
     {
       "id": "wp_356",
       "pos": {
         "x": -8.0,
         "y": 0.0,
-        "z": 24.0
+        "z": -26.0
       },
       "neighbors": [
-        "wp_328",
-        "wp_329",
-        "wp_330",
         "wp_355",
         "wp_357",
-        "wp_391",
-        "wp_392",
-        "wp_393"
+        "wp_386",
+        "wp_1165",
+        "wp_1166",
+        "wp_1167"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_357",
       "pos": {
         "x": -8.0,
         "y": 0.0,
-        "z": 26.0
+        "z": -24.0
       },
       "neighbors": [
-        "wp_329",
-        "wp_330",
-        "wp_331",
         "wp_356",
         "wp_358",
-        "wp_392",
-        "wp_393",
-        "wp_394"
+        "wp_387",
+        "wp_1164",
+        "wp_1165",
+        "wp_1166",
+        "wp_1167"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_358",
       "pos": {
         "x": -8.0,
         "y": 0.0,
-        "z": 28.0
+        "z": -22.0
       },
       "neighbors": [
-        "wp_330",
-        "wp_331",
-        "wp_332",
+        "wp_325",
+        "wp_326",
         "wp_357",
         "wp_359",
-        "wp_393",
-        "wp_394",
-        "wp_395"
+        "wp_387",
+        "wp_388",
+        "wp_1164",
+        "wp_1165",
+        "wp_1166"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_359",
       "pos": {
         "x": -8.0,
         "y": 0.0,
-        "z": 30.0
+        "z": -20.0
       },
       "neighbors": [
-        "wp_331",
-        "wp_332",
-        "wp_333",
+        "wp_325",
+        "wp_326",
+        "wp_327",
         "wp_358",
         "wp_360",
-        "wp_394",
-        "wp_395",
-        "wp_396"
+        "wp_387",
+        "wp_388",
+        "wp_389",
+        "wp_1164",
+        "wp_1165"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_360",
       "pos": {
         "x": -8.0,
         "y": 0.0,
-        "z": 32.0
+        "z": -18.0
       },
       "neighbors": [
-        "wp_332",
-        "wp_333",
-        "wp_334",
+        "wp_326",
+        "wp_327",
+        "wp_328",
         "wp_359",
         "wp_361",
-        "wp_395",
-        "wp_396",
-        "wp_397"
+        "wp_388",
+        "wp_389",
+        "wp_390",
+        "wp_1164"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_361",
       "pos": {
         "x": -8.0,
         "y": 0.0,
-        "z": 34.0
+        "z": -16.0
       },
       "neighbors": [
-        "wp_333",
-        "wp_334",
-        "wp_335",
+        "wp_327",
+        "wp_328",
         "wp_360",
-        "wp_362",
-        "wp_396",
-        "wp_397",
-        "wp_398"
+        "wp_389",
+        "wp_390"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_362",
       "pos": {
         "x": -8.0,
         "y": 0.0,
-        "z": 36.0
+        "z": -12.0
       },
       "neighbors": [
-        "wp_334",
-        "wp_335",
-        "wp_336",
-        "wp_361",
+        "wp_330",
+        "wp_331",
         "wp_363",
-        "wp_397",
-        "wp_398",
-        "wp_399",
-        "wp_1159"
+        "wp_392",
+        "wp_393"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_363",
       "pos": {
         "x": -8.0,
         "y": 0.0,
-        "z": 38.0
+        "z": -10.0
       },
       "neighbors": [
-        "wp_335",
-        "wp_336",
-        "wp_337",
+        "wp_330",
+        "wp_331",
         "wp_362",
-        "wp_364",
-        "wp_398",
-        "wp_399",
-        "wp_400",
-        "wp_1159"
+        "wp_392",
+        "wp_393",
+        "wp_1096"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_364",
       "pos": {
         "x": -8.0,
         "y": 0.0,
-        "z": 40.0
+        "z": 4.0
       },
       "neighbors": [
-        "wp_336",
-        "wp_337",
-        "wp_338",
-        "wp_363",
+        "wp_332",
+        "wp_333",
+        "wp_365",
+        "wp_398",
         "wp_399",
-        "wp_400"
+        "wp_400",
+        "wp_1179"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_365",
       "pos": {
         "x": -8.0,
         "y": 0.0,
-        "z": 44.0
+        "z": 6.0
       },
       "neighbors": [
-        "wp_339",
+        "wp_332",
+        "wp_333",
+        "wp_334",
+        "wp_364",
+        "wp_366",
+        "wp_399",
+        "wp_400",
         "wp_401"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_366",
       "pos": {
-        "x": -6.0,
+        "x": -8.0,
         "y": 0.0,
-        "z": -44.0
+        "z": 8.0
       },
       "neighbors": [
-        "wp_340",
-        "wp_341",
-        "wp_367",
-        "wp_402",
-        "wp_403"
+        "wp_333",
+        "wp_334",
+        "wp_365",
+        "wp_400",
+        "wp_401",
+        "wp_402"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_367",
       "pos": {
-        "x": -6.0,
+        "x": -8.0,
         "y": 0.0,
-        "z": -42.0
+        "z": 22.0
       },
       "neighbors": [
-        "wp_340",
-        "wp_341",
-        "wp_342",
-        "wp_366",
+        "wp_335",
+        "wp_336",
         "wp_368",
-        "wp_402",
-        "wp_403",
-        "wp_404"
+        "wp_407",
+        "wp_408"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_368",
       "pos": {
-        "x": -6.0,
+        "x": -8.0,
         "y": 0.0,
-        "z": -40.0
+        "z": 24.0
       },
       "neighbors": [
-        "wp_341",
-        "wp_342",
-        "wp_343",
+        "wp_335",
+        "wp_336",
+        "wp_337",
         "wp_367",
         "wp_369",
-        "wp_403",
-        "wp_404",
-        "wp_405"
+        "wp_407",
+        "wp_408",
+        "wp_409"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_369",
       "pos": {
-        "x": -6.0,
+        "x": -8.0,
         "y": 0.0,
-        "z": -38.0
+        "z": 26.0
       },
       "neighbors": [
-        "wp_342",
-        "wp_343",
-        "wp_344",
+        "wp_336",
+        "wp_337",
+        "wp_338",
         "wp_368",
         "wp_370",
-        "wp_404",
-        "wp_405",
-        "wp_406"
+        "wp_408",
+        "wp_409",
+        "wp_410"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_370",
       "pos": {
-        "x": -6.0,
+        "x": -8.0,
         "y": 0.0,
-        "z": -36.0
+        "z": 28.0
       },
       "neighbors": [
-        "wp_343",
-        "wp_344",
-        "wp_345",
+        "wp_337",
+        "wp_338",
+        "wp_339",
         "wp_369",
         "wp_371",
-        "wp_405",
-        "wp_406",
-        "wp_407"
+        "wp_409",
+        "wp_410",
+        "wp_411"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_371",
       "pos": {
-        "x": -6.0,
+        "x": -8.0,
         "y": 0.0,
-        "z": -34.0
+        "z": 30.0
       },
       "neighbors": [
-        "wp_344",
-        "wp_345",
+        "wp_338",
+        "wp_339",
+        "wp_340",
         "wp_370",
-        "wp_406",
-        "wp_407"
+        "wp_372",
+        "wp_410",
+        "wp_411",
+        "wp_412"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_372",
       "pos": {
-        "x": -6.0,
+        "x": -8.0,
         "y": 0.0,
-        "z": -22.0
+        "z": 32.0
       },
       "neighbors": [
-        "wp_346",
-        "wp_347",
-        "wp_373"
+        "wp_339",
+        "wp_340",
+        "wp_341",
+        "wp_371",
+        "wp_373",
+        "wp_411",
+        "wp_412",
+        "wp_413"
       ],
-      "zone": "mid"
+      "zone": "spawn"
     },
     {
       "id": "wp_373",
       "pos": {
-        "x": -6.0,
+        "x": -8.0,
         "y": 0.0,
-        "z": -20.0
+        "z": 34.0
       },
       "neighbors": [
-        "wp_346",
-        "wp_347",
-        "wp_348",
+        "wp_340",
+        "wp_341",
+        "wp_342",
         "wp_372",
-        "wp_374"
+        "wp_374",
+        "wp_412",
+        "wp_413",
+        "wp_414"
       ],
-      "zone": "mid"
+      "zone": "spawn"
     },
     {
       "id": "wp_374",
       "pos": {
-        "x": -6.0,
+        "x": -8.0,
         "y": 0.0,
-        "z": -18.0
+        "z": 36.0
       },
       "neighbors": [
-        "wp_347",
-        "wp_348",
-        "wp_349",
+        "wp_341",
+        "wp_342",
+        "wp_343",
         "wp_373",
-        "wp_375"
+        "wp_375",
+        "wp_413",
+        "wp_414",
+        "wp_415",
+        "wp_1201"
       ],
-      "zone": "mid"
+      "zone": "spawn"
     },
     {
       "id": "wp_375",
       "pos": {
-        "x": -6.0,
+        "x": -8.0,
         "y": 0.0,
-        "z": -16.0
+        "z": 38.0
       },
       "neighbors": [
-        "wp_348",
-        "wp_349",
+        "wp_342",
+        "wp_343",
+        "wp_344",
         "wp_374",
-        "wp_376"
+        "wp_376",
+        "wp_414",
+        "wp_415",
+        "wp_416",
+        "wp_1201"
       ],
-      "zone": "mid"
+      "zone": "spawn"
     },
     {
       "id": "wp_376",
       "pos": {
-        "x": -6.0,
+        "x": -8.0,
         "y": 0.0,
-        "z": -14.0
+        "z": 40.0
       },
       "neighbors": [
+        "wp_343",
+        "wp_344",
+        "wp_345",
         "wp_375",
-        "wp_377"
+        "wp_415",
+        "wp_416"
       ],
-      "zone": "mid"
+      "zone": "spawn"
     },
     {
       "id": "wp_377",
       "pos": {
-        "x": -6.0,
+        "x": -8.0,
         "y": 0.0,
-        "z": -12.0
+        "z": 44.0
       },
       "neighbors": [
-        "wp_350",
-        "wp_351",
-        "wp_376"
+        "wp_346",
+        "wp_417"
       ],
-      "zone": "mid"
+      "zone": "spawn"
     },
     {
       "id": "wp_378",
       "pos": {
         "x": -6.0,
         "y": 0.0,
-        "z": -6.0
+        "z": -44.0
       },
       "neighbors": [
+        "wp_347",
+        "wp_348",
         "wp_379",
-        "wp_412",
-        "wp_413"
+        "wp_418",
+        "wp_419"
       ],
-      "zone": "mid"
+      "zone": "spawn"
     },
     {
       "id": "wp_379",
       "pos": {
         "x": -6.0,
         "y": 0.0,
-        "z": -4.0
+        "z": -42.0
       },
       "neighbors": [
+        "wp_347",
+        "wp_348",
+        "wp_349",
         "wp_378",
         "wp_380",
-        "wp_412",
-        "wp_413",
-        "wp_414",
-        "wp_1138"
+        "wp_418",
+        "wp_419",
+        "wp_420"
       ],
-      "zone": "mid"
+      "zone": "spawn"
     },
     {
       "id": "wp_380",
       "pos": {
         "x": -6.0,
         "y": 0.0,
-        "z": -2.0
+        "z": -40.0
       },
       "neighbors": [
+        "wp_348",
+        "wp_349",
+        "wp_350",
         "wp_379",
         "wp_381",
-        "wp_413",
-        "wp_414",
-        "wp_415",
-        "wp_1069",
-        "wp_1138"
+        "wp_419",
+        "wp_420",
+        "wp_421"
       ],
-      "zone": "mid"
+      "zone": "spawn"
     },
     {
       "id": "wp_381",
       "pos": {
         "x": -6.0,
         "y": 0.0,
-        "z": 0.0
+        "z": -38.0
       },
       "neighbors": [
+        "wp_349",
+        "wp_350",
+        "wp_351",
         "wp_380",
         "wp_382",
-        "wp_414",
-        "wp_415",
-        "wp_416",
-        "wp_1069",
-        "wp_1138"
+        "wp_420",
+        "wp_421",
+        "wp_422"
       ],
-      "zone": "mid"
+      "zone": "spawn"
     },
     {
       "id": "wp_382",
       "pos": {
         "x": -6.0,
         "y": 0.0,
-        "z": 2.0
+        "z": -36.0
       },
       "neighbors": [
+        "wp_350",
+        "wp_351",
         "wp_352",
         "wp_381",
         "wp_383",
-        "wp_415",
-        "wp_416",
-        "wp_417",
-        "wp_1138"
+        "wp_421",
+        "wp_422",
+        "wp_423"
       ],
-      "zone": "mid"
+      "zone": "spawn"
     },
     {
       "id": "wp_383",
       "pos": {
         "x": -6.0,
         "y": 0.0,
-        "z": 4.0
+        "z": -34.0
       },
       "neighbors": [
+        "wp_351",
         "wp_352",
         "wp_353",
         "wp_382",
         "wp_384",
-        "wp_416",
-        "wp_417",
-        "wp_418"
+        "wp_422",
+        "wp_423",
+        "wp_424"
       ],
-      "zone": "mid"
+      "zone": "spawn"
     },
     {
       "id": "wp_384",
       "pos": {
         "x": -6.0,
         "y": 0.0,
-        "z": 6.0
+        "z": -32.0
       },
       "neighbors": [
         "wp_352",
@@ -8971,60 +9438,64 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "wp_354",
         "wp_383",
         "wp_385",
-        "wp_417",
-        "wp_418",
-        "wp_419"
+        "wp_423",
+        "wp_424",
+        "wp_425"
       ],
-      "zone": "mid"
+      "zone": "flank"
     },
     {
       "id": "wp_385",
       "pos": {
         "x": -6.0,
         "y": 0.0,
-        "z": 8.0
+        "z": -30.0
       },
       "neighbors": [
         "wp_353",
         "wp_354",
+        "wp_355",
         "wp_384",
         "wp_386",
-        "wp_418",
-        "wp_419",
-        "wp_420"
+        "wp_424",
+        "wp_425",
+        "wp_426",
+        "wp_1167"
       ],
-      "zone": "mid"
+      "zone": "flank"
     },
     {
       "id": "wp_386",
       "pos": {
         "x": -6.0,
         "y": 0.0,
-        "z": 10.0
+        "z": -28.0
       },
       "neighbors": [
         "wp_354",
+        "wp_355",
+        "wp_356",
         "wp_385",
-        "wp_387",
-        "wp_419",
-        "wp_420",
-        "wp_421"
+        "wp_425",
+        "wp_426",
+        "wp_1167"
       ],
-      "zone": "mid"
+      "zone": "flank"
     },
     {
       "id": "wp_387",
       "pos": {
         "x": -6.0,
         "y": 0.0,
-        "z": 12.0
+        "z": -22.0
       },
       "neighbors": [
-        "wp_386",
+        "wp_357",
+        "wp_358",
+        "wp_359",
         "wp_388",
-        "wp_420",
-        "wp_421",
-        "wp_422"
+        "wp_1164",
+        "wp_1165"
       ],
       "zone": "mid"
     },
@@ -9033,14 +9504,15 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -6.0,
         "y": 0.0,
-        "z": 14.0
+        "z": -20.0
       },
       "neighbors": [
+        "wp_358",
+        "wp_359",
+        "wp_360",
         "wp_387",
         "wp_389",
-        "wp_421",
-        "wp_422",
-        "wp_423"
+        "wp_1164"
       ],
       "zone": "mid"
     },
@@ -9049,14 +9521,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -6.0,
         "y": 0.0,
-        "z": 16.0
+        "z": -18.0
       },
       "neighbors": [
+        "wp_359",
+        "wp_360",
+        "wp_361",
         "wp_388",
-        "wp_390",
-        "wp_422",
-        "wp_423",
-        "wp_424"
+        "wp_390"
       ],
       "zone": "mid"
     },
@@ -9065,12 +9537,13 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -6.0,
         "y": 0.0,
-        "z": 18.0
+        "z": -16.0
       },
       "neighbors": [
+        "wp_360",
+        "wp_361",
         "wp_389",
-        "wp_423",
-        "wp_424"
+        "wp_391"
       ],
       "zone": "mid"
     },
@@ -9079,334 +9552,238 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -6.0,
         "y": 0.0,
-        "z": 22.0
+        "z": -14.0
       },
       "neighbors": [
-        "wp_355",
-        "wp_356",
-        "wp_392",
-        "wp_425",
-        "wp_426"
+        "wp_390",
+        "wp_392"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_392",
       "pos": {
         "x": -6.0,
         "y": 0.0,
-        "z": 24.0
+        "z": -12.0
       },
       "neighbors": [
-        "wp_355",
-        "wp_356",
-        "wp_357",
+        "wp_362",
+        "wp_363",
         "wp_391",
-        "wp_393",
-        "wp_425",
-        "wp_426",
-        "wp_427"
+        "wp_393"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_393",
       "pos": {
         "x": -6.0,
         "y": 0.0,
-        "z": 26.0
+        "z": -10.0
       },
       "neighbors": [
-        "wp_356",
-        "wp_357",
-        "wp_358",
-        "wp_392",
-        "wp_394",
-        "wp_426",
-        "wp_427",
-        "wp_428"
+        "wp_362",
+        "wp_363",
+        "wp_392"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_394",
       "pos": {
         "x": -6.0,
         "y": 0.0,
-        "z": 28.0
+        "z": -6.0
       },
       "neighbors": [
-        "wp_357",
-        "wp_358",
-        "wp_359",
-        "wp_393",
         "wp_395",
-        "wp_427",
-        "wp_428",
-        "wp_429"
+        "wp_1172"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_395",
       "pos": {
         "x": -6.0,
         "y": 0.0,
-        "z": 30.0
+        "z": -4.0
       },
       "neighbors": [
-        "wp_358",
-        "wp_359",
-        "wp_360",
         "wp_394",
         "wp_396",
-        "wp_428",
-        "wp_429",
-        "wp_430"
+        "wp_433",
+        "wp_434",
+        "wp_1172"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_396",
       "pos": {
         "x": -6.0,
         "y": 0.0,
-        "z": 32.0
+        "z": -2.0
       },
       "neighbors": [
-        "wp_359",
-        "wp_360",
-        "wp_361",
         "wp_395",
         "wp_397",
-        "wp_429",
-        "wp_430",
-        "wp_431"
+        "wp_433",
+        "wp_434",
+        "wp_435",
+        "wp_1097",
+        "wp_1172"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_397",
       "pos": {
         "x": -6.0,
         "y": 0.0,
-        "z": 34.0
+        "z": 0.0
       },
       "neighbors": [
-        "wp_360",
-        "wp_361",
-        "wp_362",
         "wp_396",
         "wp_398",
-        "wp_430",
-        "wp_431",
-        "wp_432",
-        "wp_1159"
+        "wp_434",
+        "wp_435",
+        "wp_436",
+        "wp_1097"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_398",
       "pos": {
         "x": -6.0,
         "y": 0.0,
-        "z": 36.0
+        "z": 2.0
       },
       "neighbors": [
-        "wp_361",
-        "wp_362",
-        "wp_363",
+        "wp_364",
         "wp_397",
         "wp_399",
-        "wp_431",
-        "wp_432",
-        "wp_433",
-        "wp_1159"
+        "wp_435",
+        "wp_436",
+        "wp_437"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_399",
       "pos": {
         "x": -6.0,
         "y": 0.0,
-        "z": 38.0
+        "z": 4.0
       },
       "neighbors": [
-        "wp_362",
-        "wp_363",
         "wp_364",
+        "wp_365",
         "wp_398",
         "wp_400",
-        "wp_432",
-        "wp_433",
-        "wp_434",
-        "wp_1159"
+        "wp_436",
+        "wp_437",
+        "wp_438"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_400",
       "pos": {
         "x": -6.0,
         "y": 0.0,
-        "z": 40.0
+        "z": 6.0
       },
       "neighbors": [
-        "wp_363",
         "wp_364",
+        "wp_365",
+        "wp_366",
         "wp_399",
-        "wp_433",
-        "wp_434",
-        "wp_1159"
+        "wp_401",
+        "wp_437",
+        "wp_438",
+        "wp_439"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_401",
       "pos": {
         "x": -6.0,
         "y": 0.0,
-        "z": 44.0
+        "z": 8.0
       },
       "neighbors": [
         "wp_365",
-        "wp_435"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_402",
-      "pos": {
-        "x": -4.0,
-        "y": 0.0,
-        "z": -44.0
-      },
-      "neighbors": [
         "wp_366",
-        "wp_367",
-        "wp_403",
-        "wp_436",
-        "wp_437"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_403",
-      "pos": {
-        "x": -4.0,
-        "y": 0.0,
-        "z": -42.0
-      },
-      "neighbors": [
-        "wp_366",
-        "wp_367",
-        "wp_368",
+        "wp_400",
         "wp_402",
-        "wp_404",
-        "wp_436",
-        "wp_437",
-        "wp_438"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_404",
-      "pos": {
-        "x": -4.0,
-        "y": 0.0,
-        "z": -40.0
-      },
-      "neighbors": [
-        "wp_367",
-        "wp_368",
-        "wp_369",
-        "wp_403",
-        "wp_405",
-        "wp_437",
-        "wp_438",
-        "wp_439"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_405",
-      "pos": {
-        "x": -4.0,
-        "y": 0.0,
-        "z": -38.0
-      },
-      "neighbors": [
-        "wp_368",
-        "wp_369",
-        "wp_370",
-        "wp_404",
-        "wp_406",
         "wp_438",
         "wp_439",
         "wp_440"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
-      "id": "wp_406",
+      "id": "wp_402",
       "pos": {
-        "x": -4.0,
+        "x": -6.0,
         "y": 0.0,
-        "z": -36.0
+        "z": 10.0
       },
       "neighbors": [
-        "wp_369",
-        "wp_370",
-        "wp_371",
-        "wp_405",
-        "wp_407",
+        "wp_366",
+        "wp_401",
+        "wp_403",
         "wp_439",
         "wp_440",
         "wp_441"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
-      "id": "wp_407",
+      "id": "wp_403",
       "pos": {
-        "x": -4.0,
+        "x": -6.0,
         "y": 0.0,
-        "z": -34.0
+        "z": 12.0
       },
       "neighbors": [
-        "wp_370",
-        "wp_371",
-        "wp_406",
+        "wp_402",
+        "wp_404",
         "wp_440",
-        "wp_441"
+        "wp_441",
+        "wp_442"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
-      "id": "wp_408",
+      "id": "wp_404",
       "pos": {
-        "x": -4.0,
+        "x": -6.0,
         "y": 0.0,
-        "z": -14.0
+        "z": 14.0
       },
       "neighbors": [
-        "wp_409",
+        "wp_403",
+        "wp_405",
+        "wp_441",
         "wp_442",
         "wp_443"
       ],
       "zone": "mid"
     },
     {
-      "id": "wp_409",
+      "id": "wp_405",
       "pos": {
-        "x": -4.0,
+        "x": -6.0,
         "y": 0.0,
-        "z": -12.0
+        "z": 16.0
       },
       "neighbors": [
-        "wp_408",
-        "wp_410",
+        "wp_404",
+        "wp_406",
         "wp_442",
         "wp_443",
         "wp_444"
@@ -9414,313 +9791,306 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "mid"
     },
     {
-      "id": "wp_410",
+      "id": "wp_406",
       "pos": {
-        "x": -4.0,
+        "x": -6.0,
         "y": 0.0,
-        "z": -10.0
+        "z": 18.0
       },
       "neighbors": [
-        "wp_409",
-        "wp_411",
+        "wp_405",
         "wp_443",
-        "wp_444",
-        "wp_445"
+        "wp_444"
       ],
       "zone": "mid"
     },
     {
-      "id": "wp_411",
+      "id": "wp_407",
       "pos": {
-        "x": -4.0,
+        "x": -6.0,
         "y": 0.0,
-        "z": -8.0
+        "z": 22.0
       },
       "neighbors": [
-        "wp_410",
-        "wp_412",
-        "wp_444",
+        "wp_367",
+        "wp_368",
+        "wp_408",
         "wp_445",
         "wp_446"
       ],
-      "zone": "mid"
+      "zone": "spawn"
     },
     {
-      "id": "wp_412",
+      "id": "wp_408",
       "pos": {
-        "x": -4.0,
+        "x": -6.0,
         "y": 0.0,
-        "z": -6.0
+        "z": 24.0
       },
       "neighbors": [
-        "wp_378",
-        "wp_379",
-        "wp_411",
-        "wp_413",
+        "wp_367",
+        "wp_368",
+        "wp_369",
+        "wp_407",
+        "wp_409",
         "wp_445",
         "wp_446",
         "wp_447"
       ],
-      "zone": "mid"
+      "zone": "spawn"
     },
     {
-      "id": "wp_413",
+      "id": "wp_409",
       "pos": {
-        "x": -4.0,
+        "x": -6.0,
         "y": 0.0,
-        "z": -4.0
+        "z": 26.0
       },
       "neighbors": [
-        "wp_378",
-        "wp_379",
-        "wp_380",
-        "wp_412",
-        "wp_414",
+        "wp_368",
+        "wp_369",
+        "wp_370",
+        "wp_408",
+        "wp_410",
         "wp_446",
         "wp_447",
         "wp_448"
       ],
-      "zone": "mid"
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_410",
+      "pos": {
+        "x": -6.0,
+        "y": 0.0,
+        "z": 28.0
+      },
+      "neighbors": [
+        "wp_369",
+        "wp_370",
+        "wp_371",
+        "wp_409",
+        "wp_411",
+        "wp_447",
+        "wp_448",
+        "wp_449"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_411",
+      "pos": {
+        "x": -6.0,
+        "y": 0.0,
+        "z": 30.0
+      },
+      "neighbors": [
+        "wp_370",
+        "wp_371",
+        "wp_372",
+        "wp_410",
+        "wp_412",
+        "wp_448",
+        "wp_449",
+        "wp_450"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_412",
+      "pos": {
+        "x": -6.0,
+        "y": 0.0,
+        "z": 32.0
+      },
+      "neighbors": [
+        "wp_371",
+        "wp_372",
+        "wp_373",
+        "wp_411",
+        "wp_413",
+        "wp_449",
+        "wp_450",
+        "wp_451"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_413",
+      "pos": {
+        "x": -6.0,
+        "y": 0.0,
+        "z": 34.0
+      },
+      "neighbors": [
+        "wp_372",
+        "wp_373",
+        "wp_374",
+        "wp_412",
+        "wp_414",
+        "wp_450",
+        "wp_451",
+        "wp_452",
+        "wp_1201"
+      ],
+      "zone": "spawn"
     },
     {
       "id": "wp_414",
       "pos": {
-        "x": -4.0,
+        "x": -6.0,
         "y": 0.0,
-        "z": -2.0
+        "z": 36.0
       },
       "neighbors": [
-        "wp_379",
-        "wp_380",
-        "wp_381",
+        "wp_373",
+        "wp_374",
+        "wp_375",
         "wp_413",
         "wp_415",
-        "wp_447",
-        "wp_448",
-        "wp_449",
-        "wp_1138"
+        "wp_451",
+        "wp_452",
+        "wp_453",
+        "wp_1201"
       ],
-      "zone": "mid"
+      "zone": "spawn"
     },
     {
       "id": "wp_415",
       "pos": {
-        "x": -4.0,
+        "x": -6.0,
         "y": 0.0,
-        "z": 0.0
+        "z": 38.0
       },
       "neighbors": [
-        "wp_380",
-        "wp_381",
-        "wp_382",
+        "wp_374",
+        "wp_375",
+        "wp_376",
         "wp_414",
         "wp_416",
-        "wp_448",
-        "wp_449",
-        "wp_450",
-        "wp_1138"
+        "wp_452",
+        "wp_453",
+        "wp_454",
+        "wp_1201"
       ],
-      "zone": "mid"
+      "zone": "spawn"
     },
     {
       "id": "wp_416",
       "pos": {
-        "x": -4.0,
+        "x": -6.0,
         "y": 0.0,
-        "z": 2.0
+        "z": 40.0
       },
       "neighbors": [
-        "wp_381",
-        "wp_382",
-        "wp_383",
+        "wp_375",
+        "wp_376",
         "wp_415",
-        "wp_417",
-        "wp_449",
-        "wp_450",
-        "wp_451",
-        "wp_1138"
+        "wp_453",
+        "wp_454",
+        "wp_1201"
       ],
-      "zone": "mid"
+      "zone": "spawn"
     },
     {
       "id": "wp_417",
       "pos": {
-        "x": -4.0,
+        "x": -6.0,
         "y": 0.0,
-        "z": 4.0
+        "z": 44.0
       },
       "neighbors": [
-        "wp_382",
-        "wp_383",
-        "wp_384",
-        "wp_416",
-        "wp_418",
-        "wp_450",
-        "wp_451",
-        "wp_452"
+        "wp_377",
+        "wp_455"
       ],
-      "zone": "mid"
+      "zone": "spawn"
     },
     {
       "id": "wp_418",
       "pos": {
         "x": -4.0,
         "y": 0.0,
-        "z": 6.0
+        "z": -44.0
       },
       "neighbors": [
-        "wp_383",
-        "wp_384",
-        "wp_385",
-        "wp_417",
+        "wp_378",
+        "wp_379",
         "wp_419",
-        "wp_451",
-        "wp_452",
-        "wp_453"
+        "wp_456",
+        "wp_457"
       ],
-      "zone": "mid"
+      "zone": "spawn"
     },
     {
       "id": "wp_419",
       "pos": {
         "x": -4.0,
         "y": 0.0,
-        "z": 8.0
+        "z": -42.0
       },
       "neighbors": [
-        "wp_384",
-        "wp_385",
-        "wp_386",
+        "wp_378",
+        "wp_379",
+        "wp_380",
         "wp_418",
         "wp_420",
-        "wp_452",
-        "wp_453",
-        "wp_454"
+        "wp_456",
+        "wp_457",
+        "wp_458"
       ],
-      "zone": "mid"
+      "zone": "spawn"
     },
     {
       "id": "wp_420",
       "pos": {
         "x": -4.0,
         "y": 0.0,
-        "z": 10.0
+        "z": -40.0
       },
       "neighbors": [
-        "wp_385",
-        "wp_386",
-        "wp_387",
+        "wp_379",
+        "wp_380",
+        "wp_381",
         "wp_419",
         "wp_421",
-        "wp_453",
-        "wp_454",
-        "wp_455"
+        "wp_457",
+        "wp_458",
+        "wp_459"
       ],
-      "zone": "mid"
+      "zone": "spawn"
     },
     {
       "id": "wp_421",
       "pos": {
         "x": -4.0,
         "y": 0.0,
-        "z": 12.0
+        "z": -38.0
       },
       "neighbors": [
-        "wp_386",
-        "wp_387",
-        "wp_388",
+        "wp_380",
+        "wp_381",
+        "wp_382",
         "wp_420",
         "wp_422",
-        "wp_454",
-        "wp_455",
-        "wp_456"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_422",
-      "pos": {
-        "x": -4.0,
-        "y": 0.0,
-        "z": 14.0
-      },
-      "neighbors": [
-        "wp_387",
-        "wp_388",
-        "wp_389",
-        "wp_421",
-        "wp_423",
-        "wp_455",
-        "wp_456",
-        "wp_457",
-        "wp_1156"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_423",
-      "pos": {
-        "x": -4.0,
-        "y": 0.0,
-        "z": 16.0
-      },
-      "neighbors": [
-        "wp_388",
-        "wp_389",
-        "wp_390",
-        "wp_422",
-        "wp_424",
-        "wp_456",
-        "wp_457",
-        "wp_458"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_424",
-      "pos": {
-        "x": -4.0,
-        "y": 0.0,
-        "z": 18.0
-      },
-      "neighbors": [
-        "wp_389",
-        "wp_390",
-        "wp_423",
-        "wp_457",
-        "wp_458"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_425",
-      "pos": {
-        "x": -4.0,
-        "y": 0.0,
-        "z": 22.0
-      },
-      "neighbors": [
-        "wp_391",
-        "wp_392",
-        "wp_426",
+        "wp_458",
         "wp_459",
         "wp_460"
       ],
       "zone": "spawn"
     },
     {
-      "id": "wp_426",
+      "id": "wp_422",
       "pos": {
         "x": -4.0,
         "y": 0.0,
-        "z": 24.0
+        "z": -36.0
       },
       "neighbors": [
-        "wp_391",
-        "wp_392",
-        "wp_393",
-        "wp_425",
-        "wp_427",
+        "wp_381",
+        "wp_382",
+        "wp_383",
+        "wp_421",
+        "wp_423",
         "wp_459",
         "wp_460",
         "wp_461"
@@ -9728,18 +10098,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_427",
+      "id": "wp_423",
       "pos": {
         "x": -4.0,
         "y": 0.0,
-        "z": 26.0
+        "z": -34.0
       },
       "neighbors": [
-        "wp_392",
-        "wp_393",
-        "wp_394",
-        "wp_426",
-        "wp_428",
+        "wp_382",
+        "wp_383",
+        "wp_384",
+        "wp_422",
+        "wp_424",
         "wp_460",
         "wp_461",
         "wp_462"
@@ -9747,288 +10117,201 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_428",
+      "id": "wp_424",
       "pos": {
         "x": -4.0,
         "y": 0.0,
-        "z": 28.0
+        "z": -32.0
       },
       "neighbors": [
-        "wp_393",
-        "wp_394",
-        "wp_395",
-        "wp_427",
-        "wp_429",
+        "wp_383",
+        "wp_384",
+        "wp_385",
+        "wp_423",
+        "wp_425",
         "wp_461",
         "wp_462",
         "wp_463"
       ],
-      "zone": "spawn"
+      "zone": "flank"
+    },
+    {
+      "id": "wp_425",
+      "pos": {
+        "x": -4.0,
+        "y": 0.0,
+        "z": -30.0
+      },
+      "neighbors": [
+        "wp_384",
+        "wp_385",
+        "wp_386",
+        "wp_424",
+        "wp_426",
+        "wp_462",
+        "wp_463",
+        "wp_464"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_426",
+      "pos": {
+        "x": -4.0,
+        "y": 0.0,
+        "z": -28.0
+      },
+      "neighbors": [
+        "wp_385",
+        "wp_386",
+        "wp_425",
+        "wp_463",
+        "wp_464"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_427",
+      "pos": {
+        "x": -4.0,
+        "y": 0.0,
+        "z": -26.0
+      },
+      "neighbors": [
+        "wp_428",
+        "wp_465",
+        "wp_466"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_428",
+      "pos": {
+        "x": -4.0,
+        "y": 0.0,
+        "z": -24.0
+      },
+      "neighbors": [
+        "wp_427",
+        "wp_465",
+        "wp_466",
+        "wp_467",
+        "wp_1171"
+      ],
+      "zone": "mid"
     },
     {
       "id": "wp_429",
       "pos": {
         "x": -4.0,
         "y": 0.0,
-        "z": 30.0
+        "z": -18.0
       },
       "neighbors": [
-        "wp_394",
-        "wp_395",
-        "wp_396",
-        "wp_428",
-        "wp_430",
-        "wp_462",
-        "wp_463",
-        "wp_464"
+        "wp_468",
+        "wp_469",
+        "wp_1169"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_430",
       "pos": {
         "x": -4.0,
         "y": 0.0,
-        "z": 32.0
+        "z": -10.0
       },
       "neighbors": [
-        "wp_395",
-        "wp_396",
-        "wp_397",
-        "wp_429",
         "wp_431",
-        "wp_463",
-        "wp_464",
-        "wp_465"
+        "wp_472",
+        "wp_473",
+        "wp_474"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_431",
       "pos": {
         "x": -4.0,
         "y": 0.0,
-        "z": 34.0
+        "z": -8.0
       },
       "neighbors": [
-        "wp_396",
-        "wp_397",
-        "wp_398",
         "wp_430",
         "wp_432",
-        "wp_464",
-        "wp_465",
-        "wp_466"
+        "wp_473",
+        "wp_474",
+        "wp_475"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_432",
       "pos": {
         "x": -4.0,
         "y": 0.0,
-        "z": 36.0
+        "z": -6.0
       },
       "neighbors": [
-        "wp_397",
-        "wp_398",
-        "wp_399",
         "wp_431",
         "wp_433",
-        "wp_465",
-        "wp_466",
-        "wp_467",
-        "wp_1159"
+        "wp_474",
+        "wp_475",
+        "wp_476"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_433",
       "pos": {
         "x": -4.0,
         "y": 0.0,
-        "z": 38.0
+        "z": -4.0
       },
       "neighbors": [
-        "wp_398",
-        "wp_399",
-        "wp_400",
+        "wp_395",
+        "wp_396",
         "wp_432",
         "wp_434",
-        "wp_466",
-        "wp_467",
-        "wp_468",
-        "wp_1159"
+        "wp_475",
+        "wp_476",
+        "wp_477",
+        "wp_1172"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_434",
       "pos": {
         "x": -4.0,
         "y": 0.0,
-        "z": 40.0
+        "z": -2.0
       },
       "neighbors": [
-        "wp_399",
-        "wp_400",
+        "wp_395",
+        "wp_396",
+        "wp_397",
         "wp_433",
-        "wp_467",
-        "wp_468",
-        "wp_469"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_435",
-      "pos": {
-        "x": -4.0,
-        "y": 0.0,
-        "z": 44.0
-      },
-      "neighbors": [
-        "wp_401",
-        "wp_470"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_436",
-      "pos": {
-        "x": -2.0,
-        "y": 0.0,
-        "z": -44.0
-      },
-      "neighbors": [
-        "wp_402",
-        "wp_403",
-        "wp_437",
-        "wp_471",
-        "wp_472"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_437",
-      "pos": {
-        "x": -2.0,
-        "y": 0.0,
-        "z": -42.0
-      },
-      "neighbors": [
-        "wp_402",
-        "wp_403",
-        "wp_404",
-        "wp_436",
-        "wp_438",
-        "wp_471",
-        "wp_472",
-        "wp_473"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_438",
-      "pos": {
-        "x": -2.0,
-        "y": 0.0,
-        "z": -40.0
-      },
-      "neighbors": [
-        "wp_403",
-        "wp_404",
-        "wp_405",
-        "wp_437",
-        "wp_439",
-        "wp_472",
-        "wp_473",
-        "wp_474"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_439",
-      "pos": {
-        "x": -2.0,
-        "y": 0.0,
-        "z": -38.0
-      },
-      "neighbors": [
-        "wp_404",
-        "wp_405",
-        "wp_406",
-        "wp_438",
-        "wp_440",
-        "wp_473",
-        "wp_474",
-        "wp_475"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_440",
-      "pos": {
-        "x": -2.0,
-        "y": 0.0,
-        "z": -36.0
-      },
-      "neighbors": [
-        "wp_405",
-        "wp_406",
-        "wp_407",
-        "wp_439",
-        "wp_441",
-        "wp_474",
-        "wp_475",
-        "wp_476"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_441",
-      "pos": {
-        "x": -2.0,
-        "y": 0.0,
-        "z": -34.0
-      },
-      "neighbors": [
-        "wp_406",
-        "wp_407",
-        "wp_440",
-        "wp_475",
-        "wp_476"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_442",
-      "pos": {
-        "x": -2.0,
-        "y": 0.0,
-        "z": -14.0
-      },
-      "neighbors": [
-        "wp_408",
-        "wp_409",
-        "wp_443",
+        "wp_435",
+        "wp_476",
         "wp_477",
         "wp_478"
       ],
       "zone": "mid"
     },
     {
-      "id": "wp_443",
+      "id": "wp_435",
       "pos": {
-        "x": -2.0,
+        "x": -4.0,
         "y": 0.0,
-        "z": -12.0
+        "z": 0.0
       },
       "neighbors": [
-        "wp_408",
-        "wp_409",
-        "wp_410",
-        "wp_442",
-        "wp_444",
+        "wp_396",
+        "wp_397",
+        "wp_398",
+        "wp_434",
+        "wp_436",
         "wp_477",
         "wp_478",
         "wp_479"
@@ -10036,18 +10319,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "mid"
     },
     {
-      "id": "wp_444",
+      "id": "wp_436",
       "pos": {
-        "x": -2.0,
+        "x": -4.0,
         "y": 0.0,
-        "z": -10.0
+        "z": 2.0
       },
       "neighbors": [
-        "wp_409",
-        "wp_410",
-        "wp_411",
-        "wp_443",
-        "wp_445",
+        "wp_397",
+        "wp_398",
+        "wp_399",
+        "wp_435",
+        "wp_437",
         "wp_478",
         "wp_479",
         "wp_480"
@@ -10055,18 +10338,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "mid"
     },
     {
-      "id": "wp_445",
+      "id": "wp_437",
       "pos": {
-        "x": -2.0,
+        "x": -4.0,
         "y": 0.0,
-        "z": -8.0
+        "z": 4.0
       },
       "neighbors": [
-        "wp_410",
-        "wp_411",
-        "wp_412",
-        "wp_444",
-        "wp_446",
+        "wp_398",
+        "wp_399",
+        "wp_400",
+        "wp_436",
+        "wp_438",
         "wp_479",
         "wp_480",
         "wp_481"
@@ -10074,18 +10357,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "mid"
     },
     {
-      "id": "wp_446",
+      "id": "wp_438",
       "pos": {
-        "x": -2.0,
+        "x": -4.0,
         "y": 0.0,
-        "z": -6.0
+        "z": 6.0
       },
       "neighbors": [
-        "wp_411",
-        "wp_412",
-        "wp_413",
-        "wp_445",
-        "wp_447",
+        "wp_399",
+        "wp_400",
+        "wp_401",
+        "wp_437",
+        "wp_439",
         "wp_480",
         "wp_481",
         "wp_482"
@@ -10093,18 +10376,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "mid"
     },
     {
-      "id": "wp_447",
+      "id": "wp_439",
       "pos": {
-        "x": -2.0,
+        "x": -4.0,
         "y": 0.0,
-        "z": -4.0
+        "z": 8.0
       },
       "neighbors": [
-        "wp_412",
-        "wp_413",
-        "wp_414",
-        "wp_446",
-        "wp_448",
+        "wp_400",
+        "wp_401",
+        "wp_402",
+        "wp_438",
+        "wp_440",
         "wp_481",
         "wp_482",
         "wp_483"
@@ -10112,18 +10395,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "mid"
     },
     {
-      "id": "wp_448",
+      "id": "wp_440",
       "pos": {
-        "x": -2.0,
+        "x": -4.0,
         "y": 0.0,
-        "z": -2.0
+        "z": 10.0
       },
       "neighbors": [
-        "wp_413",
-        "wp_414",
-        "wp_415",
-        "wp_447",
-        "wp_449",
+        "wp_401",
+        "wp_402",
+        "wp_403",
+        "wp_439",
+        "wp_441",
         "wp_482",
         "wp_483",
         "wp_484"
@@ -10131,197 +10414,349 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "mid"
     },
     {
-      "id": "wp_449",
+      "id": "wp_441",
       "pos": {
-        "x": -2.0,
+        "x": -4.0,
         "y": 0.0,
-        "z": 0.0
+        "z": 12.0
       },
       "neighbors": [
-        "wp_414",
-        "wp_415",
-        "wp_416",
-        "wp_448",
-        "wp_450",
+        "wp_402",
+        "wp_403",
+        "wp_404",
+        "wp_440",
+        "wp_442",
         "wp_483",
-        "wp_484"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_450",
-      "pos": {
-        "x": -2.0,
-        "y": 0.0,
-        "z": 2.0
-      },
-      "neighbors": [
-        "wp_415",
-        "wp_416",
-        "wp_417",
-        "wp_449",
-        "wp_451"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_451",
-      "pos": {
-        "x": -2.0,
-        "y": 0.0,
-        "z": 4.0
-      },
-      "neighbors": [
-        "wp_416",
-        "wp_417",
-        "wp_418",
-        "wp_450",
-        "wp_452",
+        "wp_484",
         "wp_485"
       ],
       "zone": "mid"
     },
     {
-      "id": "wp_452",
+      "id": "wp_442",
       "pos": {
-        "x": -2.0,
+        "x": -4.0,
         "y": 0.0,
-        "z": 6.0
+        "z": 14.0
       },
       "neighbors": [
-        "wp_417",
-        "wp_418",
-        "wp_419",
-        "wp_451",
-        "wp_453",
+        "wp_403",
+        "wp_404",
+        "wp_405",
+        "wp_441",
+        "wp_443",
+        "wp_484",
         "wp_485",
-        "wp_486"
+        "wp_486",
+        "wp_1198"
       ],
       "zone": "mid"
+    },
+    {
+      "id": "wp_443",
+      "pos": {
+        "x": -4.0,
+        "y": 0.0,
+        "z": 16.0
+      },
+      "neighbors": [
+        "wp_404",
+        "wp_405",
+        "wp_406",
+        "wp_442",
+        "wp_444",
+        "wp_485",
+        "wp_486",
+        "wp_487"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_444",
+      "pos": {
+        "x": -4.0,
+        "y": 0.0,
+        "z": 18.0
+      },
+      "neighbors": [
+        "wp_405",
+        "wp_406",
+        "wp_443",
+        "wp_486",
+        "wp_487"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_445",
+      "pos": {
+        "x": -4.0,
+        "y": 0.0,
+        "z": 22.0
+      },
+      "neighbors": [
+        "wp_407",
+        "wp_408",
+        "wp_446",
+        "wp_488",
+        "wp_489"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_446",
+      "pos": {
+        "x": -4.0,
+        "y": 0.0,
+        "z": 24.0
+      },
+      "neighbors": [
+        "wp_407",
+        "wp_408",
+        "wp_409",
+        "wp_445",
+        "wp_447",
+        "wp_488",
+        "wp_489",
+        "wp_490"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_447",
+      "pos": {
+        "x": -4.0,
+        "y": 0.0,
+        "z": 26.0
+      },
+      "neighbors": [
+        "wp_408",
+        "wp_409",
+        "wp_410",
+        "wp_446",
+        "wp_448",
+        "wp_489",
+        "wp_490",
+        "wp_491"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_448",
+      "pos": {
+        "x": -4.0,
+        "y": 0.0,
+        "z": 28.0
+      },
+      "neighbors": [
+        "wp_409",
+        "wp_410",
+        "wp_411",
+        "wp_447",
+        "wp_449",
+        "wp_490",
+        "wp_491",
+        "wp_492"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_449",
+      "pos": {
+        "x": -4.0,
+        "y": 0.0,
+        "z": 30.0
+      },
+      "neighbors": [
+        "wp_410",
+        "wp_411",
+        "wp_412",
+        "wp_448",
+        "wp_450",
+        "wp_491",
+        "wp_492",
+        "wp_493"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_450",
+      "pos": {
+        "x": -4.0,
+        "y": 0.0,
+        "z": 32.0
+      },
+      "neighbors": [
+        "wp_411",
+        "wp_412",
+        "wp_413",
+        "wp_449",
+        "wp_451",
+        "wp_492",
+        "wp_493",
+        "wp_494"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_451",
+      "pos": {
+        "x": -4.0,
+        "y": 0.0,
+        "z": 34.0
+      },
+      "neighbors": [
+        "wp_412",
+        "wp_413",
+        "wp_414",
+        "wp_450",
+        "wp_452",
+        "wp_493",
+        "wp_494",
+        "wp_495"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_452",
+      "pos": {
+        "x": -4.0,
+        "y": 0.0,
+        "z": 36.0
+      },
+      "neighbors": [
+        "wp_413",
+        "wp_414",
+        "wp_415",
+        "wp_451",
+        "wp_453",
+        "wp_494",
+        "wp_495",
+        "wp_496",
+        "wp_1201"
+      ],
+      "zone": "spawn"
     },
     {
       "id": "wp_453",
       "pos": {
-        "x": -2.0,
+        "x": -4.0,
         "y": 0.0,
-        "z": 8.0
+        "z": 38.0
       },
       "neighbors": [
-        "wp_418",
-        "wp_419",
-        "wp_420",
+        "wp_414",
+        "wp_415",
+        "wp_416",
         "wp_452",
         "wp_454",
-        "wp_485",
-        "wp_486",
-        "wp_487"
+        "wp_495",
+        "wp_496",
+        "wp_497",
+        "wp_1201"
       ],
-      "zone": "mid"
+      "zone": "spawn"
     },
     {
       "id": "wp_454",
       "pos": {
-        "x": -2.0,
+        "x": -4.0,
         "y": 0.0,
-        "z": 10.0
+        "z": 40.0
       },
       "neighbors": [
-        "wp_419",
-        "wp_420",
-        "wp_421",
+        "wp_415",
+        "wp_416",
         "wp_453",
-        "wp_455",
-        "wp_486",
-        "wp_487"
+        "wp_496",
+        "wp_497",
+        "wp_498"
       ],
-      "zone": "mid"
+      "zone": "spawn"
     },
     {
       "id": "wp_455",
       "pos": {
-        "x": -2.0,
+        "x": -4.0,
         "y": 0.0,
-        "z": 12.0
+        "z": 44.0
       },
       "neighbors": [
-        "wp_420",
-        "wp_421",
-        "wp_422",
-        "wp_454",
-        "wp_456",
-        "wp_487"
+        "wp_417",
+        "wp_499"
       ],
-      "zone": "mid"
+      "zone": "spawn"
     },
     {
       "id": "wp_456",
       "pos": {
         "x": -2.0,
         "y": 0.0,
-        "z": 14.0
+        "z": -44.0
       },
       "neighbors": [
-        "wp_421",
-        "wp_422",
-        "wp_423",
-        "wp_455",
+        "wp_418",
+        "wp_419",
         "wp_457",
-        "wp_488",
-        "wp_489",
-        "wp_1155",
-        "wp_1156"
+        "wp_500",
+        "wp_501"
       ],
-      "zone": "mid"
+      "zone": "spawn"
     },
     {
       "id": "wp_457",
       "pos": {
         "x": -2.0,
         "y": 0.0,
-        "z": 16.0
+        "z": -42.0
       },
       "neighbors": [
-        "wp_422",
-        "wp_423",
-        "wp_424",
+        "wp_418",
+        "wp_419",
+        "wp_420",
         "wp_456",
         "wp_458",
-        "wp_488",
-        "wp_489",
-        "wp_490",
-        "wp_1156"
+        "wp_500",
+        "wp_501",
+        "wp_502"
       ],
-      "zone": "mid"
+      "zone": "spawn"
     },
     {
       "id": "wp_458",
       "pos": {
         "x": -2.0,
         "y": 0.0,
-        "z": 18.0
+        "z": -40.0
       },
       "neighbors": [
-        "wp_423",
-        "wp_424",
+        "wp_419",
+        "wp_420",
+        "wp_421",
         "wp_457",
-        "wp_489",
-        "wp_490"
+        "wp_459",
+        "wp_501",
+        "wp_502",
+        "wp_503"
       ],
-      "zone": "mid"
+      "zone": "spawn"
     },
     {
       "id": "wp_459",
       "pos": {
         "x": -2.0,
         "y": 0.0,
-        "z": 22.0
+        "z": -38.0
       },
       "neighbors": [
-        "wp_425",
-        "wp_426",
+        "wp_420",
+        "wp_421",
+        "wp_422",
+        "wp_458",
         "wp_460",
-        "wp_491",
-        "wp_492"
+        "wp_502",
+        "wp_503",
+        "wp_504"
       ],
       "zone": "spawn"
     },
@@ -10330,17 +10765,17 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -2.0,
         "y": 0.0,
-        "z": 24.0
+        "z": -36.0
       },
       "neighbors": [
-        "wp_425",
-        "wp_426",
-        "wp_427",
+        "wp_421",
+        "wp_422",
+        "wp_423",
         "wp_459",
         "wp_461",
-        "wp_491",
-        "wp_492",
-        "wp_493"
+        "wp_503",
+        "wp_504",
+        "wp_505"
       ],
       "zone": "spawn"
     },
@@ -10349,17 +10784,17 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -2.0,
         "y": 0.0,
-        "z": 26.0
+        "z": -34.0
       },
       "neighbors": [
-        "wp_426",
-        "wp_427",
-        "wp_428",
+        "wp_422",
+        "wp_423",
+        "wp_424",
         "wp_460",
         "wp_462",
-        "wp_492",
-        "wp_493",
-        "wp_494"
+        "wp_504",
+        "wp_505",
+        "wp_506"
       ],
       "zone": "spawn"
     },
@@ -10368,383 +10803,218 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": -2.0,
         "y": 0.0,
-        "z": 28.0
+        "z": -32.0
       },
       "neighbors": [
-        "wp_427",
-        "wp_428",
-        "wp_429",
+        "wp_423",
+        "wp_424",
+        "wp_425",
         "wp_461",
         "wp_463",
-        "wp_493",
-        "wp_494",
-        "wp_495"
+        "wp_505",
+        "wp_506",
+        "wp_507"
       ],
-      "zone": "spawn"
+      "zone": "flank"
     },
     {
       "id": "wp_463",
       "pos": {
         "x": -2.0,
         "y": 0.0,
-        "z": 30.0
+        "z": -30.0
       },
       "neighbors": [
-        "wp_428",
-        "wp_429",
-        "wp_430",
+        "wp_424",
+        "wp_425",
+        "wp_426",
         "wp_462",
         "wp_464",
-        "wp_494",
-        "wp_495",
-        "wp_496"
+        "wp_506",
+        "wp_507",
+        "wp_508"
       ],
-      "zone": "spawn"
+      "zone": "flank"
     },
     {
       "id": "wp_464",
       "pos": {
         "x": -2.0,
         "y": 0.0,
-        "z": 32.0
+        "z": -28.0
       },
       "neighbors": [
-        "wp_429",
-        "wp_430",
-        "wp_431",
+        "wp_425",
+        "wp_426",
         "wp_463",
         "wp_465",
-        "wp_495",
-        "wp_496",
-        "wp_497",
-        "wp_1158"
+        "wp_507",
+        "wp_508",
+        "wp_509"
       ],
-      "zone": "spawn"
+      "zone": "flank"
     },
     {
       "id": "wp_465",
       "pos": {
         "x": -2.0,
         "y": 0.0,
-        "z": 34.0
+        "z": -26.0
       },
       "neighbors": [
-        "wp_430",
-        "wp_431",
-        "wp_432",
+        "wp_427",
+        "wp_428",
         "wp_464",
         "wp_466",
-        "wp_496",
-        "wp_497",
-        "wp_498",
-        "wp_1158"
+        "wp_508",
+        "wp_509",
+        "wp_510",
+        "wp_1171"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_466",
       "pos": {
         "x": -2.0,
         "y": 0.0,
-        "z": 36.0
+        "z": -24.0
       },
       "neighbors": [
-        "wp_431",
-        "wp_432",
-        "wp_433",
+        "wp_427",
+        "wp_428",
         "wp_465",
         "wp_467",
-        "wp_497",
-        "wp_498",
-        "wp_499",
-        "wp_1160"
+        "wp_509",
+        "wp_510",
+        "wp_511",
+        "wp_1170",
+        "wp_1171"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_467",
       "pos": {
         "x": -2.0,
         "y": 0.0,
-        "z": 38.0
+        "z": -22.0
       },
       "neighbors": [
-        "wp_432",
-        "wp_433",
-        "wp_434",
+        "wp_428",
         "wp_466",
         "wp_468",
-        "wp_498",
-        "wp_499",
-        "wp_500",
-        "wp_1160"
+        "wp_510",
+        "wp_511",
+        "wp_512",
+        "wp_1170",
+        "wp_1171"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_468",
       "pos": {
         "x": -2.0,
         "y": 0.0,
-        "z": 40.0
+        "z": -20.0
       },
       "neighbors": [
-        "wp_433",
-        "wp_434",
+        "wp_429",
         "wp_467",
         "wp_469",
-        "wp_499",
-        "wp_500",
-        "wp_501"
+        "wp_511",
+        "wp_512",
+        "wp_513",
+        "wp_1169",
+        "wp_1170"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_469",
       "pos": {
         "x": -2.0,
         "y": 0.0,
-        "z": 42.0
+        "z": -18.0
       },
       "neighbors": [
-        "wp_434",
+        "wp_429",
         "wp_468",
         "wp_470",
-        "wp_500",
-        "wp_501",
-        "wp_502"
+        "wp_512",
+        "wp_513",
+        "wp_514",
+        "wp_1169",
+        "wp_1170"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_470",
       "pos": {
         "x": -2.0,
         "y": 0.0,
-        "z": 44.0
+        "z": -16.0
       },
       "neighbors": [
-        "wp_435",
         "wp_469",
-        "wp_501",
-        "wp_502"
+        "wp_471",
+        "wp_513",
+        "wp_514",
+        "wp_515",
+        "wp_1168",
+        "wp_1169"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_471",
       "pos": {
-        "x": 0.0,
-        "y": 0.0,
-        "z": -44.0
-      },
-      "neighbors": [
-        "wp_436",
-        "wp_437",
-        "wp_472",
-        "wp_503",
-        "wp_504"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_472",
-      "pos": {
-        "x": 0.0,
-        "y": 0.0,
-        "z": -42.0
-      },
-      "neighbors": [
-        "wp_436",
-        "wp_437",
-        "wp_438",
-        "wp_471",
-        "wp_473",
-        "wp_503",
-        "wp_504",
-        "wp_505"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_473",
-      "pos": {
-        "x": 0.0,
-        "y": 0.0,
-        "z": -40.0
-      },
-      "neighbors": [
-        "wp_437",
-        "wp_438",
-        "wp_439",
-        "wp_472",
-        "wp_474",
-        "wp_504",
-        "wp_505",
-        "wp_506"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_474",
-      "pos": {
-        "x": 0.0,
-        "y": 0.0,
-        "z": -38.0
-      },
-      "neighbors": [
-        "wp_438",
-        "wp_439",
-        "wp_440",
-        "wp_473",
-        "wp_475",
-        "wp_505",
-        "wp_506",
-        "wp_507"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_475",
-      "pos": {
-        "x": 0.0,
-        "y": 0.0,
-        "z": -36.0
-      },
-      "neighbors": [
-        "wp_439",
-        "wp_440",
-        "wp_441",
-        "wp_474",
-        "wp_476",
-        "wp_506",
-        "wp_507",
-        "wp_508"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_476",
-      "pos": {
-        "x": 0.0,
-        "y": 0.0,
-        "z": -34.0
-      },
-      "neighbors": [
-        "wp_440",
-        "wp_441",
-        "wp_475",
-        "wp_507",
-        "wp_508",
-        "wp_509"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_477",
-      "pos": {
-        "x": 0.0,
+        "x": -2.0,
         "y": 0.0,
         "z": -14.0
       },
       "neighbors": [
-        "wp_442",
-        "wp_443",
-        "wp_478",
-        "wp_512",
-        "wp_513"
+        "wp_470",
+        "wp_472",
+        "wp_514",
+        "wp_515",
+        "wp_516",
+        "wp_1168"
       ],
       "zone": "mid"
     },
     {
-      "id": "wp_478",
+      "id": "wp_472",
       "pos": {
-        "x": 0.0,
+        "x": -2.0,
         "y": 0.0,
         "z": -12.0
       },
       "neighbors": [
-        "wp_442",
-        "wp_443",
-        "wp_444",
-        "wp_477",
-        "wp_479",
-        "wp_512",
-        "wp_513",
-        "wp_514"
+        "wp_430",
+        "wp_471",
+        "wp_473",
+        "wp_515",
+        "wp_516",
+        "wp_517",
+        "wp_1168"
       ],
       "zone": "mid"
     },
     {
-      "id": "wp_479",
+      "id": "wp_473",
       "pos": {
-        "x": 0.0,
+        "x": -2.0,
         "y": 0.0,
         "z": -10.0
       },
       "neighbors": [
-        "wp_443",
-        "wp_444",
-        "wp_445",
-        "wp_478",
-        "wp_480",
-        "wp_513",
-        "wp_514",
-        "wp_515"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_480",
-      "pos": {
-        "x": 0.0,
-        "y": 0.0,
-        "z": -8.0
-      },
-      "neighbors": [
-        "wp_444",
-        "wp_445",
-        "wp_446",
-        "wp_479",
-        "wp_481",
-        "wp_514",
-        "wp_515",
-        "wp_516"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_481",
-      "pos": {
-        "x": 0.0,
-        "y": 0.0,
-        "z": -6.0
-      },
-      "neighbors": [
-        "wp_445",
-        "wp_446",
-        "wp_447",
-        "wp_480",
-        "wp_482",
-        "wp_515",
-        "wp_516",
-        "wp_517"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_482",
-      "pos": {
-        "x": 0.0,
-        "y": 0.0,
-        "z": -4.0
-      },
-      "neighbors": [
-        "wp_446",
-        "wp_447",
-        "wp_448",
-        "wp_481",
-        "wp_483",
+        "wp_430",
+        "wp_431",
+        "wp_472",
+        "wp_474",
         "wp_516",
         "wp_517",
         "wp_518"
@@ -10752,18 +11022,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "mid"
     },
     {
-      "id": "wp_483",
+      "id": "wp_474",
       "pos": {
-        "x": 0.0,
+        "x": -2.0,
         "y": 0.0,
-        "z": -2.0
+        "z": -8.0
       },
       "neighbors": [
-        "wp_447",
-        "wp_448",
-        "wp_449",
-        "wp_482",
-        "wp_484",
+        "wp_430",
+        "wp_431",
+        "wp_432",
+        "wp_473",
+        "wp_475",
         "wp_517",
         "wp_518",
         "wp_519"
@@ -10771,175 +11041,269 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "mid"
     },
     {
-      "id": "wp_484",
+      "id": "wp_475",
       "pos": {
-        "x": 0.0,
+        "x": -2.0,
         "y": 0.0,
-        "z": 0.0
+        "z": -6.0
       },
       "neighbors": [
-        "wp_448",
-        "wp_449",
-        "wp_483",
+        "wp_431",
+        "wp_432",
+        "wp_433",
+        "wp_474",
+        "wp_476",
         "wp_518",
         "wp_519"
       ],
       "zone": "mid"
     },
     {
-      "id": "wp_485",
+      "id": "wp_476",
       "pos": {
-        "x": 0.0,
+        "x": -2.0,
+        "y": 0.0,
+        "z": -4.0
+      },
+      "neighbors": [
+        "wp_432",
+        "wp_433",
+        "wp_434",
+        "wp_475",
+        "wp_477",
+        "wp_519",
+        "wp_520"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_477",
+      "pos": {
+        "x": -2.0,
+        "y": 0.0,
+        "z": -2.0
+      },
+      "neighbors": [
+        "wp_433",
+        "wp_434",
+        "wp_435",
+        "wp_476",
+        "wp_478",
+        "wp_520",
+        "wp_521"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_478",
+      "pos": {
+        "x": -2.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "neighbors": [
+        "wp_434",
+        "wp_435",
+        "wp_436",
+        "wp_477",
+        "wp_479",
+        "wp_520",
+        "wp_521",
+        "wp_522"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_479",
+      "pos": {
+        "x": -2.0,
+        "y": 0.0,
+        "z": 2.0
+      },
+      "neighbors": [
+        "wp_435",
+        "wp_436",
+        "wp_437",
+        "wp_478",
+        "wp_480",
+        "wp_521",
+        "wp_522"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_480",
+      "pos": {
+        "x": -2.0,
+        "y": 0.0,
+        "z": 4.0
+      },
+      "neighbors": [
+        "wp_436",
+        "wp_437",
+        "wp_438",
+        "wp_479",
+        "wp_481"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_481",
+      "pos": {
+        "x": -2.0,
         "y": 0.0,
         "z": 6.0
       },
       "neighbors": [
-        "wp_451",
-        "wp_452",
-        "wp_453",
+        "wp_437",
+        "wp_438",
+        "wp_439",
+        "wp_480",
+        "wp_482",
+        "wp_523",
+        "wp_524"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_482",
+      "pos": {
+        "x": -2.0,
+        "y": 0.0,
+        "z": 8.0
+      },
+      "neighbors": [
+        "wp_438",
+        "wp_439",
+        "wp_440",
+        "wp_481",
+        "wp_483",
+        "wp_523",
+        "wp_524",
+        "wp_525"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_483",
+      "pos": {
+        "x": -2.0,
+        "y": 0.0,
+        "z": 10.0
+      },
+      "neighbors": [
+        "wp_439",
+        "wp_440",
+        "wp_441",
+        "wp_482",
+        "wp_484",
+        "wp_524",
+        "wp_525"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_484",
+      "pos": {
+        "x": -2.0,
+        "y": 0.0,
+        "z": 12.0
+      },
+      "neighbors": [
+        "wp_440",
+        "wp_441",
+        "wp_442",
+        "wp_483",
+        "wp_485",
+        "wp_525"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_485",
+      "pos": {
+        "x": -2.0,
+        "y": 0.0,
+        "z": 14.0
+      },
+      "neighbors": [
+        "wp_441",
+        "wp_442",
+        "wp_443",
+        "wp_484",
         "wp_486",
-        "wp_521",
-        "wp_522",
-        "wp_523"
+        "wp_526",
+        "wp_527",
+        "wp_1197",
+        "wp_1198"
       ],
       "zone": "mid"
     },
     {
       "id": "wp_486",
       "pos": {
-        "x": 0.0,
+        "x": -2.0,
         "y": 0.0,
-        "z": 8.0
+        "z": 16.0
       },
       "neighbors": [
-        "wp_452",
-        "wp_453",
-        "wp_454",
+        "wp_442",
+        "wp_443",
+        "wp_444",
         "wp_485",
         "wp_487",
-        "wp_522",
-        "wp_523",
-        "wp_524"
+        "wp_526",
+        "wp_527",
+        "wp_528",
+        "wp_1198"
       ],
       "zone": "mid"
     },
     {
       "id": "wp_487",
       "pos": {
-        "x": 0.0,
+        "x": -2.0,
         "y": 0.0,
-        "z": 10.0
+        "z": 18.0
       },
       "neighbors": [
-        "wp_453",
-        "wp_454",
-        "wp_455",
+        "wp_443",
+        "wp_444",
         "wp_486",
-        "wp_523",
-        "wp_524"
+        "wp_527",
+        "wp_528"
       ],
       "zone": "mid"
     },
     {
       "id": "wp_488",
       "pos": {
-        "x": 0.0,
-        "y": 0.0,
-        "z": 14.0
-      },
-      "neighbors": [
-        "wp_456",
-        "wp_457",
-        "wp_489",
-        "wp_525",
-        "wp_526",
-        "wp_1155",
-        "wp_1156",
-        "wp_1157"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_489",
-      "pos": {
-        "x": 0.0,
-        "y": 0.0,
-        "z": 16.0
-      },
-      "neighbors": [
-        "wp_456",
-        "wp_457",
-        "wp_458",
-        "wp_488",
-        "wp_490",
-        "wp_525",
-        "wp_1155",
-        "wp_1156"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_490",
-      "pos": {
-        "x": 0.0,
-        "y": 0.0,
-        "z": 18.0
-      },
-      "neighbors": [
-        "wp_457",
-        "wp_458",
-        "wp_489"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_491",
-      "pos": {
-        "x": 0.0,
+        "x": -2.0,
         "y": 0.0,
         "z": 22.0
       },
       "neighbors": [
-        "wp_459",
-        "wp_460",
-        "wp_492",
-        "wp_528",
-        "wp_529"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_492",
-      "pos": {
-        "x": 0.0,
-        "y": 0.0,
-        "z": 24.0
-      },
-      "neighbors": [
-        "wp_459",
-        "wp_460",
-        "wp_461",
-        "wp_491",
-        "wp_493",
-        "wp_528",
+        "wp_445",
+        "wp_446",
+        "wp_489",
         "wp_529",
         "wp_530"
       ],
       "zone": "spawn"
     },
     {
-      "id": "wp_493",
+      "id": "wp_489",
       "pos": {
-        "x": 0.0,
+        "x": -2.0,
         "y": 0.0,
-        "z": 26.0
+        "z": 24.0
       },
       "neighbors": [
-        "wp_460",
-        "wp_461",
-        "wp_462",
-        "wp_492",
-        "wp_494",
+        "wp_445",
+        "wp_446",
+        "wp_447",
+        "wp_488",
+        "wp_490",
         "wp_529",
         "wp_530",
         "wp_531"
@@ -10947,18 +11311,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_494",
+      "id": "wp_490",
       "pos": {
-        "x": 0.0,
+        "x": -2.0,
         "y": 0.0,
-        "z": 28.0
+        "z": 26.0
       },
       "neighbors": [
-        "wp_461",
-        "wp_462",
-        "wp_463",
-        "wp_493",
-        "wp_495",
+        "wp_446",
+        "wp_447",
+        "wp_448",
+        "wp_489",
+        "wp_491",
         "wp_530",
         "wp_531",
         "wp_532"
@@ -10966,104 +11330,170 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_495",
+      "id": "wp_491",
       "pos": {
-        "x": 0.0,
+        "x": -2.0,
+        "y": 0.0,
+        "z": 28.0
+      },
+      "neighbors": [
+        "wp_447",
+        "wp_448",
+        "wp_449",
+        "wp_490",
+        "wp_492",
+        "wp_531",
+        "wp_532",
+        "wp_533"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_492",
+      "pos": {
+        "x": -2.0,
         "y": 0.0,
         "z": 30.0
       },
       "neighbors": [
-        "wp_462",
-        "wp_463",
-        "wp_464",
-        "wp_494",
-        "wp_496",
-        "wp_531",
+        "wp_448",
+        "wp_449",
+        "wp_450",
+        "wp_491",
+        "wp_493",
         "wp_532",
         "wp_533",
-        "wp_1158"
+        "wp_534"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_493",
+      "pos": {
+        "x": -2.0,
+        "y": 0.0,
+        "z": 32.0
+      },
+      "neighbors": [
+        "wp_449",
+        "wp_450",
+        "wp_451",
+        "wp_492",
+        "wp_494",
+        "wp_533",
+        "wp_534",
+        "wp_535",
+        "wp_1200"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_494",
+      "pos": {
+        "x": -2.0,
+        "y": 0.0,
+        "z": 34.0
+      },
+      "neighbors": [
+        "wp_450",
+        "wp_451",
+        "wp_452",
+        "wp_493",
+        "wp_495",
+        "wp_534",
+        "wp_535",
+        "wp_536",
+        "wp_1200"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_495",
+      "pos": {
+        "x": -2.0,
+        "y": 0.0,
+        "z": 36.0
+      },
+      "neighbors": [
+        "wp_451",
+        "wp_452",
+        "wp_453",
+        "wp_494",
+        "wp_496",
+        "wp_535",
+        "wp_536",
+        "wp_537",
+        "wp_1202"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_496",
       "pos": {
-        "x": 0.0,
+        "x": -2.0,
         "y": 0.0,
-        "z": 32.0
+        "z": 38.0
       },
       "neighbors": [
-        "wp_463",
-        "wp_464",
-        "wp_465",
+        "wp_452",
+        "wp_453",
+        "wp_454",
         "wp_495",
         "wp_497",
-        "wp_532",
-        "wp_533",
-        "wp_534",
-        "wp_1158"
+        "wp_536",
+        "wp_537",
+        "wp_538",
+        "wp_1202"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_497",
       "pos": {
-        "x": 0.0,
+        "x": -2.0,
         "y": 0.0,
-        "z": 34.0
+        "z": 40.0
       },
       "neighbors": [
-        "wp_464",
-        "wp_465",
-        "wp_466",
+        "wp_453",
+        "wp_454",
         "wp_496",
         "wp_498",
-        "wp_533",
-        "wp_534",
-        "wp_535",
-        "wp_1158",
-        "wp_1160"
+        "wp_537",
+        "wp_538",
+        "wp_539"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_498",
       "pos": {
-        "x": 0.0,
+        "x": -2.0,
         "y": 0.0,
-        "z": 36.0
+        "z": 42.0
       },
       "neighbors": [
-        "wp_465",
-        "wp_466",
-        "wp_467",
+        "wp_454",
         "wp_497",
         "wp_499",
-        "wp_534",
-        "wp_535",
-        "wp_536",
-        "wp_1158",
-        "wp_1160"
+        "wp_538",
+        "wp_539",
+        "wp_540"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_499",
       "pos": {
-        "x": 0.0,
+        "x": -2.0,
         "y": 0.0,
-        "z": 38.0
+        "z": 44.0
       },
       "neighbors": [
-        "wp_466",
-        "wp_467",
-        "wp_468",
+        "wp_455",
         "wp_498",
-        "wp_500",
-        "wp_535",
-        "wp_536",
-        "wp_537",
-        "wp_1160"
+        "wp_539",
+        "wp_540"
       ],
       "zone": "spawn"
     },
@@ -11072,18 +11502,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": 0.0,
         "y": 0.0,
-        "z": 40.0
+        "z": -44.0
       },
       "neighbors": [
-        "wp_467",
-        "wp_468",
-        "wp_469",
-        "wp_499",
+        "wp_456",
+        "wp_457",
         "wp_501",
-        "wp_536",
-        "wp_537",
-        "wp_538",
-        "wp_1160"
+        "wp_541",
+        "wp_542"
       ],
       "zone": "spawn"
     },
@@ -11092,17 +11518,17 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": 0.0,
         "y": 0.0,
-        "z": 42.0
+        "z": -42.0
       },
       "neighbors": [
-        "wp_468",
-        "wp_469",
-        "wp_470",
+        "wp_456",
+        "wp_457",
+        "wp_458",
         "wp_500",
         "wp_502",
-        "wp_537",
-        "wp_538",
-        "wp_539"
+        "wp_541",
+        "wp_542",
+        "wp_543"
       ],
       "zone": "spawn"
     },
@@ -11111,84 +11537,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": 0.0,
         "y": 0.0,
-        "z": 44.0
-      },
-      "neighbors": [
-        "wp_469",
-        "wp_470",
-        "wp_501",
-        "wp_538",
-        "wp_539"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_503",
-      "pos": {
-        "x": 2.0,
-        "y": 0.0,
-        "z": -44.0
-      },
-      "neighbors": [
-        "wp_471",
-        "wp_472",
-        "wp_504",
-        "wp_540",
-        "wp_541"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_504",
-      "pos": {
-        "x": 2.0,
-        "y": 0.0,
-        "z": -42.0
-      },
-      "neighbors": [
-        "wp_471",
-        "wp_472",
-        "wp_473",
-        "wp_503",
-        "wp_505",
-        "wp_540",
-        "wp_541",
-        "wp_542"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_505",
-      "pos": {
-        "x": 2.0,
-        "y": 0.0,
         "z": -40.0
       },
       "neighbors": [
-        "wp_472",
-        "wp_473",
-        "wp_474",
-        "wp_504",
-        "wp_506",
-        "wp_541",
-        "wp_542",
-        "wp_543"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_506",
-      "pos": {
-        "x": 2.0,
-        "y": 0.0,
-        "z": -38.0
-      },
-      "neighbors": [
-        "wp_473",
-        "wp_474",
-        "wp_475",
-        "wp_505",
-        "wp_507",
+        "wp_457",
+        "wp_458",
+        "wp_459",
+        "wp_501",
+        "wp_503",
         "wp_542",
         "wp_543",
         "wp_544"
@@ -11196,18 +11552,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_507",
+      "id": "wp_503",
       "pos": {
-        "x": 2.0,
+        "x": 0.0,
         "y": 0.0,
-        "z": -36.0
+        "z": -38.0
       },
       "neighbors": [
-        "wp_474",
-        "wp_475",
-        "wp_476",
-        "wp_506",
-        "wp_508",
+        "wp_458",
+        "wp_459",
+        "wp_460",
+        "wp_502",
+        "wp_504",
         "wp_543",
         "wp_544",
         "wp_545"
@@ -11215,17 +11571,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_508",
+      "id": "wp_504",
       "pos": {
-        "x": 2.0,
+        "x": 0.0,
         "y": 0.0,
-        "z": -34.0
+        "z": -36.0
       },
       "neighbors": [
-        "wp_475",
-        "wp_476",
-        "wp_507",
-        "wp_509",
+        "wp_459",
+        "wp_460",
+        "wp_461",
+        "wp_503",
+        "wp_505",
         "wp_544",
         "wp_545",
         "wp_546"
@@ -11233,32 +11590,37 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_509",
+      "id": "wp_505",
       "pos": {
-        "x": 2.0,
+        "x": 0.0,
         "y": 0.0,
-        "z": -32.0
+        "z": -34.0
       },
       "neighbors": [
-        "wp_476",
-        "wp_508",
-        "wp_510",
+        "wp_460",
+        "wp_461",
+        "wp_462",
+        "wp_504",
+        "wp_506",
         "wp_545",
         "wp_546",
         "wp_547"
       ],
-      "zone": "flank"
+      "zone": "spawn"
     },
     {
-      "id": "wp_510",
+      "id": "wp_506",
       "pos": {
-        "x": 2.0,
+        "x": 0.0,
         "y": 0.0,
-        "z": -30.0
+        "z": -32.0
       },
       "neighbors": [
-        "wp_509",
-        "wp_511",
+        "wp_461",
+        "wp_462",
+        "wp_463",
+        "wp_505",
+        "wp_507",
         "wp_546",
         "wp_547",
         "wp_548"
@@ -11266,87 +11628,272 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "flank"
     },
     {
-      "id": "wp_511",
+      "id": "wp_507",
       "pos": {
-        "x": 2.0,
+        "x": 0.0,
         "y": 0.0,
-        "z": -28.0
+        "z": -30.0
       },
       "neighbors": [
-        "wp_510",
+        "wp_462",
+        "wp_463",
+        "wp_464",
+        "wp_506",
+        "wp_508",
         "wp_547",
-        "wp_548"
+        "wp_548",
+        "wp_549"
       ],
       "zone": "flank"
     },
     {
-      "id": "wp_512",
+      "id": "wp_508",
       "pos": {
-        "x": 2.0,
+        "x": 0.0,
         "y": 0.0,
-        "z": -14.0
+        "z": -28.0
       },
       "neighbors": [
-        "wp_477",
-        "wp_478",
+        "wp_463",
+        "wp_464",
+        "wp_465",
+        "wp_507",
+        "wp_509",
+        "wp_548",
+        "wp_549"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_509",
+      "pos": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": -26.0
+      },
+      "neighbors": [
+        "wp_464",
+        "wp_465",
+        "wp_466",
+        "wp_508",
+        "wp_510",
+        "wp_1171"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_510",
+      "pos": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": -24.0
+      },
+      "neighbors": [
+        "wp_465",
+        "wp_466",
+        "wp_467",
+        "wp_509",
+        "wp_511",
+        "wp_1170",
+        "wp_1171"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_511",
+      "pos": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": -22.0
+      },
+      "neighbors": [
+        "wp_466",
+        "wp_467",
+        "wp_468",
+        "wp_510",
+        "wp_512",
+        "wp_1170",
+        "wp_1171"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_512",
+      "pos": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": -20.0
+      },
+      "neighbors": [
+        "wp_467",
+        "wp_468",
+        "wp_469",
+        "wp_511",
         "wp_513",
-        "wp_552",
-        "wp_553",
-        "wp_1148"
+        "wp_1169",
+        "wp_1170"
       ],
       "zone": "mid"
     },
     {
       "id": "wp_513",
       "pos": {
-        "x": 2.0,
+        "x": 0.0,
         "y": 0.0,
-        "z": -12.0
+        "z": -18.0
       },
       "neighbors": [
-        "wp_477",
-        "wp_478",
-        "wp_479",
+        "wp_468",
+        "wp_469",
+        "wp_470",
         "wp_512",
         "wp_514",
-        "wp_552",
-        "wp_553",
-        "wp_554"
+        "wp_1169",
+        "wp_1170"
       ],
       "zone": "mid"
     },
     {
       "id": "wp_514",
       "pos": {
-        "x": 2.0,
+        "x": 0.0,
         "y": 0.0,
-        "z": -10.0
+        "z": -16.0
       },
       "neighbors": [
-        "wp_478",
-        "wp_479",
-        "wp_480",
+        "wp_469",
+        "wp_470",
+        "wp_471",
         "wp_513",
         "wp_515",
-        "wp_553",
-        "wp_554",
-        "wp_555"
+        "wp_550",
+        "wp_1168",
+        "wp_1169"
       ],
       "zone": "mid"
     },
     {
       "id": "wp_515",
       "pos": {
-        "x": 2.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": -14.0
+      },
+      "neighbors": [
+        "wp_470",
+        "wp_471",
+        "wp_472",
+        "wp_514",
+        "wp_516",
+        "wp_550",
+        "wp_551",
+        "wp_1168"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_516",
+      "pos": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": -12.0
+      },
+      "neighbors": [
+        "wp_471",
+        "wp_472",
+        "wp_473",
+        "wp_515",
+        "wp_517",
+        "wp_550",
+        "wp_551",
+        "wp_552",
+        "wp_1168"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_517",
+      "pos": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": -10.0
+      },
+      "neighbors": [
+        "wp_472",
+        "wp_473",
+        "wp_474",
+        "wp_516",
+        "wp_518",
+        "wp_551",
+        "wp_552",
+        "wp_553"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_518",
+      "pos": {
+        "x": 0.0,
         "y": 0.0,
         "z": -8.0
       },
       "neighbors": [
+        "wp_473",
+        "wp_474",
+        "wp_475",
+        "wp_517",
+        "wp_519",
+        "wp_552",
+        "wp_553"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_519",
+      "pos": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": -6.0
+      },
+      "neighbors": [
+        "wp_474",
+        "wp_475",
+        "wp_476",
+        "wp_518",
+        "wp_553"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_520",
+      "pos": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": -2.0
+      },
+      "neighbors": [
+        "wp_476",
+        "wp_477",
+        "wp_478",
+        "wp_521",
+        "wp_554",
+        "wp_555"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_521",
+      "pos": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "neighbors": [
+        "wp_477",
+        "wp_478",
         "wp_479",
-        "wp_480",
-        "wp_481",
-        "wp_514",
-        "wp_516",
+        "wp_520",
+        "wp_522",
         "wp_554",
         "wp_555",
         "wp_556"
@@ -11354,74 +11901,50 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "mid"
     },
     {
-      "id": "wp_516",
+      "id": "wp_522",
       "pos": {
-        "x": 2.0,
+        "x": 0.0,
         "y": 0.0,
-        "z": -6.0
+        "z": 2.0
       },
       "neighbors": [
-        "wp_480",
-        "wp_481",
-        "wp_482",
-        "wp_515",
-        "wp_517",
+        "wp_478",
+        "wp_479",
+        "wp_521",
         "wp_555",
-        "wp_556",
-        "wp_557"
+        "wp_556"
       ],
       "zone": "mid"
     },
     {
-      "id": "wp_517",
+      "id": "wp_523",
       "pos": {
-        "x": 2.0,
+        "x": 0.0,
         "y": 0.0,
-        "z": -4.0
+        "z": 6.0
       },
       "neighbors": [
         "wp_481",
         "wp_482",
-        "wp_483",
-        "wp_516",
-        "wp_518",
-        "wp_556",
-        "wp_557",
-        "wp_558"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_518",
-      "pos": {
-        "x": 2.0,
-        "y": 0.0,
-        "z": -2.0
-      },
-      "neighbors": [
-        "wp_482",
-        "wp_483",
-        "wp_484",
-        "wp_517",
-        "wp_519",
-        "wp_557",
+        "wp_524",
         "wp_558",
         "wp_559"
       ],
       "zone": "mid"
     },
     {
-      "id": "wp_519",
+      "id": "wp_524",
       "pos": {
-        "x": 2.0,
+        "x": 0.0,
         "y": 0.0,
-        "z": 0.0
+        "z": 8.0
       },
       "neighbors": [
+        "wp_481",
+        "wp_482",
         "wp_483",
-        "wp_484",
-        "wp_518",
-        "wp_520",
+        "wp_523",
+        "wp_525",
         "wp_558",
         "wp_559",
         "wp_560"
@@ -11429,396 +11952,409 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "mid"
     },
     {
-      "id": "wp_520",
+      "id": "wp_525",
       "pos": {
-        "x": 2.0,
-        "y": 0.0,
-        "z": 2.0
-      },
-      "neighbors": [
-        "wp_519",
-        "wp_521",
-        "wp_559",
-        "wp_560",
-        "wp_561"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_521",
-      "pos": {
-        "x": 2.0,
-        "y": 0.0,
-        "z": 4.0
-      },
-      "neighbors": [
-        "wp_485",
-        "wp_520",
-        "wp_522",
-        "wp_560",
-        "wp_561",
-        "wp_562"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_522",
-      "pos": {
-        "x": 2.0,
-        "y": 0.0,
-        "z": 6.0
-      },
-      "neighbors": [
-        "wp_485",
-        "wp_486",
-        "wp_521",
-        "wp_523",
-        "wp_561",
-        "wp_562",
-        "wp_563"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_523",
-      "pos": {
-        "x": 2.0,
-        "y": 0.0,
-        "z": 8.0
-      },
-      "neighbors": [
-        "wp_485",
-        "wp_486",
-        "wp_487",
-        "wp_522",
-        "wp_524",
-        "wp_562",
-        "wp_563",
-        "wp_564"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_524",
-      "pos": {
-        "x": 2.0,
+        "x": 0.0,
         "y": 0.0,
         "z": 10.0
       },
       "neighbors": [
-        "wp_486",
-        "wp_487",
-        "wp_523",
-        "wp_563",
-        "wp_564"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_525",
-      "pos": {
-        "x": 2.0,
-        "y": 0.0,
-        "z": 14.0
-      },
-      "neighbors": [
-        "wp_488",
-        "wp_489",
-        "wp_526",
-        "wp_565",
-        "wp_566",
-        "wp_1155",
-        "wp_1156",
-        "wp_1157"
+        "wp_482",
+        "wp_483",
+        "wp_484",
+        "wp_524",
+        "wp_559",
+        "wp_560"
       ],
       "zone": "mid"
     },
     {
       "id": "wp_526",
       "pos": {
-        "x": 2.0,
+        "x": 0.0,
         "y": 0.0,
-        "z": 16.0
+        "z": 14.0
       },
       "neighbors": [
-        "wp_488",
-        "wp_525",
+        "wp_485",
+        "wp_486",
         "wp_527",
-        "wp_565",
-        "wp_566",
-        "wp_567",
-        "wp_1155",
-        "wp_1157"
+        "wp_561",
+        "wp_562",
+        "wp_1197",
+        "wp_1198",
+        "wp_1199"
       ],
       "zone": "mid"
     },
     {
       "id": "wp_527",
       "pos": {
-        "x": 2.0,
+        "x": 0.0,
         "y": 0.0,
-        "z": 18.0
+        "z": 16.0
       },
       "neighbors": [
+        "wp_485",
+        "wp_486",
+        "wp_487",
         "wp_526",
-        "wp_566",
-        "wp_567",
-        "wp_568"
+        "wp_528",
+        "wp_561",
+        "wp_1197",
+        "wp_1198"
       ],
       "zone": "mid"
     },
     {
       "id": "wp_528",
       "pos": {
-        "x": 2.0,
+        "x": 0.0,
         "y": 0.0,
-        "z": 22.0
+        "z": 18.0
       },
       "neighbors": [
-        "wp_491",
-        "wp_492",
-        "wp_529",
-        "wp_568",
-        "wp_569",
-        "wp_570"
+        "wp_486",
+        "wp_487",
+        "wp_527"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_529",
       "pos": {
-        "x": 2.0,
+        "x": 0.0,
         "y": 0.0,
-        "z": 24.0
+        "z": 22.0
       },
       "neighbors": [
-        "wp_491",
-        "wp_492",
-        "wp_493",
-        "wp_528",
+        "wp_488",
+        "wp_489",
         "wp_530",
-        "wp_569",
-        "wp_570",
-        "wp_571"
+        "wp_564",
+        "wp_565"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_530",
       "pos": {
-        "x": 2.0,
+        "x": 0.0,
         "y": 0.0,
-        "z": 26.0
+        "z": 24.0
       },
       "neighbors": [
-        "wp_492",
-        "wp_493",
-        "wp_494",
+        "wp_488",
+        "wp_489",
+        "wp_490",
         "wp_529",
         "wp_531",
-        "wp_570",
-        "wp_571",
-        "wp_572"
+        "wp_564",
+        "wp_565",
+        "wp_566"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_531",
       "pos": {
-        "x": 2.0,
+        "x": 0.0,
         "y": 0.0,
-        "z": 28.0
+        "z": 26.0
       },
       "neighbors": [
-        "wp_493",
-        "wp_494",
-        "wp_495",
+        "wp_489",
+        "wp_490",
+        "wp_491",
         "wp_530",
         "wp_532",
-        "wp_571",
-        "wp_572",
-        "wp_573"
+        "wp_565",
+        "wp_566",
+        "wp_567"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_532",
       "pos": {
-        "x": 2.0,
+        "x": 0.0,
         "y": 0.0,
-        "z": 30.0
+        "z": 28.0
       },
       "neighbors": [
-        "wp_494",
-        "wp_495",
-        "wp_496",
+        "wp_490",
+        "wp_491",
+        "wp_492",
         "wp_531",
         "wp_533",
-        "wp_572",
-        "wp_573",
-        "wp_574"
+        "wp_566",
+        "wp_567",
+        "wp_568"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_533",
       "pos": {
-        "x": 2.0,
+        "x": 0.0,
         "y": 0.0,
-        "z": 32.0
+        "z": 30.0
       },
       "neighbors": [
-        "wp_495",
-        "wp_496",
-        "wp_497",
+        "wp_491",
+        "wp_492",
+        "wp_493",
         "wp_532",
         "wp_534",
-        "wp_573",
-        "wp_574",
-        "wp_575",
-        "wp_1158"
+        "wp_567",
+        "wp_568",
+        "wp_569",
+        "wp_1200"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_534",
       "pos": {
-        "x": 2.0,
+        "x": 0.0,
         "y": 0.0,
-        "z": 34.0
+        "z": 32.0
       },
       "neighbors": [
-        "wp_496",
-        "wp_497",
-        "wp_498",
+        "wp_492",
+        "wp_493",
+        "wp_494",
         "wp_533",
         "wp_535",
-        "wp_574",
-        "wp_575",
-        "wp_576",
-        "wp_1158"
+        "wp_568",
+        "wp_569",
+        "wp_570",
+        "wp_1200"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_535",
       "pos": {
-        "x": 2.0,
+        "x": 0.0,
         "y": 0.0,
-        "z": 36.0
+        "z": 34.0
       },
       "neighbors": [
-        "wp_497",
-        "wp_498",
-        "wp_499",
+        "wp_493",
+        "wp_494",
+        "wp_495",
         "wp_534",
         "wp_536",
-        "wp_575",
-        "wp_576",
-        "wp_577",
-        "wp_1160"
+        "wp_569",
+        "wp_570",
+        "wp_571",
+        "wp_1200",
+        "wp_1202"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_536",
       "pos": {
-        "x": 2.0,
+        "x": 0.0,
         "y": 0.0,
-        "z": 38.0
+        "z": 36.0
       },
       "neighbors": [
-        "wp_498",
-        "wp_499",
-        "wp_500",
+        "wp_494",
+        "wp_495",
+        "wp_496",
         "wp_535",
         "wp_537",
-        "wp_576",
-        "wp_577",
-        "wp_578",
-        "wp_1160"
+        "wp_570",
+        "wp_571",
+        "wp_572",
+        "wp_1200",
+        "wp_1202"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_537",
       "pos": {
-        "x": 2.0,
+        "x": 0.0,
         "y": 0.0,
-        "z": 40.0
+        "z": 38.0
       },
       "neighbors": [
-        "wp_499",
-        "wp_500",
-        "wp_501",
+        "wp_495",
+        "wp_496",
+        "wp_497",
         "wp_536",
         "wp_538",
-        "wp_577",
-        "wp_578"
+        "wp_571",
+        "wp_572",
+        "wp_573",
+        "wp_1202"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_538",
       "pos": {
-        "x": 2.0,
+        "x": 0.0,
         "y": 0.0,
-        "z": 42.0
+        "z": 40.0
       },
       "neighbors": [
-        "wp_500",
-        "wp_501",
-        "wp_502",
+        "wp_496",
+        "wp_497",
+        "wp_498",
         "wp_537",
         "wp_539",
-        "wp_578"
+        "wp_572",
+        "wp_573",
+        "wp_574",
+        "wp_1202"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_539",
       "pos": {
-        "x": 2.0,
+        "x": 0.0,
         "y": 0.0,
-        "z": 44.0
+        "z": 42.0
       },
       "neighbors": [
-        "wp_501",
-        "wp_502",
+        "wp_497",
+        "wp_498",
+        "wp_499",
         "wp_538",
-        "wp_579"
+        "wp_540",
+        "wp_573",
+        "wp_574",
+        "wp_575"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_540",
       "pos": {
-        "x": 4.0,
+        "x": 0.0,
         "y": 0.0,
-        "z": -44.0
+        "z": 44.0
       },
       "neighbors": [
-        "wp_503",
-        "wp_504",
-        "wp_541",
-        "wp_580",
-        "wp_581"
+        "wp_498",
+        "wp_499",
+        "wp_539",
+        "wp_574",
+        "wp_575"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_541",
       "pos": {
-        "x": 4.0,
+        "x": 2.0,
+        "y": 0.0,
+        "z": -44.0
+      },
+      "neighbors": [
+        "wp_500",
+        "wp_501",
+        "wp_542",
+        "wp_576",
+        "wp_577"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_542",
+      "pos": {
+        "x": 2.0,
         "y": 0.0,
         "z": -42.0
+      },
+      "neighbors": [
+        "wp_500",
+        "wp_501",
+        "wp_502",
+        "wp_541",
+        "wp_543",
+        "wp_576",
+        "wp_577",
+        "wp_578"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_543",
+      "pos": {
+        "x": 2.0,
+        "y": 0.0,
+        "z": -40.0
+      },
+      "neighbors": [
+        "wp_501",
+        "wp_502",
+        "wp_503",
+        "wp_542",
+        "wp_544",
+        "wp_577",
+        "wp_578",
+        "wp_579"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_544",
+      "pos": {
+        "x": 2.0,
+        "y": 0.0,
+        "z": -38.0
+      },
+      "neighbors": [
+        "wp_502",
+        "wp_503",
+        "wp_504",
+        "wp_543",
+        "wp_545",
+        "wp_578",
+        "wp_579",
+        "wp_580"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_545",
+      "pos": {
+        "x": 2.0,
+        "y": 0.0,
+        "z": -36.0
       },
       "neighbors": [
         "wp_503",
         "wp_504",
         "wp_505",
-        "wp_540",
-        "wp_542",
+        "wp_544",
+        "wp_546",
+        "wp_579",
+        "wp_580",
+        "wp_581"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_546",
+      "pos": {
+        "x": 2.0,
+        "y": 0.0,
+        "z": -34.0
+      },
+      "neighbors": [
+        "wp_504",
+        "wp_505",
+        "wp_506",
+        "wp_545",
+        "wp_547",
         "wp_580",
         "wp_581",
         "wp_582"
@@ -11826,234 +12362,214 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_542",
+      "id": "wp_547",
       "pos": {
-        "x": 4.0,
-        "y": 0.0,
-        "z": -40.0
-      },
-      "neighbors": [
-        "wp_504",
-        "wp_505",
-        "wp_506",
-        "wp_541",
-        "wp_543",
-        "wp_581",
-        "wp_582",
-        "wp_583"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_543",
-      "pos": {
-        "x": 4.0,
-        "y": 0.0,
-        "z": -38.0
-      },
-      "neighbors": [
-        "wp_505",
-        "wp_506",
-        "wp_507",
-        "wp_542",
-        "wp_544",
-        "wp_582",
-        "wp_583",
-        "wp_584"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_544",
-      "pos": {
-        "x": 4.0,
-        "y": 0.0,
-        "z": -36.0
-      },
-      "neighbors": [
-        "wp_506",
-        "wp_507",
-        "wp_508",
-        "wp_543",
-        "wp_545",
-        "wp_583",
-        "wp_584",
-        "wp_585"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_545",
-      "pos": {
-        "x": 4.0,
-        "y": 0.0,
-        "z": -34.0
-      },
-      "neighbors": [
-        "wp_507",
-        "wp_508",
-        "wp_509",
-        "wp_544",
-        "wp_546",
-        "wp_584",
-        "wp_585",
-        "wp_586"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_546",
-      "pos": {
-        "x": 4.0,
+        "x": 2.0,
         "y": 0.0,
         "z": -32.0
       },
       "neighbors": [
-        "wp_508",
-        "wp_509",
-        "wp_510",
-        "wp_545",
-        "wp_547",
-        "wp_585",
-        "wp_586",
-        "wp_587"
-      ],
-      "zone": "flank"
-    },
-    {
-      "id": "wp_547",
-      "pos": {
-        "x": 4.0,
-        "y": 0.0,
-        "z": -30.0
-      },
-      "neighbors": [
-        "wp_509",
-        "wp_510",
-        "wp_511",
+        "wp_505",
+        "wp_506",
+        "wp_507",
         "wp_546",
         "wp_548",
-        "wp_586",
-        "wp_587",
-        "wp_588"
+        "wp_581",
+        "wp_582",
+        "wp_583"
       ],
       "zone": "flank"
     },
     {
       "id": "wp_548",
       "pos": {
-        "x": 4.0,
+        "x": 2.0,
         "y": 0.0,
-        "z": -28.0
+        "z": -30.0
       },
       "neighbors": [
-        "wp_510",
-        "wp_511",
+        "wp_506",
+        "wp_507",
+        "wp_508",
         "wp_547",
-        "wp_587",
-        "wp_588",
-        "wp_589"
+        "wp_549",
+        "wp_582",
+        "wp_583",
+        "wp_584"
       ],
       "zone": "flank"
     },
     {
       "id": "wp_549",
       "pos": {
-        "x": 4.0,
+        "x": 2.0,
         "y": 0.0,
-        "z": -24.0
+        "z": -28.0
       },
       "neighbors": [
-        "wp_590",
-        "wp_1150"
+        "wp_507",
+        "wp_508",
+        "wp_548",
+        "wp_583",
+        "wp_584"
       ],
-      "zone": "mid"
+      "zone": "flank"
     },
     {
       "id": "wp_550",
       "pos": {
-        "x": 4.0,
+        "x": 2.0,
         "y": 0.0,
-        "z": -18.0
+        "z": -14.0
       },
       "neighbors": [
+        "wp_514",
+        "wp_515",
+        "wp_516",
         "wp_551",
-        "wp_592",
-        "wp_593",
-        "wp_594",
-        "wp_1148"
+        "wp_589",
+        "wp_590",
+        "wp_1168",
+        "wp_1190"
       ],
       "zone": "mid"
     },
     {
       "id": "wp_551",
       "pos": {
-        "x": 4.0,
+        "x": 2.0,
         "y": 0.0,
-        "z": -16.0
+        "z": -12.0
       },
       "neighbors": [
+        "wp_515",
+        "wp_516",
+        "wp_517",
         "wp_550",
         "wp_552",
-        "wp_593",
-        "wp_594",
-        "wp_595",
-        "wp_1148"
+        "wp_589",
+        "wp_590",
+        "wp_591"
       ],
       "zone": "mid"
     },
     {
       "id": "wp_552",
       "pos": {
-        "x": 4.0,
+        "x": 2.0,
         "y": 0.0,
-        "z": -14.0
+        "z": -10.0
       },
       "neighbors": [
-        "wp_512",
-        "wp_513",
+        "wp_516",
+        "wp_517",
+        "wp_518",
         "wp_551",
         "wp_553",
-        "wp_594",
-        "wp_595",
-        "wp_596",
-        "wp_1148"
+        "wp_590",
+        "wp_591",
+        "wp_592"
       ],
       "zone": "mid"
     },
     {
       "id": "wp_553",
       "pos": {
-        "x": 4.0,
+        "x": 2.0,
         "y": 0.0,
-        "z": -12.0
+        "z": -8.0
       },
       "neighbors": [
-        "wp_512",
-        "wp_513",
-        "wp_514",
+        "wp_517",
+        "wp_518",
+        "wp_519",
         "wp_552",
-        "wp_554",
-        "wp_595",
-        "wp_596",
-        "wp_597",
-        "wp_1148"
+        "wp_591",
+        "wp_592"
       ],
       "zone": "mid"
     },
     {
       "id": "wp_554",
       "pos": {
-        "x": 4.0,
+        "x": 2.0,
         "y": 0.0,
-        "z": -10.0
+        "z": -2.0
       },
       "neighbors": [
-        "wp_513",
-        "wp_514",
-        "wp_515",
-        "wp_553",
+        "wp_520",
+        "wp_521",
         "wp_555",
+        "wp_593",
+        "wp_594"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_555",
+      "pos": {
+        "x": 2.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "neighbors": [
+        "wp_520",
+        "wp_521",
+        "wp_522",
+        "wp_554",
+        "wp_556",
+        "wp_593",
+        "wp_594",
+        "wp_595"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_556",
+      "pos": {
+        "x": 2.0,
+        "y": 0.0,
+        "z": 2.0
+      },
+      "neighbors": [
+        "wp_521",
+        "wp_522",
+        "wp_555",
+        "wp_557",
+        "wp_594",
+        "wp_595",
+        "wp_596"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_557",
+      "pos": {
+        "x": 2.0,
+        "y": 0.0,
+        "z": 4.0
+      },
+      "neighbors": [
+        "wp_556",
+        "wp_558",
+        "wp_595",
+        "wp_596",
+        "wp_597"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_558",
+      "pos": {
+        "x": 2.0,
+        "y": 0.0,
+        "z": 6.0
+      },
+      "neighbors": [
+        "wp_523",
+        "wp_524",
+        "wp_557",
+        "wp_559",
         "wp_596",
         "wp_597",
         "wp_598"
@@ -12061,18 +12577,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "mid"
     },
     {
-      "id": "wp_555",
+      "id": "wp_559",
       "pos": {
-        "x": 4.0,
+        "x": 2.0,
         "y": 0.0,
-        "z": -8.0
+        "z": 8.0
       },
       "neighbors": [
-        "wp_514",
-        "wp_515",
-        "wp_516",
-        "wp_554",
-        "wp_556",
+        "wp_523",
+        "wp_524",
+        "wp_525",
+        "wp_558",
+        "wp_560",
         "wp_597",
         "wp_598",
         "wp_599"
@@ -12080,75 +12596,68 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "mid"
     },
     {
-      "id": "wp_556",
+      "id": "wp_560",
       "pos": {
-        "x": 4.0,
+        "x": 2.0,
         "y": 0.0,
-        "z": -6.0
+        "z": 10.0
       },
       "neighbors": [
-        "wp_515",
-        "wp_516",
-        "wp_517",
-        "wp_555",
-        "wp_557",
-        "wp_598",
-        "wp_599",
-        "wp_600"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_557",
-      "pos": {
-        "x": 4.0,
-        "y": 0.0,
-        "z": -4.0
-      },
-      "neighbors": [
-        "wp_516",
-        "wp_517",
-        "wp_518",
-        "wp_556",
-        "wp_558",
-        "wp_599",
-        "wp_600",
-        "wp_601"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_558",
-      "pos": {
-        "x": 4.0,
-        "y": 0.0,
-        "z": -2.0
-      },
-      "neighbors": [
-        "wp_517",
-        "wp_518",
-        "wp_519",
-        "wp_557",
+        "wp_524",
+        "wp_525",
         "wp_559",
+        "wp_598",
+        "wp_599"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_561",
+      "pos": {
+        "x": 2.0,
+        "y": 0.0,
+        "z": 14.0
+      },
+      "neighbors": [
+        "wp_526",
+        "wp_527",
+        "wp_562",
         "wp_600",
         "wp_601",
-        "wp_602"
+        "wp_1197",
+        "wp_1198",
+        "wp_1199"
       ],
       "zone": "mid"
     },
     {
-      "id": "wp_559",
+      "id": "wp_562",
       "pos": {
-        "x": 4.0,
+        "x": 2.0,
         "y": 0.0,
-        "z": 0.0
+        "z": 16.0
       },
       "neighbors": [
-        "wp_518",
-        "wp_519",
-        "wp_520",
-        "wp_558",
-        "wp_560",
+        "wp_526",
+        "wp_561",
+        "wp_563",
+        "wp_600",
+        "wp_601",
+        "wp_602",
+        "wp_1197",
+        "wp_1199"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_563",
+      "pos": {
+        "x": 2.0,
+        "y": 0.0,
+        "z": 18.0
+      },
+      "neighbors": [
+        "wp_562",
         "wp_601",
         "wp_602",
         "wp_603"
@@ -12156,300 +12665,225 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "mid"
     },
     {
-      "id": "wp_560",
-      "pos": {
-        "x": 4.0,
-        "y": 0.0,
-        "z": 2.0
-      },
-      "neighbors": [
-        "wp_519",
-        "wp_520",
-        "wp_521",
-        "wp_559",
-        "wp_561",
-        "wp_602",
-        "wp_603",
-        "wp_604"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_561",
-      "pos": {
-        "x": 4.0,
-        "y": 0.0,
-        "z": 4.0
-      },
-      "neighbors": [
-        "wp_520",
-        "wp_521",
-        "wp_522",
-        "wp_560",
-        "wp_562",
-        "wp_603",
-        "wp_604",
-        "wp_605"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_562",
-      "pos": {
-        "x": 4.0,
-        "y": 0.0,
-        "z": 6.0
-      },
-      "neighbors": [
-        "wp_521",
-        "wp_522",
-        "wp_523",
-        "wp_561",
-        "wp_563",
-        "wp_604",
-        "wp_605",
-        "wp_606"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_563",
-      "pos": {
-        "x": 4.0,
-        "y": 0.0,
-        "z": 8.0
-      },
-      "neighbors": [
-        "wp_522",
-        "wp_523",
-        "wp_524",
-        "wp_562",
-        "wp_564",
-        "wp_605",
-        "wp_606",
-        "wp_607"
-      ],
-      "zone": "mid"
-    },
-    {
       "id": "wp_564",
       "pos": {
-        "x": 4.0,
-        "y": 0.0,
-        "z": 10.0
-      },
-      "neighbors": [
-        "wp_523",
-        "wp_524",
-        "wp_563",
-        "wp_606",
-        "wp_607"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_565",
-      "pos": {
-        "x": 4.0,
-        "y": 0.0,
-        "z": 14.0
-      },
-      "neighbors": [
-        "wp_525",
-        "wp_526",
-        "wp_566",
-        "wp_608",
-        "wp_609",
-        "wp_1155",
-        "wp_1157"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_566",
-      "pos": {
-        "x": 4.0,
-        "y": 0.0,
-        "z": 16.0
-      },
-      "neighbors": [
-        "wp_525",
-        "wp_526",
-        "wp_527",
-        "wp_565",
-        "wp_567",
-        "wp_608",
-        "wp_609",
-        "wp_610",
-        "wp_1157"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_567",
-      "pos": {
-        "x": 4.0,
-        "y": 0.0,
-        "z": 18.0
-      },
-      "neighbors": [
-        "wp_526",
-        "wp_527",
-        "wp_566",
-        "wp_568",
-        "wp_609",
-        "wp_610",
-        "wp_611"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_568",
-      "pos": {
-        "x": 4.0,
-        "y": 0.0,
-        "z": 20.0
-      },
-      "neighbors": [
-        "wp_527",
-        "wp_528",
-        "wp_567",
-        "wp_569",
-        "wp_610",
-        "wp_611",
-        "wp_612"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_569",
-      "pos": {
-        "x": 4.0,
+        "x": 2.0,
         "y": 0.0,
         "z": 22.0
       },
       "neighbors": [
-        "wp_528",
         "wp_529",
+        "wp_530",
+        "wp_565",
+        "wp_603",
+        "wp_604",
+        "wp_605"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_565",
+      "pos": {
+        "x": 2.0,
+        "y": 0.0,
+        "z": 24.0
+      },
+      "neighbors": [
+        "wp_529",
+        "wp_530",
+        "wp_531",
+        "wp_564",
+        "wp_566",
+        "wp_604",
+        "wp_605",
+        "wp_606"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_566",
+      "pos": {
+        "x": 2.0,
+        "y": 0.0,
+        "z": 26.0
+      },
+      "neighbors": [
+        "wp_530",
+        "wp_531",
+        "wp_532",
+        "wp_565",
+        "wp_567",
+        "wp_605",
+        "wp_606",
+        "wp_607"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_567",
+      "pos": {
+        "x": 2.0,
+        "y": 0.0,
+        "z": 28.0
+      },
+      "neighbors": [
+        "wp_531",
+        "wp_532",
+        "wp_533",
+        "wp_566",
+        "wp_568",
+        "wp_606",
+        "wp_607",
+        "wp_608"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_568",
+      "pos": {
+        "x": 2.0,
+        "y": 0.0,
+        "z": 30.0
+      },
+      "neighbors": [
+        "wp_532",
+        "wp_533",
+        "wp_534",
+        "wp_567",
+        "wp_569",
+        "wp_607",
+        "wp_608",
+        "wp_609"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_569",
+      "pos": {
+        "x": 2.0,
+        "y": 0.0,
+        "z": 32.0
+      },
+      "neighbors": [
+        "wp_533",
+        "wp_534",
+        "wp_535",
         "wp_568",
         "wp_570",
-        "wp_611",
-        "wp_612",
-        "wp_613"
+        "wp_608",
+        "wp_609",
+        "wp_610",
+        "wp_1200"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_570",
       "pos": {
-        "x": 4.0,
+        "x": 2.0,
         "y": 0.0,
-        "z": 24.0
+        "z": 34.0
       },
       "neighbors": [
-        "wp_528",
-        "wp_529",
-        "wp_530",
+        "wp_534",
+        "wp_535",
+        "wp_536",
         "wp_569",
         "wp_571",
-        "wp_612",
-        "wp_613",
-        "wp_614"
+        "wp_609",
+        "wp_610",
+        "wp_611",
+        "wp_1200"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_571",
       "pos": {
-        "x": 4.0,
+        "x": 2.0,
         "y": 0.0,
-        "z": 26.0
+        "z": 36.0
       },
       "neighbors": [
-        "wp_529",
-        "wp_530",
-        "wp_531",
+        "wp_535",
+        "wp_536",
+        "wp_537",
         "wp_570",
         "wp_572",
-        "wp_613",
-        "wp_614",
-        "wp_615"
+        "wp_610",
+        "wp_611",
+        "wp_612",
+        "wp_1202"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_572",
       "pos": {
-        "x": 4.0,
+        "x": 2.0,
         "y": 0.0,
-        "z": 28.0
+        "z": 38.0
       },
       "neighbors": [
-        "wp_530",
-        "wp_531",
-        "wp_532",
+        "wp_536",
+        "wp_537",
+        "wp_538",
         "wp_571",
         "wp_573",
-        "wp_614",
-        "wp_615",
-        "wp_616"
+        "wp_611",
+        "wp_612",
+        "wp_613",
+        "wp_1202"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_573",
       "pos": {
-        "x": 4.0,
+        "x": 2.0,
         "y": 0.0,
-        "z": 30.0
+        "z": 40.0
       },
       "neighbors": [
-        "wp_531",
-        "wp_532",
-        "wp_533",
+        "wp_537",
+        "wp_538",
+        "wp_539",
         "wp_572",
         "wp_574",
-        "wp_615",
-        "wp_616",
-        "wp_617"
+        "wp_612",
+        "wp_613"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_574",
       "pos": {
-        "x": 4.0,
+        "x": 2.0,
         "y": 0.0,
-        "z": 32.0
+        "z": 42.0
       },
       "neighbors": [
-        "wp_532",
-        "wp_533",
-        "wp_534",
+        "wp_538",
+        "wp_539",
+        "wp_540",
         "wp_573",
         "wp_575",
-        "wp_616",
-        "wp_617",
-        "wp_618"
+        "wp_613"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_575",
       "pos": {
-        "x": 4.0,
+        "x": 2.0,
         "y": 0.0,
-        "z": 34.0
+        "z": 44.0
       },
       "neighbors": [
-        "wp_533",
-        "wp_534",
-        "wp_535",
+        "wp_539",
+        "wp_540",
         "wp_574",
-        "wp_576",
-        "wp_617",
-        "wp_618",
-        "wp_619"
+        "wp_614"
       ],
       "zone": "spawn"
     },
@@ -12458,18 +12892,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": 4.0,
         "y": 0.0,
-        "z": 36.0
+        "z": -44.0
       },
       "neighbors": [
-        "wp_534",
-        "wp_535",
-        "wp_536",
-        "wp_575",
+        "wp_541",
+        "wp_542",
         "wp_577",
-        "wp_618",
-        "wp_619",
-        "wp_620",
-        "wp_1161"
+        "wp_615",
+        "wp_616"
       ],
       "zone": "spawn"
     },
@@ -12478,18 +12908,17 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": 4.0,
         "y": 0.0,
-        "z": 38.0
+        "z": -42.0
       },
       "neighbors": [
-        "wp_535",
-        "wp_536",
-        "wp_537",
+        "wp_541",
+        "wp_542",
+        "wp_543",
         "wp_576",
         "wp_578",
-        "wp_619",
-        "wp_620",
-        "wp_621",
-        "wp_1161"
+        "wp_615",
+        "wp_616",
+        "wp_617"
       ],
       "zone": "spawn"
     },
@@ -12498,15 +12927,17 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": 4.0,
         "y": 0.0,
-        "z": 40.0
+        "z": -40.0
       },
       "neighbors": [
-        "wp_536",
-        "wp_537",
-        "wp_538",
+        "wp_542",
+        "wp_543",
+        "wp_544",
         "wp_577",
-        "wp_620",
-        "wp_621"
+        "wp_579",
+        "wp_616",
+        "wp_617",
+        "wp_618"
       ],
       "zone": "spawn"
     },
@@ -12515,268 +12946,259 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": 4.0,
         "y": 0.0,
-        "z": 44.0
+        "z": -38.0
       },
       "neighbors": [
-        "wp_539",
-        "wp_622"
+        "wp_543",
+        "wp_544",
+        "wp_545",
+        "wp_578",
+        "wp_580",
+        "wp_617",
+        "wp_618",
+        "wp_619"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_580",
       "pos": {
-        "x": 6.0,
+        "x": 4.0,
         "y": 0.0,
-        "z": -44.0
+        "z": -36.0
       },
       "neighbors": [
-        "wp_540",
-        "wp_541",
+        "wp_544",
+        "wp_545",
+        "wp_546",
+        "wp_579",
         "wp_581",
-        "wp_623",
-        "wp_624"
+        "wp_618",
+        "wp_619",
+        "wp_620"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_581",
       "pos": {
-        "x": 6.0,
+        "x": 4.0,
         "y": 0.0,
-        "z": -42.0
+        "z": -34.0
       },
       "neighbors": [
-        "wp_540",
-        "wp_541",
-        "wp_542",
+        "wp_545",
+        "wp_546",
+        "wp_547",
         "wp_580",
         "wp_582",
-        "wp_623",
-        "wp_624",
-        "wp_625"
+        "wp_619",
+        "wp_620",
+        "wp_621"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_582",
       "pos": {
-        "x": 6.0,
-        "y": 0.0,
-        "z": -40.0
-      },
-      "neighbors": [
-        "wp_541",
-        "wp_542",
-        "wp_543",
-        "wp_581",
-        "wp_583",
-        "wp_624",
-        "wp_625",
-        "wp_626"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_583",
-      "pos": {
-        "x": 6.0,
-        "y": 0.0,
-        "z": -38.0
-      },
-      "neighbors": [
-        "wp_542",
-        "wp_543",
-        "wp_544",
-        "wp_582",
-        "wp_584",
-        "wp_625",
-        "wp_626",
-        "wp_627"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_584",
-      "pos": {
-        "x": 6.0,
-        "y": 0.0,
-        "z": -36.0
-      },
-      "neighbors": [
-        "wp_543",
-        "wp_544",
-        "wp_545",
-        "wp_583",
-        "wp_585",
-        "wp_626",
-        "wp_627",
-        "wp_628"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_585",
-      "pos": {
-        "x": 6.0,
-        "y": 0.0,
-        "z": -34.0
-      },
-      "neighbors": [
-        "wp_544",
-        "wp_545",
-        "wp_546",
-        "wp_584",
-        "wp_586",
-        "wp_627",
-        "wp_628",
-        "wp_629"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_586",
-      "pos": {
-        "x": 6.0,
+        "x": 4.0,
         "y": 0.0,
         "z": -32.0
       },
       "neighbors": [
-        "wp_545",
         "wp_546",
         "wp_547",
-        "wp_585",
-        "wp_587",
-        "wp_628",
-        "wp_629",
-        "wp_630"
+        "wp_548",
+        "wp_581",
+        "wp_583",
+        "wp_620",
+        "wp_621",
+        "wp_622"
       ],
       "zone": "flank"
     },
     {
-      "id": "wp_587",
+      "id": "wp_583",
       "pos": {
-        "x": 6.0,
+        "x": 4.0,
         "y": 0.0,
         "z": -30.0
       },
       "neighbors": [
-        "wp_546",
         "wp_547",
         "wp_548",
-        "wp_586",
-        "wp_588",
-        "wp_629",
-        "wp_630",
-        "wp_631",
-        "wp_1151"
+        "wp_549",
+        "wp_582",
+        "wp_584",
+        "wp_621",
+        "wp_622",
+        "wp_623"
       ],
       "zone": "flank"
     },
     {
-      "id": "wp_588",
+      "id": "wp_584",
       "pos": {
-        "x": 6.0,
+        "x": 4.0,
         "y": 0.0,
         "z": -28.0
       },
       "neighbors": [
-        "wp_547",
         "wp_548",
-        "wp_587",
-        "wp_589",
-        "wp_630",
-        "wp_631",
-        "wp_632",
-        "wp_1149",
-        "wp_1151"
+        "wp_549",
+        "wp_583",
+        "wp_622",
+        "wp_623",
+        "wp_624"
       ],
       "zone": "flank"
     },
     {
-      "id": "wp_589",
+      "id": "wp_585",
       "pos": {
-        "x": 6.0,
+        "x": 4.0,
         "y": 0.0,
-        "z": -26.0
+        "z": -24.0
       },
       "neighbors": [
-        "wp_548",
+        "wp_625",
+        "wp_1192"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_586",
+      "pos": {
+        "x": 4.0,
+        "y": 0.0,
+        "z": -20.0
+      },
+      "neighbors": [
+        "wp_587",
+        "wp_627",
+        "wp_628"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_587",
+      "pos": {
+        "x": 4.0,
+        "y": 0.0,
+        "z": -18.0
+      },
+      "neighbors": [
+        "wp_586",
+        "wp_588",
+        "wp_627",
+        "wp_628",
+        "wp_629",
+        "wp_1190"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_588",
+      "pos": {
+        "x": 4.0,
+        "y": 0.0,
+        "z": -16.0
+      },
+      "neighbors": [
+        "wp_587",
+        "wp_589",
+        "wp_628",
+        "wp_629",
+        "wp_630",
+        "wp_1190"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_589",
+      "pos": {
+        "x": 4.0,
+        "y": 0.0,
+        "z": -14.0
+      },
+      "neighbors": [
+        "wp_550",
+        "wp_551",
         "wp_588",
         "wp_590",
+        "wp_629",
+        "wp_630",
         "wp_631",
-        "wp_632",
-        "wp_633",
-        "wp_1149",
-        "wp_1150",
-        "wp_1151"
+        "wp_1190"
       ],
       "zone": "mid"
     },
     {
       "id": "wp_590",
       "pos": {
-        "x": 6.0,
+        "x": 4.0,
         "y": 0.0,
-        "z": -24.0
+        "z": -12.0
       },
       "neighbors": [
-        "wp_549",
+        "wp_550",
+        "wp_551",
+        "wp_552",
         "wp_589",
         "wp_591",
+        "wp_630",
+        "wp_631",
         "wp_632",
-        "wp_633",
-        "wp_634",
-        "wp_1149",
-        "wp_1150"
+        "wp_1190"
       ],
       "zone": "mid"
     },
     {
       "id": "wp_591",
       "pos": {
-        "x": 6.0,
+        "x": 4.0,
         "y": 0.0,
-        "z": -22.0
+        "z": -10.0
       },
       "neighbors": [
+        "wp_551",
+        "wp_552",
+        "wp_553",
         "wp_590",
         "wp_592",
-        "wp_633",
-        "wp_634",
-        "wp_635",
-        "wp_1150"
+        "wp_631",
+        "wp_632",
+        "wp_633"
       ],
       "zone": "mid"
     },
     {
       "id": "wp_592",
       "pos": {
-        "x": 6.0,
+        "x": 4.0,
         "y": 0.0,
-        "z": -20.0
+        "z": -8.0
       },
       "neighbors": [
-        "wp_550",
+        "wp_552",
+        "wp_553",
         "wp_591",
-        "wp_593",
-        "wp_634",
-        "wp_635",
-        "wp_636"
+        "wp_632",
+        "wp_633",
+        "wp_634"
       ],
       "zone": "mid"
     },
     {
       "id": "wp_593",
       "pos": {
-        "x": 6.0,
+        "x": 4.0,
         "y": 0.0,
-        "z": -18.0
+        "z": -2.0
       },
       "neighbors": [
-        "wp_550",
-        "wp_551",
-        "wp_592",
+        "wp_554",
+        "wp_555",
         "wp_594",
         "wp_635",
         "wp_636",
@@ -12787,50 +13209,52 @@ export const ASCENT_MAP_DATA: AscentMapData = {
     {
       "id": "wp_594",
       "pos": {
-        "x": 6.0,
+        "x": 4.0,
         "y": 0.0,
-        "z": -16.0
+        "z": 0.0
       },
       "neighbors": [
-        "wp_550",
-        "wp_551",
-        "wp_552",
+        "wp_554",
+        "wp_555",
+        "wp_556",
         "wp_593",
+        "wp_595",
         "wp_636",
         "wp_637",
-        "wp_1148"
+        "wp_638"
       ],
       "zone": "mid"
     },
     {
       "id": "wp_595",
       "pos": {
-        "x": 6.0,
+        "x": 4.0,
         "y": 0.0,
-        "z": -14.0
+        "z": 2.0
       },
       "neighbors": [
-        "wp_551",
-        "wp_552",
-        "wp_553",
+        "wp_555",
+        "wp_556",
+        "wp_557",
+        "wp_594",
         "wp_596",
+        "wp_637",
         "wp_638",
-        "wp_639",
-        "wp_1148"
+        "wp_639"
       ],
       "zone": "mid"
     },
     {
       "id": "wp_596",
       "pos": {
-        "x": 6.0,
+        "x": 4.0,
         "y": 0.0,
-        "z": -12.0
+        "z": 4.0
       },
       "neighbors": [
-        "wp_552",
-        "wp_553",
-        "wp_554",
+        "wp_556",
+        "wp_557",
+        "wp_558",
         "wp_595",
         "wp_597",
         "wp_638",
@@ -12842,14 +13266,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
     {
       "id": "wp_597",
       "pos": {
-        "x": 6.0,
+        "x": 4.0,
         "y": 0.0,
-        "z": -10.0
+        "z": 6.0
       },
       "neighbors": [
-        "wp_553",
-        "wp_554",
-        "wp_555",
+        "wp_557",
+        "wp_558",
+        "wp_559",
         "wp_596",
         "wp_598",
         "wp_639",
@@ -12861,14 +13285,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
     {
       "id": "wp_598",
       "pos": {
-        "x": 6.0,
+        "x": 4.0,
         "y": 0.0,
-        "z": -8.0
+        "z": 8.0
       },
       "neighbors": [
-        "wp_554",
-        "wp_555",
-        "wp_556",
+        "wp_558",
+        "wp_559",
+        "wp_560",
         "wp_597",
         "wp_599",
         "wp_640",
@@ -12880,105 +13304,69 @@ export const ASCENT_MAP_DATA: AscentMapData = {
     {
       "id": "wp_599",
       "pos": {
-        "x": 6.0,
+        "x": 4.0,
         "y": 0.0,
-        "z": -6.0
+        "z": 10.0
       },
       "neighbors": [
-        "wp_555",
-        "wp_556",
-        "wp_557",
+        "wp_559",
+        "wp_560",
         "wp_598",
-        "wp_600",
         "wp_641",
-        "wp_642",
-        "wp_643"
+        "wp_642"
       ],
       "zone": "mid"
     },
     {
       "id": "wp_600",
       "pos": {
-        "x": 6.0,
+        "x": 4.0,
         "y": 0.0,
-        "z": -4.0
+        "z": 14.0
       },
       "neighbors": [
-        "wp_556",
-        "wp_557",
-        "wp_558",
-        "wp_599",
+        "wp_561",
+        "wp_562",
         "wp_601",
-        "wp_642",
-        "wp_643"
+        "wp_643",
+        "wp_644",
+        "wp_1197",
+        "wp_1199"
       ],
       "zone": "mid"
     },
     {
       "id": "wp_601",
       "pos": {
-        "x": 6.0,
+        "x": 4.0,
         "y": 0.0,
-        "z": -2.0
+        "z": 16.0
       },
       "neighbors": [
-        "wp_557",
-        "wp_558",
-        "wp_559",
+        "wp_561",
+        "wp_562",
+        "wp_563",
         "wp_600",
         "wp_602",
-        "wp_643"
+        "wp_643",
+        "wp_644",
+        "wp_645",
+        "wp_1199"
       ],
       "zone": "mid"
     },
     {
       "id": "wp_602",
       "pos": {
-        "x": 6.0,
+        "x": 4.0,
         "y": 0.0,
-        "z": 0.0
+        "z": 18.0
       },
       "neighbors": [
-        "wp_558",
-        "wp_559",
-        "wp_560",
+        "wp_562",
+        "wp_563",
         "wp_601",
         "wp_603",
-        "wp_644"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_603",
-      "pos": {
-        "x": 6.0,
-        "y": 0.0,
-        "z": 2.0
-      },
-      "neighbors": [
-        "wp_559",
-        "wp_560",
-        "wp_561",
-        "wp_602",
-        "wp_604",
-        "wp_644",
-        "wp_645"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_604",
-      "pos": {
-        "x": 6.0,
-        "y": 0.0,
-        "z": 4.0
-      },
-      "neighbors": [
-        "wp_560",
-        "wp_561",
-        "wp_562",
-        "wp_603",
-        "wp_605",
         "wp_644",
         "wp_645",
         "wp_646"
@@ -12986,18 +13374,17 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "mid"
     },
     {
-      "id": "wp_605",
+      "id": "wp_603",
       "pos": {
-        "x": 6.0,
+        "x": 4.0,
         "y": 0.0,
-        "z": 6.0
+        "z": 20.0
       },
       "neighbors": [
-        "wp_561",
-        "wp_562",
         "wp_563",
+        "wp_564",
+        "wp_602",
         "wp_604",
-        "wp_606",
         "wp_645",
         "wp_646",
         "wp_647"
@@ -13005,143 +13392,131 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "mid"
     },
     {
-      "id": "wp_606",
+      "id": "wp_604",
       "pos": {
-        "x": 6.0,
+        "x": 4.0,
         "y": 0.0,
-        "z": 8.0
+        "z": 22.0
       },
       "neighbors": [
-        "wp_562",
-        "wp_563",
         "wp_564",
+        "wp_565",
+        "wp_603",
         "wp_605",
-        "wp_607",
         "wp_646",
         "wp_647",
         "wp_648"
       ],
-      "zone": "mid"
+      "zone": "spawn"
     },
     {
-      "id": "wp_607",
+      "id": "wp_605",
       "pos": {
-        "x": 6.0,
+        "x": 4.0,
         "y": 0.0,
-        "z": 10.0
+        "z": 24.0
       },
       "neighbors": [
-        "wp_563",
         "wp_564",
-        "wp_606",
-        "wp_647",
-        "wp_648"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_608",
-      "pos": {
-        "x": 6.0,
-        "y": 0.0,
-        "z": 14.0
-      },
-      "neighbors": [
         "wp_565",
         "wp_566",
-        "wp_609",
-        "wp_649",
-        "wp_650",
-        "wp_1157"
+        "wp_604",
+        "wp_606",
+        "wp_647",
+        "wp_648",
+        "wp_649"
       ],
-      "zone": "mid"
+      "zone": "spawn"
     },
     {
-      "id": "wp_609",
+      "id": "wp_606",
       "pos": {
-        "x": 6.0,
+        "x": 4.0,
         "y": 0.0,
-        "z": 16.0
+        "z": 26.0
       },
       "neighbors": [
         "wp_565",
         "wp_566",
         "wp_567",
-        "wp_608",
-        "wp_610",
+        "wp_605",
+        "wp_607",
+        "wp_648",
         "wp_649",
-        "wp_650",
-        "wp_651"
+        "wp_650"
       ],
-      "zone": "mid"
+      "zone": "spawn"
     },
     {
-      "id": "wp_610",
+      "id": "wp_607",
       "pos": {
-        "x": 6.0,
+        "x": 4.0,
         "y": 0.0,
-        "z": 18.0
+        "z": 28.0
       },
       "neighbors": [
         "wp_566",
         "wp_567",
         "wp_568",
-        "wp_609",
-        "wp_611",
+        "wp_606",
+        "wp_608",
+        "wp_649",
         "wp_650",
         "wp_651"
       ],
-      "zone": "mid"
+      "zone": "spawn"
     },
     {
-      "id": "wp_611",
+      "id": "wp_608",
       "pos": {
-        "x": 6.0,
+        "x": 4.0,
         "y": 0.0,
-        "z": 20.0
+        "z": 30.0
       },
       "neighbors": [
         "wp_567",
         "wp_568",
         "wp_569",
-        "wp_610",
-        "wp_612",
+        "wp_607",
+        "wp_609",
+        "wp_650",
         "wp_651",
         "wp_652"
       ],
-      "zone": "mid"
+      "zone": "spawn"
     },
     {
-      "id": "wp_612",
+      "id": "wp_609",
       "pos": {
-        "x": 6.0,
+        "x": 4.0,
         "y": 0.0,
-        "z": 22.0
+        "z": 32.0
       },
       "neighbors": [
         "wp_568",
         "wp_569",
         "wp_570",
-        "wp_611",
-        "wp_613",
+        "wp_608",
+        "wp_610",
+        "wp_651",
         "wp_652",
         "wp_653"
       ],
       "zone": "spawn"
     },
     {
-      "id": "wp_613",
+      "id": "wp_610",
       "pos": {
-        "x": 6.0,
+        "x": 4.0,
         "y": 0.0,
-        "z": 24.0
+        "z": 34.0
       },
       "neighbors": [
         "wp_569",
         "wp_570",
         "wp_571",
-        "wp_612",
-        "wp_614",
+        "wp_609",
+        "wp_611",
         "wp_652",
         "wp_653",
         "wp_654"
@@ -13149,21 +13524,72 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_614",
+      "id": "wp_611",
       "pos": {
-        "x": 6.0,
+        "x": 4.0,
         "y": 0.0,
-        "z": 26.0
+        "z": 36.0
       },
       "neighbors": [
         "wp_570",
         "wp_571",
         "wp_572",
-        "wp_613",
-        "wp_615",
+        "wp_610",
+        "wp_612",
         "wp_653",
         "wp_654",
-        "wp_655"
+        "wp_655",
+        "wp_1203"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_612",
+      "pos": {
+        "x": 4.0,
+        "y": 0.0,
+        "z": 38.0
+      },
+      "neighbors": [
+        "wp_571",
+        "wp_572",
+        "wp_573",
+        "wp_611",
+        "wp_613",
+        "wp_654",
+        "wp_655",
+        "wp_656",
+        "wp_1203"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_613",
+      "pos": {
+        "x": 4.0,
+        "y": 0.0,
+        "z": 40.0
+      },
+      "neighbors": [
+        "wp_572",
+        "wp_573",
+        "wp_574",
+        "wp_612",
+        "wp_655",
+        "wp_656"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_614",
+      "pos": {
+        "x": 4.0,
+        "y": 0.0,
+        "z": 44.0
+      },
+      "neighbors": [
+        "wp_575",
+        "wp_657"
       ],
       "zone": "spawn"
     },
@@ -13172,17 +13598,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": 6.0,
         "y": 0.0,
-        "z": 28.0
+        "z": -44.0
       },
       "neighbors": [
-        "wp_571",
-        "wp_572",
-        "wp_573",
-        "wp_614",
+        "wp_576",
+        "wp_577",
         "wp_616",
-        "wp_654",
-        "wp_655",
-        "wp_656"
+        "wp_658",
+        "wp_659"
       ],
       "zone": "spawn"
     },
@@ -13191,17 +13614,17 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": 6.0,
         "y": 0.0,
-        "z": 30.0
+        "z": -42.0
       },
       "neighbors": [
-        "wp_572",
-        "wp_573",
-        "wp_574",
+        "wp_576",
+        "wp_577",
+        "wp_578",
         "wp_615",
         "wp_617",
-        "wp_655",
-        "wp_656",
-        "wp_657"
+        "wp_658",
+        "wp_659",
+        "wp_660"
       ],
       "zone": "spawn"
     },
@@ -13210,17 +13633,17 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": 6.0,
         "y": 0.0,
-        "z": 32.0
+        "z": -40.0
       },
       "neighbors": [
-        "wp_573",
-        "wp_574",
-        "wp_575",
+        "wp_577",
+        "wp_578",
+        "wp_579",
         "wp_616",
         "wp_618",
-        "wp_656",
-        "wp_657",
-        "wp_658"
+        "wp_659",
+        "wp_660",
+        "wp_661"
       ],
       "zone": "spawn"
     },
@@ -13229,18 +13652,17 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": 6.0,
         "y": 0.0,
-        "z": 34.0
+        "z": -38.0
       },
       "neighbors": [
-        "wp_574",
-        "wp_575",
-        "wp_576",
+        "wp_578",
+        "wp_579",
+        "wp_580",
         "wp_617",
         "wp_619",
-        "wp_657",
-        "wp_658",
-        "wp_659",
-        "wp_1161"
+        "wp_660",
+        "wp_661",
+        "wp_662"
       ],
       "zone": "spawn"
     },
@@ -13249,18 +13671,17 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": 6.0,
         "y": 0.0,
-        "z": 36.0
+        "z": -36.0
       },
       "neighbors": [
-        "wp_575",
-        "wp_576",
-        "wp_577",
+        "wp_579",
+        "wp_580",
+        "wp_581",
         "wp_618",
         "wp_620",
-        "wp_658",
-        "wp_659",
-        "wp_660",
-        "wp_1161"
+        "wp_661",
+        "wp_662",
+        "wp_663"
       ],
       "zone": "spawn"
     },
@@ -13269,18 +13690,17 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": 6.0,
         "y": 0.0,
-        "z": 38.0
+        "z": -34.0
       },
       "neighbors": [
-        "wp_576",
-        "wp_577",
-        "wp_578",
+        "wp_580",
+        "wp_581",
+        "wp_582",
         "wp_619",
         "wp_621",
-        "wp_659",
-        "wp_660",
-        "wp_661",
-        "wp_1161"
+        "wp_662",
+        "wp_663",
+        "wp_664"
       ],
       "zone": "spawn"
     },
@@ -13289,276 +13709,202 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": 6.0,
         "y": 0.0,
-        "z": 40.0
+        "z": -32.0
       },
       "neighbors": [
-        "wp_577",
-        "wp_578",
+        "wp_581",
+        "wp_582",
+        "wp_583",
         "wp_620",
-        "wp_660",
-        "wp_661",
-        "wp_1161"
+        "wp_622",
+        "wp_663",
+        "wp_664",
+        "wp_665"
       ],
-      "zone": "spawn"
+      "zone": "flank"
     },
     {
       "id": "wp_622",
       "pos": {
         "x": 6.0,
         "y": 0.0,
-        "z": 44.0
+        "z": -30.0
       },
       "neighbors": [
-        "wp_579",
-        "wp_662"
+        "wp_582",
+        "wp_583",
+        "wp_584",
+        "wp_621",
+        "wp_623",
+        "wp_664",
+        "wp_665",
+        "wp_666",
+        "wp_1193"
       ],
-      "zone": "spawn"
+      "zone": "flank"
     },
     {
       "id": "wp_623",
       "pos": {
-        "x": 8.0,
-        "y": 0.0,
-        "z": -44.0
-      },
-      "neighbors": [
-        "wp_580",
-        "wp_581",
-        "wp_624",
-        "wp_663",
-        "wp_664"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_624",
-      "pos": {
-        "x": 8.0,
-        "y": 0.0,
-        "z": -42.0
-      },
-      "neighbors": [
-        "wp_580",
-        "wp_581",
-        "wp_582",
-        "wp_623",
-        "wp_625",
-        "wp_663",
-        "wp_664",
-        "wp_665"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_625",
-      "pos": {
-        "x": 8.0,
-        "y": 0.0,
-        "z": -40.0
-      },
-      "neighbors": [
-        "wp_581",
-        "wp_582",
-        "wp_583",
-        "wp_624",
-        "wp_626",
-        "wp_664",
-        "wp_665",
-        "wp_666"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_626",
-      "pos": {
-        "x": 8.0,
-        "y": 0.0,
-        "z": -38.0
-      },
-      "neighbors": [
-        "wp_582",
-        "wp_583",
-        "wp_584",
-        "wp_625",
-        "wp_627",
-        "wp_665",
-        "wp_666",
-        "wp_667"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_627",
-      "pos": {
-        "x": 8.0,
-        "y": 0.0,
-        "z": -36.0
-      },
-      "neighbors": [
-        "wp_583",
-        "wp_584",
-        "wp_585",
-        "wp_626",
-        "wp_628",
-        "wp_666",
-        "wp_667",
-        "wp_668"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_628",
-      "pos": {
-        "x": 8.0,
-        "y": 0.0,
-        "z": -34.0
-      },
-      "neighbors": [
-        "wp_584",
-        "wp_585",
-        "wp_586",
-        "wp_627",
-        "wp_629",
-        "wp_667",
-        "wp_668",
-        "wp_669"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_629",
-      "pos": {
-        "x": 8.0,
-        "y": 0.0,
-        "z": -32.0
-      },
-      "neighbors": [
-        "wp_585",
-        "wp_586",
-        "wp_587",
-        "wp_628",
-        "wp_630",
-        "wp_668",
-        "wp_669",
-        "wp_670"
-      ],
-      "zone": "flank"
-    },
-    {
-      "id": "wp_630",
-      "pos": {
-        "x": 8.0,
-        "y": 0.0,
-        "z": -30.0
-      },
-      "neighbors": [
-        "wp_586",
-        "wp_587",
-        "wp_588",
-        "wp_629",
-        "wp_631",
-        "wp_669",
-        "wp_670",
-        "wp_671",
-        "wp_1151"
-      ],
-      "zone": "flank"
-    },
-    {
-      "id": "wp_631",
-      "pos": {
-        "x": 8.0,
+        "x": 6.0,
         "y": 0.0,
         "z": -28.0
       },
       "neighbors": [
-        "wp_587",
-        "wp_588",
-        "wp_589",
-        "wp_630",
-        "wp_632",
-        "wp_670",
-        "wp_671",
-        "wp_1149",
-        "wp_1151"
+        "wp_583",
+        "wp_584",
+        "wp_622",
+        "wp_624",
+        "wp_665",
+        "wp_666",
+        "wp_667",
+        "wp_1191",
+        "wp_1193"
       ],
       "zone": "flank"
     },
     {
-      "id": "wp_632",
+      "id": "wp_624",
       "pos": {
-        "x": 8.0,
+        "x": 6.0,
         "y": 0.0,
         "z": -26.0
+      },
+      "neighbors": [
+        "wp_584",
+        "wp_623",
+        "wp_625",
+        "wp_666",
+        "wp_667",
+        "wp_668",
+        "wp_1191",
+        "wp_1192",
+        "wp_1193"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_625",
+      "pos": {
+        "x": 6.0,
+        "y": 0.0,
+        "z": -24.0
+      },
+      "neighbors": [
+        "wp_585",
+        "wp_624",
+        "wp_626",
+        "wp_667",
+        "wp_668",
+        "wp_669",
+        "wp_1191",
+        "wp_1192"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_626",
+      "pos": {
+        "x": 6.0,
+        "y": 0.0,
+        "z": -22.0
+      },
+      "neighbors": [
+        "wp_625",
+        "wp_627",
+        "wp_668",
+        "wp_669",
+        "wp_670",
+        "wp_1192"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_627",
+      "pos": {
+        "x": 6.0,
+        "y": 0.0,
+        "z": -20.0
+      },
+      "neighbors": [
+        "wp_586",
+        "wp_587",
+        "wp_626",
+        "wp_628",
+        "wp_669",
+        "wp_670",
+        "wp_671"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_628",
+      "pos": {
+        "x": 6.0,
+        "y": 0.0,
+        "z": -18.0
+      },
+      "neighbors": [
+        "wp_586",
+        "wp_587",
+        "wp_588",
+        "wp_627",
+        "wp_629",
+        "wp_670",
+        "wp_671",
+        "wp_672"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_629",
+      "pos": {
+        "x": 6.0,
+        "y": 0.0,
+        "z": -16.0
+      },
+      "neighbors": [
+        "wp_587",
+        "wp_588",
+        "wp_589",
+        "wp_628",
+        "wp_671",
+        "wp_672",
+        "wp_1190"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_630",
+      "pos": {
+        "x": 6.0,
+        "y": 0.0,
+        "z": -14.0
       },
       "neighbors": [
         "wp_588",
         "wp_589",
         "wp_590",
         "wp_631",
-        "wp_633",
-        "wp_671",
-        "wp_672",
-        "wp_1149",
-        "wp_1150",
-        "wp_1151"
+        "wp_673",
+        "wp_674",
+        "wp_1190"
       ],
       "zone": "mid"
     },
     {
-      "id": "wp_633",
+      "id": "wp_631",
       "pos": {
-        "x": 8.0,
+        "x": 6.0,
         "y": 0.0,
-        "z": -24.0
+        "z": -12.0
       },
       "neighbors": [
         "wp_589",
         "wp_590",
         "wp_591",
+        "wp_630",
         "wp_632",
-        "wp_634",
-        "wp_672",
-        "wp_673",
-        "wp_1149",
-        "wp_1150",
-        "wp_1151"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_634",
-      "pos": {
-        "x": 8.0,
-        "y": 0.0,
-        "z": -22.0
-      },
-      "neighbors": [
-        "wp_590",
-        "wp_591",
-        "wp_592",
-        "wp_633",
-        "wp_635",
-        "wp_672",
-        "wp_673",
-        "wp_674",
-        "wp_1150"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_635",
-      "pos": {
-        "x": 8.0,
-        "y": 0.0,
-        "z": -20.0
-      },
-      "neighbors": [
-        "wp_591",
-        "wp_592",
-        "wp_593",
-        "wp_634",
-        "wp_636",
         "wp_673",
         "wp_674",
         "wp_675"
@@ -13566,18 +13912,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "mid"
     },
     {
-      "id": "wp_636",
+      "id": "wp_632",
       "pos": {
-        "x": 8.0,
+        "x": 6.0,
         "y": 0.0,
-        "z": -18.0
+        "z": -10.0
       },
       "neighbors": [
+        "wp_590",
+        "wp_591",
         "wp_592",
-        "wp_593",
-        "wp_594",
-        "wp_635",
-        "wp_637",
+        "wp_631",
+        "wp_633",
         "wp_674",
         "wp_675",
         "wp_676"
@@ -13585,43 +13931,113 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "mid"
     },
     {
-      "id": "wp_637",
+      "id": "wp_633",
       "pos": {
-        "x": 8.0,
+        "x": 6.0,
         "y": 0.0,
-        "z": -16.0
+        "z": -8.0
       },
       "neighbors": [
-        "wp_593",
-        "wp_594",
-        "wp_636",
+        "wp_591",
+        "wp_592",
+        "wp_632",
+        "wp_634",
         "wp_675",
-        "wp_676"
+        "wp_676",
+        "wp_677"
       ],
       "zone": "mid"
     },
     {
-      "id": "wp_638",
+      "id": "wp_634",
       "pos": {
-        "x": 8.0,
+        "x": 6.0,
         "y": 0.0,
-        "z": -14.0
+        "z": -6.0
       },
       "neighbors": [
-        "wp_595",
-        "wp_596",
-        "wp_639",
+        "wp_592",
+        "wp_633",
+        "wp_635",
+        "wp_676",
         "wp_677",
         "wp_678"
       ],
       "zone": "mid"
     },
     {
+      "id": "wp_635",
+      "pos": {
+        "x": 6.0,
+        "y": 0.0,
+        "z": -4.0
+      },
+      "neighbors": [
+        "wp_593",
+        "wp_634",
+        "wp_636",
+        "wp_677",
+        "wp_678"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_636",
+      "pos": {
+        "x": 6.0,
+        "y": 0.0,
+        "z": -2.0
+      },
+      "neighbors": [
+        "wp_593",
+        "wp_594",
+        "wp_635",
+        "wp_637",
+        "wp_678"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_637",
+      "pos": {
+        "x": 6.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "neighbors": [
+        "wp_593",
+        "wp_594",
+        "wp_595",
+        "wp_636",
+        "wp_638",
+        "wp_679"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_638",
+      "pos": {
+        "x": 6.0,
+        "y": 0.0,
+        "z": 2.0
+      },
+      "neighbors": [
+        "wp_594",
+        "wp_595",
+        "wp_596",
+        "wp_637",
+        "wp_639",
+        "wp_679",
+        "wp_680"
+      ],
+      "zone": "mid"
+    },
+    {
       "id": "wp_639",
       "pos": {
-        "x": 8.0,
+        "x": 6.0,
         "y": 0.0,
-        "z": -12.0
+        "z": 4.0
       },
       "neighbors": [
         "wp_595",
@@ -13629,44 +14045,6 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "wp_597",
         "wp_638",
         "wp_640",
-        "wp_677",
-        "wp_678",
-        "wp_679"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_640",
-      "pos": {
-        "x": 8.0,
-        "y": 0.0,
-        "z": -10.0
-      },
-      "neighbors": [
-        "wp_596",
-        "wp_597",
-        "wp_598",
-        "wp_639",
-        "wp_641",
-        "wp_678",
-        "wp_679",
-        "wp_680"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_641",
-      "pos": {
-        "x": 8.0,
-        "y": 0.0,
-        "z": -8.0
-      },
-      "neighbors": [
-        "wp_597",
-        "wp_598",
-        "wp_599",
-        "wp_640",
-        "wp_642",
         "wp_679",
         "wp_680",
         "wp_681"
@@ -13674,18 +14052,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "mid"
     },
     {
-      "id": "wp_642",
+      "id": "wp_640",
       "pos": {
-        "x": 8.0,
+        "x": 6.0,
         "y": 0.0,
-        "z": -6.0
+        "z": 6.0
       },
       "neighbors": [
+        "wp_596",
+        "wp_597",
         "wp_598",
-        "wp_599",
-        "wp_600",
+        "wp_639",
         "wp_641",
-        "wp_643",
         "wp_680",
         "wp_681",
         "wp_682"
@@ -13693,16 +14071,17 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "mid"
     },
     {
-      "id": "wp_643",
+      "id": "wp_641",
       "pos": {
-        "x": 8.0,
+        "x": 6.0,
         "y": 0.0,
-        "z": -4.0
+        "z": 8.0
       },
       "neighbors": [
+        "wp_597",
+        "wp_598",
         "wp_599",
-        "wp_600",
-        "wp_601",
+        "wp_640",
         "wp_642",
         "wp_681",
         "wp_682",
@@ -13711,16 +14090,50 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "mid"
     },
     {
-      "id": "wp_644",
+      "id": "wp_642",
       "pos": {
-        "x": 8.0,
+        "x": 6.0,
         "y": 0.0,
-        "z": 2.0
+        "z": 10.0
       },
       "neighbors": [
+        "wp_598",
+        "wp_599",
+        "wp_641",
+        "wp_682",
+        "wp_683"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_643",
+      "pos": {
+        "x": 6.0,
+        "y": 0.0,
+        "z": 14.0
+      },
+      "neighbors": [
+        "wp_600",
+        "wp_601",
+        "wp_644",
+        "wp_684",
+        "wp_685",
+        "wp_1199"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_644",
+      "pos": {
+        "x": 6.0,
+        "y": 0.0,
+        "z": 16.0
+      },
+      "neighbors": [
+        "wp_600",
+        "wp_601",
         "wp_602",
-        "wp_603",
-        "wp_604",
+        "wp_643",
         "wp_645",
         "wp_684",
         "wp_685",
@@ -13731,237 +14144,239 @@ export const ASCENT_MAP_DATA: AscentMapData = {
     {
       "id": "wp_645",
       "pos": {
-        "x": 8.0,
+        "x": 6.0,
         "y": 0.0,
-        "z": 4.0
+        "z": 18.0
       },
       "neighbors": [
+        "wp_601",
+        "wp_602",
         "wp_603",
-        "wp_604",
-        "wp_605",
         "wp_644",
         "wp_646",
         "wp_685",
-        "wp_686",
-        "wp_687"
+        "wp_686"
       ],
       "zone": "mid"
     },
     {
       "id": "wp_646",
       "pos": {
-        "x": 8.0,
+        "x": 6.0,
         "y": 0.0,
-        "z": 6.0
+        "z": 20.0
       },
       "neighbors": [
+        "wp_602",
+        "wp_603",
         "wp_604",
-        "wp_605",
-        "wp_606",
         "wp_645",
         "wp_647",
         "wp_686",
-        "wp_687",
-        "wp_688"
+        "wp_687"
       ],
       "zone": "mid"
     },
     {
       "id": "wp_647",
       "pos": {
-        "x": 8.0,
+        "x": 6.0,
         "y": 0.0,
-        "z": 8.0
+        "z": 22.0
+      },
+      "neighbors": [
+        "wp_603",
+        "wp_604",
+        "wp_605",
+        "wp_646",
+        "wp_648",
+        "wp_687",
+        "wp_688"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_648",
+      "pos": {
+        "x": 6.0,
+        "y": 0.0,
+        "z": 24.0
+      },
+      "neighbors": [
+        "wp_604",
+        "wp_605",
+        "wp_606",
+        "wp_647",
+        "wp_649",
+        "wp_687",
+        "wp_688",
+        "wp_689"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_649",
+      "pos": {
+        "x": 6.0,
+        "y": 0.0,
+        "z": 26.0
       },
       "neighbors": [
         "wp_605",
         "wp_606",
         "wp_607",
-        "wp_646",
         "wp_648",
-        "wp_687",
-        "wp_688",
-        "wp_689"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_648",
-      "pos": {
-        "x": 8.0,
-        "y": 0.0,
-        "z": 10.0
-      },
-      "neighbors": [
-        "wp_606",
-        "wp_607",
-        "wp_647",
-        "wp_688",
-        "wp_689"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_649",
-      "pos": {
-        "x": 8.0,
-        "y": 0.0,
-        "z": 14.0
-      },
-      "neighbors": [
-        "wp_608",
-        "wp_609",
         "wp_650",
-        "wp_690",
-        "wp_691"
+        "wp_688",
+        "wp_689",
+        "wp_690"
       ],
-      "zone": "mid"
+      "zone": "spawn"
     },
     {
       "id": "wp_650",
       "pos": {
-        "x": 8.0,
+        "x": 6.0,
         "y": 0.0,
-        "z": 16.0
+        "z": 28.0
+      },
+      "neighbors": [
+        "wp_606",
+        "wp_607",
+        "wp_608",
+        "wp_649",
+        "wp_651",
+        "wp_689",
+        "wp_690",
+        "wp_691"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_651",
+      "pos": {
+        "x": 6.0,
+        "y": 0.0,
+        "z": 30.0
+      },
+      "neighbors": [
+        "wp_607",
+        "wp_608",
+        "wp_609",
+        "wp_650",
+        "wp_652",
+        "wp_690",
+        "wp_691",
+        "wp_692"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_652",
+      "pos": {
+        "x": 6.0,
+        "y": 0.0,
+        "z": 32.0
       },
       "neighbors": [
         "wp_608",
         "wp_609",
         "wp_610",
-        "wp_649",
         "wp_651",
-        "wp_690",
-        "wp_691",
-        "wp_692"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_651",
-      "pos": {
-        "x": 8.0,
-        "y": 0.0,
-        "z": 18.0
-      },
-      "neighbors": [
-        "wp_609",
-        "wp_610",
-        "wp_611",
-        "wp_650",
-        "wp_691",
-        "wp_692"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_652",
-      "pos": {
-        "x": 8.0,
-        "y": 0.0,
-        "z": 22.0
-      },
-      "neighbors": [
-        "wp_611",
-        "wp_612",
-        "wp_613",
         "wp_653",
-        "wp_693",
-        "wp_694"
+        "wp_691",
+        "wp_692",
+        "wp_693"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_653",
       "pos": {
-        "x": 8.0,
+        "x": 6.0,
         "y": 0.0,
-        "z": 24.0
+        "z": 34.0
       },
       "neighbors": [
-        "wp_612",
-        "wp_613",
-        "wp_614",
+        "wp_609",
+        "wp_610",
+        "wp_611",
         "wp_652",
         "wp_654",
+        "wp_692",
         "wp_693",
         "wp_694",
-        "wp_695"
+        "wp_1203"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_654",
       "pos": {
-        "x": 8.0,
+        "x": 6.0,
         "y": 0.0,
-        "z": 26.0
+        "z": 36.0
       },
       "neighbors": [
-        "wp_613",
-        "wp_614",
-        "wp_615",
+        "wp_610",
+        "wp_611",
+        "wp_612",
         "wp_653",
         "wp_655",
+        "wp_693",
         "wp_694",
         "wp_695",
-        "wp_696"
+        "wp_1203"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_655",
       "pos": {
-        "x": 8.0,
+        "x": 6.0,
         "y": 0.0,
-        "z": 28.0
+        "z": 38.0
       },
       "neighbors": [
-        "wp_614",
-        "wp_615",
-        "wp_616",
+        "wp_611",
+        "wp_612",
+        "wp_613",
         "wp_654",
         "wp_656",
+        "wp_694",
         "wp_695",
         "wp_696",
-        "wp_697"
+        "wp_1203"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_656",
       "pos": {
-        "x": 8.0,
+        "x": 6.0,
         "y": 0.0,
-        "z": 30.0
+        "z": 40.0
       },
       "neighbors": [
-        "wp_615",
-        "wp_616",
-        "wp_617",
+        "wp_612",
+        "wp_613",
         "wp_655",
-        "wp_657",
+        "wp_695",
         "wp_696",
-        "wp_697",
-        "wp_698"
+        "wp_1203"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_657",
       "pos": {
-        "x": 8.0,
+        "x": 6.0,
         "y": 0.0,
-        "z": 32.0
+        "z": 44.0
       },
       "neighbors": [
-        "wp_616",
-        "wp_617",
-        "wp_618",
-        "wp_656",
-        "wp_658",
-        "wp_697",
-        "wp_698",
-        "wp_699"
+        "wp_614",
+        "wp_697"
       ],
       "zone": "spawn"
     },
@@ -13970,17 +14385,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": 8.0,
         "y": 0.0,
-        "z": 34.0
+        "z": -44.0
       },
       "neighbors": [
-        "wp_617",
-        "wp_618",
-        "wp_619",
-        "wp_657",
+        "wp_615",
+        "wp_616",
         "wp_659",
         "wp_698",
-        "wp_699",
-        "wp_700"
+        "wp_699"
       ],
       "zone": "spawn"
     },
@@ -13989,18 +14401,17 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": 8.0,
         "y": 0.0,
-        "z": 36.0
+        "z": -42.0
       },
       "neighbors": [
-        "wp_618",
-        "wp_619",
-        "wp_620",
+        "wp_615",
+        "wp_616",
+        "wp_617",
         "wp_658",
         "wp_660",
+        "wp_698",
         "wp_699",
-        "wp_700",
-        "wp_701",
-        "wp_1161"
+        "wp_700"
       ],
       "zone": "spawn"
     },
@@ -14009,18 +14420,17 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": 8.0,
         "y": 0.0,
-        "z": 38.0
+        "z": -40.0
       },
       "neighbors": [
-        "wp_619",
-        "wp_620",
-        "wp_621",
+        "wp_616",
+        "wp_617",
+        "wp_618",
         "wp_659",
         "wp_661",
+        "wp_699",
         "wp_700",
-        "wp_701",
-        "wp_702",
-        "wp_1161"
+        "wp_701"
       ],
       "zone": "spawn"
     },
@@ -14029,15 +14439,17 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": 8.0,
         "y": 0.0,
-        "z": 40.0
+        "z": -38.0
       },
       "neighbors": [
-        "wp_620",
-        "wp_621",
+        "wp_617",
+        "wp_618",
+        "wp_619",
         "wp_660",
+        "wp_662",
+        "wp_700",
         "wp_701",
-        "wp_702",
-        "wp_703"
+        "wp_702"
       ],
       "zone": "spawn"
     },
@@ -14046,611 +14458,663 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": 8.0,
         "y": 0.0,
-        "z": 44.0
+        "z": -36.0
       },
       "neighbors": [
-        "wp_622",
-        "wp_704"
+        "wp_618",
+        "wp_619",
+        "wp_620",
+        "wp_661",
+        "wp_663",
+        "wp_701",
+        "wp_702",
+        "wp_703"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_663",
       "pos": {
-        "x": 10.0,
+        "x": 8.0,
         "y": 0.0,
-        "z": -44.0
+        "z": -34.0
       },
       "neighbors": [
-        "wp_623",
-        "wp_624",
+        "wp_619",
+        "wp_620",
+        "wp_621",
+        "wp_662",
         "wp_664",
-        "wp_705",
-        "wp_706"
+        "wp_702",
+        "wp_703",
+        "wp_704"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_664",
       "pos": {
-        "x": 10.0,
+        "x": 8.0,
         "y": 0.0,
-        "z": -42.0
+        "z": -32.0
+      },
+      "neighbors": [
+        "wp_620",
+        "wp_621",
+        "wp_622",
+        "wp_663",
+        "wp_665",
+        "wp_703",
+        "wp_704",
+        "wp_705"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_665",
+      "pos": {
+        "x": 8.0,
+        "y": 0.0,
+        "z": -30.0
+      },
+      "neighbors": [
+        "wp_621",
+        "wp_622",
+        "wp_623",
+        "wp_664",
+        "wp_666",
+        "wp_704",
+        "wp_705",
+        "wp_706",
+        "wp_1193"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_666",
+      "pos": {
+        "x": 8.0,
+        "y": 0.0,
+        "z": -28.0
+      },
+      "neighbors": [
+        "wp_622",
+        "wp_623",
+        "wp_624",
+        "wp_665",
+        "wp_667",
+        "wp_705",
+        "wp_706",
+        "wp_1191",
+        "wp_1193"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_667",
+      "pos": {
+        "x": 8.0,
+        "y": 0.0,
+        "z": -26.0
       },
       "neighbors": [
         "wp_623",
         "wp_624",
         "wp_625",
-        "wp_663",
-        "wp_665",
-        "wp_705",
+        "wp_666",
+        "wp_668",
         "wp_706",
-        "wp_707"
+        "wp_707",
+        "wp_1191",
+        "wp_1192",
+        "wp_1193"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
-      "id": "wp_665",
+      "id": "wp_668",
       "pos": {
-        "x": 10.0,
+        "x": 8.0,
         "y": 0.0,
-        "z": -40.0
+        "z": -24.0
       },
       "neighbors": [
         "wp_624",
         "wp_625",
         "wp_626",
-        "wp_664",
-        "wp_666",
-        "wp_706",
+        "wp_667",
+        "wp_669",
         "wp_707",
-        "wp_708"
+        "wp_708",
+        "wp_1191",
+        "wp_1192",
+        "wp_1193"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
-      "id": "wp_666",
+      "id": "wp_669",
       "pos": {
-        "x": 10.0,
+        "x": 8.0,
         "y": 0.0,
-        "z": -38.0
+        "z": -22.0
       },
       "neighbors": [
         "wp_625",
         "wp_626",
         "wp_627",
-        "wp_665",
-        "wp_667",
+        "wp_668",
+        "wp_670",
         "wp_707",
         "wp_708",
-        "wp_709"
+        "wp_709",
+        "wp_1192"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
-      "id": "wp_667",
+      "id": "wp_670",
       "pos": {
-        "x": 10.0,
+        "x": 8.0,
         "y": 0.0,
-        "z": -36.0
+        "z": -20.0
       },
       "neighbors": [
         "wp_626",
         "wp_627",
         "wp_628",
-        "wp_666",
-        "wp_668",
+        "wp_669",
+        "wp_671",
         "wp_708",
         "wp_709",
         "wp_710"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
-      "id": "wp_668",
+      "id": "wp_671",
       "pos": {
-        "x": 10.0,
+        "x": 8.0,
         "y": 0.0,
-        "z": -34.0
+        "z": -18.0
       },
       "neighbors": [
         "wp_627",
         "wp_628",
         "wp_629",
-        "wp_667",
-        "wp_669",
+        "wp_670",
+        "wp_672",
         "wp_709",
         "wp_710",
         "wp_711"
       ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_669",
-      "pos": {
-        "x": 10.0,
-        "y": 0.0,
-        "z": -32.0
-      },
-      "neighbors": [
-        "wp_628",
-        "wp_629",
-        "wp_630",
-        "wp_668",
-        "wp_670",
-        "wp_710",
-        "wp_711",
-        "wp_712"
-      ],
-      "zone": "flank"
-    },
-    {
-      "id": "wp_670",
-      "pos": {
-        "x": 10.0,
-        "y": 0.0,
-        "z": -30.0
-      },
-      "neighbors": [
-        "wp_629",
-        "wp_630",
-        "wp_631",
-        "wp_669",
-        "wp_671",
-        "wp_711",
-        "wp_712",
-        "wp_713"
-      ],
-      "zone": "flank"
-    },
-    {
-      "id": "wp_671",
-      "pos": {
-        "x": 10.0,
-        "y": 0.0,
-        "z": -28.0
-      },
-      "neighbors": [
-        "wp_630",
-        "wp_631",
-        "wp_632",
-        "wp_670",
-        "wp_712",
-        "wp_713",
-        "wp_1151"
-      ],
-      "zone": "flank"
+      "zone": "mid"
     },
     {
       "id": "wp_672",
       "pos": {
-        "x": 10.0,
+        "x": 8.0,
         "y": 0.0,
-        "z": -24.0
+        "z": -16.0
       },
       "neighbors": [
-        "wp_632",
-        "wp_633",
-        "wp_634",
-        "wp_673",
-        "wp_714",
-        "wp_715",
-        "wp_1149",
-        "wp_1150"
+        "wp_628",
+        "wp_629",
+        "wp_671",
+        "wp_710",
+        "wp_711"
       ],
       "zone": "mid"
     },
     {
       "id": "wp_673",
       "pos": {
-        "x": 10.0,
+        "x": 8.0,
         "y": 0.0,
-        "z": -22.0
+        "z": -14.0
       },
       "neighbors": [
-        "wp_633",
-        "wp_634",
-        "wp_635",
-        "wp_672",
+        "wp_630",
+        "wp_631",
         "wp_674",
-        "wp_714",
-        "wp_715",
-        "wp_716",
-        "wp_1133"
+        "wp_712",
+        "wp_713"
       ],
       "zone": "mid"
     },
     {
       "id": "wp_674",
       "pos": {
-        "x": 10.0,
+        "x": 8.0,
         "y": 0.0,
-        "z": -20.0
+        "z": -12.0
       },
       "neighbors": [
-        "wp_634",
-        "wp_635",
-        "wp_636",
+        "wp_630",
+        "wp_631",
+        "wp_632",
         "wp_673",
         "wp_675",
-        "wp_715",
-        "wp_716",
-        "wp_717",
-        "wp_1133"
+        "wp_712",
+        "wp_713",
+        "wp_714"
       ],
       "zone": "mid"
     },
     {
       "id": "wp_675",
       "pos": {
-        "x": 10.0,
+        "x": 8.0,
         "y": 0.0,
-        "z": -18.0
+        "z": -10.0
       },
       "neighbors": [
-        "wp_635",
-        "wp_636",
-        "wp_637",
+        "wp_631",
+        "wp_632",
+        "wp_633",
         "wp_674",
         "wp_676",
-        "wp_716",
-        "wp_717",
-        "wp_718"
+        "wp_713",
+        "wp_714",
+        "wp_715"
       ],
       "zone": "mid"
     },
     {
       "id": "wp_676",
       "pos": {
-        "x": 10.0,
+        "x": 8.0,
         "y": 0.0,
-        "z": -16.0
+        "z": -8.0
       },
       "neighbors": [
-        "wp_636",
-        "wp_637",
+        "wp_632",
+        "wp_633",
+        "wp_634",
         "wp_675",
-        "wp_717",
-        "wp_718"
+        "wp_677",
+        "wp_714",
+        "wp_715",
+        "wp_716"
       ],
       "zone": "mid"
     },
     {
       "id": "wp_677",
       "pos": {
-        "x": 10.0,
+        "x": 8.0,
         "y": 0.0,
-        "z": -14.0
+        "z": -6.0
       },
       "neighbors": [
-        "wp_638",
-        "wp_639",
-        "wp_678"
+        "wp_633",
+        "wp_634",
+        "wp_635",
+        "wp_676",
+        "wp_678",
+        "wp_715",
+        "wp_716",
+        "wp_717"
       ],
       "zone": "mid"
     },
     {
       "id": "wp_678",
       "pos": {
-        "x": 10.0,
+        "x": 8.0,
         "y": 0.0,
-        "z": -12.0
+        "z": -4.0
       },
       "neighbors": [
-        "wp_638",
-        "wp_639",
-        "wp_640",
+        "wp_634",
+        "wp_635",
+        "wp_636",
         "wp_677",
-        "wp_679"
+        "wp_716",
+        "wp_717"
       ],
       "zone": "mid"
     },
     {
       "id": "wp_679",
       "pos": {
-        "x": 10.0,
+        "x": 8.0,
         "y": 0.0,
-        "z": -10.0
+        "z": 2.0
       },
       "neighbors": [
+        "wp_637",
+        "wp_638",
         "wp_639",
-        "wp_640",
-        "wp_641",
-        "wp_678",
-        "wp_680"
+        "wp_680",
+        "wp_718",
+        "wp_719"
       ],
       "zone": "mid"
     },
     {
       "id": "wp_680",
       "pos": {
-        "x": 10.0,
+        "x": 8.0,
         "y": 0.0,
-        "z": -8.0
+        "z": 4.0
       },
       "neighbors": [
+        "wp_638",
+        "wp_639",
         "wp_640",
-        "wp_641",
-        "wp_642",
         "wp_679",
-        "wp_681"
+        "wp_681",
+        "wp_718",
+        "wp_719",
+        "wp_720"
       ],
       "zone": "mid"
     },
     {
       "id": "wp_681",
       "pos": {
-        "x": 10.0,
+        "x": 8.0,
         "y": 0.0,
-        "z": -6.0
+        "z": 6.0
       },
       "neighbors": [
+        "wp_639",
+        "wp_640",
         "wp_641",
-        "wp_642",
-        "wp_643",
         "wp_680",
-        "wp_682"
+        "wp_682",
+        "wp_719",
+        "wp_720",
+        "wp_721"
       ],
       "zone": "mid"
     },
     {
       "id": "wp_682",
       "pos": {
-        "x": 10.0,
+        "x": 8.0,
         "y": 0.0,
-        "z": -4.0
+        "z": 8.0
       },
       "neighbors": [
+        "wp_640",
+        "wp_641",
         "wp_642",
-        "wp_643",
         "wp_681",
-        "wp_683"
+        "wp_683",
+        "wp_720",
+        "wp_721",
+        "wp_722"
       ],
       "zone": "mid"
     },
     {
       "id": "wp_683",
       "pos": {
-        "x": 10.0,
+        "x": 8.0,
         "y": 0.0,
-        "z": -2.0
+        "z": 10.0
       },
       "neighbors": [
-        "wp_643",
+        "wp_641",
+        "wp_642",
         "wp_682",
-        "wp_684"
+        "wp_721",
+        "wp_722"
       ],
       "zone": "mid"
     },
     {
       "id": "wp_684",
       "pos": {
-        "x": 10.0,
+        "x": 8.0,
         "y": 0.0,
-        "z": 0.0
+        "z": 14.0
       },
       "neighbors": [
+        "wp_643",
         "wp_644",
-        "wp_683",
-        "wp_685"
+        "wp_685",
+        "wp_723",
+        "wp_724"
       ],
       "zone": "mid"
     },
     {
       "id": "wp_685",
       "pos": {
-        "x": 10.0,
+        "x": 8.0,
         "y": 0.0,
-        "z": 2.0
+        "z": 16.0
       },
       "neighbors": [
+        "wp_643",
         "wp_644",
         "wp_645",
         "wp_684",
-        "wp_686"
+        "wp_686",
+        "wp_723",
+        "wp_724",
+        "wp_725"
       ],
       "zone": "mid"
     },
     {
       "id": "wp_686",
       "pos": {
-        "x": 10.0,
+        "x": 8.0,
         "y": 0.0,
-        "z": 4.0
+        "z": 18.0
       },
       "neighbors": [
         "wp_644",
         "wp_645",
         "wp_646",
         "wp_685",
-        "wp_687"
+        "wp_724",
+        "wp_725"
       ],
       "zone": "mid"
     },
     {
       "id": "wp_687",
       "pos": {
-        "x": 10.0,
-        "y": 0.0,
-        "z": 6.0
-      },
-      "neighbors": [
-        "wp_645",
-        "wp_646",
-        "wp_647",
-        "wp_686",
-        "wp_688",
-        "wp_719",
-        "wp_720"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_688",
-      "pos": {
-        "x": 10.0,
-        "y": 0.0,
-        "z": 8.0
-      },
-      "neighbors": [
-        "wp_646",
-        "wp_647",
-        "wp_648",
-        "wp_687",
-        "wp_689",
-        "wp_719",
-        "wp_720"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_689",
-      "pos": {
-        "x": 10.0,
-        "y": 0.0,
-        "z": 10.0
-      },
-      "neighbors": [
-        "wp_647",
-        "wp_648",
-        "wp_688",
-        "wp_720"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_690",
-      "pos": {
-        "x": 10.0,
-        "y": 0.0,
-        "z": 14.0
-      },
-      "neighbors": [
-        "wp_649",
-        "wp_650",
-        "wp_691"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_691",
-      "pos": {
-        "x": 10.0,
-        "y": 0.0,
-        "z": 16.0
-      },
-      "neighbors": [
-        "wp_649",
-        "wp_650",
-        "wp_651",
-        "wp_690",
-        "wp_692"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_692",
-      "pos": {
-        "x": 10.0,
-        "y": 0.0,
-        "z": 18.0
-      },
-      "neighbors": [
-        "wp_650",
-        "wp_651",
-        "wp_691"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_693",
-      "pos": {
-        "x": 10.0,
+        "x": 8.0,
         "y": 0.0,
         "z": 22.0
       },
       "neighbors": [
+        "wp_646",
+        "wp_647",
+        "wp_648",
+        "wp_688",
+        "wp_726",
+        "wp_727"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_688",
+      "pos": {
+        "x": 8.0,
+        "y": 0.0,
+        "z": 24.0
+      },
+      "neighbors": [
+        "wp_647",
+        "wp_648",
+        "wp_649",
+        "wp_687",
+        "wp_689",
+        "wp_726",
+        "wp_727",
+        "wp_728"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_689",
+      "pos": {
+        "x": 8.0,
+        "y": 0.0,
+        "z": 26.0
+      },
+      "neighbors": [
+        "wp_648",
+        "wp_649",
+        "wp_650",
+        "wp_688",
+        "wp_690",
+        "wp_727",
+        "wp_728",
+        "wp_729"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_690",
+      "pos": {
+        "x": 8.0,
+        "y": 0.0,
+        "z": 28.0
+      },
+      "neighbors": [
+        "wp_649",
+        "wp_650",
+        "wp_651",
+        "wp_689",
+        "wp_691",
+        "wp_728",
+        "wp_729",
+        "wp_730"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_691",
+      "pos": {
+        "x": 8.0,
+        "y": 0.0,
+        "z": 30.0
+      },
+      "neighbors": [
+        "wp_650",
+        "wp_651",
+        "wp_652",
+        "wp_690",
+        "wp_692",
+        "wp_729",
+        "wp_730",
+        "wp_731"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_692",
+      "pos": {
+        "x": 8.0,
+        "y": 0.0,
+        "z": 32.0
+      },
+      "neighbors": [
+        "wp_651",
         "wp_652",
         "wp_653",
+        "wp_691",
+        "wp_693",
+        "wp_730",
+        "wp_731",
+        "wp_732"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_693",
+      "pos": {
+        "x": 8.0,
+        "y": 0.0,
+        "z": 34.0
+      },
+      "neighbors": [
+        "wp_652",
+        "wp_653",
+        "wp_654",
+        "wp_692",
         "wp_694",
-        "wp_721",
-        "wp_722"
+        "wp_731",
+        "wp_732",
+        "wp_733"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_694",
       "pos": {
-        "x": 10.0,
+        "x": 8.0,
         "y": 0.0,
-        "z": 24.0
+        "z": 36.0
       },
       "neighbors": [
-        "wp_652",
         "wp_653",
         "wp_654",
+        "wp_655",
         "wp_693",
         "wp_695",
-        "wp_721",
-        "wp_722",
-        "wp_723"
+        "wp_732",
+        "wp_733",
+        "wp_734",
+        "wp_1203"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_695",
       "pos": {
-        "x": 10.0,
+        "x": 8.0,
         "y": 0.0,
-        "z": 26.0
+        "z": 38.0
       },
       "neighbors": [
-        "wp_653",
         "wp_654",
         "wp_655",
+        "wp_656",
         "wp_694",
         "wp_696",
-        "wp_722",
-        "wp_723",
-        "wp_724"
+        "wp_733",
+        "wp_734",
+        "wp_735",
+        "wp_1203"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_696",
       "pos": {
-        "x": 10.0,
+        "x": 8.0,
         "y": 0.0,
-        "z": 28.0
+        "z": 40.0
       },
       "neighbors": [
-        "wp_654",
         "wp_655",
         "wp_656",
         "wp_695",
-        "wp_697",
-        "wp_723",
-        "wp_724",
-        "wp_725"
+        "wp_734",
+        "wp_735",
+        "wp_736"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_697",
       "pos": {
-        "x": 10.0,
+        "x": 8.0,
         "y": 0.0,
-        "z": 30.0
+        "z": 44.0
       },
       "neighbors": [
-        "wp_655",
-        "wp_656",
         "wp_657",
-        "wp_696",
-        "wp_698",
-        "wp_724",
-        "wp_725",
-        "wp_726"
+        "wp_737"
       ],
       "zone": "spawn"
     },
@@ -14659,17 +15123,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": 10.0,
         "y": 0.0,
-        "z": 32.0
+        "z": -44.0
       },
       "neighbors": [
-        "wp_656",
-        "wp_657",
         "wp_658",
-        "wp_697",
+        "wp_659",
         "wp_699",
-        "wp_725",
-        "wp_726",
-        "wp_727"
+        "wp_738",
+        "wp_739"
       ],
       "zone": "spawn"
     },
@@ -14678,17 +15139,17 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": 10.0,
         "y": 0.0,
-        "z": 34.0
+        "z": -42.0
       },
       "neighbors": [
-        "wp_657",
         "wp_658",
         "wp_659",
+        "wp_660",
         "wp_698",
         "wp_700",
-        "wp_726",
-        "wp_727",
-        "wp_728"
+        "wp_738",
+        "wp_739",
+        "wp_740"
       ],
       "zone": "spawn"
     },
@@ -14697,17 +15158,17 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": 10.0,
         "y": 0.0,
-        "z": 36.0
+        "z": -40.0
       },
       "neighbors": [
-        "wp_658",
         "wp_659",
         "wp_660",
+        "wp_661",
         "wp_699",
         "wp_701",
-        "wp_727",
-        "wp_728",
-        "wp_729"
+        "wp_739",
+        "wp_740",
+        "wp_741"
       ],
       "zone": "spawn"
     },
@@ -14716,17 +15177,17 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": 10.0,
         "y": 0.0,
-        "z": 38.0
+        "z": -38.0
       },
       "neighbors": [
-        "wp_659",
         "wp_660",
         "wp_661",
+        "wp_662",
         "wp_700",
         "wp_702",
-        "wp_728",
-        "wp_729",
-        "wp_730"
+        "wp_740",
+        "wp_741",
+        "wp_742"
       ],
       "zone": "spawn"
     },
@@ -14735,16 +15196,17 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": 10.0,
         "y": 0.0,
-        "z": 40.0
+        "z": -36.0
       },
       "neighbors": [
-        "wp_660",
         "wp_661",
+        "wp_662",
+        "wp_663",
         "wp_701",
         "wp_703",
-        "wp_729",
-        "wp_730",
-        "wp_731"
+        "wp_741",
+        "wp_742",
+        "wp_743"
       ],
       "zone": "spawn"
     },
@@ -14753,15 +15215,17 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": 10.0,
         "y": 0.0,
-        "z": 42.0
+        "z": -34.0
       },
       "neighbors": [
-        "wp_661",
+        "wp_662",
+        "wp_663",
+        "wp_664",
         "wp_702",
         "wp_704",
-        "wp_730",
-        "wp_731",
-        "wp_732"
+        "wp_742",
+        "wp_743",
+        "wp_744"
       ],
       "zone": "spawn"
     },
@@ -14770,543 +15234,416 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": 10.0,
         "y": 0.0,
-        "z": 44.0
+        "z": -32.0
       },
       "neighbors": [
-        "wp_662",
+        "wp_663",
+        "wp_664",
+        "wp_665",
         "wp_703",
-        "wp_731",
-        "wp_732"
+        "wp_705",
+        "wp_743",
+        "wp_744",
+        "wp_745"
       ],
-      "zone": "spawn"
+      "zone": "flank"
     },
     {
       "id": "wp_705",
       "pos": {
-        "x": 12.0,
-        "y": 0.0,
-        "z": -44.0
-      },
-      "neighbors": [
-        "wp_663",
-        "wp_664",
-        "wp_706",
-        "wp_733",
-        "wp_734"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_706",
-      "pos": {
-        "x": 12.0,
-        "y": 0.0,
-        "z": -42.0
-      },
-      "neighbors": [
-        "wp_663",
-        "wp_664",
-        "wp_665",
-        "wp_705",
-        "wp_707",
-        "wp_733",
-        "wp_734",
-        "wp_735"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_707",
-      "pos": {
-        "x": 12.0,
-        "y": 0.0,
-        "z": -40.0
-      },
-      "neighbors": [
-        "wp_664",
-        "wp_665",
-        "wp_666",
-        "wp_706",
-        "wp_708",
-        "wp_734",
-        "wp_735",
-        "wp_736"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_708",
-      "pos": {
-        "x": 12.0,
-        "y": 0.0,
-        "z": -38.0
-      },
-      "neighbors": [
-        "wp_665",
-        "wp_666",
-        "wp_667",
-        "wp_707",
-        "wp_709",
-        "wp_735",
-        "wp_736",
-        "wp_737"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_709",
-      "pos": {
-        "x": 12.0,
-        "y": 0.0,
-        "z": -36.0
-      },
-      "neighbors": [
-        "wp_666",
-        "wp_667",
-        "wp_668",
-        "wp_708",
-        "wp_710",
-        "wp_736",
-        "wp_737",
-        "wp_738"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_710",
-      "pos": {
-        "x": 12.0,
-        "y": 0.0,
-        "z": -34.0
-      },
-      "neighbors": [
-        "wp_667",
-        "wp_668",
-        "wp_669",
-        "wp_709",
-        "wp_711",
-        "wp_737",
-        "wp_738"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_711",
-      "pos": {
-        "x": 12.0,
-        "y": 0.0,
-        "z": -32.0
-      },
-      "neighbors": [
-        "wp_668",
-        "wp_669",
-        "wp_670",
-        "wp_710",
-        "wp_712",
-        "wp_738"
-      ],
-      "zone": "flank"
-    },
-    {
-      "id": "wp_712",
-      "pos": {
-        "x": 12.0,
+        "x": 10.0,
         "y": 0.0,
         "z": -30.0
       },
       "neighbors": [
-        "wp_669",
-        "wp_670",
-        "wp_671",
-        "wp_711",
-        "wp_713"
+        "wp_664",
+        "wp_665",
+        "wp_666",
+        "wp_704",
+        "wp_706",
+        "wp_744",
+        "wp_745",
+        "wp_746"
       ],
       "zone": "flank"
     },
     {
-      "id": "wp_713",
+      "id": "wp_706",
       "pos": {
-        "x": 12.0,
+        "x": 10.0,
         "y": 0.0,
         "z": -28.0
       },
       "neighbors": [
-        "wp_670",
-        "wp_671",
-        "wp_712"
+        "wp_665",
+        "wp_666",
+        "wp_667",
+        "wp_705",
+        "wp_745",
+        "wp_746",
+        "wp_1193"
       ],
       "zone": "flank"
     },
     {
-      "id": "wp_714",
+      "id": "wp_707",
       "pos": {
-        "x": 12.0,
+        "x": 10.0,
         "y": 0.0,
         "z": -24.0
       },
       "neighbors": [
+        "wp_667",
+        "wp_668",
+        "wp_669",
+        "wp_708",
+        "wp_747",
+        "wp_748",
+        "wp_1191",
+        "wp_1192"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_708",
+      "pos": {
+        "x": 10.0,
+        "y": 0.0,
+        "z": -22.0
+      },
+      "neighbors": [
+        "wp_668",
+        "wp_669",
+        "wp_670",
+        "wp_707",
+        "wp_709",
+        "wp_747",
+        "wp_748",
+        "wp_749",
+        "wp_1175"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_709",
+      "pos": {
+        "x": 10.0,
+        "y": 0.0,
+        "z": -20.0
+      },
+      "neighbors": [
+        "wp_669",
+        "wp_670",
+        "wp_671",
+        "wp_708",
+        "wp_710",
+        "wp_748",
+        "wp_749",
+        "wp_750",
+        "wp_1175"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_710",
+      "pos": {
+        "x": 10.0,
+        "y": 0.0,
+        "z": -18.0
+      },
+      "neighbors": [
+        "wp_670",
+        "wp_671",
         "wp_672",
+        "wp_709",
+        "wp_711",
+        "wp_749",
+        "wp_750",
+        "wp_751"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_711",
+      "pos": {
+        "x": 10.0,
+        "y": 0.0,
+        "z": -16.0
+      },
+      "neighbors": [
+        "wp_671",
+        "wp_672",
+        "wp_710",
+        "wp_750",
+        "wp_751"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_712",
+      "pos": {
+        "x": 10.0,
+        "y": 0.0,
+        "z": -14.0
+      },
+      "neighbors": [
         "wp_673",
-        "wp_715",
-        "wp_1133"
+        "wp_674",
+        "wp_713"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_713",
+      "pos": {
+        "x": 10.0,
+        "y": 0.0,
+        "z": -12.0
+      },
+      "neighbors": [
+        "wp_673",
+        "wp_674",
+        "wp_675",
+        "wp_712",
+        "wp_714"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_714",
+      "pos": {
+        "x": 10.0,
+        "y": 0.0,
+        "z": -10.0
+      },
+      "neighbors": [
+        "wp_674",
+        "wp_675",
+        "wp_676",
+        "wp_713",
+        "wp_715"
       ],
       "zone": "mid"
     },
     {
       "id": "wp_715",
       "pos": {
-        "x": 12.0,
+        "x": 10.0,
         "y": 0.0,
-        "z": -22.0
+        "z": -8.0
       },
       "neighbors": [
-        "wp_672",
-        "wp_673",
-        "wp_674",
+        "wp_675",
+        "wp_676",
+        "wp_677",
         "wp_714",
-        "wp_716",
-        "wp_739",
-        "wp_740",
-        "wp_1133",
-        "wp_1134"
+        "wp_716"
       ],
       "zone": "mid"
     },
     {
       "id": "wp_716",
       "pos": {
-        "x": 12.0,
+        "x": 10.0,
         "y": 0.0,
-        "z": -20.0
+        "z": -6.0
       },
       "neighbors": [
-        "wp_673",
-        "wp_674",
-        "wp_675",
+        "wp_676",
+        "wp_677",
+        "wp_678",
         "wp_715",
-        "wp_717",
-        "wp_739",
-        "wp_740",
-        "wp_1133",
-        "wp_1134"
+        "wp_717"
       ],
       "zone": "mid"
     },
     {
       "id": "wp_717",
       "pos": {
-        "x": 12.0,
+        "x": 10.0,
         "y": 0.0,
-        "z": -18.0
+        "z": -4.0
       },
       "neighbors": [
-        "wp_674",
-        "wp_675",
-        "wp_676",
-        "wp_716",
-        "wp_718",
-        "wp_1133"
+        "wp_677",
+        "wp_678",
+        "wp_716"
       ],
       "zone": "mid"
     },
     {
       "id": "wp_718",
       "pos": {
-        "x": 12.0,
+        "x": 10.0,
         "y": 0.0,
-        "z": -16.0
+        "z": 2.0
       },
       "neighbors": [
-        "wp_675",
-        "wp_676",
-        "wp_717"
+        "wp_679",
+        "wp_680",
+        "wp_719"
       ],
       "zone": "mid"
     },
     {
       "id": "wp_719",
       "pos": {
-        "x": 12.0,
+        "x": 10.0,
         "y": 0.0,
-        "z": 6.0
+        "z": 4.0
       },
       "neighbors": [
-        "wp_687",
-        "wp_688",
-        "wp_720",
-        "wp_741",
-        "wp_742"
+        "wp_679",
+        "wp_680",
+        "wp_681",
+        "wp_718",
+        "wp_720"
       ],
       "zone": "mid"
     },
     {
       "id": "wp_720",
       "pos": {
-        "x": 12.0,
+        "x": 10.0,
         "y": 0.0,
-        "z": 8.0
+        "z": 6.0
       },
       "neighbors": [
-        "wp_687",
-        "wp_688",
-        "wp_689",
+        "wp_680",
+        "wp_681",
+        "wp_682",
         "wp_719",
-        "wp_741",
-        "wp_742"
+        "wp_721",
+        "wp_752",
+        "wp_753"
       ],
       "zone": "mid"
     },
     {
       "id": "wp_721",
       "pos": {
-        "x": 12.0,
+        "x": 10.0,
         "y": 0.0,
-        "z": 22.0
+        "z": 8.0
       },
       "neighbors": [
-        "wp_693",
-        "wp_694",
+        "wp_681",
+        "wp_682",
+        "wp_683",
+        "wp_720",
         "wp_722",
-        "wp_743",
-        "wp_744"
+        "wp_752",
+        "wp_753"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_722",
       "pos": {
-        "x": 12.0,
+        "x": 10.0,
         "y": 0.0,
-        "z": 24.0
+        "z": 10.0
       },
       "neighbors": [
-        "wp_693",
-        "wp_694",
-        "wp_695",
+        "wp_682",
+        "wp_683",
         "wp_721",
-        "wp_723",
-        "wp_743",
-        "wp_744",
-        "wp_745"
+        "wp_753"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_723",
       "pos": {
-        "x": 12.0,
+        "x": 10.0,
         "y": 0.0,
-        "z": 26.0
+        "z": 14.0
       },
       "neighbors": [
-        "wp_694",
-        "wp_695",
-        "wp_696",
-        "wp_722",
-        "wp_724",
-        "wp_744",
-        "wp_745",
-        "wp_746"
+        "wp_684",
+        "wp_685",
+        "wp_724"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_724",
       "pos": {
-        "x": 12.0,
+        "x": 10.0,
         "y": 0.0,
-        "z": 28.0
+        "z": 16.0
       },
       "neighbors": [
-        "wp_695",
-        "wp_696",
-        "wp_697",
+        "wp_684",
+        "wp_685",
+        "wp_686",
         "wp_723",
-        "wp_725",
-        "wp_745",
-        "wp_746",
-        "wp_747"
+        "wp_725"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_725",
       "pos": {
-        "x": 12.0,
+        "x": 10.0,
         "y": 0.0,
-        "z": 30.0
+        "z": 18.0
       },
       "neighbors": [
-        "wp_696",
-        "wp_697",
-        "wp_698",
-        "wp_724",
-        "wp_726",
-        "wp_746",
-        "wp_747",
-        "wp_748"
+        "wp_685",
+        "wp_686",
+        "wp_724"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_726",
       "pos": {
-        "x": 12.0,
+        "x": 10.0,
         "y": 0.0,
-        "z": 32.0
+        "z": 22.0
       },
       "neighbors": [
-        "wp_697",
-        "wp_698",
-        "wp_699",
-        "wp_725",
+        "wp_687",
+        "wp_688",
         "wp_727",
-        "wp_747",
-        "wp_748",
-        "wp_749"
+        "wp_754",
+        "wp_755"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_727",
       "pos": {
-        "x": 12.0,
+        "x": 10.0,
         "y": 0.0,
-        "z": 34.0
+        "z": 24.0
       },
       "neighbors": [
-        "wp_698",
-        "wp_699",
-        "wp_700",
+        "wp_687",
+        "wp_688",
+        "wp_689",
         "wp_726",
         "wp_728",
-        "wp_748",
-        "wp_749",
-        "wp_750"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_728",
-      "pos": {
-        "x": 12.0,
-        "y": 0.0,
-        "z": 36.0
-      },
-      "neighbors": [
-        "wp_699",
-        "wp_700",
-        "wp_701",
-        "wp_727",
-        "wp_729",
-        "wp_749",
-        "wp_750",
-        "wp_751"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_729",
-      "pos": {
-        "x": 12.0,
-        "y": 0.0,
-        "z": 38.0
-      },
-      "neighbors": [
-        "wp_700",
-        "wp_701",
-        "wp_702",
-        "wp_728",
-        "wp_730",
-        "wp_750",
-        "wp_751",
-        "wp_752"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_730",
-      "pos": {
-        "x": 12.0,
-        "y": 0.0,
-        "z": 40.0
-      },
-      "neighbors": [
-        "wp_701",
-        "wp_702",
-        "wp_703",
-        "wp_729",
-        "wp_731",
-        "wp_751",
-        "wp_752",
-        "wp_753"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_731",
-      "pos": {
-        "x": 12.0,
-        "y": 0.0,
-        "z": 42.0
-      },
-      "neighbors": [
-        "wp_702",
-        "wp_703",
-        "wp_704",
-        "wp_730",
-        "wp_732",
-        "wp_752",
-        "wp_753",
-        "wp_754"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_732",
-      "pos": {
-        "x": 12.0,
-        "y": 0.0,
-        "z": 44.0
-      },
-      "neighbors": [
-        "wp_703",
-        "wp_704",
-        "wp_731",
-        "wp_753",
-        "wp_754"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_733",
-      "pos": {
-        "x": 14.0,
-        "y": 0.0,
-        "z": -44.0
-      },
-      "neighbors": [
-        "wp_705",
-        "wp_706",
-        "wp_734",
+        "wp_754",
         "wp_755",
         "wp_756"
       ],
       "zone": "spawn"
     },
     {
-      "id": "wp_734",
+      "id": "wp_728",
       "pos": {
-        "x": 14.0,
+        "x": 10.0,
         "y": 0.0,
-        "z": -42.0
+        "z": 26.0
       },
       "neighbors": [
-        "wp_705",
-        "wp_706",
-        "wp_707",
-        "wp_733",
-        "wp_735",
+        "wp_688",
+        "wp_689",
+        "wp_690",
+        "wp_727",
+        "wp_729",
         "wp_755",
         "wp_756",
         "wp_757"
@@ -15314,18 +15651,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_735",
+      "id": "wp_729",
       "pos": {
-        "x": 14.0,
+        "x": 10.0,
         "y": 0.0,
-        "z": -40.0
+        "z": 28.0
       },
       "neighbors": [
-        "wp_706",
-        "wp_707",
-        "wp_708",
-        "wp_734",
-        "wp_736",
+        "wp_689",
+        "wp_690",
+        "wp_691",
+        "wp_728",
+        "wp_730",
         "wp_756",
         "wp_757",
         "wp_758"
@@ -15333,18 +15670,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_736",
+      "id": "wp_730",
       "pos": {
-        "x": 14.0,
+        "x": 10.0,
         "y": 0.0,
-        "z": -38.0
+        "z": 30.0
       },
       "neighbors": [
-        "wp_707",
-        "wp_708",
-        "wp_709",
-        "wp_735",
-        "wp_737",
+        "wp_690",
+        "wp_691",
+        "wp_692",
+        "wp_729",
+        "wp_731",
         "wp_757",
         "wp_758",
         "wp_759"
@@ -15352,18 +15689,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_737",
+      "id": "wp_731",
       "pos": {
-        "x": 14.0,
+        "x": 10.0,
         "y": 0.0,
-        "z": -36.0
+        "z": 32.0
       },
       "neighbors": [
-        "wp_708",
-        "wp_709",
-        "wp_710",
-        "wp_736",
-        "wp_738",
+        "wp_691",
+        "wp_692",
+        "wp_693",
+        "wp_730",
+        "wp_732",
         "wp_758",
         "wp_759",
         "wp_760"
@@ -15371,298 +15708,399 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_738",
+      "id": "wp_732",
       "pos": {
-        "x": 14.0,
+        "x": 10.0,
         "y": 0.0,
-        "z": -34.0
+        "z": 34.0
       },
       "neighbors": [
-        "wp_709",
-        "wp_710",
-        "wp_711",
-        "wp_737",
+        "wp_692",
+        "wp_693",
+        "wp_694",
+        "wp_731",
+        "wp_733",
         "wp_759",
-        "wp_760"
+        "wp_760",
+        "wp_761"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_733",
+      "pos": {
+        "x": 10.0,
+        "y": 0.0,
+        "z": 36.0
+      },
+      "neighbors": [
+        "wp_693",
+        "wp_694",
+        "wp_695",
+        "wp_732",
+        "wp_734",
+        "wp_760",
+        "wp_761",
+        "wp_762"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_734",
+      "pos": {
+        "x": 10.0,
+        "y": 0.0,
+        "z": 38.0
+      },
+      "neighbors": [
+        "wp_694",
+        "wp_695",
+        "wp_696",
+        "wp_733",
+        "wp_735",
+        "wp_761",
+        "wp_762",
+        "wp_763"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_735",
+      "pos": {
+        "x": 10.0,
+        "y": 0.0,
+        "z": 40.0
+      },
+      "neighbors": [
+        "wp_695",
+        "wp_696",
+        "wp_734",
+        "wp_736",
+        "wp_762",
+        "wp_763",
+        "wp_764"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_736",
+      "pos": {
+        "x": 10.0,
+        "y": 0.0,
+        "z": 42.0
+      },
+      "neighbors": [
+        "wp_696",
+        "wp_735",
+        "wp_737",
+        "wp_763",
+        "wp_764",
+        "wp_765"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_737",
+      "pos": {
+        "x": 10.0,
+        "y": 0.0,
+        "z": 44.0
+      },
+      "neighbors": [
+        "wp_697",
+        "wp_736",
+        "wp_764",
+        "wp_765"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_738",
+      "pos": {
+        "x": 12.0,
+        "y": 0.0,
+        "z": -44.0
+      },
+      "neighbors": [
+        "wp_698",
+        "wp_699",
+        "wp_739",
+        "wp_766",
+        "wp_767"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_739",
       "pos": {
-        "x": 14.0,
+        "x": 12.0,
         "y": 0.0,
-        "z": -22.0
+        "z": -42.0
       },
       "neighbors": [
-        "wp_715",
-        "wp_716",
+        "wp_698",
+        "wp_699",
+        "wp_700",
+        "wp_738",
         "wp_740",
-        "wp_762",
-        "wp_763",
-        "wp_1133",
-        "wp_1134",
-        "wp_1135"
+        "wp_766",
+        "wp_767",
+        "wp_768"
       ],
-      "zone": "flank"
+      "zone": "spawn"
     },
     {
       "id": "wp_740",
       "pos": {
-        "x": 14.0,
+        "x": 12.0,
         "y": 0.0,
-        "z": -20.0
+        "z": -40.0
       },
       "neighbors": [
-        "wp_715",
-        "wp_716",
+        "wp_699",
+        "wp_700",
+        "wp_701",
         "wp_739",
-        "wp_762",
-        "wp_763",
-        "wp_1133",
-        "wp_1134",
-        "wp_1135"
+        "wp_741",
+        "wp_767",
+        "wp_768",
+        "wp_769"
       ],
-      "zone": "flank"
+      "zone": "spawn"
     },
     {
       "id": "wp_741",
       "pos": {
-        "x": 14.0,
+        "x": 12.0,
         "y": 0.0,
-        "z": 6.0
+        "z": -38.0
       },
       "neighbors": [
-        "wp_719",
-        "wp_720",
+        "wp_700",
+        "wp_701",
+        "wp_702",
+        "wp_740",
         "wp_742",
         "wp_768",
-        "wp_769"
-      ],
-      "zone": "flank"
-    },
-    {
-      "id": "wp_742",
-      "pos": {
-        "x": 14.0,
-        "y": 0.0,
-        "z": 8.0
-      },
-      "neighbors": [
-        "wp_719",
-        "wp_720",
-        "wp_741",
-        "wp_768",
-        "wp_769"
-      ],
-      "zone": "flank"
-    },
-    {
-      "id": "wp_743",
-      "pos": {
-        "x": 14.0,
-        "y": 0.0,
-        "z": 22.0
-      },
-      "neighbors": [
-        "wp_721",
-        "wp_722",
-        "wp_744"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_744",
-      "pos": {
-        "x": 14.0,
-        "y": 0.0,
-        "z": 24.0
-      },
-      "neighbors": [
-        "wp_721",
-        "wp_722",
-        "wp_723",
-        "wp_743",
-        "wp_745"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_745",
-      "pos": {
-        "x": 14.0,
-        "y": 0.0,
-        "z": 26.0
-      },
-      "neighbors": [
-        "wp_722",
-        "wp_723",
-        "wp_724",
-        "wp_744",
-        "wp_746"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_746",
-      "pos": {
-        "x": 14.0,
-        "y": 0.0,
-        "z": 28.0
-      },
-      "neighbors": [
-        "wp_723",
-        "wp_724",
-        "wp_725",
-        "wp_745",
-        "wp_747",
+        "wp_769",
         "wp_770"
       ],
       "zone": "spawn"
     },
     {
-      "id": "wp_747",
+      "id": "wp_742",
       "pos": {
-        "x": 14.0,
+        "x": 12.0,
         "y": 0.0,
-        "z": 30.0
+        "z": -36.0
       },
       "neighbors": [
-        "wp_724",
-        "wp_725",
-        "wp_726",
-        "wp_746",
-        "wp_748",
+        "wp_701",
+        "wp_702",
+        "wp_703",
+        "wp_741",
+        "wp_743",
+        "wp_769",
         "wp_770",
         "wp_771"
       ],
       "zone": "spawn"
     },
     {
-      "id": "wp_748",
+      "id": "wp_743",
       "pos": {
-        "x": 14.0,
+        "x": 12.0,
         "y": 0.0,
-        "z": 32.0
+        "z": -34.0
       },
       "neighbors": [
-        "wp_725",
-        "wp_726",
-        "wp_727",
-        "wp_747",
-        "wp_749",
+        "wp_702",
+        "wp_703",
+        "wp_704",
+        "wp_742",
+        "wp_744",
         "wp_770",
-        "wp_771",
-        "wp_772"
+        "wp_771"
       ],
       "zone": "spawn"
+    },
+    {
+      "id": "wp_744",
+      "pos": {
+        "x": 12.0,
+        "y": 0.0,
+        "z": -32.0
+      },
+      "neighbors": [
+        "wp_703",
+        "wp_704",
+        "wp_705",
+        "wp_743",
+        "wp_745",
+        "wp_771"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_745",
+      "pos": {
+        "x": 12.0,
+        "y": 0.0,
+        "z": -30.0
+      },
+      "neighbors": [
+        "wp_704",
+        "wp_705",
+        "wp_706",
+        "wp_744",
+        "wp_746"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_746",
+      "pos": {
+        "x": 12.0,
+        "y": 0.0,
+        "z": -28.0
+      },
+      "neighbors": [
+        "wp_705",
+        "wp_706",
+        "wp_745"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_747",
+      "pos": {
+        "x": 12.0,
+        "y": 0.0,
+        "z": -24.0
+      },
+      "neighbors": [
+        "wp_707",
+        "wp_708",
+        "wp_748",
+        "wp_1175"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_748",
+      "pos": {
+        "x": 12.0,
+        "y": 0.0,
+        "z": -22.0
+      },
+      "neighbors": [
+        "wp_707",
+        "wp_708",
+        "wp_709",
+        "wp_747",
+        "wp_749",
+        "wp_772",
+        "wp_773",
+        "wp_1175",
+        "wp_1176"
+      ],
+      "zone": "mid"
     },
     {
       "id": "wp_749",
       "pos": {
-        "x": 14.0,
+        "x": 12.0,
         "y": 0.0,
-        "z": 34.0
+        "z": -20.0
       },
       "neighbors": [
-        "wp_726",
-        "wp_727",
-        "wp_728",
+        "wp_708",
+        "wp_709",
+        "wp_710",
         "wp_748",
         "wp_750",
-        "wp_771",
         "wp_772",
-        "wp_773"
+        "wp_773",
+        "wp_1175",
+        "wp_1176"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_750",
       "pos": {
-        "x": 14.0,
+        "x": 12.0,
         "y": 0.0,
-        "z": 36.0
+        "z": -18.0
       },
       "neighbors": [
-        "wp_727",
-        "wp_728",
-        "wp_729",
+        "wp_709",
+        "wp_710",
+        "wp_711",
         "wp_749",
         "wp_751",
-        "wp_772",
-        "wp_773",
-        "wp_774"
+        "wp_1175"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_751",
       "pos": {
-        "x": 14.0,
+        "x": 12.0,
         "y": 0.0,
-        "z": 38.0
+        "z": -16.0
       },
       "neighbors": [
-        "wp_728",
-        "wp_729",
-        "wp_730",
-        "wp_750",
-        "wp_752",
-        "wp_773",
-        "wp_774",
-        "wp_775"
+        "wp_710",
+        "wp_711",
+        "wp_750"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_752",
       "pos": {
-        "x": 14.0,
+        "x": 12.0,
         "y": 0.0,
-        "z": 40.0
+        "z": 6.0
       },
       "neighbors": [
-        "wp_729",
-        "wp_730",
-        "wp_731",
-        "wp_751",
+        "wp_720",
+        "wp_721",
         "wp_753",
         "wp_774",
-        "wp_775",
-        "wp_776"
+        "wp_775"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_753",
       "pos": {
-        "x": 14.0,
+        "x": 12.0,
         "y": 0.0,
-        "z": 42.0
+        "z": 8.0
       },
       "neighbors": [
-        "wp_730",
-        "wp_731",
-        "wp_732",
+        "wp_720",
+        "wp_721",
+        "wp_722",
         "wp_752",
-        "wp_754",
-        "wp_775",
-        "wp_776",
-        "wp_777"
+        "wp_774",
+        "wp_775"
       ],
-      "zone": "spawn"
+      "zone": "mid"
     },
     {
       "id": "wp_754",
       "pos": {
-        "x": 14.0,
+        "x": 12.0,
         "y": 0.0,
-        "z": 44.0
+        "z": 22.0
       },
       "neighbors": [
-        "wp_731",
-        "wp_732",
-        "wp_753",
+        "wp_726",
+        "wp_727",
+        "wp_755",
         "wp_776",
         "wp_777"
       ],
@@ -15671,32 +16109,54 @@ export const ASCENT_MAP_DATA: AscentMapData = {
     {
       "id": "wp_755",
       "pos": {
-        "x": 16.0,
+        "x": 12.0,
         "y": 0.0,
-        "z": -44.0
+        "z": 24.0
       },
       "neighbors": [
-        "wp_733",
-        "wp_734",
+        "wp_726",
+        "wp_727",
+        "wp_728",
+        "wp_754",
         "wp_756",
-        "wp_778",
-        "wp_779"
+        "wp_776",
+        "wp_777",
+        "wp_778"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_756",
       "pos": {
-        "x": 16.0,
+        "x": 12.0,
         "y": 0.0,
-        "z": -42.0
+        "z": 26.0
       },
       "neighbors": [
-        "wp_733",
-        "wp_734",
-        "wp_735",
+        "wp_727",
+        "wp_728",
+        "wp_729",
         "wp_755",
         "wp_757",
+        "wp_777",
+        "wp_778",
+        "wp_779"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_757",
+      "pos": {
+        "x": 12.0,
+        "y": 0.0,
+        "z": 28.0
+      },
+      "neighbors": [
+        "wp_728",
+        "wp_729",
+        "wp_730",
+        "wp_756",
+        "wp_758",
         "wp_778",
         "wp_779",
         "wp_780"
@@ -15704,18 +16164,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_757",
+      "id": "wp_758",
       "pos": {
-        "x": 16.0,
+        "x": 12.0,
         "y": 0.0,
-        "z": -40.0
+        "z": 30.0
       },
       "neighbors": [
-        "wp_734",
-        "wp_735",
-        "wp_736",
-        "wp_756",
-        "wp_758",
+        "wp_729",
+        "wp_730",
+        "wp_731",
+        "wp_757",
+        "wp_759",
         "wp_779",
         "wp_780",
         "wp_781"
@@ -15723,18 +16183,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_758",
+      "id": "wp_759",
       "pos": {
-        "x": 16.0,
+        "x": 12.0,
         "y": 0.0,
-        "z": -38.0
+        "z": 32.0
       },
       "neighbors": [
-        "wp_735",
-        "wp_736",
-        "wp_737",
-        "wp_757",
-        "wp_759",
+        "wp_730",
+        "wp_731",
+        "wp_732",
+        "wp_758",
+        "wp_760",
         "wp_780",
         "wp_781",
         "wp_782"
@@ -15742,35 +16202,19 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_759",
-      "pos": {
-        "x": 16.0,
-        "y": 0.0,
-        "z": -36.0
-      },
-      "neighbors": [
-        "wp_736",
-        "wp_737",
-        "wp_738",
-        "wp_758",
-        "wp_760",
-        "wp_781",
-        "wp_782",
-        "wp_783"
-      ],
-      "zone": "spawn"
-    },
-    {
       "id": "wp_760",
       "pos": {
-        "x": 16.0,
+        "x": 12.0,
         "y": 0.0,
-        "z": -34.0
+        "z": 34.0
       },
       "neighbors": [
-        "wp_737",
-        "wp_738",
+        "wp_731",
+        "wp_732",
+        "wp_733",
         "wp_759",
+        "wp_761",
+        "wp_781",
         "wp_782",
         "wp_783"
       ],
@@ -15779,198 +16223,368 @@ export const ASCENT_MAP_DATA: AscentMapData = {
     {
       "id": "wp_761",
       "pos": {
-        "x": 16.0,
+        "x": 12.0,
         "y": 0.0,
-        "z": -24.0
+        "z": 36.0
       },
       "neighbors": [
+        "wp_732",
+        "wp_733",
+        "wp_734",
+        "wp_760",
         "wp_762",
-        "wp_788",
-        "wp_789",
-        "wp_1135"
+        "wp_782",
+        "wp_783",
+        "wp_784"
       ],
-      "zone": "flank"
+      "zone": "spawn"
     },
     {
       "id": "wp_762",
       "pos": {
-        "x": 16.0,
+        "x": 12.0,
         "y": 0.0,
-        "z": -22.0
+        "z": 38.0
       },
       "neighbors": [
-        "wp_739",
-        "wp_740",
+        "wp_733",
+        "wp_734",
+        "wp_735",
         "wp_761",
         "wp_763",
-        "wp_788",
-        "wp_789",
-        "wp_790",
-        "wp_1134",
-        "wp_1135"
+        "wp_783",
+        "wp_784",
+        "wp_785"
       ],
-      "zone": "flank"
+      "zone": "spawn"
     },
     {
       "id": "wp_763",
       "pos": {
-        "x": 16.0,
+        "x": 12.0,
         "y": 0.0,
-        "z": -20.0
+        "z": 40.0
       },
       "neighbors": [
-        "wp_739",
-        "wp_740",
+        "wp_734",
+        "wp_735",
+        "wp_736",
         "wp_762",
-        "wp_789",
-        "wp_790",
-        "wp_1134",
-        "wp_1135"
+        "wp_764",
+        "wp_784",
+        "wp_785",
+        "wp_786"
       ],
-      "zone": "flank"
+      "zone": "spawn"
     },
     {
       "id": "wp_764",
       "pos": {
-        "x": 16.0,
+        "x": 12.0,
         "y": 0.0,
-        "z": -16.0
+        "z": 42.0
       },
       "neighbors": [
+        "wp_735",
+        "wp_736",
+        "wp_737",
+        "wp_763",
         "wp_765",
-        "wp_792",
-        "wp_793"
+        "wp_785",
+        "wp_786",
+        "wp_787"
       ],
-      "zone": "flank"
+      "zone": "spawn"
     },
     {
       "id": "wp_765",
       "pos": {
-        "x": 16.0,
+        "x": 12.0,
         "y": 0.0,
-        "z": -14.0
+        "z": 44.0
       },
       "neighbors": [
+        "wp_736",
+        "wp_737",
         "wp_764",
-        "wp_766",
-        "wp_792",
-        "wp_793",
-        "wp_794"
+        "wp_786",
+        "wp_787"
       ],
-      "zone": "flank"
+      "zone": "spawn"
     },
     {
       "id": "wp_766",
       "pos": {
-        "x": 16.0,
+        "x": 14.0,
         "y": 0.0,
-        "z": -12.0
+        "z": -44.0
       },
       "neighbors": [
-        "wp_765",
+        "wp_738",
+        "wp_739",
         "wp_767",
-        "wp_793",
-        "wp_794",
-        "wp_795"
+        "wp_788",
+        "wp_789"
       ],
-      "zone": "flank"
+      "zone": "spawn"
     },
     {
       "id": "wp_767",
       "pos": {
-        "x": 16.0,
+        "x": 14.0,
         "y": 0.0,
-        "z": -10.0
+        "z": -42.0
       },
       "neighbors": [
+        "wp_738",
+        "wp_739",
+        "wp_740",
         "wp_766",
-        "wp_794",
-        "wp_795"
+        "wp_768",
+        "wp_788",
+        "wp_789",
+        "wp_790"
       ],
-      "zone": "flank"
+      "zone": "spawn"
     },
     {
       "id": "wp_768",
       "pos": {
-        "x": 16.0,
+        "x": 14.0,
         "y": 0.0,
-        "z": 6.0
+        "z": -40.0
       },
       "neighbors": [
+        "wp_739",
+        "wp_740",
         "wp_741",
-        "wp_742",
+        "wp_767",
         "wp_769",
-        "wp_796",
-        "wp_797"
+        "wp_789",
+        "wp_790",
+        "wp_791"
       ],
-      "zone": "flank"
+      "zone": "spawn"
     },
     {
       "id": "wp_769",
       "pos": {
-        "x": 16.0,
+        "x": 14.0,
         "y": 0.0,
-        "z": 8.0
+        "z": -38.0
       },
       "neighbors": [
+        "wp_740",
         "wp_741",
         "wp_742",
         "wp_768",
-        "wp_796",
-        "wp_797"
+        "wp_770",
+        "wp_790",
+        "wp_791",
+        "wp_792"
       ],
-      "zone": "flank"
+      "zone": "spawn"
     },
     {
       "id": "wp_770",
       "pos": {
-        "x": 16.0,
+        "x": 14.0,
         "y": 0.0,
-        "z": 30.0
+        "z": -36.0
       },
       "neighbors": [
-        "wp_746",
-        "wp_747",
-        "wp_748",
+        "wp_741",
+        "wp_742",
+        "wp_743",
+        "wp_769",
         "wp_771",
-        "wp_801",
-        "wp_802",
-        "wp_803"
+        "wp_791",
+        "wp_792",
+        "wp_793"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_771",
       "pos": {
-        "x": 16.0,
+        "x": 14.0,
         "y": 0.0,
-        "z": 32.0
+        "z": -34.0
       },
       "neighbors": [
-        "wp_747",
-        "wp_748",
-        "wp_749",
+        "wp_742",
+        "wp_743",
+        "wp_744",
         "wp_770",
-        "wp_772",
-        "wp_802",
-        "wp_803",
-        "wp_804"
+        "wp_792",
+        "wp_793"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_772",
       "pos": {
-        "x": 16.0,
+        "x": 14.0,
         "y": 0.0,
-        "z": 34.0
+        "z": -22.0
       },
       "neighbors": [
         "wp_748",
         "wp_749",
-        "wp_750",
-        "wp_771",
         "wp_773",
+        "wp_795",
+        "wp_796",
+        "wp_1175",
+        "wp_1176",
+        "wp_1177"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_773",
+      "pos": {
+        "x": 14.0,
+        "y": 0.0,
+        "z": -20.0
+      },
+      "neighbors": [
+        "wp_748",
+        "wp_749",
+        "wp_772",
+        "wp_795",
+        "wp_796",
+        "wp_1175",
+        "wp_1176",
+        "wp_1177"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_774",
+      "pos": {
+        "x": 14.0,
+        "y": 0.0,
+        "z": 6.0
+      },
+      "neighbors": [
+        "wp_752",
+        "wp_753",
+        "wp_775",
+        "wp_801",
+        "wp_802"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_775",
+      "pos": {
+        "x": 14.0,
+        "y": 0.0,
+        "z": 8.0
+      },
+      "neighbors": [
+        "wp_752",
+        "wp_753",
+        "wp_774",
+        "wp_801",
+        "wp_802"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_776",
+      "pos": {
+        "x": 14.0,
+        "y": 0.0,
+        "z": 22.0
+      },
+      "neighbors": [
+        "wp_754",
+        "wp_755",
+        "wp_777"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_777",
+      "pos": {
+        "x": 14.0,
+        "y": 0.0,
+        "z": 24.0
+      },
+      "neighbors": [
+        "wp_754",
+        "wp_755",
+        "wp_756",
+        "wp_776",
+        "wp_778"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_778",
+      "pos": {
+        "x": 14.0,
+        "y": 0.0,
+        "z": 26.0
+      },
+      "neighbors": [
+        "wp_755",
+        "wp_756",
+        "wp_757",
+        "wp_777",
+        "wp_779"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_779",
+      "pos": {
+        "x": 14.0,
+        "y": 0.0,
+        "z": 28.0
+      },
+      "neighbors": [
+        "wp_756",
+        "wp_757",
+        "wp_758",
+        "wp_778",
+        "wp_780",
+        "wp_803"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_780",
+      "pos": {
+        "x": 14.0,
+        "y": 0.0,
+        "z": 30.0
+      },
+      "neighbors": [
+        "wp_757",
+        "wp_758",
+        "wp_759",
+        "wp_779",
+        "wp_781",
+        "wp_803",
+        "wp_804"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_781",
+      "pos": {
+        "x": 14.0,
+        "y": 0.0,
+        "z": 32.0
+      },
+      "neighbors": [
+        "wp_758",
+        "wp_759",
+        "wp_760",
+        "wp_780",
+        "wp_782",
         "wp_803",
         "wp_804",
         "wp_805"
@@ -15978,18 +16592,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_773",
+      "id": "wp_782",
       "pos": {
-        "x": 16.0,
+        "x": 14.0,
         "y": 0.0,
-        "z": 36.0
+        "z": 34.0
       },
       "neighbors": [
-        "wp_749",
-        "wp_750",
-        "wp_751",
-        "wp_772",
-        "wp_774",
+        "wp_759",
+        "wp_760",
+        "wp_761",
+        "wp_781",
+        "wp_783",
         "wp_804",
         "wp_805",
         "wp_806"
@@ -15997,18 +16611,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_774",
+      "id": "wp_783",
       "pos": {
-        "x": 16.0,
+        "x": 14.0,
         "y": 0.0,
-        "z": 38.0
+        "z": 36.0
       },
       "neighbors": [
-        "wp_750",
-        "wp_751",
-        "wp_752",
-        "wp_773",
-        "wp_775",
+        "wp_760",
+        "wp_761",
+        "wp_762",
+        "wp_782",
+        "wp_784",
         "wp_805",
         "wp_806",
         "wp_807"
@@ -16016,18 +16630,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_775",
+      "id": "wp_784",
       "pos": {
-        "x": 16.0,
+        "x": 14.0,
         "y": 0.0,
-        "z": 40.0
+        "z": 38.0
       },
       "neighbors": [
-        "wp_751",
-        "wp_752",
-        "wp_753",
-        "wp_774",
-        "wp_776",
+        "wp_761",
+        "wp_762",
+        "wp_763",
+        "wp_783",
+        "wp_785",
         "wp_806",
         "wp_807",
         "wp_808"
@@ -16035,18 +16649,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_776",
+      "id": "wp_785",
       "pos": {
-        "x": 16.0,
+        "x": 14.0,
         "y": 0.0,
-        "z": 42.0
+        "z": 40.0
       },
       "neighbors": [
-        "wp_752",
-        "wp_753",
-        "wp_754",
-        "wp_775",
-        "wp_777",
+        "wp_762",
+        "wp_763",
+        "wp_764",
+        "wp_784",
+        "wp_786",
         "wp_807",
         "wp_808",
         "wp_809"
@@ -16054,69 +16668,69 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_777",
+      "id": "wp_786",
       "pos": {
-        "x": 16.0,
+        "x": 14.0,
+        "y": 0.0,
+        "z": 42.0
+      },
+      "neighbors": [
+        "wp_763",
+        "wp_764",
+        "wp_765",
+        "wp_785",
+        "wp_787",
+        "wp_808",
+        "wp_809",
+        "wp_810"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_787",
+      "pos": {
+        "x": 14.0,
         "y": 0.0,
         "z": 44.0
       },
       "neighbors": [
-        "wp_753",
-        "wp_754",
-        "wp_776",
-        "wp_808",
-        "wp_809"
+        "wp_764",
+        "wp_765",
+        "wp_786",
+        "wp_809",
+        "wp_810"
       ],
       "zone": "spawn"
     },
     {
-      "id": "wp_778",
+      "id": "wp_788",
       "pos": {
-        "x": 18.0,
+        "x": 16.0,
         "y": 0.0,
         "z": -44.0
       },
       "neighbors": [
-        "wp_755",
-        "wp_756",
-        "wp_779",
-        "wp_810",
-        "wp_811"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_779",
-      "pos": {
-        "x": 18.0,
-        "y": 0.0,
-        "z": -42.0
-      },
-      "neighbors": [
-        "wp_755",
-        "wp_756",
-        "wp_757",
-        "wp_778",
-        "wp_780",
-        "wp_810",
+        "wp_766",
+        "wp_767",
+        "wp_789",
         "wp_811",
         "wp_812"
       ],
       "zone": "spawn"
     },
     {
-      "id": "wp_780",
+      "id": "wp_789",
       "pos": {
-        "x": 18.0,
+        "x": 16.0,
         "y": 0.0,
-        "z": -40.0
+        "z": -42.0
       },
       "neighbors": [
-        "wp_756",
-        "wp_757",
-        "wp_758",
-        "wp_779",
-        "wp_781",
+        "wp_766",
+        "wp_767",
+        "wp_768",
+        "wp_788",
+        "wp_790",
         "wp_811",
         "wp_812",
         "wp_813"
@@ -16124,18 +16738,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_781",
+      "id": "wp_790",
       "pos": {
-        "x": 18.0,
+        "x": 16.0,
         "y": 0.0,
-        "z": -38.0
+        "z": -40.0
       },
       "neighbors": [
-        "wp_757",
-        "wp_758",
-        "wp_759",
-        "wp_780",
-        "wp_782",
+        "wp_767",
+        "wp_768",
+        "wp_769",
+        "wp_789",
+        "wp_791",
         "wp_812",
         "wp_813",
         "wp_814"
@@ -16143,18 +16757,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_782",
+      "id": "wp_791",
       "pos": {
-        "x": 18.0,
+        "x": 16.0,
         "y": 0.0,
-        "z": -36.0
+        "z": -38.0
       },
       "neighbors": [
-        "wp_758",
-        "wp_759",
-        "wp_760",
-        "wp_781",
-        "wp_783",
+        "wp_768",
+        "wp_769",
+        "wp_770",
+        "wp_790",
+        "wp_792",
         "wp_813",
         "wp_814",
         "wp_815"
@@ -16162,17 +16776,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_783",
+      "id": "wp_792",
       "pos": {
-        "x": 18.0,
+        "x": 16.0,
         "y": 0.0,
-        "z": -34.0
+        "z": -36.0
       },
       "neighbors": [
-        "wp_759",
-        "wp_760",
-        "wp_782",
-        "wp_784",
+        "wp_769",
+        "wp_770",
+        "wp_771",
+        "wp_791",
+        "wp_793",
         "wp_814",
         "wp_815",
         "wp_816"
@@ -16180,235 +16795,114 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_784",
-      "pos": {
-        "x": 18.0,
-        "y": 0.0,
-        "z": -32.0
-      },
-      "neighbors": [
-        "wp_783",
-        "wp_785",
-        "wp_815",
-        "wp_816",
-        "wp_817"
-      ],
-      "zone": "site_b"
-    },
-    {
-      "id": "wp_785",
-      "pos": {
-        "x": 18.0,
-        "y": 0.0,
-        "z": -30.0
-      },
-      "neighbors": [
-        "wp_784",
-        "wp_786",
-        "wp_816",
-        "wp_817",
-        "wp_818"
-      ],
-      "zone": "site_b"
-    },
-    {
-      "id": "wp_786",
-      "pos": {
-        "x": 18.0,
-        "y": 0.0,
-        "z": -28.0
-      },
-      "neighbors": [
-        "wp_785",
-        "wp_787",
-        "wp_817",
-        "wp_818",
-        "wp_819"
-      ],
-      "zone": "site_b"
-    },
-    {
-      "id": "wp_787",
-      "pos": {
-        "x": 18.0,
-        "y": 0.0,
-        "z": -26.0
-      },
-      "neighbors": [
-        "wp_786",
-        "wp_788",
-        "wp_818",
-        "wp_819",
-        "wp_820"
-      ],
-      "zone": "site_b"
-    },
-    {
-      "id": "wp_788",
-      "pos": {
-        "x": 18.0,
-        "y": 0.0,
-        "z": -24.0
-      },
-      "neighbors": [
-        "wp_761",
-        "wp_762",
-        "wp_787",
-        "wp_789",
-        "wp_819",
-        "wp_820",
-        "wp_821"
-      ],
-      "zone": "site_b"
-    },
-    {
-      "id": "wp_789",
-      "pos": {
-        "x": 18.0,
-        "y": 0.0,
-        "z": -22.0
-      },
-      "neighbors": [
-        "wp_761",
-        "wp_762",
-        "wp_763",
-        "wp_788",
-        "wp_790",
-        "wp_820",
-        "wp_821",
-        "wp_1135"
-      ],
-      "zone": "site_b"
-    },
-    {
-      "id": "wp_790",
-      "pos": {
-        "x": 18.0,
-        "y": 0.0,
-        "z": -20.0
-      },
-      "neighbors": [
-        "wp_762",
-        "wp_763",
-        "wp_789",
-        "wp_791",
-        "wp_821",
-        "wp_1135"
-      ],
-      "zone": "site_b"
-    },
-    {
-      "id": "wp_791",
-      "pos": {
-        "x": 18.0,
-        "y": 0.0,
-        "z": -18.0
-      },
-      "neighbors": [
-        "wp_790",
-        "wp_792",
-        "wp_822"
-      ],
-      "zone": "site_b"
-    },
-    {
-      "id": "wp_792",
-      "pos": {
-        "x": 18.0,
-        "y": 0.0,
-        "z": -16.0
-      },
-      "neighbors": [
-        "wp_764",
-        "wp_765",
-        "wp_791",
-        "wp_793",
-        "wp_822",
-        "wp_823"
-      ],
-      "zone": "site_b"
-    },
-    {
       "id": "wp_793",
       "pos": {
-        "x": 18.0,
+        "x": 16.0,
         "y": 0.0,
-        "z": -14.0
+        "z": -34.0
       },
       "neighbors": [
-        "wp_764",
-        "wp_765",
-        "wp_766",
+        "wp_770",
+        "wp_771",
         "wp_792",
-        "wp_794",
-        "wp_822",
-        "wp_823",
-        "wp_824"
+        "wp_815",
+        "wp_816"
       ],
-      "zone": "site_b"
+      "zone": "spawn"
     },
     {
       "id": "wp_794",
       "pos": {
-        "x": 18.0,
+        "x": 16.0,
         "y": 0.0,
-        "z": -12.0
+        "z": -24.0
       },
       "neighbors": [
-        "wp_765",
-        "wp_766",
-        "wp_767",
-        "wp_793",
         "wp_795",
-        "wp_823",
-        "wp_824",
-        "wp_825"
+        "wp_821",
+        "wp_822",
+        "wp_1177"
       ],
       "zone": "flank"
     },
     {
       "id": "wp_795",
       "pos": {
-        "x": 18.0,
+        "x": 16.0,
         "y": 0.0,
-        "z": -10.0
+        "z": -22.0
       },
       "neighbors": [
-        "wp_766",
-        "wp_767",
+        "wp_772",
+        "wp_773",
         "wp_794",
-        "wp_824",
-        "wp_825"
+        "wp_796",
+        "wp_821",
+        "wp_822",
+        "wp_823",
+        "wp_1176",
+        "wp_1177"
       ],
       "zone": "flank"
     },
     {
       "id": "wp_796",
       "pos": {
-        "x": 18.0,
+        "x": 16.0,
         "y": 0.0,
-        "z": 6.0
+        "z": -20.0
       },
       "neighbors": [
-        "wp_768",
-        "wp_769",
+        "wp_772",
+        "wp_773",
+        "wp_795",
         "wp_797",
-        "wp_826",
-        "wp_827"
+        "wp_822",
+        "wp_823",
+        "wp_1176",
+        "wp_1177"
       ],
       "zone": "flank"
     },
     {
       "id": "wp_797",
       "pos": {
-        "x": 18.0,
+        "x": 16.0,
         "y": 0.0,
-        "z": 8.0
+        "z": -18.0
       },
       "neighbors": [
-        "wp_768",
-        "wp_769",
         "wp_796",
+        "wp_824",
+        "wp_1177"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_798",
+      "pos": {
+        "x": 16.0,
+        "y": 0.0,
+        "z": -14.0
+      },
+      "neighbors": [
+        "wp_799",
+        "wp_825",
+        "wp_826",
+        "wp_827"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_799",
+      "pos": {
+        "x": 16.0,
+        "y": 0.0,
+        "z": -12.0
+      },
+      "neighbors": [
+        "wp_798",
+        "wp_800",
         "wp_826",
         "wp_827",
         "wp_828"
@@ -16416,45 +16910,63 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "flank"
     },
     {
-      "id": "wp_798",
-      "pos": {
-        "x": 18.0,
-        "y": 0.0,
-        "z": 22.0
-      },
-      "neighbors": [
-        "wp_799",
-        "wp_833",
-        "wp_834"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_799",
-      "pos": {
-        "x": 18.0,
-        "y": 0.0,
-        "z": 24.0
-      },
-      "neighbors": [
-        "wp_798",
-        "wp_800",
-        "wp_833",
-        "wp_834",
-        "wp_835"
-      ],
-      "zone": "spawn"
-    },
-    {
       "id": "wp_800",
       "pos": {
-        "x": 18.0,
+        "x": 16.0,
         "y": 0.0,
-        "z": 26.0
+        "z": -10.0
       },
       "neighbors": [
         "wp_799",
+        "wp_827",
+        "wp_828"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_801",
+      "pos": {
+        "x": 16.0,
+        "y": 0.0,
+        "z": 6.0
+      },
+      "neighbors": [
+        "wp_774",
+        "wp_775",
+        "wp_802",
+        "wp_829",
+        "wp_830"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_802",
+      "pos": {
+        "x": 16.0,
+        "y": 0.0,
+        "z": 8.0
+      },
+      "neighbors": [
+        "wp_774",
+        "wp_775",
         "wp_801",
+        "wp_829",
+        "wp_830"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_803",
+      "pos": {
+        "x": 16.0,
+        "y": 0.0,
+        "z": 30.0
+      },
+      "neighbors": [
+        "wp_779",
+        "wp_780",
+        "wp_781",
+        "wp_804",
         "wp_834",
         "wp_835",
         "wp_836"
@@ -16462,16 +16974,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_801",
+      "id": "wp_804",
       "pos": {
-        "x": 18.0,
+        "x": 16.0,
         "y": 0.0,
-        "z": 28.0
+        "z": 32.0
       },
       "neighbors": [
-        "wp_770",
-        "wp_800",
-        "wp_802",
+        "wp_780",
+        "wp_781",
+        "wp_782",
+        "wp_803",
+        "wp_805",
         "wp_835",
         "wp_836",
         "wp_837"
@@ -16479,17 +16993,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_802",
+      "id": "wp_805",
       "pos": {
-        "x": 18.0,
+        "x": 16.0,
         "y": 0.0,
-        "z": 30.0
+        "z": 34.0
       },
       "neighbors": [
-        "wp_770",
-        "wp_771",
-        "wp_801",
-        "wp_803",
+        "wp_781",
+        "wp_782",
+        "wp_783",
+        "wp_804",
+        "wp_806",
         "wp_836",
         "wp_837",
         "wp_838"
@@ -16497,18 +17012,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_803",
+      "id": "wp_806",
       "pos": {
-        "x": 18.0,
+        "x": 16.0,
         "y": 0.0,
-        "z": 32.0
+        "z": 36.0
       },
       "neighbors": [
-        "wp_770",
-        "wp_771",
-        "wp_772",
-        "wp_802",
-        "wp_804",
+        "wp_782",
+        "wp_783",
+        "wp_784",
+        "wp_805",
+        "wp_807",
         "wp_837",
         "wp_838",
         "wp_839"
@@ -16516,18 +17031,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_804",
+      "id": "wp_807",
       "pos": {
-        "x": 18.0,
+        "x": 16.0,
         "y": 0.0,
-        "z": 34.0
+        "z": 38.0
       },
       "neighbors": [
-        "wp_771",
-        "wp_772",
-        "wp_773",
-        "wp_803",
-        "wp_805",
+        "wp_783",
+        "wp_784",
+        "wp_785",
+        "wp_806",
+        "wp_808",
         "wp_838",
         "wp_839",
         "wp_840"
@@ -16535,18 +17050,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_805",
+      "id": "wp_808",
       "pos": {
-        "x": 18.0,
+        "x": 16.0,
         "y": 0.0,
-        "z": 36.0
+        "z": 40.0
       },
       "neighbors": [
-        "wp_772",
-        "wp_773",
-        "wp_774",
-        "wp_804",
-        "wp_806",
+        "wp_784",
+        "wp_785",
+        "wp_786",
+        "wp_807",
+        "wp_809",
         "wp_839",
         "wp_840",
         "wp_841"
@@ -16554,18 +17069,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_806",
+      "id": "wp_809",
       "pos": {
-        "x": 18.0,
+        "x": 16.0,
         "y": 0.0,
-        "z": 38.0
+        "z": 42.0
       },
       "neighbors": [
-        "wp_773",
-        "wp_774",
-        "wp_775",
-        "wp_805",
-        "wp_807",
+        "wp_785",
+        "wp_786",
+        "wp_787",
+        "wp_808",
+        "wp_810",
         "wp_840",
         "wp_841",
         "wp_842"
@@ -16573,88 +17088,88 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_807",
+      "id": "wp_810",
       "pos": {
-        "x": 18.0,
-        "y": 0.0,
-        "z": 40.0
-      },
-      "neighbors": [
-        "wp_774",
-        "wp_775",
-        "wp_776",
-        "wp_806",
-        "wp_808",
-        "wp_841",
-        "wp_842",
-        "wp_843"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_808",
-      "pos": {
-        "x": 18.0,
-        "y": 0.0,
-        "z": 42.0
-      },
-      "neighbors": [
-        "wp_775",
-        "wp_776",
-        "wp_777",
-        "wp_807",
-        "wp_809",
-        "wp_842",
-        "wp_843",
-        "wp_844"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_809",
-      "pos": {
-        "x": 18.0,
+        "x": 16.0,
         "y": 0.0,
         "z": 44.0
       },
       "neighbors": [
-        "wp_776",
-        "wp_777",
-        "wp_808",
-        "wp_843",
-        "wp_844"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_810",
-      "pos": {
-        "x": 20.0,
-        "y": 0.0,
-        "z": -44.0
-      },
-      "neighbors": [
-        "wp_778",
-        "wp_779",
-        "wp_811",
-        "wp_845",
-        "wp_846"
+        "wp_786",
+        "wp_787",
+        "wp_809",
+        "wp_841",
+        "wp_842"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_811",
       "pos": {
-        "x": 20.0,
+        "x": 18.0,
+        "y": 0.0,
+        "z": -44.0
+      },
+      "neighbors": [
+        "wp_788",
+        "wp_789",
+        "wp_812",
+        "wp_843",
+        "wp_844"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_812",
+      "pos": {
+        "x": 18.0,
         "y": 0.0,
         "z": -42.0
       },
       "neighbors": [
-        "wp_778",
-        "wp_779",
-        "wp_780",
-        "wp_810",
+        "wp_788",
+        "wp_789",
+        "wp_790",
+        "wp_811",
+        "wp_813",
+        "wp_843",
+        "wp_844",
+        "wp_845"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_813",
+      "pos": {
+        "x": 18.0,
+        "y": 0.0,
+        "z": -40.0
+      },
+      "neighbors": [
+        "wp_789",
+        "wp_790",
+        "wp_791",
         "wp_812",
+        "wp_814",
+        "wp_844",
+        "wp_845",
+        "wp_846"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_814",
+      "pos": {
+        "x": 18.0,
+        "y": 0.0,
+        "z": -38.0
+      },
+      "neighbors": [
+        "wp_790",
+        "wp_791",
+        "wp_792",
+        "wp_813",
+        "wp_815",
         "wp_845",
         "wp_846",
         "wp_847"
@@ -16662,18 +17177,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_812",
+      "id": "wp_815",
       "pos": {
-        "x": 20.0,
+        "x": 18.0,
         "y": 0.0,
-        "z": -40.0
+        "z": -36.0
       },
       "neighbors": [
-        "wp_779",
-        "wp_780",
-        "wp_781",
-        "wp_811",
-        "wp_813",
+        "wp_791",
+        "wp_792",
+        "wp_793",
+        "wp_814",
+        "wp_816",
         "wp_846",
         "wp_847",
         "wp_848"
@@ -16681,18 +17196,17 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_813",
+      "id": "wp_816",
       "pos": {
-        "x": 20.0,
+        "x": 18.0,
         "y": 0.0,
-        "z": -38.0
+        "z": -34.0
       },
       "neighbors": [
-        "wp_780",
-        "wp_781",
-        "wp_782",
-        "wp_812",
-        "wp_814",
+        "wp_792",
+        "wp_793",
+        "wp_815",
+        "wp_817",
         "wp_847",
         "wp_848",
         "wp_849"
@@ -16700,56 +17214,47 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_814",
+      "id": "wp_817",
       "pos": {
-        "x": 20.0,
-        "y": 0.0,
-        "z": -36.0
-      },
-      "neighbors": [
-        "wp_781",
-        "wp_782",
-        "wp_783",
-        "wp_813",
-        "wp_815",
-        "wp_848",
-        "wp_849",
-        "wp_850"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_815",
-      "pos": {
-        "x": 20.0,
-        "y": 0.0,
-        "z": -34.0
-      },
-      "neighbors": [
-        "wp_782",
-        "wp_783",
-        "wp_784",
-        "wp_814",
-        "wp_816",
-        "wp_849",
-        "wp_850",
-        "wp_851"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_816",
-      "pos": {
-        "x": 20.0,
+        "x": 18.0,
         "y": 0.0,
         "z": -32.0
       },
       "neighbors": [
-        "wp_783",
-        "wp_784",
-        "wp_785",
-        "wp_815",
+        "wp_816",
+        "wp_818",
+        "wp_848",
+        "wp_849",
+        "wp_850"
+      ],
+      "zone": "site_b"
+    },
+    {
+      "id": "wp_818",
+      "pos": {
+        "x": 18.0,
+        "y": 0.0,
+        "z": -30.0
+      },
+      "neighbors": [
         "wp_817",
+        "wp_819",
+        "wp_849",
+        "wp_850",
+        "wp_851"
+      ],
+      "zone": "site_b"
+    },
+    {
+      "id": "wp_819",
+      "pos": {
+        "x": 18.0,
+        "y": 0.0,
+        "z": -28.0
+      },
+      "neighbors": [
+        "wp_818",
+        "wp_820",
         "wp_850",
         "wp_851",
         "wp_852"
@@ -16757,18 +17262,15 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "site_b"
     },
     {
-      "id": "wp_817",
+      "id": "wp_820",
       "pos": {
-        "x": 20.0,
+        "x": 18.0,
         "y": 0.0,
-        "z": -30.0
+        "z": -26.0
       },
       "neighbors": [
-        "wp_784",
-        "wp_785",
-        "wp_786",
-        "wp_816",
-        "wp_818",
+        "wp_819",
+        "wp_821",
         "wp_851",
         "wp_852",
         "wp_853"
@@ -16776,18 +17278,17 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "site_b"
     },
     {
-      "id": "wp_818",
+      "id": "wp_821",
       "pos": {
-        "x": 20.0,
+        "x": 18.0,
         "y": 0.0,
-        "z": -28.0
+        "z": -24.0
       },
       "neighbors": [
-        "wp_785",
-        "wp_786",
-        "wp_787",
-        "wp_817",
-        "wp_819",
+        "wp_794",
+        "wp_795",
+        "wp_820",
+        "wp_822",
         "wp_852",
         "wp_853",
         "wp_854"
@@ -16795,267 +17296,309 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "site_b"
     },
     {
-      "id": "wp_819",
+      "id": "wp_822",
       "pos": {
-        "x": 20.0,
-        "y": 0.0,
-        "z": -26.0
-      },
-      "neighbors": [
-        "wp_786",
-        "wp_787",
-        "wp_788",
-        "wp_818",
-        "wp_820",
-        "wp_853",
-        "wp_854",
-        "wp_855"
-      ],
-      "zone": "site_b"
-    },
-    {
-      "id": "wp_820",
-      "pos": {
-        "x": 20.0,
-        "y": 0.0,
-        "z": -24.0
-      },
-      "neighbors": [
-        "wp_787",
-        "wp_788",
-        "wp_789",
-        "wp_819",
-        "wp_821",
-        "wp_854",
-        "wp_855"
-      ],
-      "zone": "site_b"
-    },
-    {
-      "id": "wp_821",
-      "pos": {
-        "x": 20.0,
+        "x": 18.0,
         "y": 0.0,
         "z": -22.0
       },
       "neighbors": [
-        "wp_788",
-        "wp_789",
-        "wp_790",
-        "wp_820",
-        "wp_855"
-      ],
-      "zone": "site_b"
-    },
-    {
-      "id": "wp_822",
-      "pos": {
-        "x": 20.0,
-        "y": 0.0,
-        "z": -16.0
-      },
-      "neighbors": [
-        "wp_791",
-        "wp_792",
-        "wp_793",
+        "wp_794",
+        "wp_795",
+        "wp_796",
+        "wp_821",
         "wp_823",
-        "wp_857",
-        "wp_858"
+        "wp_853",
+        "wp_854",
+        "wp_1177"
       ],
       "zone": "site_b"
     },
     {
       "id": "wp_823",
       "pos": {
-        "x": 20.0,
+        "x": 18.0,
         "y": 0.0,
-        "z": -14.0
+        "z": -20.0
       },
       "neighbors": [
-        "wp_792",
-        "wp_793",
-        "wp_794",
+        "wp_795",
+        "wp_796",
         "wp_822",
         "wp_824",
-        "wp_857",
-        "wp_858",
-        "wp_859"
+        "wp_854",
+        "wp_1177"
       ],
       "zone": "site_b"
     },
     {
       "id": "wp_824",
       "pos": {
-        "x": 20.0,
+        "x": 18.0,
         "y": 0.0,
-        "z": -12.0
+        "z": -18.0
       },
       "neighbors": [
-        "wp_793",
-        "wp_794",
-        "wp_795",
+        "wp_797",
         "wp_823",
         "wp_825",
-        "wp_858",
-        "wp_859",
-        "wp_860"
+        "wp_855"
       ],
-      "zone": "flank"
+      "zone": "site_b"
     },
     {
       "id": "wp_825",
       "pos": {
-        "x": 20.0,
+        "x": 18.0,
         "y": 0.0,
-        "z": -10.0
+        "z": -16.0
       },
       "neighbors": [
-        "wp_794",
-        "wp_795",
+        "wp_798",
         "wp_824",
-        "wp_859",
-        "wp_860"
+        "wp_826",
+        "wp_855",
+        "wp_856"
       ],
-      "zone": "flank"
+      "zone": "site_b"
     },
     {
       "id": "wp_826",
       "pos": {
-        "x": 20.0,
+        "x": 18.0,
         "y": 0.0,
-        "z": 6.0
+        "z": -14.0
       },
       "neighbors": [
-        "wp_796",
-        "wp_797",
+        "wp_798",
+        "wp_799",
+        "wp_825",
         "wp_827",
-        "wp_866",
-        "wp_867"
+        "wp_855",
+        "wp_856",
+        "wp_857"
       ],
-      "zone": "flank"
+      "zone": "site_b"
     },
     {
       "id": "wp_827",
       "pos": {
-        "x": 20.0,
+        "x": 18.0,
         "y": 0.0,
-        "z": 8.0
+        "z": -12.0
       },
       "neighbors": [
-        "wp_796",
-        "wp_797",
+        "wp_798",
+        "wp_799",
+        "wp_800",
         "wp_826",
         "wp_828",
-        "wp_866",
-        "wp_867",
-        "wp_868"
+        "wp_856",
+        "wp_857",
+        "wp_858"
       ],
       "zone": "flank"
     },
     {
       "id": "wp_828",
       "pos": {
-        "x": 20.0,
+        "x": 18.0,
         "y": 0.0,
-        "z": 10.0
+        "z": -10.0
       },
       "neighbors": [
-        "wp_797",
+        "wp_799",
+        "wp_800",
         "wp_827",
-        "wp_829",
-        "wp_867",
-        "wp_868",
-        "wp_869"
+        "wp_857",
+        "wp_858"
       ],
       "zone": "flank"
     },
     {
       "id": "wp_829",
       "pos": {
-        "x": 20.0,
+        "x": 18.0,
         "y": 0.0,
-        "z": 12.0
+        "z": 6.0
       },
       "neighbors": [
-        "wp_828",
-        "wp_868",
-        "wp_869"
+        "wp_801",
+        "wp_802",
+        "wp_830",
+        "wp_859",
+        "wp_860"
       ],
       "zone": "flank"
     },
     {
       "id": "wp_830",
       "pos": {
-        "x": 20.0,
+        "x": 18.0,
         "y": 0.0,
-        "z": 14.0
+        "z": 8.0
       },
       "neighbors": [
-        "wp_831",
-        "wp_870",
-        "wp_871"
+        "wp_801",
+        "wp_802",
+        "wp_829",
+        "wp_859",
+        "wp_860",
+        "wp_861"
       ],
       "zone": "flank"
     },
     {
       "id": "wp_831",
       "pos": {
-        "x": 20.0,
-        "y": 0.0,
-        "z": 16.0
-      },
-      "neighbors": [
-        "wp_830",
-        "wp_832",
-        "wp_870",
-        "wp_871",
-        "wp_872"
-      ],
-      "zone": "flank"
-    },
-    {
-      "id": "wp_832",
-      "pos": {
-        "x": 20.0,
-        "y": 0.0,
-        "z": 18.0
-      },
-      "neighbors": [
-        "wp_831",
-        "wp_871",
-        "wp_872"
-      ],
-      "zone": "flank"
-    },
-    {
-      "id": "wp_833",
-      "pos": {
-        "x": 20.0,
+        "x": 18.0,
         "y": 0.0,
         "z": 22.0
       },
       "neighbors": [
-        "wp_798",
-        "wp_799",
+        "wp_832",
+        "wp_866",
+        "wp_867"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_832",
+      "pos": {
+        "x": 18.0,
+        "y": 0.0,
+        "z": 24.0
+      },
+      "neighbors": [
+        "wp_831",
+        "wp_833",
+        "wp_866",
+        "wp_867",
+        "wp_868"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_833",
+      "pos": {
+        "x": 18.0,
+        "y": 0.0,
+        "z": 26.0
+      },
+      "neighbors": [
+        "wp_832",
         "wp_834",
-        "wp_873",
-        "wp_874"
+        "wp_867",
+        "wp_868",
+        "wp_869"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_834",
       "pos": {
-        "x": 20.0,
+        "x": 18.0,
         "y": 0.0,
-        "z": 24.0
+        "z": 28.0
       },
       "neighbors": [
-        "wp_798",
-        "wp_799",
-        "wp_800",
+        "wp_803",
         "wp_833",
         "wp_835",
+        "wp_868",
+        "wp_869",
+        "wp_870"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_835",
+      "pos": {
+        "x": 18.0,
+        "y": 0.0,
+        "z": 30.0
+      },
+      "neighbors": [
+        "wp_803",
+        "wp_804",
+        "wp_834",
+        "wp_836",
+        "wp_869",
+        "wp_870",
+        "wp_871"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_836",
+      "pos": {
+        "x": 18.0,
+        "y": 0.0,
+        "z": 32.0
+      },
+      "neighbors": [
+        "wp_803",
+        "wp_804",
+        "wp_805",
+        "wp_835",
+        "wp_837",
+        "wp_870",
+        "wp_871",
+        "wp_872"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_837",
+      "pos": {
+        "x": 18.0,
+        "y": 0.0,
+        "z": 34.0
+      },
+      "neighbors": [
+        "wp_804",
+        "wp_805",
+        "wp_806",
+        "wp_836",
+        "wp_838",
+        "wp_871",
+        "wp_872",
+        "wp_873"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_838",
+      "pos": {
+        "x": 18.0,
+        "y": 0.0,
+        "z": 36.0
+      },
+      "neighbors": [
+        "wp_805",
+        "wp_806",
+        "wp_807",
+        "wp_837",
+        "wp_839",
+        "wp_872",
+        "wp_873",
+        "wp_874"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_839",
+      "pos": {
+        "x": 18.0,
+        "y": 0.0,
+        "z": 38.0
+      },
+      "neighbors": [
+        "wp_806",
+        "wp_807",
+        "wp_808",
+        "wp_838",
+        "wp_840",
         "wp_873",
         "wp_874",
         "wp_875"
@@ -17063,18 +17606,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_835",
+      "id": "wp_840",
       "pos": {
-        "x": 20.0,
+        "x": 18.0,
         "y": 0.0,
-        "z": 26.0
+        "z": 40.0
       },
       "neighbors": [
-        "wp_799",
-        "wp_800",
-        "wp_801",
-        "wp_834",
-        "wp_836",
+        "wp_807",
+        "wp_808",
+        "wp_809",
+        "wp_839",
+        "wp_841",
         "wp_874",
         "wp_875",
         "wp_876"
@@ -17082,18 +17625,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_836",
+      "id": "wp_841",
       "pos": {
-        "x": 20.0,
+        "x": 18.0,
         "y": 0.0,
-        "z": 28.0
+        "z": 42.0
       },
       "neighbors": [
-        "wp_800",
-        "wp_801",
-        "wp_802",
-        "wp_835",
-        "wp_837",
+        "wp_808",
+        "wp_809",
+        "wp_810",
+        "wp_840",
+        "wp_842",
         "wp_875",
         "wp_876",
         "wp_877"
@@ -17101,116 +17644,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_837",
-      "pos": {
-        "x": 20.0,
-        "y": 0.0,
-        "z": 30.0
-      },
-      "neighbors": [
-        "wp_801",
-        "wp_802",
-        "wp_803",
-        "wp_836",
-        "wp_838",
-        "wp_876",
-        "wp_877",
-        "wp_878"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_838",
-      "pos": {
-        "x": 20.0,
-        "y": 0.0,
-        "z": 32.0
-      },
-      "neighbors": [
-        "wp_802",
-        "wp_803",
-        "wp_804",
-        "wp_837",
-        "wp_839",
-        "wp_877",
-        "wp_878",
-        "wp_879"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_839",
-      "pos": {
-        "x": 20.0,
-        "y": 0.0,
-        "z": 34.0
-      },
-      "neighbors": [
-        "wp_803",
-        "wp_804",
-        "wp_805",
-        "wp_838",
-        "wp_840",
-        "wp_878",
-        "wp_879",
-        "wp_880"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_840",
-      "pos": {
-        "x": 20.0,
-        "y": 0.0,
-        "z": 36.0
-      },
-      "neighbors": [
-        "wp_804",
-        "wp_805",
-        "wp_806",
-        "wp_839",
-        "wp_841",
-        "wp_879",
-        "wp_880",
-        "wp_881"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_841",
-      "pos": {
-        "x": 20.0,
-        "y": 0.0,
-        "z": 38.0
-      },
-      "neighbors": [
-        "wp_805",
-        "wp_806",
-        "wp_807",
-        "wp_840",
-        "wp_842",
-        "wp_880",
-        "wp_881",
-        "wp_882"
-      ],
-      "zone": "spawn"
-    },
-    {
       "id": "wp_842",
       "pos": {
-        "x": 20.0,
+        "x": 18.0,
         "y": 0.0,
-        "z": 40.0
+        "z": 44.0
       },
       "neighbors": [
-        "wp_806",
-        "wp_807",
-        "wp_808",
+        "wp_809",
+        "wp_810",
         "wp_841",
-        "wp_843",
-        "wp_881",
-        "wp_882",
-        "wp_883"
+        "wp_876",
+        "wp_877"
       ],
       "zone": "spawn"
     },
@@ -17219,17 +17664,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": 20.0,
         "y": 0.0,
-        "z": 42.0
+        "z": -44.0
       },
       "neighbors": [
-        "wp_807",
-        "wp_808",
-        "wp_809",
-        "wp_842",
+        "wp_811",
+        "wp_812",
         "wp_844",
-        "wp_882",
-        "wp_883",
-        "wp_884"
+        "wp_878",
+        "wp_879"
       ],
       "zone": "spawn"
     },
@@ -17238,182 +17680,202 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": 20.0,
         "y": 0.0,
-        "z": 44.0
+        "z": -42.0
       },
       "neighbors": [
-        "wp_808",
-        "wp_809",
+        "wp_811",
+        "wp_812",
+        "wp_813",
         "wp_843",
-        "wp_883",
-        "wp_884"
+        "wp_845",
+        "wp_878",
+        "wp_879",
+        "wp_880"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_845",
       "pos": {
-        "x": 22.0,
+        "x": 20.0,
         "y": 0.0,
-        "z": -44.0
+        "z": -40.0
       },
       "neighbors": [
-        "wp_810",
-        "wp_811",
-        "wp_846"
+        "wp_812",
+        "wp_813",
+        "wp_814",
+        "wp_844",
+        "wp_846",
+        "wp_879",
+        "wp_880",
+        "wp_881"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_846",
       "pos": {
-        "x": 22.0,
+        "x": 20.0,
         "y": 0.0,
-        "z": -42.0
+        "z": -38.0
       },
       "neighbors": [
-        "wp_810",
-        "wp_811",
-        "wp_812",
+        "wp_813",
+        "wp_814",
+        "wp_815",
         "wp_845",
-        "wp_847"
+        "wp_847",
+        "wp_880",
+        "wp_881",
+        "wp_882"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_847",
       "pos": {
-        "x": 22.0,
+        "x": 20.0,
         "y": 0.0,
-        "z": -40.0
+        "z": -36.0
       },
       "neighbors": [
-        "wp_811",
-        "wp_812",
-        "wp_813",
+        "wp_814",
+        "wp_815",
+        "wp_816",
         "wp_846",
-        "wp_848"
+        "wp_848",
+        "wp_881",
+        "wp_882",
+        "wp_883"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_848",
       "pos": {
-        "x": 22.0,
+        "x": 20.0,
         "y": 0.0,
-        "z": -38.0
+        "z": -34.0
       },
       "neighbors": [
-        "wp_812",
-        "wp_813",
-        "wp_814",
+        "wp_815",
+        "wp_816",
+        "wp_817",
         "wp_847",
-        "wp_849"
+        "wp_849",
+        "wp_882",
+        "wp_883",
+        "wp_884"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_849",
       "pos": {
-        "x": 22.0,
-        "y": 0.0,
-        "z": -36.0
-      },
-      "neighbors": [
-        "wp_813",
-        "wp_814",
-        "wp_815",
-        "wp_848",
-        "wp_850"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_850",
-      "pos": {
-        "x": 22.0,
-        "y": 0.0,
-        "z": -34.0
-      },
-      "neighbors": [
-        "wp_814",
-        "wp_815",
-        "wp_816",
-        "wp_849",
-        "wp_851"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_851",
-      "pos": {
-        "x": 22.0,
+        "x": 20.0,
         "y": 0.0,
         "z": -32.0
       },
       "neighbors": [
-        "wp_815",
         "wp_816",
         "wp_817",
+        "wp_818",
+        "wp_848",
+        "wp_850",
+        "wp_883",
+        "wp_884",
+        "wp_885"
+      ],
+      "zone": "site_b"
+    },
+    {
+      "id": "wp_850",
+      "pos": {
+        "x": 20.0,
+        "y": 0.0,
+        "z": -30.0
+      },
+      "neighbors": [
+        "wp_817",
+        "wp_818",
+        "wp_819",
+        "wp_849",
+        "wp_851",
+        "wp_884",
+        "wp_885",
+        "wp_886"
+      ],
+      "zone": "site_b"
+    },
+    {
+      "id": "wp_851",
+      "pos": {
+        "x": 20.0,
+        "y": 0.0,
+        "z": -28.0
+      },
+      "neighbors": [
+        "wp_818",
+        "wp_819",
+        "wp_820",
         "wp_850",
         "wp_852",
-        "wp_885"
+        "wp_885",
+        "wp_886",
+        "wp_887"
       ],
       "zone": "site_b"
     },
     {
       "id": "wp_852",
       "pos": {
-        "x": 22.0,
+        "x": 20.0,
         "y": 0.0,
-        "z": -30.0
+        "z": -26.0
       },
       "neighbors": [
-        "wp_816",
-        "wp_817",
-        "wp_818",
+        "wp_819",
+        "wp_820",
+        "wp_821",
         "wp_851",
         "wp_853",
-        "wp_885",
         "wp_886",
-        "wp_1147"
+        "wp_887",
+        "wp_888"
       ],
       "zone": "site_b"
     },
     {
       "id": "wp_853",
       "pos": {
-        "x": 22.0,
+        "x": 20.0,
         "y": 0.0,
-        "z": -28.0
+        "z": -24.0
       },
       "neighbors": [
-        "wp_817",
-        "wp_818",
-        "wp_819",
+        "wp_820",
+        "wp_821",
+        "wp_822",
         "wp_852",
         "wp_854",
-        "wp_885",
-        "wp_886",
         "wp_887",
-        "wp_1147"
+        "wp_888"
       ],
       "zone": "site_b"
     },
     {
       "id": "wp_854",
       "pos": {
-        "x": 22.0,
+        "x": 20.0,
         "y": 0.0,
-        "z": -26.0
+        "z": -22.0
       },
       "neighbors": [
-        "wp_818",
-        "wp_819",
-        "wp_820",
+        "wp_821",
+        "wp_822",
+        "wp_823",
         "wp_853",
-        "wp_855",
-        "wp_886",
-        "wp_887",
         "wp_888"
       ],
       "zone": "site_b"
@@ -17421,65 +17883,33 @@ export const ASCENT_MAP_DATA: AscentMapData = {
     {
       "id": "wp_855",
       "pos": {
-        "x": 22.0,
-        "y": 0.0,
-        "z": -24.0
-      },
-      "neighbors": [
-        "wp_819",
-        "wp_820",
-        "wp_821",
-        "wp_854",
-        "wp_887",
-        "wp_888"
-      ],
-      "zone": "site_b"
-    },
-    {
-      "id": "wp_856",
-      "pos": {
-        "x": 22.0,
-        "y": 0.0,
-        "z": -18.0
-      },
-      "neighbors": [
-        "wp_857",
-        "wp_889",
-        "wp_890"
-      ],
-      "zone": "site_b"
-    },
-    {
-      "id": "wp_857",
-      "pos": {
-        "x": 22.0,
+        "x": 20.0,
         "y": 0.0,
         "z": -16.0
       },
       "neighbors": [
-        "wp_822",
-        "wp_823",
+        "wp_824",
+        "wp_825",
+        "wp_826",
         "wp_856",
-        "wp_858",
-        "wp_889",
         "wp_890",
         "wp_891"
       ],
       "zone": "site_b"
     },
     {
-      "id": "wp_858",
+      "id": "wp_856",
       "pos": {
-        "x": 22.0,
+        "x": 20.0,
         "y": 0.0,
         "z": -14.0
       },
       "neighbors": [
-        "wp_822",
-        "wp_823",
-        "wp_824",
+        "wp_825",
+        "wp_826",
+        "wp_827",
+        "wp_855",
         "wp_857",
-        "wp_859",
         "wp_890",
         "wp_891",
         "wp_892"
@@ -17487,255 +17917,214 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "site_b"
     },
     {
-      "id": "wp_859",
+      "id": "wp_857",
       "pos": {
-        "x": 22.0,
+        "x": 20.0,
         "y": 0.0,
         "z": -12.0
       },
       "neighbors": [
-        "wp_823",
-        "wp_824",
-        "wp_825",
+        "wp_826",
+        "wp_827",
+        "wp_828",
+        "wp_856",
         "wp_858",
-        "wp_860",
         "wp_891",
-        "wp_892",
-        "wp_893"
+        "wp_892"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_858",
+      "pos": {
+        "x": 20.0,
+        "y": 0.0,
+        "z": -10.0
+      },
+      "neighbors": [
+        "wp_827",
+        "wp_828",
+        "wp_857",
+        "wp_892"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_859",
+      "pos": {
+        "x": 20.0,
+        "y": 0.0,
+        "z": 6.0
+      },
+      "neighbors": [
+        "wp_829",
+        "wp_830",
+        "wp_860",
+        "wp_897",
+        "wp_898"
       ],
       "zone": "flank"
     },
     {
       "id": "wp_860",
       "pos": {
-        "x": 22.0,
+        "x": 20.0,
         "y": 0.0,
-        "z": -10.0
+        "z": 8.0
       },
       "neighbors": [
-        "wp_824",
-        "wp_825",
+        "wp_829",
+        "wp_830",
         "wp_859",
-        "wp_892",
-        "wp_893"
+        "wp_861",
+        "wp_897",
+        "wp_898",
+        "wp_899"
       ],
       "zone": "flank"
     },
     {
       "id": "wp_861",
       "pos": {
-        "x": 22.0,
+        "x": 20.0,
         "y": 0.0,
-        "z": -6.0
+        "z": 10.0
       },
       "neighbors": [
+        "wp_830",
+        "wp_860",
         "wp_862",
-        "wp_894",
-        "wp_895",
-        "wp_1153",
-        "wp_1154"
-      ],
-      "zone": "flank"
-    },
-    {
-      "id": "wp_862",
-      "pos": {
-        "x": 22.0,
-        "y": 0.0,
-        "z": -4.0
-      },
-      "neighbors": [
-        "wp_861",
-        "wp_863",
-        "wp_894",
-        "wp_895",
-        "wp_896",
-        "wp_1153",
-        "wp_1154"
-      ],
-      "zone": "flank"
-    },
-    {
-      "id": "wp_863",
-      "pos": {
-        "x": 22.0,
-        "y": 0.0,
-        "z": -2.0
-      },
-      "neighbors": [
-        "wp_862",
-        "wp_864",
-        "wp_895",
-        "wp_896",
-        "wp_897",
-        "wp_1153",
-        "wp_1154"
-      ],
-      "zone": "flank"
-    },
-    {
-      "id": "wp_864",
-      "pos": {
-        "x": 22.0,
-        "y": 0.0,
-        "z": 0.0
-      },
-      "neighbors": [
-        "wp_863",
-        "wp_865",
-        "wp_896",
-        "wp_897",
-        "wp_898"
-      ],
-      "zone": "flank"
-    },
-    {
-      "id": "wp_865",
-      "pos": {
-        "x": 22.0,
-        "y": 0.0,
-        "z": 2.0
-      },
-      "neighbors": [
-        "wp_864",
-        "wp_897",
-        "wp_898"
-      ],
-      "zone": "flank"
-    },
-    {
-      "id": "wp_866",
-      "pos": {
-        "x": 22.0,
-        "y": 0.0,
-        "z": 6.0
-      },
-      "neighbors": [
-        "wp_826",
-        "wp_827",
-        "wp_867",
+        "wp_898",
         "wp_899",
         "wp_900"
       ],
       "zone": "flank"
     },
     {
-      "id": "wp_867",
+      "id": "wp_862",
       "pos": {
-        "x": 22.0,
-        "y": 0.0,
-        "z": 8.0
-      },
-      "neighbors": [
-        "wp_826",
-        "wp_827",
-        "wp_828",
-        "wp_866",
-        "wp_868",
-        "wp_899",
-        "wp_900",
-        "wp_901"
-      ],
-      "zone": "flank"
-    },
-    {
-      "id": "wp_868",
-      "pos": {
-        "x": 22.0,
-        "y": 0.0,
-        "z": 10.0
-      },
-      "neighbors": [
-        "wp_827",
-        "wp_828",
-        "wp_829",
-        "wp_867",
-        "wp_869",
-        "wp_900",
-        "wp_901",
-        "wp_902"
-      ],
-      "zone": "flank"
-    },
-    {
-      "id": "wp_869",
-      "pos": {
-        "x": 22.0,
+        "x": 20.0,
         "y": 0.0,
         "z": 12.0
       },
       "neighbors": [
-        "wp_828",
-        "wp_829",
-        "wp_868",
+        "wp_861",
+        "wp_899",
+        "wp_900"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_863",
+      "pos": {
+        "x": 20.0,
+        "y": 0.0,
+        "z": 14.0
+      },
+      "neighbors": [
+        "wp_864",
         "wp_901",
         "wp_902"
       ],
       "zone": "flank"
     },
     {
-      "id": "wp_870",
+      "id": "wp_864",
       "pos": {
-        "x": 22.0,
-        "y": 0.0,
-        "z": 14.0
-      },
-      "neighbors": [
-        "wp_830",
-        "wp_831",
-        "wp_871",
-        "wp_903",
-        "wp_904"
-      ],
-      "zone": "flank"
-    },
-    {
-      "id": "wp_871",
-      "pos": {
-        "x": 22.0,
+        "x": 20.0,
         "y": 0.0,
         "z": 16.0
       },
       "neighbors": [
-        "wp_830",
-        "wp_831",
-        "wp_832",
-        "wp_870",
-        "wp_872",
-        "wp_903",
-        "wp_904",
-        "wp_905"
+        "wp_863",
+        "wp_865",
+        "wp_901",
+        "wp_902",
+        "wp_903"
       ],
       "zone": "flank"
     },
     {
-      "id": "wp_872",
+      "id": "wp_865",
       "pos": {
-        "x": 22.0,
+        "x": 20.0,
         "y": 0.0,
         "z": 18.0
       },
       "neighbors": [
-        "wp_831",
-        "wp_832",
-        "wp_871",
-        "wp_904",
-        "wp_905",
-        "wp_906"
+        "wp_864",
+        "wp_902",
+        "wp_903"
       ],
       "zone": "flank"
     },
     {
-      "id": "wp_873",
+      "id": "wp_866",
       "pos": {
-        "x": 22.0,
+        "x": 20.0,
         "y": 0.0,
         "z": 22.0
       },
       "neighbors": [
+        "wp_831",
+        "wp_832",
+        "wp_867",
+        "wp_904",
+        "wp_905"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_867",
+      "pos": {
+        "x": 20.0,
+        "y": 0.0,
+        "z": 24.0
+      },
+      "neighbors": [
+        "wp_831",
+        "wp_832",
+        "wp_833",
+        "wp_866",
+        "wp_868",
+        "wp_904",
+        "wp_905",
+        "wp_906"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_868",
+      "pos": {
+        "x": 20.0,
+        "y": 0.0,
+        "z": 26.0
+      },
+      "neighbors": [
+        "wp_832",
         "wp_833",
         "wp_834",
-        "wp_874",
+        "wp_867",
+        "wp_869",
+        "wp_905",
+        "wp_906",
+        "wp_907"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_869",
+      "pos": {
+        "x": 20.0,
+        "y": 0.0,
+        "z": 28.0
+      },
+      "neighbors": [
+        "wp_833",
+        "wp_834",
+        "wp_835",
+        "wp_868",
+        "wp_870",
         "wp_906",
         "wp_907",
         "wp_908"
@@ -17743,18 +18132,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_874",
+      "id": "wp_870",
       "pos": {
-        "x": 22.0,
+        "x": 20.0,
         "y": 0.0,
-        "z": 24.0
+        "z": 30.0
       },
       "neighbors": [
-        "wp_833",
         "wp_834",
         "wp_835",
-        "wp_873",
-        "wp_875",
+        "wp_836",
+        "wp_869",
+        "wp_871",
         "wp_907",
         "wp_908",
         "wp_909"
@@ -17762,18 +18151,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_875",
+      "id": "wp_871",
       "pos": {
-        "x": 22.0,
+        "x": 20.0,
         "y": 0.0,
-        "z": 26.0
+        "z": 32.0
       },
       "neighbors": [
-        "wp_834",
         "wp_835",
         "wp_836",
-        "wp_874",
-        "wp_876",
+        "wp_837",
+        "wp_870",
+        "wp_872",
         "wp_908",
         "wp_909",
         "wp_910"
@@ -17781,18 +18170,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_876",
+      "id": "wp_872",
       "pos": {
-        "x": 22.0,
+        "x": 20.0,
         "y": 0.0,
-        "z": 28.0
+        "z": 34.0
       },
       "neighbors": [
-        "wp_835",
         "wp_836",
         "wp_837",
-        "wp_875",
-        "wp_877",
+        "wp_838",
+        "wp_871",
+        "wp_873",
         "wp_909",
         "wp_910",
         "wp_911"
@@ -17800,21 +18189,94 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_877",
+      "id": "wp_873",
       "pos": {
-        "x": 22.0,
+        "x": 20.0,
         "y": 0.0,
-        "z": 30.0
+        "z": 36.0
       },
       "neighbors": [
-        "wp_836",
         "wp_837",
         "wp_838",
-        "wp_876",
-        "wp_878",
+        "wp_839",
+        "wp_872",
+        "wp_874",
         "wp_910",
         "wp_911",
         "wp_912"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_874",
+      "pos": {
+        "x": 20.0,
+        "y": 0.0,
+        "z": 38.0
+      },
+      "neighbors": [
+        "wp_838",
+        "wp_839",
+        "wp_840",
+        "wp_873",
+        "wp_875",
+        "wp_911",
+        "wp_912",
+        "wp_913"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_875",
+      "pos": {
+        "x": 20.0,
+        "y": 0.0,
+        "z": 40.0
+      },
+      "neighbors": [
+        "wp_839",
+        "wp_840",
+        "wp_841",
+        "wp_874",
+        "wp_876",
+        "wp_912",
+        "wp_913",
+        "wp_914"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_876",
+      "pos": {
+        "x": 20.0,
+        "y": 0.0,
+        "z": 42.0
+      },
+      "neighbors": [
+        "wp_840",
+        "wp_841",
+        "wp_842",
+        "wp_875",
+        "wp_877",
+        "wp_913",
+        "wp_914",
+        "wp_915"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_877",
+      "pos": {
+        "x": 20.0,
+        "y": 0.0,
+        "z": 44.0
+      },
+      "neighbors": [
+        "wp_841",
+        "wp_842",
+        "wp_876",
+        "wp_914",
+        "wp_915"
       ],
       "zone": "spawn"
     },
@@ -17823,17 +18285,12 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": 22.0,
         "y": 0.0,
-        "z": 32.0
+        "z": -44.0
       },
       "neighbors": [
-        "wp_837",
-        "wp_838",
-        "wp_839",
-        "wp_877",
-        "wp_879",
-        "wp_911",
-        "wp_912",
-        "wp_913"
+        "wp_843",
+        "wp_844",
+        "wp_879"
       ],
       "zone": "spawn"
     },
@@ -17842,17 +18299,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": 22.0,
         "y": 0.0,
-        "z": 34.0
+        "z": -42.0
       },
       "neighbors": [
-        "wp_838",
-        "wp_839",
-        "wp_840",
+        "wp_843",
+        "wp_844",
+        "wp_845",
         "wp_878",
-        "wp_880",
-        "wp_912",
-        "wp_913",
-        "wp_914"
+        "wp_880"
       ],
       "zone": "spawn"
     },
@@ -17861,17 +18315,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": 22.0,
         "y": 0.0,
-        "z": 36.0
+        "z": -40.0
       },
       "neighbors": [
-        "wp_839",
-        "wp_840",
-        "wp_841",
+        "wp_844",
+        "wp_845",
+        "wp_846",
         "wp_879",
-        "wp_881",
-        "wp_913",
-        "wp_914",
-        "wp_915"
+        "wp_881"
       ],
       "zone": "spawn"
     },
@@ -17880,17 +18331,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": 22.0,
         "y": 0.0,
-        "z": 38.0
+        "z": -38.0
       },
       "neighbors": [
-        "wp_840",
-        "wp_841",
-        "wp_842",
+        "wp_845",
+        "wp_846",
+        "wp_847",
         "wp_880",
-        "wp_882",
-        "wp_914",
-        "wp_915",
-        "wp_916"
+        "wp_882"
       ],
       "zone": "spawn"
     },
@@ -17899,17 +18347,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": 22.0,
         "y": 0.0,
-        "z": 40.0
+        "z": -36.0
       },
       "neighbors": [
-        "wp_841",
-        "wp_842",
-        "wp_843",
+        "wp_846",
+        "wp_847",
+        "wp_848",
         "wp_881",
-        "wp_883",
-        "wp_915",
-        "wp_916",
-        "wp_917"
+        "wp_883"
       ],
       "zone": "spawn"
     },
@@ -17918,17 +18363,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": 22.0,
         "y": 0.0,
-        "z": 42.0
+        "z": -34.0
       },
       "neighbors": [
-        "wp_842",
-        "wp_843",
-        "wp_844",
+        "wp_847",
+        "wp_848",
+        "wp_849",
         "wp_882",
-        "wp_884",
-        "wp_916",
-        "wp_917",
-        "wp_918"
+        "wp_884"
       ],
       "zone": "spawn"
     },
@@ -17937,225 +18379,253 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": 22.0,
         "y": 0.0,
-        "z": 44.0
+        "z": -32.0
       },
       "neighbors": [
-        "wp_843",
-        "wp_844",
+        "wp_848",
+        "wp_849",
+        "wp_850",
         "wp_883",
-        "wp_917",
-        "wp_918"
+        "wp_885",
+        "wp_916"
       ],
-      "zone": "spawn"
+      "zone": "site_b"
     },
     {
       "id": "wp_885",
       "pos": {
-        "x": 24.0,
+        "x": 22.0,
         "y": 0.0,
         "z": -30.0
       },
       "neighbors": [
+        "wp_849",
+        "wp_850",
         "wp_851",
-        "wp_852",
-        "wp_853",
+        "wp_884",
         "wp_886",
-        "wp_919",
-        "wp_920",
-        "wp_1146",
-        "wp_1147"
+        "wp_916",
+        "wp_917",
+        "wp_1189"
       ],
       "zone": "site_b"
     },
     {
       "id": "wp_886",
       "pos": {
-        "x": 24.0,
+        "x": 22.0,
         "y": 0.0,
         "z": -28.0
       },
       "neighbors": [
+        "wp_850",
+        "wp_851",
         "wp_852",
-        "wp_853",
-        "wp_854",
         "wp_885",
         "wp_887",
-        "wp_919",
-        "wp_920",
-        "wp_1146",
-        "wp_1147"
+        "wp_916",
+        "wp_917",
+        "wp_918",
+        "wp_1189"
       ],
       "zone": "site_b"
     },
     {
       "id": "wp_887",
       "pos": {
-        "x": 24.0,
+        "x": 22.0,
         "y": 0.0,
         "z": -26.0
       },
       "neighbors": [
+        "wp_851",
+        "wp_852",
         "wp_853",
-        "wp_854",
-        "wp_855",
         "wp_886",
         "wp_888",
-        "wp_920",
-        "wp_1147"
+        "wp_917",
+        "wp_918"
       ],
       "zone": "site_b"
     },
     {
       "id": "wp_888",
       "pos": {
-        "x": 24.0,
+        "x": 22.0,
         "y": 0.0,
         "z": -24.0
       },
       "neighbors": [
+        "wp_852",
+        "wp_853",
         "wp_854",
-        "wp_855",
         "wp_887",
-        "wp_921"
+        "wp_918"
       ],
       "zone": "site_b"
     },
     {
       "id": "wp_889",
       "pos": {
-        "x": 24.0,
+        "x": 22.0,
         "y": 0.0,
         "z": -18.0
       },
       "neighbors": [
-        "wp_856",
-        "wp_857",
         "wp_890",
-        "wp_922",
-        "wp_923",
-        "wp_924"
+        "wp_919",
+        "wp_920"
       ],
       "zone": "site_b"
     },
     {
       "id": "wp_890",
       "pos": {
-        "x": 24.0,
+        "x": 22.0,
         "y": 0.0,
         "z": -16.0
       },
       "neighbors": [
+        "wp_855",
         "wp_856",
-        "wp_857",
-        "wp_858",
         "wp_889",
         "wp_891",
-        "wp_923",
-        "wp_924"
+        "wp_919",
+        "wp_920",
+        "wp_921"
       ],
       "zone": "site_b"
     },
     {
       "id": "wp_891",
       "pos": {
-        "x": 24.0,
+        "x": 22.0,
         "y": 0.0,
         "z": -14.0
       },
       "neighbors": [
+        "wp_855",
+        "wp_856",
         "wp_857",
-        "wp_858",
-        "wp_859",
         "wp_890",
         "wp_892",
-        "wp_924"
+        "wp_920",
+        "wp_921",
+        "wp_922"
       ],
       "zone": "site_b"
     },
     {
       "id": "wp_892",
       "pos": {
-        "x": 24.0,
+        "x": 22.0,
         "y": 0.0,
         "z": -12.0
       },
       "neighbors": [
+        "wp_856",
+        "wp_857",
         "wp_858",
-        "wp_859",
-        "wp_860",
         "wp_891",
-        "wp_893",
-        "wp_925"
+        "wp_921",
+        "wp_922"
       ],
       "zone": "flank"
     },
     {
       "id": "wp_893",
       "pos": {
-        "x": 24.0,
+        "x": 22.0,
         "y": 0.0,
-        "z": -10.0
+        "z": -4.0
       },
       "neighbors": [
-        "wp_859",
-        "wp_860",
-        "wp_892",
+        "wp_894",
+        "wp_923",
+        "wp_924",
         "wp_925",
-        "wp_926"
+        "wp_1195",
+        "wp_1196"
       ],
       "zone": "flank"
     },
     {
       "id": "wp_894",
       "pos": {
-        "x": 24.0,
+        "x": 22.0,
         "y": 0.0,
-        "z": -6.0
+        "z": -2.0
       },
       "neighbors": [
-        "wp_861",
-        "wp_862",
+        "wp_893",
         "wp_895",
+        "wp_924",
+        "wp_925",
         "wp_926",
-        "wp_927",
-        "wp_928",
-        "wp_1153"
+        "wp_1195",
+        "wp_1196"
       ],
       "zone": "flank"
     },
     {
       "id": "wp_895",
       "pos": {
-        "x": 24.0,
+        "x": 22.0,
         "y": 0.0,
-        "z": -4.0
+        "z": 0.0
       },
       "neighbors": [
-        "wp_861",
-        "wp_862",
-        "wp_863",
         "wp_894",
         "wp_896",
-        "wp_927",
-        "wp_928",
-        "wp_929",
-        "wp_1153"
+        "wp_925",
+        "wp_926",
+        "wp_927"
       ],
       "zone": "flank"
     },
     {
       "id": "wp_896",
       "pos": {
-        "x": 24.0,
+        "x": 22.0,
         "y": 0.0,
-        "z": -2.0
+        "z": 2.0
       },
       "neighbors": [
-        "wp_862",
-        "wp_863",
-        "wp_864",
         "wp_895",
+        "wp_926",
+        "wp_927"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_897",
+      "pos": {
+        "x": 22.0,
+        "y": 0.0,
+        "z": 6.0
+      },
+      "neighbors": [
+        "wp_859",
+        "wp_860",
+        "wp_898",
+        "wp_928",
+        "wp_929"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_898",
+      "pos": {
+        "x": 22.0,
+        "y": 0.0,
+        "z": 8.0
+      },
+      "neighbors": [
+        "wp_859",
+        "wp_860",
+        "wp_861",
         "wp_897",
+        "wp_899",
         "wp_928",
         "wp_929",
         "wp_930"
@@ -18163,18 +18633,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "flank"
     },
     {
-      "id": "wp_897",
+      "id": "wp_899",
       "pos": {
-        "x": 24.0,
+        "x": 22.0,
         "y": 0.0,
-        "z": 0.0
+        "z": 10.0
       },
       "neighbors": [
-        "wp_863",
-        "wp_864",
-        "wp_865",
-        "wp_896",
+        "wp_860",
+        "wp_861",
+        "wp_862",
         "wp_898",
+        "wp_900",
         "wp_929",
         "wp_930",
         "wp_931"
@@ -18182,33 +18652,50 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "flank"
     },
     {
-      "id": "wp_898",
+      "id": "wp_900",
       "pos": {
-        "x": 24.0,
+        "x": 22.0,
         "y": 0.0,
-        "z": 2.0
+        "z": 12.0
       },
       "neighbors": [
-        "wp_864",
-        "wp_865",
-        "wp_897",
+        "wp_861",
+        "wp_862",
+        "wp_899",
         "wp_930",
-        "wp_931",
-        "wp_932"
+        "wp_931"
       ],
       "zone": "flank"
     },
     {
-      "id": "wp_899",
+      "id": "wp_901",
       "pos": {
-        "x": 24.0,
+        "x": 22.0,
         "y": 0.0,
-        "z": 6.0
+        "z": 14.0
       },
       "neighbors": [
-        "wp_866",
-        "wp_867",
-        "wp_900",
+        "wp_863",
+        "wp_864",
+        "wp_902",
+        "wp_932",
+        "wp_933"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_902",
+      "pos": {
+        "x": 22.0,
+        "y": 0.0,
+        "z": 16.0
+      },
+      "neighbors": [
+        "wp_863",
+        "wp_864",
+        "wp_865",
+        "wp_901",
+        "wp_903",
         "wp_932",
         "wp_933",
         "wp_934"
@@ -18216,18 +18703,16 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "flank"
     },
     {
-      "id": "wp_900",
+      "id": "wp_903",
       "pos": {
-        "x": 24.0,
+        "x": 22.0,
         "y": 0.0,
-        "z": 8.0
+        "z": 18.0
       },
       "neighbors": [
-        "wp_866",
-        "wp_867",
-        "wp_868",
-        "wp_899",
-        "wp_901",
+        "wp_864",
+        "wp_865",
+        "wp_902",
         "wp_933",
         "wp_934",
         "wp_935"
@@ -18235,123 +18720,111 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "flank"
     },
     {
-      "id": "wp_901",
+      "id": "wp_904",
       "pos": {
-        "x": 24.0,
+        "x": 22.0,
         "y": 0.0,
-        "z": 10.0
+        "z": 22.0
+      },
+      "neighbors": [
+        "wp_866",
+        "wp_867",
+        "wp_905",
+        "wp_935",
+        "wp_936",
+        "wp_937"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_905",
+      "pos": {
+        "x": 22.0,
+        "y": 0.0,
+        "z": 24.0
+      },
+      "neighbors": [
+        "wp_866",
+        "wp_867",
+        "wp_868",
+        "wp_904",
+        "wp_906",
+        "wp_936",
+        "wp_937",
+        "wp_938"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_906",
+      "pos": {
+        "x": 22.0,
+        "y": 0.0,
+        "z": 26.0
       },
       "neighbors": [
         "wp_867",
         "wp_868",
         "wp_869",
-        "wp_900",
-        "wp_902",
-        "wp_934",
-        "wp_935",
-        "wp_936"
-      ],
-      "zone": "flank"
-    },
-    {
-      "id": "wp_902",
-      "pos": {
-        "x": 24.0,
-        "y": 0.0,
-        "z": 12.0
-      },
-      "neighbors": [
-        "wp_868",
-        "wp_869",
-        "wp_901",
-        "wp_935",
-        "wp_936"
-      ],
-      "zone": "flank"
-    },
-    {
-      "id": "wp_903",
-      "pos": {
-        "x": 24.0,
-        "y": 0.0,
-        "z": 14.0
-      },
-      "neighbors": [
-        "wp_870",
-        "wp_871",
-        "wp_904",
-        "wp_937",
-        "wp_938"
-      ],
-      "zone": "flank"
-    },
-    {
-      "id": "wp_904",
-      "pos": {
-        "x": 24.0,
-        "y": 0.0,
-        "z": 16.0
-      },
-      "neighbors": [
-        "wp_870",
-        "wp_871",
-        "wp_872",
-        "wp_903",
         "wp_905",
+        "wp_907",
         "wp_937",
         "wp_938",
         "wp_939"
       ],
-      "zone": "flank"
-    },
-    {
-      "id": "wp_905",
-      "pos": {
-        "x": 24.0,
-        "y": 0.0,
-        "z": 18.0
-      },
-      "neighbors": [
-        "wp_871",
-        "wp_872",
-        "wp_904",
-        "wp_906",
-        "wp_938",
-        "wp_939",
-        "wp_940"
-      ],
-      "zone": "flank"
-    },
-    {
-      "id": "wp_906",
-      "pos": {
-        "x": 24.0,
-        "y": 0.0,
-        "z": 20.0
-      },
-      "neighbors": [
-        "wp_872",
-        "wp_873",
-        "wp_905",
-        "wp_907",
-        "wp_939",
-        "wp_940",
-        "wp_941"
-      ],
-      "zone": "flank"
+      "zone": "spawn"
     },
     {
       "id": "wp_907",
       "pos": {
-        "x": 24.0,
+        "x": 22.0,
         "y": 0.0,
-        "z": 22.0
+        "z": 28.0
       },
       "neighbors": [
-        "wp_873",
-        "wp_874",
+        "wp_868",
+        "wp_869",
+        "wp_870",
         "wp_906",
         "wp_908",
+        "wp_938",
+        "wp_939",
+        "wp_940"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_908",
+      "pos": {
+        "x": 22.0,
+        "y": 0.0,
+        "z": 30.0
+      },
+      "neighbors": [
+        "wp_869",
+        "wp_870",
+        "wp_871",
+        "wp_907",
+        "wp_909",
+        "wp_939",
+        "wp_940",
+        "wp_941"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_909",
+      "pos": {
+        "x": 22.0,
+        "y": 0.0,
+        "z": 32.0
+      },
+      "neighbors": [
+        "wp_870",
+        "wp_871",
+        "wp_872",
+        "wp_908",
+        "wp_910",
         "wp_940",
         "wp_941",
         "wp_942"
@@ -18359,18 +18832,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_908",
+      "id": "wp_910",
       "pos": {
-        "x": 24.0,
+        "x": 22.0,
         "y": 0.0,
-        "z": 24.0
+        "z": 34.0
       },
       "neighbors": [
+        "wp_871",
+        "wp_872",
         "wp_873",
-        "wp_874",
-        "wp_875",
-        "wp_907",
         "wp_909",
+        "wp_911",
         "wp_941",
         "wp_942",
         "wp_943"
@@ -18378,18 +18851,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_909",
+      "id": "wp_911",
       "pos": {
-        "x": 24.0,
+        "x": 22.0,
         "y": 0.0,
-        "z": 26.0
+        "z": 36.0
       },
       "neighbors": [
+        "wp_872",
+        "wp_873",
         "wp_874",
-        "wp_875",
-        "wp_876",
-        "wp_908",
         "wp_910",
+        "wp_912",
         "wp_942",
         "wp_943",
         "wp_944"
@@ -18397,18 +18870,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_910",
+      "id": "wp_912",
       "pos": {
-        "x": 24.0,
+        "x": 22.0,
         "y": 0.0,
-        "z": 28.0
+        "z": 38.0
       },
       "neighbors": [
+        "wp_873",
+        "wp_874",
         "wp_875",
-        "wp_876",
-        "wp_877",
-        "wp_909",
         "wp_911",
+        "wp_913",
         "wp_943",
         "wp_944",
         "wp_945"
@@ -18416,18 +18889,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_911",
+      "id": "wp_913",
       "pos": {
-        "x": 24.0,
+        "x": 22.0,
         "y": 0.0,
-        "z": 30.0
+        "z": 40.0
       },
       "neighbors": [
+        "wp_874",
+        "wp_875",
         "wp_876",
-        "wp_877",
-        "wp_878",
-        "wp_910",
         "wp_912",
+        "wp_914",
         "wp_944",
         "wp_945",
         "wp_946"
@@ -18435,18 +18908,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_912",
+      "id": "wp_914",
       "pos": {
-        "x": 24.0,
+        "x": 22.0,
         "y": 0.0,
-        "z": 32.0
+        "z": 42.0
       },
       "neighbors": [
+        "wp_875",
+        "wp_876",
         "wp_877",
-        "wp_878",
-        "wp_879",
-        "wp_911",
         "wp_913",
+        "wp_915",
         "wp_945",
         "wp_946",
         "wp_947"
@@ -18454,59 +18927,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_913",
-      "pos": {
-        "x": 24.0,
-        "y": 0.0,
-        "z": 34.0
-      },
-      "neighbors": [
-        "wp_878",
-        "wp_879",
-        "wp_880",
-        "wp_912",
-        "wp_914",
-        "wp_946",
-        "wp_947",
-        "wp_948"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_914",
-      "pos": {
-        "x": 24.0,
-        "y": 0.0,
-        "z": 36.0
-      },
-      "neighbors": [
-        "wp_879",
-        "wp_880",
-        "wp_881",
-        "wp_913",
-        "wp_915",
-        "wp_947",
-        "wp_948",
-        "wp_949"
-      ],
-      "zone": "spawn"
-    },
-    {
       "id": "wp_915",
       "pos": {
-        "x": 24.0,
+        "x": 22.0,
         "y": 0.0,
-        "z": 38.0
+        "z": 44.0
       },
       "neighbors": [
-        "wp_880",
-        "wp_881",
-        "wp_882",
+        "wp_876",
+        "wp_877",
         "wp_914",
-        "wp_916",
-        "wp_948",
-        "wp_949",
-        "wp_950"
+        "wp_946",
+        "wp_947"
       ],
       "zone": "spawn"
     },
@@ -18515,77 +18947,24 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": 24.0,
         "y": 0.0,
-        "z": 40.0
+        "z": -30.0
       },
       "neighbors": [
-        "wp_881",
-        "wp_882",
-        "wp_883",
-        "wp_915",
+        "wp_884",
+        "wp_885",
+        "wp_886",
         "wp_917",
+        "wp_948",
         "wp_949",
-        "wp_950",
-        "wp_951"
+        "wp_1188",
+        "wp_1189"
       ],
-      "zone": "spawn"
+      "zone": "site_b"
     },
     {
       "id": "wp_917",
       "pos": {
         "x": 24.0,
-        "y": 0.0,
-        "z": 42.0
-      },
-      "neighbors": [
-        "wp_882",
-        "wp_883",
-        "wp_884",
-        "wp_916",
-        "wp_918",
-        "wp_950",
-        "wp_951",
-        "wp_952"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_918",
-      "pos": {
-        "x": 24.0,
-        "y": 0.0,
-        "z": 44.0
-      },
-      "neighbors": [
-        "wp_883",
-        "wp_884",
-        "wp_917",
-        "wp_951",
-        "wp_952"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_919",
-      "pos": {
-        "x": 26.0,
-        "y": 0.0,
-        "z": -30.0
-      },
-      "neighbors": [
-        "wp_885",
-        "wp_886",
-        "wp_920",
-        "wp_953",
-        "wp_954",
-        "wp_1146",
-        "wp_1147"
-      ],
-      "zone": "site_b"
-    },
-    {
-      "id": "wp_920",
-      "pos": {
-        "x": 26.0,
         "y": 0.0,
         "z": -28.0
       },
@@ -18593,69 +18972,53 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "wp_885",
         "wp_886",
         "wp_887",
-        "wp_919",
-        "wp_953",
-        "wp_954",
-        "wp_1146",
-        "wp_1147"
+        "wp_916",
+        "wp_918",
+        "wp_948",
+        "wp_949",
+        "wp_1188",
+        "wp_1189"
       ],
       "zone": "site_b"
     },
     {
-      "id": "wp_921",
+      "id": "wp_918",
       "pos": {
-        "x": 26.0,
+        "x": 24.0,
         "y": 0.0,
-        "z": -22.0
+        "z": -26.0
       },
       "neighbors": [
+        "wp_886",
+        "wp_887",
         "wp_888",
-        "wp_922",
-        "wp_956",
-        "wp_957",
-        "wp_958"
+        "wp_917",
+        "wp_949",
+        "wp_1189"
       ],
       "zone": "site_b"
     },
     {
-      "id": "wp_922",
+      "id": "wp_919",
       "pos": {
-        "x": 26.0,
-        "y": 0.0,
-        "z": -20.0
-      },
-      "neighbors": [
-        "wp_889",
-        "wp_921",
-        "wp_923",
-        "wp_957",
-        "wp_958",
-        "wp_959"
-      ],
-      "zone": "site_b"
-    },
-    {
-      "id": "wp_923",
-      "pos": {
-        "x": 26.0,
+        "x": 24.0,
         "y": 0.0,
         "z": -18.0
       },
       "neighbors": [
         "wp_889",
         "wp_890",
-        "wp_922",
-        "wp_924",
-        "wp_958",
-        "wp_959",
-        "wp_960"
+        "wp_920",
+        "wp_950",
+        "wp_951",
+        "wp_952"
       ],
       "zone": "site_b"
     },
     {
-      "id": "wp_924",
+      "id": "wp_920",
       "pos": {
-        "x": 26.0,
+        "x": 24.0,
         "y": 0.0,
         "z": -16.0
       },
@@ -18663,40 +19026,165 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "wp_889",
         "wp_890",
         "wp_891",
-        "wp_923",
-        "wp_959",
-        "wp_960"
+        "wp_919",
+        "wp_921",
+        "wp_951",
+        "wp_952"
       ],
       "zone": "site_b"
     },
     {
-      "id": "wp_925",
+      "id": "wp_921",
       "pos": {
-        "x": 26.0,
+        "x": 24.0,
         "y": 0.0,
-        "z": -10.0
+        "z": -14.0
       },
       "neighbors": [
+        "wp_890",
+        "wp_891",
         "wp_892",
+        "wp_920",
+        "wp_922",
+        "wp_952"
+      ],
+      "zone": "site_b"
+    },
+    {
+      "id": "wp_922",
+      "pos": {
+        "x": 24.0,
+        "y": 0.0,
+        "z": -12.0
+      },
+      "neighbors": [
+        "wp_891",
+        "wp_892",
+        "wp_921"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_923",
+      "pos": {
+        "x": 24.0,
+        "y": 0.0,
+        "z": -6.0
+      },
+      "neighbors": [
         "wp_893",
+        "wp_924",
+        "wp_954",
+        "wp_955",
+        "wp_956",
+        "wp_1195"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_924",
+      "pos": {
+        "x": 24.0,
+        "y": 0.0,
+        "z": -4.0
+      },
+      "neighbors": [
+        "wp_893",
+        "wp_894",
+        "wp_923",
+        "wp_925",
+        "wp_955",
+        "wp_956",
+        "wp_957",
+        "wp_1195"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_925",
+      "pos": {
+        "x": 24.0,
+        "y": 0.0,
+        "z": -2.0
+      },
+      "neighbors": [
+        "wp_893",
+        "wp_894",
+        "wp_895",
+        "wp_924",
         "wp_926",
-        "wp_961",
-        "wp_962"
+        "wp_956",
+        "wp_957",
+        "wp_958"
       ],
       "zone": "flank"
     },
     {
       "id": "wp_926",
       "pos": {
-        "x": 26.0,
+        "x": 24.0,
         "y": 0.0,
-        "z": -8.0
+        "z": 0.0
       },
       "neighbors": [
-        "wp_893",
         "wp_894",
+        "wp_895",
+        "wp_896",
         "wp_925",
         "wp_927",
+        "wp_957",
+        "wp_958",
+        "wp_959"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_927",
+      "pos": {
+        "x": 24.0,
+        "y": 0.0,
+        "z": 2.0
+      },
+      "neighbors": [
+        "wp_895",
+        "wp_896",
+        "wp_926",
+        "wp_958",
+        "wp_959",
+        "wp_960"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_928",
+      "pos": {
+        "x": 24.0,
+        "y": 0.0,
+        "z": 6.0
+      },
+      "neighbors": [
+        "wp_897",
+        "wp_898",
+        "wp_929",
+        "wp_960",
+        "wp_961",
+        "wp_962"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_929",
+      "pos": {
+        "x": 24.0,
+        "y": 0.0,
+        "z": 8.0
+      },
+      "neighbors": [
+        "wp_897",
+        "wp_898",
+        "wp_899",
+        "wp_928",
+        "wp_930",
         "wp_961",
         "wp_962",
         "wp_963"
@@ -18704,17 +19192,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "flank"
     },
     {
-      "id": "wp_927",
+      "id": "wp_930",
       "pos": {
-        "x": 26.0,
+        "x": 24.0,
         "y": 0.0,
-        "z": -6.0
+        "z": 10.0
       },
       "neighbors": [
-        "wp_894",
-        "wp_895",
-        "wp_926",
-        "wp_928",
+        "wp_898",
+        "wp_899",
+        "wp_900",
+        "wp_929",
+        "wp_931",
         "wp_962",
         "wp_963",
         "wp_964"
@@ -18722,56 +19211,50 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "flank"
     },
     {
-      "id": "wp_928",
+      "id": "wp_931",
       "pos": {
-        "x": 26.0,
+        "x": 24.0,
         "y": 0.0,
-        "z": -4.0
+        "z": 12.0
       },
       "neighbors": [
-        "wp_894",
-        "wp_895",
-        "wp_896",
-        "wp_927",
-        "wp_929",
+        "wp_899",
+        "wp_900",
+        "wp_930",
         "wp_963",
-        "wp_964",
-        "wp_965"
+        "wp_964"
       ],
       "zone": "flank"
     },
     {
-      "id": "wp_929",
+      "id": "wp_932",
       "pos": {
-        "x": 26.0,
+        "x": 24.0,
         "y": 0.0,
-        "z": -2.0
+        "z": 14.0
       },
       "neighbors": [
-        "wp_895",
-        "wp_896",
-        "wp_897",
-        "wp_928",
-        "wp_930",
-        "wp_964",
+        "wp_901",
+        "wp_902",
+        "wp_933",
         "wp_965",
         "wp_966"
       ],
       "zone": "flank"
     },
     {
-      "id": "wp_930",
+      "id": "wp_933",
       "pos": {
-        "x": 26.0,
+        "x": 24.0,
         "y": 0.0,
-        "z": 0.0
+        "z": 16.0
       },
       "neighbors": [
-        "wp_896",
-        "wp_897",
-        "wp_898",
-        "wp_929",
-        "wp_931",
+        "wp_901",
+        "wp_902",
+        "wp_903",
+        "wp_932",
+        "wp_934",
         "wp_965",
         "wp_966",
         "wp_967"
@@ -18779,218 +19262,205 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "flank"
     },
     {
-      "id": "wp_931",
-      "pos": {
-        "x": 26.0,
-        "y": 0.0,
-        "z": 2.0
-      },
-      "neighbors": [
-        "wp_897",
-        "wp_898",
-        "wp_930",
-        "wp_932",
-        "wp_966",
-        "wp_967",
-        "wp_968",
-        "wp_1128"
-      ],
-      "zone": "flank"
-    },
-    {
-      "id": "wp_932",
-      "pos": {
-        "x": 26.0,
-        "y": 0.0,
-        "z": 4.0
-      },
-      "neighbors": [
-        "wp_898",
-        "wp_899",
-        "wp_931",
-        "wp_933",
-        "wp_967",
-        "wp_968",
-        "wp_969",
-        "wp_1128"
-      ],
-      "zone": "flank"
-    },
-    {
-      "id": "wp_933",
-      "pos": {
-        "x": 26.0,
-        "y": 0.0,
-        "z": 6.0
-      },
-      "neighbors": [
-        "wp_899",
-        "wp_900",
-        "wp_932",
-        "wp_934",
-        "wp_968",
-        "wp_969",
-        "wp_970",
-        "wp_1128"
-      ],
-      "zone": "flank"
-    },
-    {
       "id": "wp_934",
       "pos": {
-        "x": 26.0,
+        "x": 24.0,
         "y": 0.0,
-        "z": 8.0
+        "z": 18.0
       },
       "neighbors": [
-        "wp_899",
-        "wp_900",
-        "wp_901",
+        "wp_902",
+        "wp_903",
         "wp_933",
         "wp_935",
-        "wp_969",
-        "wp_970",
-        "wp_971"
+        "wp_966",
+        "wp_967",
+        "wp_968"
       ],
       "zone": "flank"
     },
     {
       "id": "wp_935",
       "pos": {
-        "x": 26.0,
+        "x": 24.0,
         "y": 0.0,
-        "z": 10.0
+        "z": 20.0
       },
       "neighbors": [
-        "wp_900",
-        "wp_901",
-        "wp_902",
+        "wp_903",
+        "wp_904",
         "wp_934",
         "wp_936",
-        "wp_970",
-        "wp_971",
-        "wp_972"
+        "wp_967",
+        "wp_968",
+        "wp_969"
       ],
       "zone": "flank"
     },
     {
       "id": "wp_936",
       "pos": {
-        "x": 26.0,
+        "x": 24.0,
         "y": 0.0,
-        "z": 12.0
+        "z": 22.0
       },
       "neighbors": [
-        "wp_901",
-        "wp_902",
+        "wp_904",
+        "wp_905",
         "wp_935",
-        "wp_971",
-        "wp_972"
+        "wp_937",
+        "wp_968",
+        "wp_969",
+        "wp_970"
       ],
-      "zone": "flank"
+      "zone": "spawn"
     },
     {
       "id": "wp_937",
       "pos": {
-        "x": 26.0,
+        "x": 24.0,
         "y": 0.0,
-        "z": 14.0
-      },
-      "neighbors": [
-        "wp_903",
-        "wp_904",
-        "wp_938",
-        "wp_973",
-        "wp_974"
-      ],
-      "zone": "flank"
-    },
-    {
-      "id": "wp_938",
-      "pos": {
-        "x": 26.0,
-        "y": 0.0,
-        "z": 16.0
-      },
-      "neighbors": [
-        "wp_903",
-        "wp_904",
-        "wp_905",
-        "wp_937",
-        "wp_939",
-        "wp_973",
-        "wp_974",
-        "wp_975"
-      ],
-      "zone": "flank"
-    },
-    {
-      "id": "wp_939",
-      "pos": {
-        "x": 26.0,
-        "y": 0.0,
-        "z": 18.0
+        "z": 24.0
       },
       "neighbors": [
         "wp_904",
         "wp_905",
         "wp_906",
+        "wp_936",
         "wp_938",
-        "wp_940",
-        "wp_974",
-        "wp_975"
+        "wp_969",
+        "wp_970",
+        "wp_971"
       ],
-      "zone": "flank"
+      "zone": "spawn"
     },
     {
-      "id": "wp_940",
+      "id": "wp_938",
       "pos": {
-        "x": 26.0,
+        "x": 24.0,
         "y": 0.0,
-        "z": 20.0
+        "z": 26.0
       },
       "neighbors": [
         "wp_905",
         "wp_906",
         "wp_907",
+        "wp_937",
         "wp_939",
-        "wp_941",
-        "wp_975",
-        "wp_976"
+        "wp_970",
+        "wp_971",
+        "wp_972"
       ],
-      "zone": "flank"
+      "zone": "spawn"
     },
     {
-      "id": "wp_941",
+      "id": "wp_939",
       "pos": {
-        "x": 26.0,
+        "x": 24.0,
         "y": 0.0,
-        "z": 22.0
+        "z": 28.0
       },
       "neighbors": [
         "wp_906",
         "wp_907",
         "wp_908",
+        "wp_938",
+        "wp_940",
+        "wp_971",
+        "wp_972",
+        "wp_973"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_940",
+      "pos": {
+        "x": 24.0,
+        "y": 0.0,
+        "z": 30.0
+      },
+      "neighbors": [
+        "wp_907",
+        "wp_908",
+        "wp_909",
+        "wp_939",
+        "wp_941",
+        "wp_972",
+        "wp_973",
+        "wp_974"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_941",
+      "pos": {
+        "x": 24.0,
+        "y": 0.0,
+        "z": 32.0
+      },
+      "neighbors": [
+        "wp_908",
+        "wp_909",
+        "wp_910",
         "wp_940",
         "wp_942",
-        "wp_976",
-        "wp_977"
+        "wp_973",
+        "wp_974",
+        "wp_975"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_942",
       "pos": {
-        "x": 26.0,
+        "x": 24.0,
         "y": 0.0,
-        "z": 24.0
+        "z": 34.0
       },
       "neighbors": [
-        "wp_907",
-        "wp_908",
         "wp_909",
+        "wp_910",
+        "wp_911",
         "wp_941",
         "wp_943",
+        "wp_974",
+        "wp_975",
+        "wp_976"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_943",
+      "pos": {
+        "x": 24.0,
+        "y": 0.0,
+        "z": 36.0
+      },
+      "neighbors": [
+        "wp_910",
+        "wp_911",
+        "wp_912",
+        "wp_942",
+        "wp_944",
+        "wp_975",
+        "wp_976",
+        "wp_977"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_944",
+      "pos": {
+        "x": 24.0,
+        "y": 0.0,
+        "z": 38.0
+      },
+      "neighbors": [
+        "wp_911",
+        "wp_912",
+        "wp_913",
+        "wp_943",
+        "wp_945",
         "wp_976",
         "wp_977",
         "wp_978"
@@ -18998,18 +19468,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_943",
+      "id": "wp_945",
       "pos": {
-        "x": 26.0,
+        "x": 24.0,
         "y": 0.0,
-        "z": 26.0
+        "z": 40.0
       },
       "neighbors": [
-        "wp_908",
-        "wp_909",
-        "wp_910",
-        "wp_942",
+        "wp_912",
+        "wp_913",
+        "wp_914",
         "wp_944",
+        "wp_946",
         "wp_977",
         "wp_978",
         "wp_979"
@@ -19017,18 +19487,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_944",
+      "id": "wp_946",
       "pos": {
-        "x": 26.0,
+        "x": 24.0,
         "y": 0.0,
-        "z": 28.0
+        "z": 42.0
       },
       "neighbors": [
-        "wp_909",
-        "wp_910",
-        "wp_911",
-        "wp_943",
+        "wp_913",
+        "wp_914",
+        "wp_915",
         "wp_945",
+        "wp_947",
         "wp_978",
         "wp_979",
         "wp_980"
@@ -19036,59 +19506,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_945",
-      "pos": {
-        "x": 26.0,
-        "y": 0.0,
-        "z": 30.0
-      },
-      "neighbors": [
-        "wp_910",
-        "wp_911",
-        "wp_912",
-        "wp_944",
-        "wp_946",
-        "wp_979",
-        "wp_980",
-        "wp_981"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_946",
-      "pos": {
-        "x": 26.0,
-        "y": 0.0,
-        "z": 32.0
-      },
-      "neighbors": [
-        "wp_911",
-        "wp_912",
-        "wp_913",
-        "wp_945",
-        "wp_947",
-        "wp_980",
-        "wp_981",
-        "wp_982"
-      ],
-      "zone": "spawn"
-    },
-    {
       "id": "wp_947",
       "pos": {
-        "x": 26.0,
+        "x": 24.0,
         "y": 0.0,
-        "z": 34.0
+        "z": 44.0
       },
       "neighbors": [
-        "wp_912",
-        "wp_913",
         "wp_914",
+        "wp_915",
         "wp_946",
-        "wp_948",
-        "wp_981",
-        "wp_982",
-        "wp_983"
+        "wp_979",
+        "wp_980"
       ],
       "zone": "spawn"
     },
@@ -19097,267 +19526,263 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": 26.0,
         "y": 0.0,
-        "z": 36.0
+        "z": -30.0
       },
       "neighbors": [
-        "wp_913",
-        "wp_914",
-        "wp_915",
-        "wp_947",
+        "wp_916",
+        "wp_917",
         "wp_949",
+        "wp_981",
         "wp_982",
-        "wp_983",
-        "wp_984"
+        "wp_1188",
+        "wp_1189"
       ],
-      "zone": "spawn"
+      "zone": "site_b"
     },
     {
       "id": "wp_949",
       "pos": {
         "x": 26.0,
         "y": 0.0,
-        "z": 38.0
+        "z": -28.0
       },
       "neighbors": [
-        "wp_914",
-        "wp_915",
         "wp_916",
+        "wp_917",
+        "wp_918",
         "wp_948",
-        "wp_950",
-        "wp_983",
-        "wp_984",
-        "wp_985"
+        "wp_981",
+        "wp_982",
+        "wp_1188",
+        "wp_1189"
       ],
-      "zone": "spawn"
+      "zone": "site_b"
     },
     {
       "id": "wp_950",
       "pos": {
         "x": 26.0,
         "y": 0.0,
-        "z": 40.0
+        "z": -20.0
       },
       "neighbors": [
-        "wp_915",
-        "wp_916",
-        "wp_917",
-        "wp_949",
+        "wp_919",
         "wp_951",
-        "wp_984",
         "wp_985",
-        "wp_986"
+        "wp_986",
+        "wp_987"
       ],
-      "zone": "spawn"
+      "zone": "site_b"
     },
     {
       "id": "wp_951",
       "pos": {
         "x": 26.0,
         "y": 0.0,
-        "z": 42.0
+        "z": -18.0
       },
       "neighbors": [
-        "wp_916",
-        "wp_917",
-        "wp_918",
+        "wp_919",
+        "wp_920",
         "wp_950",
         "wp_952",
-        "wp_985",
         "wp_986",
-        "wp_987"
+        "wp_987",
+        "wp_988"
       ],
-      "zone": "spawn"
+      "zone": "site_b"
     },
     {
       "id": "wp_952",
       "pos": {
         "x": 26.0,
         "y": 0.0,
-        "z": 44.0
+        "z": -16.0
       },
       "neighbors": [
-        "wp_917",
-        "wp_918",
+        "wp_919",
+        "wp_920",
+        "wp_921",
         "wp_951",
-        "wp_986",
-        "wp_987"
+        "wp_987",
+        "wp_988"
       ],
-      "zone": "spawn"
+      "zone": "site_b"
     },
     {
       "id": "wp_953",
       "pos": {
-        "x": 28.0,
+        "x": 26.0,
         "y": 0.0,
-        "z": -30.0
+        "z": -10.0
       },
       "neighbors": [
-        "wp_919",
-        "wp_920",
         "wp_954",
-        "wp_988",
         "wp_989",
-        "wp_1146",
-        "wp_1147"
+        "wp_990"
       ],
-      "zone": "site_b"
+      "zone": "flank"
     },
     {
       "id": "wp_954",
       "pos": {
-        "x": 28.0,
+        "x": 26.0,
         "y": 0.0,
-        "z": -28.0
+        "z": -8.0
       },
       "neighbors": [
-        "wp_919",
-        "wp_920",
+        "wp_923",
         "wp_953",
         "wp_955",
-        "wp_988",
         "wp_989",
         "wp_990",
-        "wp_1145",
-        "wp_1146"
+        "wp_991"
       ],
-      "zone": "site_b"
+      "zone": "flank"
     },
     {
       "id": "wp_955",
       "pos": {
-        "x": 28.0,
+        "x": 26.0,
         "y": 0.0,
-        "z": -26.0
+        "z": -6.0
       },
       "neighbors": [
+        "wp_923",
+        "wp_924",
         "wp_954",
         "wp_956",
-        "wp_989",
         "wp_990",
-        "wp_1144",
-        "wp_1145"
+        "wp_991",
+        "wp_992"
       ],
-      "zone": "site_b"
+      "zone": "flank"
     },
     {
       "id": "wp_956",
       "pos": {
-        "x": 28.0,
+        "x": 26.0,
         "y": 0.0,
-        "z": -24.0
+        "z": -4.0
       },
       "neighbors": [
-        "wp_921",
+        "wp_923",
+        "wp_924",
+        "wp_925",
         "wp_955",
         "wp_957",
-        "wp_990",
-        "wp_991",
-        "wp_1144",
-        "wp_1145"
-      ],
-      "zone": "site_b"
-    },
-    {
-      "id": "wp_957",
-      "pos": {
-        "x": 28.0,
-        "y": 0.0,
-        "z": -22.0
-      },
-      "neighbors": [
-        "wp_921",
-        "wp_922",
-        "wp_956",
-        "wp_958",
-        "wp_991",
-        "wp_992",
-        "wp_1144"
-      ],
-      "zone": "site_b"
-    },
-    {
-      "id": "wp_958",
-      "pos": {
-        "x": 28.0,
-        "y": 0.0,
-        "z": -20.0
-      },
-      "neighbors": [
-        "wp_921",
-        "wp_922",
-        "wp_923",
-        "wp_957",
-        "wp_959",
         "wp_991",
         "wp_992",
         "wp_993"
       ],
-      "zone": "site_b"
+      "zone": "flank"
     },
     {
-      "id": "wp_959",
+      "id": "wp_957",
       "pos": {
-        "x": 28.0,
+        "x": 26.0,
         "y": 0.0,
-        "z": -18.0
+        "z": -2.0
       },
       "neighbors": [
-        "wp_922",
-        "wp_923",
         "wp_924",
+        "wp_925",
+        "wp_926",
+        "wp_956",
         "wp_958",
-        "wp_960",
         "wp_992",
         "wp_993",
         "wp_994"
       ],
-      "zone": "site_b"
+      "zone": "flank"
     },
     {
-      "id": "wp_960",
+      "id": "wp_958",
       "pos": {
-        "x": 28.0,
+        "x": 26.0,
         "y": 0.0,
-        "z": -16.0
+        "z": 0.0
       },
       "neighbors": [
-        "wp_923",
-        "wp_924",
+        "wp_925",
+        "wp_926",
+        "wp_927",
+        "wp_957",
         "wp_959",
         "wp_993",
         "wp_994",
         "wp_995"
       ],
-      "zone": "site_b"
+      "zone": "flank"
+    },
+    {
+      "id": "wp_959",
+      "pos": {
+        "x": 26.0,
+        "y": 0.0,
+        "z": 2.0
+      },
+      "neighbors": [
+        "wp_926",
+        "wp_927",
+        "wp_958",
+        "wp_960",
+        "wp_994",
+        "wp_995",
+        "wp_996",
+        "wp_1161"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_960",
+      "pos": {
+        "x": 26.0,
+        "y": 0.0,
+        "z": 4.0
+      },
+      "neighbors": [
+        "wp_927",
+        "wp_928",
+        "wp_959",
+        "wp_961",
+        "wp_995",
+        "wp_996",
+        "wp_997",
+        "wp_1161"
+      ],
+      "zone": "flank"
     },
     {
       "id": "wp_961",
       "pos": {
-        "x": 28.0,
+        "x": 26.0,
         "y": 0.0,
-        "z": -10.0
+        "z": 6.0
       },
       "neighbors": [
-        "wp_925",
-        "wp_926",
+        "wp_928",
+        "wp_929",
+        "wp_960",
         "wp_962",
         "wp_996",
         "wp_997",
-        "wp_998"
+        "wp_998",
+        "wp_1161"
       ],
       "zone": "flank"
     },
     {
       "id": "wp_962",
       "pos": {
-        "x": 28.0,
+        "x": 26.0,
         "y": 0.0,
-        "z": -8.0
+        "z": 8.0
       },
       "neighbors": [
-        "wp_925",
-        "wp_926",
-        "wp_927",
+        "wp_928",
+        "wp_929",
+        "wp_930",
         "wp_961",
         "wp_963",
         "wp_997",
@@ -19369,14 +19794,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
     {
       "id": "wp_963",
       "pos": {
-        "x": 28.0,
+        "x": 26.0,
         "y": 0.0,
-        "z": -6.0
+        "z": 10.0
       },
       "neighbors": [
-        "wp_926",
-        "wp_927",
-        "wp_928",
+        "wp_929",
+        "wp_930",
+        "wp_931",
         "wp_962",
         "wp_964",
         "wp_998",
@@ -19388,36 +19813,30 @@ export const ASCENT_MAP_DATA: AscentMapData = {
     {
       "id": "wp_964",
       "pos": {
-        "x": 28.0,
+        "x": 26.0,
         "y": 0.0,
-        "z": -4.0
+        "z": 12.0
       },
       "neighbors": [
-        "wp_927",
-        "wp_928",
-        "wp_929",
+        "wp_930",
+        "wp_931",
         "wp_963",
-        "wp_965",
         "wp_999",
-        "wp_1000",
-        "wp_1001"
+        "wp_1000"
       ],
       "zone": "flank"
     },
     {
       "id": "wp_965",
       "pos": {
-        "x": 28.0,
+        "x": 26.0,
         "y": 0.0,
-        "z": -2.0
+        "z": 14.0
       },
       "neighbors": [
-        "wp_928",
-        "wp_929",
-        "wp_930",
-        "wp_964",
+        "wp_932",
+        "wp_933",
         "wp_966",
-        "wp_1000",
         "wp_1001",
         "wp_1002"
       ],
@@ -19426,14 +19845,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
     {
       "id": "wp_966",
       "pos": {
-        "x": 28.0,
+        "x": 26.0,
         "y": 0.0,
-        "z": 0.0
+        "z": 16.0
       },
       "neighbors": [
-        "wp_929",
-        "wp_930",
-        "wp_931",
+        "wp_932",
+        "wp_933",
+        "wp_934",
         "wp_965",
         "wp_967",
         "wp_1001",
@@ -19445,199 +19864,222 @@ export const ASCENT_MAP_DATA: AscentMapData = {
     {
       "id": "wp_967",
       "pos": {
-        "x": 28.0,
+        "x": 26.0,
         "y": 0.0,
-        "z": 2.0
+        "z": 18.0
       },
       "neighbors": [
-        "wp_930",
-        "wp_931",
-        "wp_932",
+        "wp_933",
+        "wp_934",
+        "wp_935",
         "wp_966",
         "wp_968",
         "wp_1002",
-        "wp_1003",
-        "wp_1004",
-        "wp_1128"
+        "wp_1003"
       ],
       "zone": "flank"
     },
     {
       "id": "wp_968",
       "pos": {
-        "x": 28.0,
+        "x": 26.0,
         "y": 0.0,
-        "z": 4.0
+        "z": 20.0
       },
       "neighbors": [
-        "wp_931",
-        "wp_932",
-        "wp_933",
+        "wp_934",
+        "wp_935",
+        "wp_936",
         "wp_967",
         "wp_969",
         "wp_1003",
-        "wp_1004",
-        "wp_1005",
-        "wp_1128"
+        "wp_1004"
       ],
       "zone": "flank"
     },
     {
       "id": "wp_969",
       "pos": {
-        "x": 28.0,
+        "x": 26.0,
         "y": 0.0,
-        "z": 6.0
+        "z": 22.0
       },
       "neighbors": [
-        "wp_932",
-        "wp_933",
-        "wp_934",
+        "wp_935",
+        "wp_936",
+        "wp_937",
         "wp_968",
         "wp_970",
         "wp_1004",
-        "wp_1005",
-        "wp_1006",
-        "wp_1128"
+        "wp_1005"
       ],
-      "zone": "flank"
+      "zone": "spawn"
     },
     {
       "id": "wp_970",
       "pos": {
-        "x": 28.0,
+        "x": 26.0,
         "y": 0.0,
-        "z": 8.0
+        "z": 24.0
       },
       "neighbors": [
-        "wp_933",
-        "wp_934",
-        "wp_935",
+        "wp_936",
+        "wp_937",
+        "wp_938",
         "wp_969",
         "wp_971",
+        "wp_1004",
         "wp_1005",
-        "wp_1006",
-        "wp_1007"
+        "wp_1006"
       ],
-      "zone": "flank"
+      "zone": "spawn"
     },
     {
       "id": "wp_971",
       "pos": {
-        "x": 28.0,
+        "x": 26.0,
         "y": 0.0,
-        "z": 10.0
-      },
-      "neighbors": [
-        "wp_934",
-        "wp_935",
-        "wp_936",
-        "wp_970",
-        "wp_972",
-        "wp_1006",
-        "wp_1007",
-        "wp_1008"
-      ],
-      "zone": "flank"
-    },
-    {
-      "id": "wp_972",
-      "pos": {
-        "x": 28.0,
-        "y": 0.0,
-        "z": 12.0
-      },
-      "neighbors": [
-        "wp_935",
-        "wp_936",
-        "wp_971",
-        "wp_1007",
-        "wp_1008"
-      ],
-      "zone": "flank"
-    },
-    {
-      "id": "wp_973",
-      "pos": {
-        "x": 28.0,
-        "y": 0.0,
-        "z": 14.0
-      },
-      "neighbors": [
-        "wp_937",
-        "wp_938",
-        "wp_974",
-        "wp_1009",
-        "wp_1010"
-      ],
-      "zone": "flank"
-    },
-    {
-      "id": "wp_974",
-      "pos": {
-        "x": 28.0,
-        "y": 0.0,
-        "z": 16.0
+        "z": 26.0
       },
       "neighbors": [
         "wp_937",
         "wp_938",
         "wp_939",
-        "wp_973",
-        "wp_975",
-        "wp_1009",
-        "wp_1010",
-        "wp_1011"
+        "wp_970",
+        "wp_972",
+        "wp_1005",
+        "wp_1006",
+        "wp_1007"
       ],
-      "zone": "flank"
+      "zone": "spawn"
     },
     {
-      "id": "wp_975",
+      "id": "wp_972",
       "pos": {
-        "x": 28.0,
+        "x": 26.0,
         "y": 0.0,
-        "z": 18.0
+        "z": 28.0
       },
       "neighbors": [
         "wp_938",
         "wp_939",
         "wp_940",
-        "wp_974",
-        "wp_1010",
-        "wp_1011"
+        "wp_971",
+        "wp_973",
+        "wp_1006",
+        "wp_1007",
+        "wp_1008"
       ],
-      "zone": "flank"
+      "zone": "spawn"
     },
     {
-      "id": "wp_976",
+      "id": "wp_973",
       "pos": {
-        "x": 28.0,
+        "x": 26.0,
         "y": 0.0,
-        "z": 22.0
+        "z": 30.0
+      },
+      "neighbors": [
+        "wp_939",
+        "wp_940",
+        "wp_941",
+        "wp_972",
+        "wp_974",
+        "wp_1007",
+        "wp_1008",
+        "wp_1009"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_974",
+      "pos": {
+        "x": 26.0,
+        "y": 0.0,
+        "z": 32.0
       },
       "neighbors": [
         "wp_940",
         "wp_941",
         "wp_942",
+        "wp_973",
+        "wp_975",
+        "wp_1008",
+        "wp_1009",
+        "wp_1010"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_975",
+      "pos": {
+        "x": 26.0,
+        "y": 0.0,
+        "z": 34.0
+      },
+      "neighbors": [
+        "wp_941",
+        "wp_942",
+        "wp_943",
+        "wp_974",
+        "wp_976",
+        "wp_1009",
+        "wp_1010",
+        "wp_1011"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_976",
+      "pos": {
+        "x": 26.0,
+        "y": 0.0,
+        "z": 36.0
+      },
+      "neighbors": [
+        "wp_942",
+        "wp_943",
+        "wp_944",
+        "wp_975",
         "wp_977",
-        "wp_1012",
-        "wp_1013"
+        "wp_1010",
+        "wp_1011",
+        "wp_1012"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_977",
       "pos": {
-        "x": 28.0,
+        "x": 26.0,
         "y": 0.0,
-        "z": 24.0
+        "z": 38.0
       },
       "neighbors": [
-        "wp_941",
-        "wp_942",
         "wp_943",
+        "wp_944",
+        "wp_945",
         "wp_976",
         "wp_978",
+        "wp_1011",
+        "wp_1012",
+        "wp_1013"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_978",
+      "pos": {
+        "x": 26.0,
+        "y": 0.0,
+        "z": 40.0
+      },
+      "neighbors": [
+        "wp_944",
+        "wp_945",
+        "wp_946",
+        "wp_977",
+        "wp_979",
         "wp_1012",
         "wp_1013",
         "wp_1014"
@@ -19645,18 +20087,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_978",
+      "id": "wp_979",
       "pos": {
-        "x": 28.0,
+        "x": 26.0,
         "y": 0.0,
-        "z": 26.0
+        "z": 42.0
       },
       "neighbors": [
-        "wp_942",
-        "wp_943",
-        "wp_944",
-        "wp_977",
-        "wp_979",
+        "wp_945",
+        "wp_946",
+        "wp_947",
+        "wp_978",
+        "wp_980",
         "wp_1013",
         "wp_1014",
         "wp_1015"
@@ -19664,40 +20106,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "spawn"
     },
     {
-      "id": "wp_979",
-      "pos": {
-        "x": 28.0,
-        "y": 0.0,
-        "z": 28.0
-      },
-      "neighbors": [
-        "wp_943",
-        "wp_944",
-        "wp_945",
-        "wp_978",
-        "wp_980",
-        "wp_1014",
-        "wp_1015",
-        "wp_1016"
-      ],
-      "zone": "spawn"
-    },
-    {
       "id": "wp_980",
       "pos": {
-        "x": 28.0,
+        "x": 26.0,
         "y": 0.0,
-        "z": 30.0
+        "z": 44.0
       },
       "neighbors": [
-        "wp_944",
-        "wp_945",
         "wp_946",
+        "wp_947",
         "wp_979",
-        "wp_981",
-        "wp_1015",
-        "wp_1016",
-        "wp_1017"
+        "wp_1014",
+        "wp_1015"
       ],
       "zone": "spawn"
     },
@@ -19706,358 +20126,326 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": 28.0,
         "y": 0.0,
-        "z": 32.0
+        "z": -30.0
       },
       "neighbors": [
-        "wp_945",
-        "wp_946",
-        "wp_947",
-        "wp_980",
+        "wp_948",
+        "wp_949",
         "wp_982",
         "wp_1016",
         "wp_1017",
-        "wp_1018"
+        "wp_1188",
+        "wp_1189"
       ],
-      "zone": "spawn"
+      "zone": "site_b"
     },
     {
       "id": "wp_982",
       "pos": {
         "x": 28.0,
         "y": 0.0,
-        "z": 34.0
+        "z": -28.0
       },
       "neighbors": [
-        "wp_946",
-        "wp_947",
         "wp_948",
+        "wp_949",
         "wp_981",
         "wp_983",
+        "wp_1016",
         "wp_1017",
         "wp_1018",
-        "wp_1019"
+        "wp_1186",
+        "wp_1188"
       ],
-      "zone": "spawn"
+      "zone": "site_b"
     },
     {
       "id": "wp_983",
       "pos": {
         "x": 28.0,
         "y": 0.0,
-        "z": 36.0
+        "z": -26.0
       },
       "neighbors": [
-        "wp_947",
-        "wp_948",
-        "wp_949",
         "wp_982",
         "wp_984",
+        "wp_1017",
         "wp_1018",
-        "wp_1019",
-        "wp_1020"
+        "wp_1185",
+        "wp_1186",
+        "wp_1187"
       ],
-      "zone": "spawn"
+      "zone": "site_b"
     },
     {
       "id": "wp_984",
       "pos": {
         "x": 28.0,
         "y": 0.0,
-        "z": 38.0
+        "z": -24.0
       },
       "neighbors": [
-        "wp_948",
-        "wp_949",
-        "wp_950",
         "wp_983",
         "wp_985",
-        "wp_1019",
-        "wp_1020",
-        "wp_1021"
+        "wp_1018",
+        "wp_1185",
+        "wp_1186"
       ],
-      "zone": "spawn"
+      "zone": "site_b"
     },
     {
       "id": "wp_985",
       "pos": {
         "x": 28.0,
         "y": 0.0,
-        "z": 40.0
+        "z": -22.0
       },
       "neighbors": [
-        "wp_949",
         "wp_950",
-        "wp_951",
         "wp_984",
         "wp_986",
-        "wp_1020",
-        "wp_1021",
-        "wp_1022"
+        "wp_1185"
       ],
-      "zone": "spawn"
+      "zone": "site_b"
     },
     {
       "id": "wp_986",
       "pos": {
         "x": 28.0,
         "y": 0.0,
-        "z": 42.0
+        "z": -20.0
       },
       "neighbors": [
         "wp_950",
         "wp_951",
-        "wp_952",
         "wp_985",
         "wp_987",
-        "wp_1021",
-        "wp_1022",
-        "wp_1023"
+        "wp_1019",
+        "wp_1020"
       ],
-      "zone": "spawn"
+      "zone": "site_b"
     },
     {
       "id": "wp_987",
       "pos": {
         "x": 28.0,
         "y": 0.0,
-        "z": 44.0
+        "z": -18.0
       },
       "neighbors": [
+        "wp_950",
         "wp_951",
         "wp_952",
         "wp_986",
-        "wp_1022",
-        "wp_1023"
+        "wp_988",
+        "wp_1019",
+        "wp_1020",
+        "wp_1021"
       ],
-      "zone": "spawn"
+      "zone": "site_b"
     },
     {
       "id": "wp_988",
       "pos": {
-        "x": 30.0,
+        "x": 28.0,
         "y": 0.0,
-        "z": -30.0
+        "z": -16.0
       },
       "neighbors": [
-        "wp_953",
-        "wp_954",
-        "wp_989",
-        "wp_1024",
-        "wp_1025"
+        "wp_951",
+        "wp_952",
+        "wp_987",
+        "wp_1020",
+        "wp_1021",
+        "wp_1022"
       ],
       "zone": "site_b"
     },
     {
       "id": "wp_989",
       "pos": {
-        "x": 30.0,
+        "x": 28.0,
         "y": 0.0,
-        "z": -28.0
+        "z": -10.0
+      },
+      "neighbors": [
+        "wp_953",
+        "wp_954",
+        "wp_990",
+        "wp_1023",
+        "wp_1024",
+        "wp_1025"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_990",
+      "pos": {
+        "x": 28.0,
+        "y": 0.0,
+        "z": -8.0
       },
       "neighbors": [
         "wp_953",
         "wp_954",
         "wp_955",
-        "wp_988",
-        "wp_990",
+        "wp_989",
+        "wp_991",
         "wp_1024",
         "wp_1025",
-        "wp_1026",
-        "wp_1145"
+        "wp_1026"
       ],
-      "zone": "site_b"
+      "zone": "flank"
     },
     {
-      "id": "wp_990",
+      "id": "wp_991",
       "pos": {
-        "x": 30.0,
+        "x": 28.0,
         "y": 0.0,
-        "z": -26.0
+        "z": -6.0
       },
       "neighbors": [
         "wp_954",
         "wp_955",
         "wp_956",
-        "wp_989",
+        "wp_990",
+        "wp_992",
         "wp_1025",
         "wp_1026",
-        "wp_1144",
-        "wp_1145"
+        "wp_1027"
       ],
-      "zone": "site_b"
+      "zone": "flank"
     },
     {
-      "id": "wp_991",
+      "id": "wp_992",
       "pos": {
-        "x": 30.0,
+        "x": 28.0,
         "y": 0.0,
-        "z": -22.0
+        "z": -4.0
+      },
+      "neighbors": [
+        "wp_955",
+        "wp_956",
+        "wp_957",
+        "wp_991",
+        "wp_993",
+        "wp_1026",
+        "wp_1027",
+        "wp_1028"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_993",
+      "pos": {
+        "x": 28.0,
+        "y": 0.0,
+        "z": -2.0
       },
       "neighbors": [
         "wp_956",
         "wp_957",
         "wp_958",
         "wp_992",
-        "wp_1139",
-        "wp_1140",
-        "wp_1144"
+        "wp_994",
+        "wp_1027",
+        "wp_1028",
+        "wp_1029"
       ],
-      "zone": "site_b"
+      "zone": "flank"
     },
     {
-      "id": "wp_992",
+      "id": "wp_994",
       "pos": {
-        "x": 30.0,
+        "x": 28.0,
         "y": 0.0,
-        "z": -20.0
+        "z": 0.0
       },
       "neighbors": [
         "wp_957",
         "wp_958",
         "wp_959",
-        "wp_991",
         "wp_993",
-        "wp_1027",
-        "wp_1139",
-        "wp_1140"
+        "wp_995",
+        "wp_1028",
+        "wp_1029",
+        "wp_1030"
       ],
-      "zone": "site_b"
+      "zone": "flank"
     },
     {
-      "id": "wp_993",
+      "id": "wp_995",
       "pos": {
-        "x": 30.0,
+        "x": 28.0,
         "y": 0.0,
-        "z": -18.0
+        "z": 2.0
       },
       "neighbors": [
         "wp_958",
         "wp_959",
         "wp_960",
-        "wp_992",
-        "wp_994",
-        "wp_1027",
-        "wp_1028",
-        "wp_1140"
-      ],
-      "zone": "site_b"
-    },
-    {
-      "id": "wp_994",
-      "pos": {
-        "x": 30.0,
-        "y": 0.0,
-        "z": -16.0
-      },
-      "neighbors": [
-        "wp_959",
-        "wp_960",
-        "wp_993",
-        "wp_995",
-        "wp_1027",
-        "wp_1028",
-        "wp_1029"
-      ],
-      "zone": "site_b"
-    },
-    {
-      "id": "wp_995",
-      "pos": {
-        "x": 30.0,
-        "y": 0.0,
-        "z": -14.0
-      },
-      "neighbors": [
-        "wp_960",
         "wp_994",
         "wp_996",
-        "wp_1028",
         "wp_1029",
-        "wp_1030"
+        "wp_1030",
+        "wp_1031",
+        "wp_1161"
       ],
-      "zone": "site_b"
+      "zone": "flank"
     },
     {
       "id": "wp_996",
       "pos": {
-        "x": 30.0,
+        "x": 28.0,
         "y": 0.0,
-        "z": -12.0
+        "z": 4.0
       },
       "neighbors": [
+        "wp_959",
+        "wp_960",
         "wp_961",
         "wp_995",
         "wp_997",
-        "wp_1029",
         "wp_1030",
-        "wp_1031"
+        "wp_1031",
+        "wp_1032",
+        "wp_1161"
       ],
       "zone": "flank"
     },
     {
       "id": "wp_997",
       "pos": {
-        "x": 30.0,
+        "x": 28.0,
         "y": 0.0,
-        "z": -10.0
+        "z": 6.0
       },
       "neighbors": [
+        "wp_960",
         "wp_961",
         "wp_962",
         "wp_996",
         "wp_998",
-        "wp_1030",
-        "wp_1031"
+        "wp_1031",
+        "wp_1032",
+        "wp_1033",
+        "wp_1161"
       ],
       "zone": "flank"
     },
     {
       "id": "wp_998",
       "pos": {
-        "x": 30.0,
+        "x": 28.0,
         "y": 0.0,
-        "z": -8.0
+        "z": 8.0
       },
       "neighbors": [
         "wp_961",
         "wp_962",
         "wp_963",
         "wp_997",
-        "wp_999"
-      ],
-      "zone": "flank"
-    },
-    {
-      "id": "wp_999",
-      "pos": {
-        "x": 30.0,
-        "y": 0.0,
-        "z": -6.0
-      },
-      "neighbors": [
-        "wp_962",
-        "wp_963",
-        "wp_964",
-        "wp_998",
-        "wp_1000",
-        "wp_1032",
-        "wp_1033"
-      ],
-      "zone": "flank"
-    },
-    {
-      "id": "wp_1000",
-      "pos": {
-        "x": 30.0,
-        "y": 0.0,
-        "z": -4.0
-      },
-      "neighbors": [
-        "wp_963",
-        "wp_964",
-        "wp_965",
         "wp_999",
-        "wp_1001",
         "wp_1032",
         "wp_1033",
         "wp_1034"
@@ -20065,18 +20453,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "flank"
     },
     {
-      "id": "wp_1001",
+      "id": "wp_999",
       "pos": {
-        "x": 30.0,
+        "x": 28.0,
         "y": 0.0,
-        "z": -2.0
+        "z": 10.0
       },
       "neighbors": [
+        "wp_962",
+        "wp_963",
         "wp_964",
-        "wp_965",
-        "wp_966",
+        "wp_998",
         "wp_1000",
-        "wp_1002",
         "wp_1033",
         "wp_1034",
         "wp_1035"
@@ -20084,11 +20472,43 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "zone": "flank"
     },
     {
+      "id": "wp_1000",
+      "pos": {
+        "x": 28.0,
+        "y": 0.0,
+        "z": 12.0
+      },
+      "neighbors": [
+        "wp_963",
+        "wp_964",
+        "wp_999",
+        "wp_1034",
+        "wp_1035"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_1001",
+      "pos": {
+        "x": 28.0,
+        "y": 0.0,
+        "z": 14.0
+      },
+      "neighbors": [
+        "wp_965",
+        "wp_966",
+        "wp_1002",
+        "wp_1036",
+        "wp_1037"
+      ],
+      "zone": "flank"
+    },
+    {
       "id": "wp_1002",
       "pos": {
-        "x": 30.0,
+        "x": 28.0,
         "y": 0.0,
-        "z": 0.0
+        "z": 16.0
       },
       "neighbors": [
         "wp_965",
@@ -20096,230 +20516,249 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "wp_967",
         "wp_1001",
         "wp_1003",
-        "wp_1034",
-        "wp_1035",
-        "wp_1036"
-      ],
-      "zone": "flank"
-    },
-    {
-      "id": "wp_1003",
-      "pos": {
-        "x": 30.0,
-        "y": 0.0,
-        "z": 2.0
-      },
-      "neighbors": [
-        "wp_966",
-        "wp_967",
-        "wp_968",
-        "wp_1002",
-        "wp_1004",
-        "wp_1035",
-        "wp_1036"
-      ],
-      "zone": "flank"
-    },
-    {
-      "id": "wp_1004",
-      "pos": {
-        "x": 30.0,
-        "y": 0.0,
-        "z": 4.0
-      },
-      "neighbors": [
-        "wp_967",
-        "wp_968",
-        "wp_969",
-        "wp_1003",
-        "wp_1005",
-        "wp_1128"
-      ],
-      "zone": "flank"
-    },
-    {
-      "id": "wp_1005",
-      "pos": {
-        "x": 30.0,
-        "y": 0.0,
-        "z": 6.0
-      },
-      "neighbors": [
-        "wp_968",
-        "wp_969",
-        "wp_970",
-        "wp_1004",
-        "wp_1006",
+        "wp_1036",
         "wp_1037",
         "wp_1038"
       ],
       "zone": "flank"
     },
     {
-      "id": "wp_1006",
+      "id": "wp_1003",
       "pos": {
-        "x": 30.0,
+        "x": 28.0,
         "y": 0.0,
-        "z": 8.0
+        "z": 18.0
+      },
+      "neighbors": [
+        "wp_966",
+        "wp_967",
+        "wp_968",
+        "wp_1002",
+        "wp_1037",
+        "wp_1038"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_1004",
+      "pos": {
+        "x": 28.0,
+        "y": 0.0,
+        "z": 22.0
+      },
+      "neighbors": [
+        "wp_968",
+        "wp_969",
+        "wp_970",
+        "wp_1005",
+        "wp_1039",
+        "wp_1040"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_1005",
+      "pos": {
+        "x": 28.0,
+        "y": 0.0,
+        "z": 24.0
       },
       "neighbors": [
         "wp_969",
         "wp_970",
         "wp_971",
-        "wp_1005",
-        "wp_1007",
-        "wp_1037",
-        "wp_1038",
-        "wp_1039"
+        "wp_1004",
+        "wp_1006",
+        "wp_1039",
+        "wp_1040",
+        "wp_1041"
       ],
-      "zone": "flank"
+      "zone": "spawn"
     },
     {
-      "id": "wp_1007",
+      "id": "wp_1006",
       "pos": {
-        "x": 30.0,
+        "x": 28.0,
         "y": 0.0,
-        "z": 10.0
+        "z": 26.0
       },
       "neighbors": [
         "wp_970",
         "wp_971",
         "wp_972",
-        "wp_1006",
-        "wp_1008",
-        "wp_1038",
-        "wp_1039",
-        "wp_1040"
+        "wp_1005",
+        "wp_1007",
+        "wp_1040",
+        "wp_1041",
+        "wp_1042"
       ],
-      "zone": "flank"
+      "zone": "spawn"
     },
     {
-      "id": "wp_1008",
+      "id": "wp_1007",
       "pos": {
-        "x": 30.0,
+        "x": 28.0,
         "y": 0.0,
-        "z": 12.0
+        "z": 28.0
       },
       "neighbors": [
         "wp_971",
         "wp_972",
-        "wp_1007",
-        "wp_1039",
-        "wp_1040",
-        "wp_1041"
+        "wp_973",
+        "wp_1006",
+        "wp_1008",
+        "wp_1041",
+        "wp_1042",
+        "wp_1043"
       ],
-      "zone": "flank"
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_1008",
+      "pos": {
+        "x": 28.0,
+        "y": 0.0,
+        "z": 30.0
+      },
+      "neighbors": [
+        "wp_972",
+        "wp_973",
+        "wp_974",
+        "wp_1007",
+        "wp_1009",
+        "wp_1042",
+        "wp_1043",
+        "wp_1044"
+      ],
+      "zone": "spawn"
     },
     {
       "id": "wp_1009",
       "pos": {
-        "x": 30.0,
+        "x": 28.0,
         "y": 0.0,
-        "z": 14.0
+        "z": 32.0
       },
       "neighbors": [
         "wp_973",
         "wp_974",
+        "wp_975",
+        "wp_1008",
         "wp_1010",
-        "wp_1041",
-        "wp_1042"
+        "wp_1043",
+        "wp_1044",
+        "wp_1045"
       ],
-      "zone": "flank"
+      "zone": "spawn"
     },
     {
       "id": "wp_1010",
       "pos": {
-        "x": 30.0,
+        "x": 28.0,
         "y": 0.0,
-        "z": 16.0
+        "z": 34.0
       },
       "neighbors": [
-        "wp_973",
         "wp_974",
         "wp_975",
+        "wp_976",
         "wp_1009",
         "wp_1011",
-        "wp_1041",
-        "wp_1042",
-        "wp_1043"
+        "wp_1044",
+        "wp_1045",
+        "wp_1046"
       ],
-      "zone": "flank"
+      "zone": "spawn"
     },
     {
       "id": "wp_1011",
       "pos": {
-        "x": 30.0,
+        "x": 28.0,
         "y": 0.0,
-        "z": 18.0
+        "z": 36.0
       },
       "neighbors": [
-        "wp_974",
         "wp_975",
+        "wp_976",
+        "wp_977",
         "wp_1010",
-        "wp_1042",
-        "wp_1043"
+        "wp_1012",
+        "wp_1045",
+        "wp_1046",
+        "wp_1047"
       ],
-      "zone": "flank"
+      "zone": "spawn"
     },
     {
       "id": "wp_1012",
       "pos": {
-        "x": 30.0,
+        "x": 28.0,
         "y": 0.0,
-        "z": 22.0
+        "z": 38.0
       },
       "neighbors": [
         "wp_976",
         "wp_977",
-        "wp_1013"
+        "wp_978",
+        "wp_1011",
+        "wp_1013",
+        "wp_1046",
+        "wp_1047",
+        "wp_1048"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_1013",
       "pos": {
-        "x": 30.0,
+        "x": 28.0,
         "y": 0.0,
-        "z": 24.0
+        "z": 40.0
       },
       "neighbors": [
-        "wp_976",
         "wp_977",
         "wp_978",
+        "wp_979",
         "wp_1012",
-        "wp_1014"
+        "wp_1014",
+        "wp_1047",
+        "wp_1048",
+        "wp_1049"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_1014",
       "pos": {
-        "x": 30.0,
+        "x": 28.0,
         "y": 0.0,
-        "z": 26.0
+        "z": 42.0
       },
       "neighbors": [
-        "wp_977",
         "wp_978",
         "wp_979",
+        "wp_980",
         "wp_1013",
-        "wp_1015"
+        "wp_1015",
+        "wp_1048",
+        "wp_1049",
+        "wp_1050"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_1015",
       "pos": {
-        "x": 30.0,
+        "x": 28.0,
         "y": 0.0,
-        "z": 28.0
+        "z": 44.0
       },
       "neighbors": [
-        "wp_978",
         "wp_979",
         "wp_980",
         "wp_1014",
-        "wp_1016"
+        "wp_1049",
+        "wp_1050"
       ],
       "zone": "spawn"
     },
@@ -20328,2446 +20767,3179 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "pos": {
         "x": 30.0,
         "y": 0.0,
-        "z": 30.0
+        "z": -30.0
       },
       "neighbors": [
-        "wp_979",
-        "wp_980",
         "wp_981",
-        "wp_1015",
-        "wp_1017"
+        "wp_982",
+        "wp_1017",
+        "wp_1051",
+        "wp_1052"
       ],
-      "zone": "spawn"
+      "zone": "site_b"
     },
     {
       "id": "wp_1017",
       "pos": {
         "x": 30.0,
         "y": 0.0,
-        "z": 32.0
+        "z": -28.0
       },
       "neighbors": [
-        "wp_980",
         "wp_981",
         "wp_982",
+        "wp_983",
         "wp_1016",
-        "wp_1018"
+        "wp_1018",
+        "wp_1051",
+        "wp_1052",
+        "wp_1053",
+        "wp_1186",
+        "wp_1187"
       ],
-      "zone": "spawn"
+      "zone": "site_b"
     },
     {
       "id": "wp_1018",
       "pos": {
         "x": 30.0,
         "y": 0.0,
-        "z": 34.0
+        "z": -26.0
       },
       "neighbors": [
-        "wp_981",
         "wp_982",
         "wp_983",
+        "wp_984",
         "wp_1017",
-        "wp_1019"
+        "wp_1052",
+        "wp_1053",
+        "wp_1185",
+        "wp_1186",
+        "wp_1187"
       ],
-      "zone": "spawn"
+      "zone": "site_b"
     },
     {
       "id": "wp_1019",
       "pos": {
         "x": 30.0,
         "y": 0.0,
-        "z": 36.0
+        "z": -20.0
       },
       "neighbors": [
-        "wp_982",
-        "wp_983",
-        "wp_984",
-        "wp_1018",
-        "wp_1020"
+        "wp_986",
+        "wp_987",
+        "wp_1020",
+        "wp_1054",
+        "wp_1183"
       ],
-      "zone": "spawn"
+      "zone": "site_b"
     },
     {
       "id": "wp_1020",
       "pos": {
         "x": 30.0,
         "y": 0.0,
-        "z": 38.0
+        "z": -18.0
       },
       "neighbors": [
-        "wp_983",
-        "wp_984",
-        "wp_985",
+        "wp_986",
+        "wp_987",
+        "wp_988",
         "wp_1019",
-        "wp_1021"
+        "wp_1021",
+        "wp_1054",
+        "wp_1055",
+        "wp_1183"
       ],
-      "zone": "spawn"
+      "zone": "site_b"
     },
     {
       "id": "wp_1021",
       "pos": {
         "x": 30.0,
         "y": 0.0,
-        "z": 40.0
+        "z": -16.0
       },
       "neighbors": [
-        "wp_984",
-        "wp_985",
-        "wp_986",
+        "wp_987",
+        "wp_988",
         "wp_1020",
-        "wp_1022"
+        "wp_1022",
+        "wp_1054",
+        "wp_1055",
+        "wp_1056"
       ],
-      "zone": "spawn"
+      "zone": "site_b"
     },
     {
       "id": "wp_1022",
       "pos": {
         "x": 30.0,
         "y": 0.0,
-        "z": 42.0
+        "z": -14.0
       },
       "neighbors": [
-        "wp_985",
-        "wp_986",
-        "wp_987",
+        "wp_988",
         "wp_1021",
-        "wp_1023"
+        "wp_1023",
+        "wp_1055",
+        "wp_1056",
+        "wp_1057"
       ],
-      "zone": "spawn"
+      "zone": "site_b"
     },
     {
       "id": "wp_1023",
       "pos": {
         "x": 30.0,
         "y": 0.0,
-        "z": 44.0
+        "z": -12.0
       },
       "neighbors": [
-        "wp_986",
-        "wp_987",
-        "wp_1022"
+        "wp_989",
+        "wp_1022",
+        "wp_1024",
+        "wp_1056",
+        "wp_1057",
+        "wp_1058"
       ],
-      "zone": "spawn"
+      "zone": "flank"
     },
     {
       "id": "wp_1024",
       "pos": {
-        "x": 32.0,
+        "x": 30.0,
         "y": 0.0,
-        "z": -30.0
+        "z": -10.0
       },
       "neighbors": [
-        "wp_988",
         "wp_989",
-        "wp_1025"
+        "wp_990",
+        "wp_1023",
+        "wp_1025",
+        "wp_1057",
+        "wp_1058"
       ],
-      "zone": "site_b"
+      "zone": "flank"
     },
     {
       "id": "wp_1025",
       "pos": {
-        "x": 32.0,
+        "x": 30.0,
         "y": 0.0,
-        "z": -28.0
+        "z": -8.0
       },
       "neighbors": [
-        "wp_988",
         "wp_989",
         "wp_990",
+        "wp_991",
         "wp_1024",
-        "wp_1026",
-        "wp_1044"
+        "wp_1026"
       ],
-      "zone": "site_b"
+      "zone": "flank"
     },
     {
       "id": "wp_1026",
       "pos": {
-        "x": 32.0,
+        "x": 30.0,
         "y": 0.0,
-        "z": -26.0
+        "z": -6.0
       },
       "neighbors": [
-        "wp_989",
         "wp_990",
+        "wp_991",
+        "wp_992",
         "wp_1025",
-        "wp_1044",
-        "wp_1145"
+        "wp_1027",
+        "wp_1059"
       ],
-      "zone": "site_b"
+      "zone": "flank"
     },
     {
       "id": "wp_1027",
       "pos": {
-        "x": 32.0,
+        "x": 30.0,
         "y": 0.0,
-        "z": -18.0
+        "z": -4.0
+      },
+      "neighbors": [
+        "wp_991",
+        "wp_992",
+        "wp_993",
+        "wp_1026",
+        "wp_1028",
+        "wp_1059",
+        "wp_1060"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_1028",
+      "pos": {
+        "x": 30.0,
+        "y": 0.0,
+        "z": -2.0
       },
       "neighbors": [
         "wp_992",
         "wp_993",
         "wp_994",
-        "wp_1028",
-        "wp_1088",
-        "wp_1140"
+        "wp_1027",
+        "wp_1029",
+        "wp_1059",
+        "wp_1060",
+        "wp_1061"
       ],
-      "zone": "site_b"
+      "zone": "flank"
     },
     {
-      "id": "wp_1028",
+      "id": "wp_1029",
       "pos": {
-        "x": 32.0,
+        "x": 30.0,
         "y": 0.0,
-        "z": -16.0
+        "z": 0.0
       },
       "neighbors": [
         "wp_993",
         "wp_994",
         "wp_995",
-        "wp_1027",
-        "wp_1029"
+        "wp_1028",
+        "wp_1030",
+        "wp_1060",
+        "wp_1061",
+        "wp_1062"
       ],
-      "zone": "site_b"
+      "zone": "flank"
     },
     {
-      "id": "wp_1029",
+      "id": "wp_1030",
       "pos": {
-        "x": 32.0,
+        "x": 30.0,
         "y": 0.0,
-        "z": -14.0
+        "z": 2.0
       },
       "neighbors": [
         "wp_994",
         "wp_995",
         "wp_996",
-        "wp_1028",
-        "wp_1030"
-      ],
-      "zone": "site_b"
-    },
-    {
-      "id": "wp_1030",
-      "pos": {
-        "x": 32.0,
-        "y": 0.0,
-        "z": -12.0
-      },
-      "neighbors": [
-        "wp_995",
-        "wp_996",
-        "wp_997",
         "wp_1029",
-        "wp_1031"
+        "wp_1031",
+        "wp_1061",
+        "wp_1062"
       ],
       "zone": "flank"
     },
     {
       "id": "wp_1031",
       "pos": {
-        "x": 32.0,
+        "x": 30.0,
         "y": 0.0,
-        "z": -10.0
+        "z": 4.0
       },
       "neighbors": [
+        "wp_995",
         "wp_996",
         "wp_997",
-        "wp_1030"
+        "wp_1030",
+        "wp_1032",
+        "wp_1161"
       ],
       "zone": "flank"
     },
     {
       "id": "wp_1032",
       "pos": {
-        "x": 32.0,
+        "x": 30.0,
         "y": 0.0,
-        "z": -6.0
+        "z": 6.0
       },
       "neighbors": [
-        "wp_999",
-        "wp_1000",
+        "wp_996",
+        "wp_997",
+        "wp_998",
+        "wp_1031",
         "wp_1033",
-        "wp_1045",
-        "wp_1046"
+        "wp_1063",
+        "wp_1064"
       ],
       "zone": "flank"
     },
     {
       "id": "wp_1033",
       "pos": {
-        "x": 32.0,
+        "x": 30.0,
         "y": 0.0,
-        "z": -4.0
+        "z": 8.0
       },
       "neighbors": [
+        "wp_997",
+        "wp_998",
         "wp_999",
-        "wp_1000",
-        "wp_1001",
         "wp_1032",
         "wp_1034",
-        "wp_1045",
-        "wp_1046",
-        "wp_1047"
+        "wp_1063",
+        "wp_1064",
+        "wp_1065"
       ],
       "zone": "flank"
     },
     {
       "id": "wp_1034",
       "pos": {
-        "x": 32.0,
+        "x": 30.0,
         "y": 0.0,
-        "z": -2.0
+        "z": 10.0
       },
       "neighbors": [
+        "wp_998",
+        "wp_999",
         "wp_1000",
-        "wp_1001",
-        "wp_1002",
         "wp_1033",
         "wp_1035",
-        "wp_1046",
-        "wp_1047",
-        "wp_1048"
+        "wp_1064",
+        "wp_1065",
+        "wp_1066"
       ],
       "zone": "flank"
     },
     {
       "id": "wp_1035",
       "pos": {
-        "x": 32.0,
+        "x": 30.0,
         "y": 0.0,
-        "z": 0.0
+        "z": 12.0
       },
       "neighbors": [
-        "wp_1001",
-        "wp_1002",
-        "wp_1003",
+        "wp_999",
+        "wp_1000",
         "wp_1034",
-        "wp_1036",
-        "wp_1047",
-        "wp_1048",
-        "wp_1049"
+        "wp_1065",
+        "wp_1066",
+        "wp_1067"
       ],
       "zone": "flank"
     },
     {
       "id": "wp_1036",
       "pos": {
-        "x": 32.0,
+        "x": 30.0,
         "y": 0.0,
-        "z": 2.0
+        "z": 14.0
       },
       "neighbors": [
+        "wp_1001",
         "wp_1002",
-        "wp_1003",
-        "wp_1035",
-        "wp_1048",
-        "wp_1049"
+        "wp_1037",
+        "wp_1067",
+        "wp_1068"
       ],
       "zone": "flank"
     },
     {
       "id": "wp_1037",
       "pos": {
-        "x": 32.0,
+        "x": 30.0,
         "y": 0.0,
-        "z": 6.0
+        "z": 16.0
       },
       "neighbors": [
-        "wp_1005",
-        "wp_1006",
+        "wp_1001",
+        "wp_1002",
+        "wp_1003",
+        "wp_1036",
         "wp_1038",
-        "wp_1050",
-        "wp_1051"
+        "wp_1067",
+        "wp_1068",
+        "wp_1069"
       ],
       "zone": "flank"
     },
     {
       "id": "wp_1038",
       "pos": {
-        "x": 32.0,
+        "x": 30.0,
         "y": 0.0,
-        "z": 8.0
+        "z": 18.0
       },
       "neighbors": [
-        "wp_1005",
-        "wp_1006",
-        "wp_1007",
+        "wp_1002",
+        "wp_1003",
         "wp_1037",
-        "wp_1039",
-        "wp_1050",
-        "wp_1051",
-        "wp_1052"
+        "wp_1068",
+        "wp_1069"
       ],
       "zone": "flank"
     },
     {
       "id": "wp_1039",
       "pos": {
-        "x": 32.0,
+        "x": 30.0,
         "y": 0.0,
-        "z": 10.0
+        "z": 22.0
+      },
+      "neighbors": [
+        "wp_1004",
+        "wp_1005",
+        "wp_1040"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_1040",
+      "pos": {
+        "x": 30.0,
+        "y": 0.0,
+        "z": 24.0
+      },
+      "neighbors": [
+        "wp_1004",
+        "wp_1005",
+        "wp_1006",
+        "wp_1039",
+        "wp_1041"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_1041",
+      "pos": {
+        "x": 30.0,
+        "y": 0.0,
+        "z": 26.0
+      },
+      "neighbors": [
+        "wp_1005",
+        "wp_1006",
+        "wp_1007",
+        "wp_1040",
+        "wp_1042"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_1042",
+      "pos": {
+        "x": 30.0,
+        "y": 0.0,
+        "z": 28.0
       },
       "neighbors": [
         "wp_1006",
         "wp_1007",
         "wp_1008",
-        "wp_1038",
-        "wp_1040",
+        "wp_1041",
+        "wp_1043"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_1043",
+      "pos": {
+        "x": 30.0,
+        "y": 0.0,
+        "z": 30.0
+      },
+      "neighbors": [
+        "wp_1007",
+        "wp_1008",
+        "wp_1009",
+        "wp_1042",
+        "wp_1044"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_1044",
+      "pos": {
+        "x": 30.0,
+        "y": 0.0,
+        "z": 32.0
+      },
+      "neighbors": [
+        "wp_1008",
+        "wp_1009",
+        "wp_1010",
+        "wp_1043",
+        "wp_1045"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_1045",
+      "pos": {
+        "x": 30.0,
+        "y": 0.0,
+        "z": 34.0
+      },
+      "neighbors": [
+        "wp_1009",
+        "wp_1010",
+        "wp_1011",
+        "wp_1044",
+        "wp_1046"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_1046",
+      "pos": {
+        "x": 30.0,
+        "y": 0.0,
+        "z": 36.0
+      },
+      "neighbors": [
+        "wp_1010",
+        "wp_1011",
+        "wp_1012",
+        "wp_1045",
+        "wp_1047"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_1047",
+      "pos": {
+        "x": 30.0,
+        "y": 0.0,
+        "z": 38.0
+      },
+      "neighbors": [
+        "wp_1011",
+        "wp_1012",
+        "wp_1013",
+        "wp_1046",
+        "wp_1048"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_1048",
+      "pos": {
+        "x": 30.0,
+        "y": 0.0,
+        "z": 40.0
+      },
+      "neighbors": [
+        "wp_1012",
+        "wp_1013",
+        "wp_1014",
+        "wp_1047",
+        "wp_1049"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_1049",
+      "pos": {
+        "x": 30.0,
+        "y": 0.0,
+        "z": 42.0
+      },
+      "neighbors": [
+        "wp_1013",
+        "wp_1014",
+        "wp_1015",
+        "wp_1048",
+        "wp_1050"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_1050",
+      "pos": {
+        "x": 30.0,
+        "y": 0.0,
+        "z": 44.0
+      },
+      "neighbors": [
+        "wp_1014",
+        "wp_1015",
+        "wp_1049"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_1051",
+      "pos": {
+        "x": 32.0,
+        "y": 0.0,
+        "z": -30.0
+      },
+      "neighbors": [
+        "wp_1016",
+        "wp_1017",
+        "wp_1052"
+      ],
+      "zone": "site_b"
+    },
+    {
+      "id": "wp_1052",
+      "pos": {
+        "x": 32.0,
+        "y": 0.0,
+        "z": -28.0
+      },
+      "neighbors": [
+        "wp_1016",
+        "wp_1017",
+        "wp_1018",
         "wp_1051",
+        "wp_1053",
+        "wp_1070",
+        "wp_1187"
+      ],
+      "zone": "site_b"
+    },
+    {
+      "id": "wp_1053",
+      "pos": {
+        "x": 32.0,
+        "y": 0.0,
+        "z": -26.0
+      },
+      "neighbors": [
+        "wp_1017",
+        "wp_1018",
         "wp_1052",
-        "wp_1053"
+        "wp_1070",
+        "wp_1186",
+        "wp_1187"
+      ],
+      "zone": "site_b"
+    },
+    {
+      "id": "wp_1054",
+      "pos": {
+        "x": 32.0,
+        "y": 0.0,
+        "z": -18.0
+      },
+      "neighbors": [
+        "wp_1019",
+        "wp_1020",
+        "wp_1021",
+        "wp_1055",
+        "wp_1116",
+        "wp_1183"
+      ],
+      "zone": "site_b"
+    },
+    {
+      "id": "wp_1055",
+      "pos": {
+        "x": 32.0,
+        "y": 0.0,
+        "z": -16.0
+      },
+      "neighbors": [
+        "wp_1020",
+        "wp_1021",
+        "wp_1022",
+        "wp_1054",
+        "wp_1056"
+      ],
+      "zone": "site_b"
+    },
+    {
+      "id": "wp_1056",
+      "pos": {
+        "x": 32.0,
+        "y": 0.0,
+        "z": -14.0
+      },
+      "neighbors": [
+        "wp_1021",
+        "wp_1022",
+        "wp_1023",
+        "wp_1055",
+        "wp_1057"
+      ],
+      "zone": "site_b"
+    },
+    {
+      "id": "wp_1057",
+      "pos": {
+        "x": 32.0,
+        "y": 0.0,
+        "z": -12.0
+      },
+      "neighbors": [
+        "wp_1022",
+        "wp_1023",
+        "wp_1024",
+        "wp_1056",
+        "wp_1058"
       ],
       "zone": "flank"
     },
     {
-      "id": "wp_1040",
+      "id": "wp_1058",
+      "pos": {
+        "x": 32.0,
+        "y": 0.0,
+        "z": -10.0
+      },
+      "neighbors": [
+        "wp_1023",
+        "wp_1024",
+        "wp_1057"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_1059",
+      "pos": {
+        "x": 32.0,
+        "y": 0.0,
+        "z": -4.0
+      },
+      "neighbors": [
+        "wp_1026",
+        "wp_1027",
+        "wp_1028",
+        "wp_1060",
+        "wp_1071",
+        "wp_1072",
+        "wp_1073"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_1060",
+      "pos": {
+        "x": 32.0,
+        "y": 0.0,
+        "z": -2.0
+      },
+      "neighbors": [
+        "wp_1027",
+        "wp_1028",
+        "wp_1029",
+        "wp_1059",
+        "wp_1061",
+        "wp_1072",
+        "wp_1073",
+        "wp_1074"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_1061",
+      "pos": {
+        "x": 32.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "neighbors": [
+        "wp_1028",
+        "wp_1029",
+        "wp_1030",
+        "wp_1060",
+        "wp_1062",
+        "wp_1073",
+        "wp_1074",
+        "wp_1075"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_1062",
+      "pos": {
+        "x": 32.0,
+        "y": 0.0,
+        "z": 2.0
+      },
+      "neighbors": [
+        "wp_1029",
+        "wp_1030",
+        "wp_1061",
+        "wp_1074",
+        "wp_1075"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_1063",
+      "pos": {
+        "x": 32.0,
+        "y": 0.0,
+        "z": 6.0
+      },
+      "neighbors": [
+        "wp_1032",
+        "wp_1033",
+        "wp_1064",
+        "wp_1076",
+        "wp_1077"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_1064",
+      "pos": {
+        "x": 32.0,
+        "y": 0.0,
+        "z": 8.0
+      },
+      "neighbors": [
+        "wp_1032",
+        "wp_1033",
+        "wp_1034",
+        "wp_1063",
+        "wp_1065",
+        "wp_1076",
+        "wp_1077",
+        "wp_1078"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_1065",
+      "pos": {
+        "x": 32.0,
+        "y": 0.0,
+        "z": 10.0
+      },
+      "neighbors": [
+        "wp_1033",
+        "wp_1034",
+        "wp_1035",
+        "wp_1064",
+        "wp_1066",
+        "wp_1077",
+        "wp_1078",
+        "wp_1079"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_1066",
       "pos": {
         "x": 32.0,
         "y": 0.0,
         "z": 12.0
       },
       "neighbors": [
-        "wp_1007",
-        "wp_1008",
-        "wp_1039",
-        "wp_1041",
-        "wp_1052",
-        "wp_1053",
-        "wp_1054"
+        "wp_1034",
+        "wp_1035",
+        "wp_1065",
+        "wp_1067",
+        "wp_1078",
+        "wp_1079",
+        "wp_1080"
       ],
       "zone": "flank"
     },
     {
-      "id": "wp_1041",
+      "id": "wp_1067",
       "pos": {
         "x": 32.0,
         "y": 0.0,
         "z": 14.0
       },
       "neighbors": [
-        "wp_1008",
-        "wp_1009",
-        "wp_1010",
-        "wp_1040",
-        "wp_1042",
-        "wp_1053",
-        "wp_1054",
-        "wp_1055"
+        "wp_1035",
+        "wp_1036",
+        "wp_1037",
+        "wp_1066",
+        "wp_1068",
+        "wp_1079",
+        "wp_1080",
+        "wp_1081"
       ],
       "zone": "flank"
     },
     {
-      "id": "wp_1042",
+      "id": "wp_1068",
       "pos": {
         "x": 32.0,
         "y": 0.0,
         "z": 16.0
       },
       "neighbors": [
-        "wp_1009",
-        "wp_1010",
-        "wp_1011",
-        "wp_1041",
-        "wp_1043",
-        "wp_1054",
-        "wp_1055",
-        "wp_1056"
+        "wp_1036",
+        "wp_1037",
+        "wp_1038",
+        "wp_1067",
+        "wp_1069",
+        "wp_1080",
+        "wp_1081",
+        "wp_1082"
       ],
       "zone": "flank"
     },
     {
-      "id": "wp_1043",
+      "id": "wp_1069",
       "pos": {
         "x": 32.0,
         "y": 0.0,
         "z": 18.0
       },
       "neighbors": [
-        "wp_1010",
-        "wp_1011",
-        "wp_1042",
-        "wp_1055",
-        "wp_1056"
+        "wp_1037",
+        "wp_1038",
+        "wp_1068",
+        "wp_1081",
+        "wp_1082"
       ],
       "zone": "flank"
     },
     {
-      "id": "wp_1044",
+      "id": "wp_1070",
       "pos": {
         "x": 34.0,
         "y": 0.0,
         "z": -26.0
       },
       "neighbors": [
-        "wp_1025",
-        "wp_1026"
-      ],
-      "zone": "site_b"
-    },
-    {
-      "id": "wp_1045",
-      "pos": {
-        "x": 34.0,
-        "y": 0.0,
-        "z": -6.0
-      },
-      "neighbors": [
-        "wp_1032",
-        "wp_1033",
-        "wp_1046"
-      ],
-      "zone": "flank"
-    },
-    {
-      "id": "wp_1046",
-      "pos": {
-        "x": 34.0,
-        "y": 0.0,
-        "z": -4.0
-      },
-      "neighbors": [
-        "wp_1032",
-        "wp_1033",
-        "wp_1034",
-        "wp_1045",
-        "wp_1047"
-      ],
-      "zone": "flank"
-    },
-    {
-      "id": "wp_1047",
-      "pos": {
-        "x": 34.0,
-        "y": 0.0,
-        "z": -2.0
-      },
-      "neighbors": [
-        "wp_1033",
-        "wp_1034",
-        "wp_1035",
-        "wp_1046",
-        "wp_1048"
-      ],
-      "zone": "flank"
-    },
-    {
-      "id": "wp_1048",
-      "pos": {
-        "x": 34.0,
-        "y": 0.0,
-        "z": 0.0
-      },
-      "neighbors": [
-        "wp_1034",
-        "wp_1035",
-        "wp_1036",
-        "wp_1047",
-        "wp_1049"
-      ],
-      "zone": "flank"
-    },
-    {
-      "id": "wp_1049",
-      "pos": {
-        "x": 34.0,
-        "y": 0.0,
-        "z": 2.0
-      },
-      "neighbors": [
-        "wp_1035",
-        "wp_1036",
-        "wp_1048"
-      ],
-      "zone": "flank"
-    },
-    {
-      "id": "wp_1050",
-      "pos": {
-        "x": 34.0,
-        "y": 0.0,
-        "z": 6.0
-      },
-      "neighbors": [
-        "wp_1037",
-        "wp_1038",
-        "wp_1051"
-      ],
-      "zone": "flank"
-    },
-    {
-      "id": "wp_1051",
-      "pos": {
-        "x": 34.0,
-        "y": 0.0,
-        "z": 8.0
-      },
-      "neighbors": [
-        "wp_1037",
-        "wp_1038",
-        "wp_1039",
-        "wp_1050",
-        "wp_1052"
-      ],
-      "zone": "flank"
-    },
-    {
-      "id": "wp_1052",
-      "pos": {
-        "x": 34.0,
-        "y": 0.0,
-        "z": 10.0
-      },
-      "neighbors": [
-        "wp_1038",
-        "wp_1039",
-        "wp_1040",
-        "wp_1051",
-        "wp_1053"
-      ],
-      "zone": "flank"
-    },
-    {
-      "id": "wp_1053",
-      "pos": {
-        "x": 34.0,
-        "y": 0.0,
-        "z": 12.0
-      },
-      "neighbors": [
-        "wp_1039",
-        "wp_1040",
-        "wp_1041",
         "wp_1052",
-        "wp_1054"
-      ],
-      "zone": "flank"
-    },
-    {
-      "id": "wp_1054",
-      "pos": {
-        "x": 34.0,
-        "y": 0.0,
-        "z": 14.0
-      },
-      "neighbors": [
-        "wp_1040",
-        "wp_1041",
-        "wp_1042",
         "wp_1053",
-        "wp_1055"
-      ],
-      "zone": "flank"
-    },
-    {
-      "id": "wp_1055",
-      "pos": {
-        "x": 34.0,
-        "y": 0.0,
-        "z": 16.0
-      },
-      "neighbors": [
-        "wp_1041",
-        "wp_1042",
-        "wp_1043",
-        "wp_1054",
-        "wp_1056"
-      ],
-      "zone": "flank"
-    },
-    {
-      "id": "wp_1056",
-      "pos": {
-        "x": 34.0,
-        "y": 0.0,
-        "z": 18.0
-      },
-      "neighbors": [
-        "wp_1042",
-        "wp_1043",
-        "wp_1055"
-      ],
-      "zone": "flank"
-    },
-    {
-      "id": "wp_1057",
-      "pos": {
-        "x": -10.8,
-        "y": 0.85,
-        "z": -7.2
-      },
-      "neighbors": [
-        "wp_1058",
-        "wp_1059",
-        "wp_1060",
-        "wp_1068"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_1058",
-      "pos": {
-        "x": -9.0,
-        "y": 0.85,
-        "z": -7.2
-      },
-      "neighbors": [
-        "wp_1057",
-        "wp_1059",
-        "wp_1060",
-        "wp_1068"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_1059",
-      "pos": {
-        "x": -10.8,
-        "y": 0.85,
-        "z": -5.4
-      },
-      "neighbors": [
-        "wp_1057",
-        "wp_1058",
-        "wp_1060",
-        "wp_1061",
-        "wp_1062"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_1060",
-      "pos": {
-        "x": -9.0,
-        "y": 0.85,
-        "z": -5.4
-      },
-      "neighbors": [
-        "wp_1057",
-        "wp_1058",
-        "wp_1059",
-        "wp_1061",
-        "wp_1062"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_1061",
-      "pos": {
-        "x": -10.8,
-        "y": 0.85,
-        "z": -3.6
-      },
-      "neighbors": [
-        "wp_1059",
-        "wp_1060",
-        "wp_1062",
-        "wp_1063",
-        "wp_1064"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_1062",
-      "pos": {
-        "x": -9.0,
-        "y": 0.85,
-        "z": -3.6
-      },
-      "neighbors": [
-        "wp_1059",
-        "wp_1060",
-        "wp_1061",
-        "wp_1063",
-        "wp_1064"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_1063",
-      "pos": {
-        "x": -10.8,
-        "y": 0.85,
-        "z": -1.8
-      },
-      "neighbors": [
-        "wp_1061",
-        "wp_1062",
-        "wp_1064",
-        "wp_1065",
-        "wp_1066"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_1064",
-      "pos": {
-        "x": -9.0,
-        "y": 0.85,
-        "z": -1.8
-      },
-      "neighbors": [
-        "wp_1061",
-        "wp_1062",
-        "wp_1063",
-        "wp_1065",
-        "wp_1066",
-        "wp_1069"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_1065",
-      "pos": {
-        "x": -10.8,
-        "y": 0.85,
-        "z": 0.0
-      },
-      "neighbors": [
-        "wp_1063",
-        "wp_1064",
-        "wp_1066",
-        "wp_1067"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_1066",
-      "pos": {
-        "x": -9.0,
-        "y": 0.85,
-        "z": 0.0
-      },
-      "neighbors": [
-        "wp_1063",
-        "wp_1064",
-        "wp_1065",
-        "wp_1067",
-        "wp_1069"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_1067",
-      "pos": {
-        "x": -9.7,
-        "y": 0.425,
-        "z": 1.42
-      },
-      "neighbors": [
-        "wp_325",
-        "wp_1065",
-        "wp_1066",
-        "wp_1137"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_1068",
-      "pos": {
-        "x": -9.7,
-        "y": 0.425,
-        "z": -8.58
-      },
-      "neighbors": [
-        "wp_324",
-        "wp_351",
-        "wp_1057",
-        "wp_1058"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_1069",
-      "pos": {
-        "x": -7.02,
-        "y": 0.425,
-        "z": -0.8
-      },
-      "neighbors": [
-        "wp_380",
-        "wp_381",
-        "wp_1064",
-        "wp_1066",
-        "wp_1138"
-      ],
-      "zone": "mid"
-    },
-    {
-      "id": "wp_1070",
-      "pos": {
-        "x": 34.8,
-        "y": 0.85,
-        "z": -23.2
-      },
-      "neighbors": [
-        "wp_1071",
-        "wp_1072",
-        "wp_1073",
-        "wp_1087"
+        "wp_1187"
       ],
       "zone": "site_b"
     },
     {
       "id": "wp_1071",
       "pos": {
-        "x": 36.8,
-        "y": 0.85,
-        "z": -23.2
+        "x": 34.0,
+        "y": 0.0,
+        "z": -6.0
       },
       "neighbors": [
-        "wp_1070",
+        "wp_1059",
         "wp_1072",
-        "wp_1073"
+        "wp_1083",
+        "wp_1084",
+        "wp_1180",
+        "wp_1181"
       ],
-      "zone": "site_b"
+      "zone": "flank"
     },
     {
       "id": "wp_1072",
       "pos": {
-        "x": 34.8,
-        "y": 0.85,
-        "z": -21.2
+        "x": 34.0,
+        "y": 0.0,
+        "z": -4.0
       },
       "neighbors": [
-        "wp_1070",
+        "wp_1059",
+        "wp_1060",
         "wp_1071",
         "wp_1073",
-        "wp_1074",
-        "wp_1075",
-        "wp_1087",
-        "wp_1088"
+        "wp_1083",
+        "wp_1084",
+        "wp_1181"
       ],
-      "zone": "site_b"
+      "zone": "flank"
     },
     {
       "id": "wp_1073",
       "pos": {
-        "x": 36.8,
-        "y": 0.85,
-        "z": -21.2
+        "x": 34.0,
+        "y": 0.0,
+        "z": -2.0
       },
       "neighbors": [
-        "wp_1070",
-        "wp_1071",
+        "wp_1059",
+        "wp_1060",
+        "wp_1061",
         "wp_1072",
-        "wp_1074",
-        "wp_1075"
+        "wp_1074"
       ],
-      "zone": "site_b"
+      "zone": "flank"
     },
     {
       "id": "wp_1074",
       "pos": {
-        "x": 34.8,
-        "y": 0.85,
-        "z": -19.2
+        "x": 34.0,
+        "y": 0.0,
+        "z": 0.0
       },
       "neighbors": [
-        "wp_1072",
+        "wp_1060",
+        "wp_1061",
+        "wp_1062",
         "wp_1073",
-        "wp_1075",
-        "wp_1076",
-        "wp_1077",
-        "wp_1088"
+        "wp_1075"
       ],
-      "zone": "site_b"
+      "zone": "flank"
     },
     {
       "id": "wp_1075",
       "pos": {
-        "x": 36.8,
-        "y": 0.85,
-        "z": -19.2
+        "x": 34.0,
+        "y": 0.0,
+        "z": 2.0
       },
       "neighbors": [
-        "wp_1072",
-        "wp_1073",
-        "wp_1074",
-        "wp_1076",
-        "wp_1077"
+        "wp_1061",
+        "wp_1062",
+        "wp_1074"
       ],
-      "zone": "site_b"
+      "zone": "flank"
     },
     {
       "id": "wp_1076",
       "pos": {
-        "x": 34.8,
-        "y": 0.85,
-        "z": -17.2
+        "x": 34.0,
+        "y": 0.0,
+        "z": 6.0
       },
       "neighbors": [
-        "wp_1074",
-        "wp_1075",
-        "wp_1077",
-        "wp_1078",
-        "wp_1079"
+        "wp_1063",
+        "wp_1064",
+        "wp_1077"
       ],
-      "zone": "site_b"
+      "zone": "flank"
     },
     {
       "id": "wp_1077",
       "pos": {
-        "x": 36.8,
-        "y": 0.85,
-        "z": -17.2
+        "x": 34.0,
+        "y": 0.0,
+        "z": 8.0
       },
       "neighbors": [
-        "wp_1074",
-        "wp_1075",
+        "wp_1063",
+        "wp_1064",
+        "wp_1065",
         "wp_1076",
-        "wp_1078",
-        "wp_1079"
+        "wp_1078"
       ],
-      "zone": "site_b"
+      "zone": "flank"
     },
     {
       "id": "wp_1078",
       "pos": {
-        "x": 34.8,
-        "y": 0.85,
-        "z": -15.0
+        "x": 34.0,
+        "y": 0.0,
+        "z": 10.0
       },
       "neighbors": [
-        "wp_1076",
+        "wp_1064",
+        "wp_1065",
+        "wp_1066",
         "wp_1077",
-        "wp_1079",
-        "wp_1080",
-        "wp_1081"
+        "wp_1079"
       ],
-      "zone": "site_b"
+      "zone": "flank"
     },
     {
       "id": "wp_1079",
       "pos": {
-        "x": 36.8,
-        "y": 0.85,
-        "z": -15.0
+        "x": 34.0,
+        "y": 0.0,
+        "z": 12.0
       },
       "neighbors": [
-        "wp_1076",
-        "wp_1077",
+        "wp_1065",
+        "wp_1066",
+        "wp_1067",
         "wp_1078",
-        "wp_1080",
-        "wp_1081"
+        "wp_1080"
       ],
-      "zone": "site_b"
+      "zone": "flank"
     },
     {
       "id": "wp_1080",
       "pos": {
-        "x": 34.8,
-        "y": 0.85,
-        "z": -13.0
+        "x": 34.0,
+        "y": 0.0,
+        "z": 14.0
       },
       "neighbors": [
-        "wp_1078",
+        "wp_1066",
+        "wp_1067",
+        "wp_1068",
         "wp_1079",
-        "wp_1081",
-        "wp_1082",
-        "wp_1083",
-        "wp_1084"
+        "wp_1081"
       ],
       "zone": "flank"
     },
     {
       "id": "wp_1081",
       "pos": {
-        "x": 36.8,
-        "y": 0.85,
-        "z": -13.0
+        "x": 34.0,
+        "y": 0.0,
+        "z": 16.0
       },
       "neighbors": [
-        "wp_1078",
-        "wp_1079",
+        "wp_1067",
+        "wp_1068",
+        "wp_1069",
         "wp_1080",
-        "wp_1082",
-        "wp_1083",
-        "wp_1085"
+        "wp_1082"
       ],
       "zone": "flank"
     },
     {
       "id": "wp_1082",
       "pos": {
-        "x": 34.8,
-        "y": 0.85,
-        "z": -11.0
+        "x": 34.0,
+        "y": 0.0,
+        "z": 18.0
       },
       "neighbors": [
-        "wp_1080",
-        "wp_1081",
-        "wp_1083",
-        "wp_1084",
-        "wp_1085",
-        "wp_1086"
+        "wp_1068",
+        "wp_1069",
+        "wp_1081"
       ],
       "zone": "flank"
     },
     {
       "id": "wp_1083",
       "pos": {
-        "x": 36.8,
-        "y": 0.85,
-        "z": -11.0
+        "x": 36.0,
+        "y": 0.0,
+        "z": -6.0
       },
       "neighbors": [
-        "wp_1080",
-        "wp_1081",
-        "wp_1082",
+        "wp_1071",
+        "wp_1072",
         "wp_1084",
-        "wp_1085",
-        "wp_1086"
+        "wp_1114",
+        "wp_1180",
+        "wp_1181"
       ],
       "zone": "flank"
     },
     {
       "id": "wp_1084",
       "pos": {
-        "x": 34.8,
-        "y": 0.85,
-        "z": -9.8
+        "x": 36.0,
+        "y": 0.0,
+        "z": -4.0
       },
       "neighbors": [
-        "wp_1080",
-        "wp_1082",
+        "wp_1071",
+        "wp_1072",
         "wp_1083",
-        "wp_1085",
-        "wp_1086"
+        "wp_1180",
+        "wp_1181"
       ],
       "zone": "flank"
     },
     {
       "id": "wp_1085",
       "pos": {
+        "x": -10.8,
+        "y": 0.85,
+        "z": -7.2
+      },
+      "neighbors": [
+        "wp_1086",
+        "wp_1087",
+        "wp_1088",
+        "wp_1096"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_1086",
+      "pos": {
+        "x": -9.6,
+        "y": 0.85,
+        "z": -7.2
+      },
+      "neighbors": [
+        "wp_1085",
+        "wp_1087",
+        "wp_1088",
+        "wp_1096"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_1087",
+      "pos": {
+        "x": -10.8,
+        "y": 0.85,
+        "z": -5.4
+      },
+      "neighbors": [
+        "wp_1085",
+        "wp_1086",
+        "wp_1088",
+        "wp_1089",
+        "wp_1090"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_1088",
+      "pos": {
+        "x": -9.6,
+        "y": 0.85,
+        "z": -5.4
+      },
+      "neighbors": [
+        "wp_1085",
+        "wp_1086",
+        "wp_1087",
+        "wp_1089",
+        "wp_1090"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_1089",
+      "pos": {
+        "x": -10.8,
+        "y": 0.85,
+        "z": -3.6
+      },
+      "neighbors": [
+        "wp_1087",
+        "wp_1088",
+        "wp_1090",
+        "wp_1091",
+        "wp_1092"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_1090",
+      "pos": {
+        "x": -9.6,
+        "y": 0.85,
+        "z": -3.6
+      },
+      "neighbors": [
+        "wp_1087",
+        "wp_1088",
+        "wp_1089",
+        "wp_1091",
+        "wp_1092"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_1091",
+      "pos": {
+        "x": -10.8,
+        "y": 0.85,
+        "z": -1.8
+      },
+      "neighbors": [
+        "wp_1089",
+        "wp_1090",
+        "wp_1092",
+        "wp_1093",
+        "wp_1094"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_1092",
+      "pos": {
+        "x": -9.6,
+        "y": 0.85,
+        "z": -1.8
+      },
+      "neighbors": [
+        "wp_1089",
+        "wp_1090",
+        "wp_1091",
+        "wp_1093",
+        "wp_1094"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_1093",
+      "pos": {
+        "x": -10.8,
+        "y": 0.85,
+        "z": 0.0
+      },
+      "neighbors": [
+        "wp_1091",
+        "wp_1092",
+        "wp_1094",
+        "wp_1095"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_1094",
+      "pos": {
+        "x": -9.6,
+        "y": 0.85,
+        "z": 0.0
+      },
+      "neighbors": [
+        "wp_1091",
+        "wp_1092",
+        "wp_1093",
+        "wp_1095",
+        "wp_1097"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_1095",
+      "pos": {
+        "x": -9.7,
+        "y": 0.425,
+        "z": 1.42
+      },
+      "neighbors": [
+        "wp_332",
+        "wp_1093",
+        "wp_1094",
+        "wp_1179"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_1096",
+      "pos": {
+        "x": -9.7,
+        "y": 0.425,
+        "z": -8.58
+      },
+      "neighbors": [
+        "wp_331",
+        "wp_363",
+        "wp_1085",
+        "wp_1086"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_1097",
+      "pos": {
+        "x": -7.02,
+        "y": 0.425,
+        "z": -0.5
+      },
+      "neighbors": [
+        "wp_396",
+        "wp_397",
+        "wp_1094"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_1098",
+      "pos": {
+        "x": 34.8,
+        "y": 0.85,
+        "z": -23.2
+      },
+      "neighbors": [
+        "wp_1099",
+        "wp_1100",
+        "wp_1101",
+        "wp_1115"
+      ],
+      "zone": "site_b"
+    },
+    {
+      "id": "wp_1099",
+      "pos": {
+        "x": 36.8,
+        "y": 0.85,
+        "z": -23.2
+      },
+      "neighbors": [
+        "wp_1098",
+        "wp_1100",
+        "wp_1101"
+      ],
+      "zone": "site_b"
+    },
+    {
+      "id": "wp_1100",
+      "pos": {
+        "x": 34.8,
+        "y": 0.85,
+        "z": -21.2
+      },
+      "neighbors": [
+        "wp_1098",
+        "wp_1099",
+        "wp_1101",
+        "wp_1102",
+        "wp_1103",
+        "wp_1115",
+        "wp_1116"
+      ],
+      "zone": "site_b"
+    },
+    {
+      "id": "wp_1101",
+      "pos": {
+        "x": 36.8,
+        "y": 0.85,
+        "z": -21.2
+      },
+      "neighbors": [
+        "wp_1098",
+        "wp_1099",
+        "wp_1100",
+        "wp_1102",
+        "wp_1103"
+      ],
+      "zone": "site_b"
+    },
+    {
+      "id": "wp_1102",
+      "pos": {
+        "x": 34.8,
+        "y": 0.85,
+        "z": -19.2
+      },
+      "neighbors": [
+        "wp_1100",
+        "wp_1101",
+        "wp_1103",
+        "wp_1104",
+        "wp_1105",
+        "wp_1116"
+      ],
+      "zone": "site_b"
+    },
+    {
+      "id": "wp_1103",
+      "pos": {
+        "x": 36.8,
+        "y": 0.85,
+        "z": -19.2
+      },
+      "neighbors": [
+        "wp_1100",
+        "wp_1101",
+        "wp_1102",
+        "wp_1104",
+        "wp_1105"
+      ],
+      "zone": "site_b"
+    },
+    {
+      "id": "wp_1104",
+      "pos": {
+        "x": 34.8,
+        "y": 0.85,
+        "z": -17.2
+      },
+      "neighbors": [
+        "wp_1102",
+        "wp_1103",
+        "wp_1105",
+        "wp_1106",
+        "wp_1107"
+      ],
+      "zone": "site_b"
+    },
+    {
+      "id": "wp_1105",
+      "pos": {
+        "x": 36.8,
+        "y": 0.85,
+        "z": -17.2
+      },
+      "neighbors": [
+        "wp_1102",
+        "wp_1103",
+        "wp_1104",
+        "wp_1106",
+        "wp_1107"
+      ],
+      "zone": "site_b"
+    },
+    {
+      "id": "wp_1106",
+      "pos": {
+        "x": 34.8,
+        "y": 0.85,
+        "z": -15.0
+      },
+      "neighbors": [
+        "wp_1104",
+        "wp_1105",
+        "wp_1107",
+        "wp_1108",
+        "wp_1109"
+      ],
+      "zone": "site_b"
+    },
+    {
+      "id": "wp_1107",
+      "pos": {
+        "x": 36.8,
+        "y": 0.85,
+        "z": -15.0
+      },
+      "neighbors": [
+        "wp_1104",
+        "wp_1105",
+        "wp_1106",
+        "wp_1108",
+        "wp_1109"
+      ],
+      "zone": "site_b"
+    },
+    {
+      "id": "wp_1108",
+      "pos": {
+        "x": 34.8,
+        "y": 0.85,
+        "z": -13.0
+      },
+      "neighbors": [
+        "wp_1106",
+        "wp_1107",
+        "wp_1109",
+        "wp_1110",
+        "wp_1111",
+        "wp_1112"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_1109",
+      "pos": {
+        "x": 36.8,
+        "y": 0.85,
+        "z": -13.0
+      },
+      "neighbors": [
+        "wp_1106",
+        "wp_1107",
+        "wp_1108",
+        "wp_1110",
+        "wp_1111",
+        "wp_1113"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_1110",
+      "pos": {
+        "x": 34.8,
+        "y": 0.85,
+        "z": -11.0
+      },
+      "neighbors": [
+        "wp_1108",
+        "wp_1109",
+        "wp_1111",
+        "wp_1112",
+        "wp_1113",
+        "wp_1114"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_1111",
+      "pos": {
+        "x": 36.8,
+        "y": 0.85,
+        "z": -11.0
+      },
+      "neighbors": [
+        "wp_1108",
+        "wp_1109",
+        "wp_1110",
+        "wp_1112",
+        "wp_1113",
+        "wp_1114"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_1112",
+      "pos": {
+        "x": 34.8,
+        "y": 0.85,
+        "z": -9.8
+      },
+      "neighbors": [
+        "wp_1108",
+        "wp_1110",
+        "wp_1111",
+        "wp_1113",
+        "wp_1114"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_1113",
+      "pos": {
         "x": 36.8,
         "y": 0.85,
         "z": -9.8
       },
       "neighbors": [
-        "wp_1081",
-        "wp_1082",
-        "wp_1083",
-        "wp_1084",
-        "wp_1086"
+        "wp_1109",
+        "wp_1110",
+        "wp_1111",
+        "wp_1112",
+        "wp_1114"
       ],
       "zone": "flank"
     },
     {
-      "id": "wp_1086",
+      "id": "wp_1114",
       "pos": {
         "x": 35.8,
         "y": 0.425,
         "z": -8.58
       },
       "neighbors": [
-        "wp_1082",
         "wp_1083",
-        "wp_1084",
-        "wp_1085"
+        "wp_1110",
+        "wp_1111",
+        "wp_1112",
+        "wp_1113",
+        "wp_1180"
       ],
       "zone": "flank"
     },
     {
-      "id": "wp_1087",
+      "id": "wp_1115",
       "pos": {
         "x": 32.92,
         "y": 0.425,
         "z": -21.6
       },
       "neighbors": [
-        "wp_1070",
-        "wp_1072",
-        "wp_1088",
-        "wp_1139",
-        "wp_1140"
+        "wp_1098",
+        "wp_1100",
+        "wp_1116",
+        "wp_1182",
+        "wp_1183"
       ],
       "zone": "site_b"
     },
     {
-      "id": "wp_1088",
+      "id": "wp_1116",
       "pos": {
         "x": 32.92,
         "y": 0.425,
         "z": -20.2
       },
       "neighbors": [
-        "wp_1027",
-        "wp_1072",
-        "wp_1074",
-        "wp_1087",
-        "wp_1139",
-        "wp_1140"
+        "wp_1054",
+        "wp_1100",
+        "wp_1102",
+        "wp_1115",
+        "wp_1182",
+        "wp_1183"
       ],
       "zone": "site_b"
     },
     {
-      "id": "wp_1089",
-      "pos": {
-        "x": -13.67,
-        "y": 0.429,
-        "z": -34.7
-      },
-      "neighbors": [
-        "wp_288",
-        "wp_289",
-        "wp_1090",
-        "wp_1091",
-        "wp_1092",
-        "wp_1136"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_1090",
-      "pos": {
-        "x": -13.67,
-        "y": 0.429,
-        "z": -33.5
-      },
-      "neighbors": [
-        "wp_289",
-        "wp_1089",
-        "wp_1091",
-        "wp_1092",
-        "wp_1136"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_1091",
-      "pos": {
-        "x": -14.82,
-        "y": 0.857,
-        "z": -34.7
-      },
-      "neighbors": [
-        "wp_1089",
-        "wp_1090",
-        "wp_1092",
-        "wp_1093",
-        "wp_1094"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_1092",
-      "pos": {
-        "x": -14.82,
-        "y": 0.857,
-        "z": -33.5
-      },
-      "neighbors": [
-        "wp_1089",
-        "wp_1090",
-        "wp_1091",
-        "wp_1093",
-        "wp_1094"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_1093",
-      "pos": {
-        "x": -15.97,
-        "y": 1.286,
-        "z": -34.7
-      },
-      "neighbors": [
-        "wp_1091",
-        "wp_1092",
-        "wp_1094",
-        "wp_1095",
-        "wp_1096"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_1094",
-      "pos": {
-        "x": -15.97,
-        "y": 1.286,
-        "z": -33.5
-      },
-      "neighbors": [
-        "wp_1091",
-        "wp_1092",
-        "wp_1093",
-        "wp_1095",
-        "wp_1096"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_1095",
-      "pos": {
-        "x": -17.12,
-        "y": 1.714,
-        "z": -34.7
-      },
-      "neighbors": [
-        "wp_1093",
-        "wp_1094",
-        "wp_1096",
-        "wp_1097",
-        "wp_1098"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_1096",
-      "pos": {
-        "x": -17.12,
-        "y": 1.714,
-        "z": -33.5
-      },
-      "neighbors": [
-        "wp_1093",
-        "wp_1094",
-        "wp_1095",
-        "wp_1097",
-        "wp_1098"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_1097",
-      "pos": {
-        "x": -18.27,
-        "y": 2.143,
-        "z": -34.7
-      },
-      "neighbors": [
-        "wp_1095",
-        "wp_1096",
-        "wp_1098",
-        "wp_1099",
-        "wp_1100"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_1098",
-      "pos": {
-        "x": -18.27,
-        "y": 2.143,
-        "z": -33.5
-      },
-      "neighbors": [
-        "wp_1095",
-        "wp_1096",
-        "wp_1097",
-        "wp_1099",
-        "wp_1100"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_1099",
-      "pos": {
-        "x": -19.42,
-        "y": 2.571,
-        "z": -34.7
-      },
-      "neighbors": [
-        "wp_1097",
-        "wp_1098",
-        "wp_1100",
-        "wp_1107",
-        "wp_1108"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_1100",
-      "pos": {
-        "x": -19.42,
-        "y": 2.571,
-        "z": -33.5
-      },
-      "neighbors": [
-        "wp_1097",
-        "wp_1098",
-        "wp_1099",
-        "wp_1107",
-        "wp_1108"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_1101",
-      "pos": {
-        "x": -25.05,
-        "y": 3.0,
-        "z": -35.55
-      },
-      "neighbors": [
-        "wp_1102",
-        "wp_1104",
-        "wp_1105"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_1102",
-      "pos": {
-        "x": -25.05,
-        "y": 3.0,
-        "z": -33.55
-      },
-      "neighbors": [
-        "wp_1101",
-        "wp_1103",
-        "wp_1104",
-        "wp_1105",
-        "wp_1106",
-        "wp_1122"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_1103",
-      "pos": {
-        "x": -25.05,
-        "y": 3.0,
-        "z": -31.85
-      },
-      "neighbors": [
-        "wp_1102",
-        "wp_1105",
-        "wp_1106",
-        "wp_1119",
-        "wp_1122"
-      ],
-      "zone": "site_a"
-    },
-    {
-      "id": "wp_1104",
-      "pos": {
-        "x": -23.05,
-        "y": 3.0,
-        "z": -35.55
-      },
-      "neighbors": [
-        "wp_1101",
-        "wp_1102",
-        "wp_1105",
-        "wp_1107",
-        "wp_1108"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_1105",
-      "pos": {
-        "x": -23.05,
-        "y": 3.0,
-        "z": -33.55
-      },
-      "neighbors": [
-        "wp_1101",
-        "wp_1102",
-        "wp_1103",
-        "wp_1104",
-        "wp_1106",
-        "wp_1107",
-        "wp_1108",
-        "wp_1109",
-        "wp_1122"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_1106",
-      "pos": {
-        "x": -23.05,
-        "y": 3.0,
-        "z": -31.85
-      },
-      "neighbors": [
-        "wp_1102",
-        "wp_1103",
-        "wp_1105",
-        "wp_1108",
-        "wp_1109",
-        "wp_1119",
-        "wp_1122",
-        "wp_1125"
-      ],
-      "zone": "site_a"
-    },
-    {
-      "id": "wp_1107",
-      "pos": {
-        "x": -21.05,
-        "y": 3.0,
-        "z": -35.55
-      },
-      "neighbors": [
-        "wp_1099",
-        "wp_1100",
-        "wp_1104",
-        "wp_1105",
-        "wp_1108"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_1108",
-      "pos": {
-        "x": -21.05,
-        "y": 3.0,
-        "z": -33.55
-      },
-      "neighbors": [
-        "wp_1099",
-        "wp_1100",
-        "wp_1104",
-        "wp_1105",
-        "wp_1106",
-        "wp_1107",
-        "wp_1109",
-        "wp_1125"
-      ],
-      "zone": "spawn"
-    },
-    {
-      "id": "wp_1109",
-      "pos": {
-        "x": -21.05,
-        "y": 3.0,
-        "z": -31.85
-      },
-      "neighbors": [
-        "wp_1105",
-        "wp_1106",
-        "wp_1108",
-        "wp_1122",
-        "wp_1125"
-      ],
-      "zone": "site_a"
-    },
-    {
-      "id": "wp_1110",
-      "pos": {
-        "x": -32.65,
-        "y": 3.0,
-        "z": -30.45
-      },
-      "neighbors": [
-        "wp_1111",
-        "wp_1113",
-        "wp_1114"
-      ],
-      "zone": "site_a"
-    },
-    {
-      "id": "wp_1111",
-      "pos": {
-        "x": -32.65,
-        "y": 3.0,
-        "z": -28.25
-      },
-      "neighbors": [
-        "wp_1110",
-        "wp_1112",
-        "wp_1113",
-        "wp_1114",
-        "wp_1115"
-      ],
-      "zone": "site_a"
-    },
-    {
-      "id": "wp_1112",
-      "pos": {
-        "x": -32.65,
-        "y": 3.0,
-        "z": -25.85
-      },
-      "neighbors": [
-        "wp_1111",
-        "wp_1114",
-        "wp_1115"
-      ],
-      "zone": "site_a"
-    },
-    {
-      "id": "wp_1113",
-      "pos": {
-        "x": -30.45,
-        "y": 3.0,
-        "z": -30.45
-      },
-      "neighbors": [
-        "wp_1110",
-        "wp_1111",
-        "wp_1114",
-        "wp_1116",
-        "wp_1117"
-      ],
-      "zone": "site_a"
-    },
-    {
-      "id": "wp_1114",
-      "pos": {
-        "x": -30.45,
-        "y": 3.0,
-        "z": -28.25
-      },
-      "neighbors": [
-        "wp_1110",
-        "wp_1111",
-        "wp_1112",
-        "wp_1113",
-        "wp_1115",
-        "wp_1116",
-        "wp_1117",
-        "wp_1118"
-      ],
-      "zone": "site_a"
-    },
-    {
-      "id": "wp_1115",
-      "pos": {
-        "x": -30.45,
-        "y": 3.0,
-        "z": -25.85
-      },
-      "neighbors": [
-        "wp_1111",
-        "wp_1112",
-        "wp_1114",
-        "wp_1117",
-        "wp_1118"
-      ],
-      "zone": "site_a"
-    },
-    {
-      "id": "wp_1116",
-      "pos": {
-        "x": -28.25,
-        "y": 3.0,
-        "z": -30.45
-      },
-      "neighbors": [
-        "wp_1113",
-        "wp_1114",
-        "wp_1117",
-        "wp_1119",
-        "wp_1120"
-      ],
-      "zone": "site_a"
-    },
-    {
       "id": "wp_1117",
       "pos": {
-        "x": -28.25,
-        "y": 3.0,
-        "z": -28.25
+        "x": -13.67,
+        "y": 0.429,
+        "z": -34.7
       },
       "neighbors": [
-        "wp_1113",
-        "wp_1114",
-        "wp_1115",
-        "wp_1116",
+        "wp_289",
+        "wp_290",
         "wp_1118",
         "wp_1119",
         "wp_1120",
-        "wp_1121"
+        "wp_1178"
       ],
-      "zone": "site_a"
+      "zone": "spawn"
     },
     {
       "id": "wp_1118",
       "pos": {
-        "x": -28.25,
-        "y": 3.0,
-        "z": -25.85
+        "x": -13.67,
+        "y": 0.429,
+        "z": -33.5
       },
       "neighbors": [
-        "wp_1114",
-        "wp_1115",
+        "wp_290",
         "wp_1117",
+        "wp_1119",
         "wp_1120",
-        "wp_1121"
+        "wp_1178"
       ],
-      "zone": "site_a"
+      "zone": "spawn"
     },
     {
       "id": "wp_1119",
       "pos": {
-        "x": -26.05,
-        "y": 3.0,
-        "z": -30.45
+        "x": -14.82,
+        "y": 0.857,
+        "z": -34.7
       },
       "neighbors": [
-        "wp_1103",
-        "wp_1106",
-        "wp_1116",
         "wp_1117",
+        "wp_1118",
         "wp_1120",
-        "wp_1122",
-        "wp_1123"
+        "wp_1121",
+        "wp_1122"
       ],
-      "zone": "site_a"
+      "zone": "spawn"
     },
     {
       "id": "wp_1120",
       "pos": {
-        "x": -26.05,
-        "y": 3.0,
-        "z": -28.25
+        "x": -14.82,
+        "y": 0.857,
+        "z": -33.5
       },
       "neighbors": [
-        "wp_1116",
         "wp_1117",
         "wp_1118",
         "wp_1119",
         "wp_1121",
-        "wp_1122",
-        "wp_1123",
-        "wp_1124"
+        "wp_1122"
       ],
-      "zone": "site_a"
+      "zone": "spawn"
     },
     {
       "id": "wp_1121",
       "pos": {
-        "x": -26.05,
-        "y": 3.0,
-        "z": -25.85
+        "x": -15.97,
+        "y": 1.286,
+        "z": -34.7
       },
       "neighbors": [
-        "wp_1117",
-        "wp_1118",
+        "wp_1119",
         "wp_1120",
+        "wp_1122",
         "wp_1123",
         "wp_1124"
       ],
-      "zone": "site_a"
+      "zone": "spawn"
     },
     {
       "id": "wp_1122",
       "pos": {
-        "x": -23.85,
-        "y": 3.0,
-        "z": -30.45
+        "x": -15.97,
+        "y": 1.286,
+        "z": -33.5
       },
       "neighbors": [
-        "wp_1102",
-        "wp_1103",
-        "wp_1105",
-        "wp_1106",
-        "wp_1109",
         "wp_1119",
         "wp_1120",
+        "wp_1121",
         "wp_1123",
-        "wp_1125",
-        "wp_1126"
+        "wp_1124"
       ],
-      "zone": "site_a"
+      "zone": "spawn"
     },
     {
       "id": "wp_1123",
       "pos": {
-        "x": -23.85,
-        "y": 3.0,
-        "z": -28.25
+        "x": -17.12,
+        "y": 1.714,
+        "z": -34.7
       },
       "neighbors": [
-        "wp_1119",
-        "wp_1120",
         "wp_1121",
         "wp_1122",
         "wp_1124",
         "wp_1125",
-        "wp_1126",
-        "wp_1127"
+        "wp_1126"
       ],
-      "zone": "site_a"
+      "zone": "spawn"
     },
     {
       "id": "wp_1124",
       "pos": {
-        "x": -23.85,
-        "y": 3.0,
-        "z": -25.85
+        "x": -17.12,
+        "y": 1.714,
+        "z": -33.5
       },
       "neighbors": [
-        "wp_1120",
         "wp_1121",
+        "wp_1122",
         "wp_1123",
-        "wp_1126",
-        "wp_1127"
+        "wp_1125",
+        "wp_1126"
       ],
-      "zone": "site_a"
+      "zone": "spawn"
     },
     {
       "id": "wp_1125",
       "pos": {
-        "x": -21.65,
-        "y": 3.0,
-        "z": -30.45
+        "x": -18.27,
+        "y": 2.143,
+        "z": -34.7
       },
       "neighbors": [
-        "wp_1106",
-        "wp_1108",
-        "wp_1109",
-        "wp_1122",
         "wp_1123",
-        "wp_1126"
+        "wp_1124",
+        "wp_1126",
+        "wp_1127",
+        "wp_1128"
       ],
-      "zone": "site_a"
+      "zone": "spawn"
     },
     {
       "id": "wp_1126",
       "pos": {
-        "x": -21.65,
-        "y": 3.0,
-        "z": -28.25
+        "x": -18.27,
+        "y": 2.143,
+        "z": -33.5
       },
       "neighbors": [
-        "wp_1122",
         "wp_1123",
         "wp_1124",
         "wp_1125",
-        "wp_1127"
+        "wp_1127",
+        "wp_1128"
       ],
-      "zone": "site_a"
+      "zone": "spawn"
     },
     {
       "id": "wp_1127",
       "pos": {
-        "x": -21.65,
-        "y": 3.0,
-        "z": -25.85
+        "x": -19.42,
+        "y": 2.571,
+        "z": -34.7
       },
       "neighbors": [
-        "wp_1123",
-        "wp_1124",
-        "wp_1126"
+        "wp_1125",
+        "wp_1126",
+        "wp_1128",
+        "wp_1135",
+        "wp_1136"
       ],
-      "zone": "site_a"
+      "zone": "spawn"
     },
     {
       "id": "wp_1128",
       "pos": {
-        "x": 27.2,
-        "y": 0.0,
-        "z": 4.0
+        "x": -19.42,
+        "y": 2.571,
+        "z": -33.5
       },
       "neighbors": [
-        "wp_931",
-        "wp_932",
-        "wp_933",
-        "wp_967",
-        "wp_968",
-        "wp_969",
-        "wp_1004"
+        "wp_1125",
+        "wp_1126",
+        "wp_1127",
+        "wp_1135",
+        "wp_1136"
       ],
-      "zone": "flank"
+      "zone": "spawn"
     },
     {
       "id": "wp_1129",
       "pos": {
-        "x": -13.1,
-        "y": 0.0,
-        "z": -29.8
+        "x": -25.05,
+        "y": 3.0,
+        "z": -35.55
       },
       "neighbors": [
-        "wp_246",
-        "wp_266",
-        "wp_267"
+        "wp_1130",
+        "wp_1132",
+        "wp_1133"
       ],
-      "zone": "flank"
+      "zone": "spawn"
     },
     {
       "id": "wp_1130",
       "pos": {
-        "x": -17.0,
-        "y": 0.0,
-        "z": -24.2
+        "x": -25.05,
+        "y": 3.0,
+        "z": -33.55
       },
       "neighbors": [
-        "wp_220",
-        "wp_221",
-        "wp_222",
-        "wp_248",
-        "wp_249",
-        "wp_250"
+        "wp_1129",
+        "wp_1131",
+        "wp_1132",
+        "wp_1133",
+        "wp_1134",
+        "wp_1153"
       ],
-      "zone": "site_a"
+      "zone": "spawn"
     },
     {
       "id": "wp_1131",
       "pos": {
-        "x": -15.2,
-        "y": 0.0,
-        "z": -18.0
+        "x": -25.05,
+        "y": 3.0,
+        "z": -31.85
       },
       "neighbors": [
-        "wp_224",
-        "wp_251",
-        "wp_252",
-        "wp_253",
-        "wp_268",
-        "wp_292",
-        "wp_1132"
+        "wp_1130",
+        "wp_1133",
+        "wp_1134",
+        "wp_1149",
+        "wp_1153"
       ],
       "zone": "site_a"
     },
     {
       "id": "wp_1132",
       "pos": {
-        "x": -12.8,
-        "y": 0.0,
-        "z": -18.0
+        "x": -23.05,
+        "y": 3.0,
+        "z": -35.55
       },
       "neighbors": [
-        "wp_252",
-        "wp_268",
-        "wp_291",
-        "wp_292",
-        "wp_293",
-        "wp_320",
-        "wp_1131"
+        "wp_1129",
+        "wp_1130",
+        "wp_1133",
+        "wp_1135",
+        "wp_1136"
       ],
-      "zone": "mid"
+      "zone": "spawn"
     },
     {
       "id": "wp_1133",
       "pos": {
-        "x": 12.8,
-        "y": 0.0,
-        "z": -21.0
+        "x": -23.05,
+        "y": 3.0,
+        "z": -33.55
       },
       "neighbors": [
-        "wp_673",
-        "wp_674",
-        "wp_714",
-        "wp_715",
-        "wp_716",
-        "wp_717",
-        "wp_739",
-        "wp_740",
+        "wp_1129",
+        "wp_1130",
+        "wp_1131",
+        "wp_1132",
         "wp_1134",
-        "wp_1135"
+        "wp_1135",
+        "wp_1136",
+        "wp_1137",
+        "wp_1153",
+        "wp_1157"
       ],
-      "zone": "mid"
+      "zone": "spawn"
     },
     {
       "id": "wp_1134",
       "pos": {
-        "x": 14.0,
-        "y": 0.0,
-        "z": -21.0
+        "x": -23.05,
+        "y": 3.0,
+        "z": -31.85
       },
       "neighbors": [
-        "wp_715",
-        "wp_716",
-        "wp_739",
-        "wp_740",
-        "wp_762",
-        "wp_763",
+        "wp_1130",
+        "wp_1131",
         "wp_1133",
-        "wp_1135"
+        "wp_1136",
+        "wp_1137",
+        "wp_1153",
+        "wp_1157"
       ],
-      "zone": "flank"
+      "zone": "site_a"
     },
     {
       "id": "wp_1135",
       "pos": {
-        "x": 15.2,
-        "y": 0.0,
-        "z": -21.0
+        "x": -21.05,
+        "y": 3.0,
+        "z": -35.55
       },
       "neighbors": [
-        "wp_739",
-        "wp_740",
-        "wp_761",
-        "wp_762",
-        "wp_763",
-        "wp_789",
-        "wp_790",
+        "wp_1127",
+        "wp_1128",
+        "wp_1132",
         "wp_1133",
-        "wp_1134"
+        "wp_1136"
       ],
-      "zone": "flank"
+      "zone": "spawn"
     },
     {
       "id": "wp_1136",
       "pos": {
-        "x": -12.2,
-        "y": 0.0,
-        "z": -34.7
+        "x": -21.05,
+        "y": 3.0,
+        "z": -33.55
       },
       "neighbors": [
-        "wp_287",
-        "wp_288",
-        "wp_289",
-        "wp_316",
-        "wp_317",
-        "wp_1089",
-        "wp_1090"
+        "wp_1127",
+        "wp_1128",
+        "wp_1132",
+        "wp_1133",
+        "wp_1134",
+        "wp_1135",
+        "wp_1137",
+        "wp_1157"
       ],
       "zone": "spawn"
     },
     {
       "id": "wp_1137",
       "pos": {
-        "x": -9.7,
-        "y": 0.0,
-        "z": 2.7
+        "x": -21.05,
+        "y": 3.0,
+        "z": -31.85
       },
       "neighbors": [
-        "wp_297",
-        "wp_325",
-        "wp_326",
-        "wp_352",
-        "wp_1067"
+        "wp_1133",
+        "wp_1134",
+        "wp_1136",
+        "wp_1153",
+        "wp_1157",
+        "wp_1158"
       ],
-      "zone": "mid"
+      "zone": "site_a"
     },
     {
       "id": "wp_1138",
       "pos": {
-        "x": -5.8,
-        "y": 0.0,
-        "z": -0.8
+        "x": -32.85,
+        "y": 3.0,
+        "z": -30.65
       },
       "neighbors": [
-        "wp_379",
-        "wp_380",
-        "wp_381",
-        "wp_382",
-        "wp_414",
-        "wp_415",
-        "wp_416",
-        "wp_1069"
+        "wp_1139",
+        "wp_1142",
+        "wp_1143"
       ],
-      "zone": "mid"
+      "zone": "site_a"
     },
     {
       "id": "wp_1139",
       "pos": {
-        "x": 31.6,
-        "y": 0.0,
-        "z": -21.6
+        "x": -32.85,
+        "y": 3.0,
+        "z": -28.65
       },
       "neighbors": [
-        "wp_991",
-        "wp_992",
-        "wp_1087",
-        "wp_1088",
-        "wp_1140"
+        "wp_1138",
+        "wp_1140",
+        "wp_1142",
+        "wp_1143"
       ],
-      "zone": "site_b"
+      "zone": "site_a"
     },
     {
       "id": "wp_1140",
       "pos": {
-        "x": 31.6,
-        "y": 0.0,
-        "z": -20.2
+        "x": -32.85,
+        "y": 3.0,
+        "z": -26.65
       },
       "neighbors": [
-        "wp_991",
-        "wp_992",
-        "wp_993",
-        "wp_1027",
-        "wp_1087",
-        "wp_1088",
-        "wp_1139"
+        "wp_1139",
+        "wp_1141"
       ],
-      "zone": "site_b"
+      "zone": "site_a"
     },
     {
       "id": "wp_1141",
       "pos": {
-        "x": -31.0,
-        "y": 0.0,
-        "z": -28.0
+        "x": -32.85,
+        "y": 3.0,
+        "z": -25.15
       },
       "neighbors": [
-        "wp_15",
-        "wp_16",
-        "wp_17",
-        "wp_34",
-        "wp_35",
-        "wp_36",
-        "wp_70"
+        "wp_1140",
+        "wp_1144"
       ],
       "zone": "site_a"
     },
     {
       "id": "wp_1142",
       "pos": {
-        "x": -27.0,
-        "y": 0.0,
-        "z": -29.0
+        "x": -30.65,
+        "y": 3.0,
+        "z": -30.65
       },
       "neighbors": [
-        "wp_34",
-        "wp_35",
-        "wp_69",
-        "wp_70",
-        "wp_71",
-        "wp_103",
-        "wp_104",
-        "wp_105",
-        "wp_139",
-        "wp_140"
+        "wp_1138",
+        "wp_1139",
+        "wp_1143",
+        "wp_1145",
+        "wp_1146"
       ],
       "zone": "site_a"
     },
     {
       "id": "wp_1143",
       "pos": {
-        "x": -23.0,
-        "y": 0.0,
-        "z": -28.0
+        "x": -30.65,
+        "y": 3.0,
+        "z": -28.65
       },
       "neighbors": [
-        "wp_104",
-        "wp_139",
-        "wp_140",
-        "wp_141",
-        "wp_168",
-        "wp_169",
-        "wp_170"
+        "wp_1138",
+        "wp_1139",
+        "wp_1142",
+        "wp_1145",
+        "wp_1146"
       ],
       "zone": "site_a"
     },
     {
       "id": "wp_1144",
       "pos": {
+        "x": -30.65,
+        "y": 3.0,
+        "z": -25.15
+      },
+      "neighbors": [
+        "wp_1141",
+        "wp_1148"
+      ],
+      "zone": "site_a"
+    },
+    {
+      "id": "wp_1145",
+      "pos": {
+        "x": -28.45,
+        "y": 3.0,
+        "z": -30.65
+      },
+      "neighbors": [
+        "wp_1142",
+        "wp_1143",
+        "wp_1146",
+        "wp_1149",
+        "wp_1150"
+      ],
+      "zone": "site_a"
+    },
+    {
+      "id": "wp_1146",
+      "pos": {
+        "x": -28.45,
+        "y": 3.0,
+        "z": -28.65
+      },
+      "neighbors": [
+        "wp_1142",
+        "wp_1143",
+        "wp_1145",
+        "wp_1147",
+        "wp_1149",
+        "wp_1150",
+        "wp_1151"
+      ],
+      "zone": "site_a"
+    },
+    {
+      "id": "wp_1147",
+      "pos": {
+        "x": -28.45,
+        "y": 3.0,
+        "z": -26.65
+      },
+      "neighbors": [
+        "wp_1146",
+        "wp_1148",
+        "wp_1150",
+        "wp_1151",
+        "wp_1152"
+      ],
+      "zone": "site_a"
+    },
+    {
+      "id": "wp_1148",
+      "pos": {
+        "x": -28.45,
+        "y": 3.0,
+        "z": -25.15
+      },
+      "neighbors": [
+        "wp_1144",
+        "wp_1147",
+        "wp_1151",
+        "wp_1152"
+      ],
+      "zone": "site_a"
+    },
+    {
+      "id": "wp_1149",
+      "pos": {
+        "x": -26.25,
+        "y": 3.0,
+        "z": -30.65
+      },
+      "neighbors": [
+        "wp_1131",
+        "wp_1145",
+        "wp_1146",
+        "wp_1150",
+        "wp_1153",
+        "wp_1154"
+      ],
+      "zone": "site_a"
+    },
+    {
+      "id": "wp_1150",
+      "pos": {
+        "x": -26.25,
+        "y": 3.0,
+        "z": -28.65
+      },
+      "neighbors": [
+        "wp_1145",
+        "wp_1146",
+        "wp_1147",
+        "wp_1149",
+        "wp_1151",
+        "wp_1153",
+        "wp_1154",
+        "wp_1155"
+      ],
+      "zone": "site_a"
+    },
+    {
+      "id": "wp_1151",
+      "pos": {
+        "x": -26.25,
+        "y": 3.0,
+        "z": -26.65
+      },
+      "neighbors": [
+        "wp_1146",
+        "wp_1147",
+        "wp_1148",
+        "wp_1150",
+        "wp_1152",
+        "wp_1154",
+        "wp_1155",
+        "wp_1156"
+      ],
+      "zone": "site_a"
+    },
+    {
+      "id": "wp_1152",
+      "pos": {
+        "x": -26.25,
+        "y": 3.0,
+        "z": -25.15
+      },
+      "neighbors": [
+        "wp_1147",
+        "wp_1148",
+        "wp_1151",
+        "wp_1155",
+        "wp_1156"
+      ],
+      "zone": "site_a"
+    },
+    {
+      "id": "wp_1153",
+      "pos": {
+        "x": -24.05,
+        "y": 3.0,
+        "z": -30.65
+      },
+      "neighbors": [
+        "wp_1130",
+        "wp_1131",
+        "wp_1133",
+        "wp_1134",
+        "wp_1137",
+        "wp_1149",
+        "wp_1150",
+        "wp_1154",
+        "wp_1157",
+        "wp_1158"
+      ],
+      "zone": "site_a"
+    },
+    {
+      "id": "wp_1154",
+      "pos": {
+        "x": -24.05,
+        "y": 3.0,
+        "z": -28.65
+      },
+      "neighbors": [
+        "wp_1149",
+        "wp_1150",
+        "wp_1151",
+        "wp_1153",
+        "wp_1155",
+        "wp_1157",
+        "wp_1158",
+        "wp_1159"
+      ],
+      "zone": "site_a"
+    },
+    {
+      "id": "wp_1155",
+      "pos": {
+        "x": -24.05,
+        "y": 3.0,
+        "z": -26.65
+      },
+      "neighbors": [
+        "wp_1150",
+        "wp_1151",
+        "wp_1152",
+        "wp_1154",
+        "wp_1156",
+        "wp_1158",
+        "wp_1159",
+        "wp_1160"
+      ],
+      "zone": "site_a"
+    },
+    {
+      "id": "wp_1156",
+      "pos": {
+        "x": -24.05,
+        "y": 3.0,
+        "z": -25.15
+      },
+      "neighbors": [
+        "wp_1151",
+        "wp_1152",
+        "wp_1155",
+        "wp_1159",
+        "wp_1160"
+      ],
+      "zone": "site_a"
+    },
+    {
+      "id": "wp_1157",
+      "pos": {
+        "x": -21.85,
+        "y": 3.0,
+        "z": -30.65
+      },
+      "neighbors": [
+        "wp_1133",
+        "wp_1134",
+        "wp_1136",
+        "wp_1137",
+        "wp_1153",
+        "wp_1154",
+        "wp_1158"
+      ],
+      "zone": "site_a"
+    },
+    {
+      "id": "wp_1158",
+      "pos": {
+        "x": -21.85,
+        "y": 3.0,
+        "z": -28.65
+      },
+      "neighbors": [
+        "wp_1137",
+        "wp_1153",
+        "wp_1154",
+        "wp_1155",
+        "wp_1157",
+        "wp_1159"
+      ],
+      "zone": "site_a"
+    },
+    {
+      "id": "wp_1159",
+      "pos": {
+        "x": -21.85,
+        "y": 3.0,
+        "z": -26.65
+      },
+      "neighbors": [
+        "wp_1154",
+        "wp_1155",
+        "wp_1156",
+        "wp_1158",
+        "wp_1160"
+      ],
+      "zone": "site_a"
+    },
+    {
+      "id": "wp_1160",
+      "pos": {
+        "x": -21.85,
+        "y": 3.0,
+        "z": -25.15
+      },
+      "neighbors": [
+        "wp_1155",
+        "wp_1156",
+        "wp_1159"
+      ],
+      "zone": "site_a"
+    },
+    {
+      "id": "wp_1161",
+      "pos": {
+        "x": 27.2,
+        "y": 0.0,
+        "z": 4.0
+      },
+      "neighbors": [
+        "wp_959",
+        "wp_960",
+        "wp_961",
+        "wp_995",
+        "wp_996",
+        "wp_997",
+        "wp_1031"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_1162",
+      "pos": {
+        "x": -13.1,
+        "y": 0.0,
+        "z": -29.8
+      },
+      "neighbors": [
+        "wp_247",
+        "wp_267",
+        "wp_268",
+        "wp_291",
+        "wp_292",
+        "wp_293",
+        "wp_323"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_1163",
+      "pos": {
+        "x": -17.0,
+        "y": 0.0,
+        "z": -24.2
+      },
+      "neighbors": [
+        "wp_221",
+        "wp_222",
+        "wp_223",
+        "wp_249",
+        "wp_250",
+        "wp_251"
+      ],
+      "zone": "site_a"
+    },
+    {
+      "id": "wp_1164",
+      "pos": {
+        "x": -7.7,
+        "y": 0.0,
+        "z": -21.2
+      },
+      "neighbors": [
+        "wp_325",
+        "wp_326",
+        "wp_357",
+        "wp_358",
+        "wp_359",
+        "wp_360",
+        "wp_387",
+        "wp_388",
+        "wp_1165"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_1165",
+      "pos": {
+        "x": -7.7,
+        "y": 0.0,
+        "z": -23.0
+      },
+      "neighbors": [
+        "wp_356",
+        "wp_357",
+        "wp_358",
+        "wp_359",
+        "wp_387",
+        "wp_1164",
+        "wp_1166"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_1166",
+      "pos": {
+        "x": -7.7,
+        "y": 0.0,
+        "z": -25.0
+      },
+      "neighbors": [
+        "wp_355",
+        "wp_356",
+        "wp_357",
+        "wp_358",
+        "wp_1165",
+        "wp_1167"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_1167",
+      "pos": {
+        "x": -7.7,
+        "y": 0.0,
+        "z": -27.2
+      },
+      "neighbors": [
+        "wp_354",
+        "wp_355",
+        "wp_356",
+        "wp_357",
+        "wp_385",
+        "wp_386",
+        "wp_1166"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_1168",
+      "pos": {
+        "x": -0.7,
+        "y": 0.0,
+        "z": -14.2
+      },
+      "neighbors": [
+        "wp_470",
+        "wp_471",
+        "wp_472",
+        "wp_514",
+        "wp_515",
+        "wp_516",
+        "wp_550"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_1169",
+      "pos": {
+        "x": -0.7,
+        "y": 0.0,
+        "z": -18.5
+      },
+      "neighbors": [
+        "wp_429",
+        "wp_468",
+        "wp_469",
+        "wp_470",
+        "wp_512",
+        "wp_513",
+        "wp_514",
+        "wp_1170"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_1170",
+      "pos": {
+        "x": -0.7,
+        "y": 0.0,
+        "z": -21.0
+      },
+      "neighbors": [
+        "wp_466",
+        "wp_467",
+        "wp_468",
+        "wp_469",
+        "wp_510",
+        "wp_511",
+        "wp_512",
+        "wp_513",
+        "wp_1169",
+        "wp_1171"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_1171",
+      "pos": {
+        "x": -0.7,
+        "y": 0.0,
+        "z": -23.5
+      },
+      "neighbors": [
+        "wp_428",
+        "wp_465",
+        "wp_466",
+        "wp_467",
+        "wp_509",
+        "wp_510",
+        "wp_511",
+        "wp_1170"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_1172",
+      "pos": {
+        "x": -6.4,
+        "y": 0.0,
+        "z": -4.6
+      },
+      "neighbors": [
+        "wp_394",
+        "wp_395",
+        "wp_396",
+        "wp_433"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_1173",
+      "pos": {
+        "x": -15.2,
+        "y": 0.0,
+        "z": -18.0
+      },
+      "neighbors": [
+        "wp_225",
+        "wp_252",
+        "wp_253",
+        "wp_254",
+        "wp_269",
+        "wp_296",
+        "wp_1174"
+      ],
+      "zone": "site_a"
+    },
+    {
+      "id": "wp_1174",
+      "pos": {
+        "x": -12.8,
+        "y": 0.0,
+        "z": -18.0
+      },
+      "neighbors": [
+        "wp_253",
+        "wp_269",
+        "wp_295",
+        "wp_296",
+        "wp_297",
+        "wp_327",
+        "wp_1173"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_1175",
+      "pos": {
+        "x": 12.8,
+        "y": 0.0,
+        "z": -21.0
+      },
+      "neighbors": [
+        "wp_708",
+        "wp_709",
+        "wp_747",
+        "wp_748",
+        "wp_749",
+        "wp_750",
+        "wp_772",
+        "wp_773",
+        "wp_1176",
+        "wp_1177"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_1176",
+      "pos": {
+        "x": 14.0,
+        "y": 0.0,
+        "z": -21.0
+      },
+      "neighbors": [
+        "wp_748",
+        "wp_749",
+        "wp_772",
+        "wp_773",
+        "wp_795",
+        "wp_796",
+        "wp_1175",
+        "wp_1177"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_1177",
+      "pos": {
+        "x": 15.2,
+        "y": 0.0,
+        "z": -21.0
+      },
+      "neighbors": [
+        "wp_772",
+        "wp_773",
+        "wp_794",
+        "wp_795",
+        "wp_796",
+        "wp_797",
+        "wp_822",
+        "wp_823",
+        "wp_1175",
+        "wp_1176"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_1178",
+      "pos": {
+        "x": -12.2,
+        "y": 0.0,
+        "z": -34.7
+      },
+      "neighbors": [
+        "wp_288",
+        "wp_289",
+        "wp_290",
+        "wp_291",
+        "wp_320",
+        "wp_321",
+        "wp_1117",
+        "wp_1118"
+      ],
+      "zone": "spawn"
+    },
+    {
+      "id": "wp_1179",
+      "pos": {
+        "x": -9.7,
+        "y": 0.0,
+        "z": 2.7
+      },
+      "neighbors": [
+        "wp_301",
+        "wp_332",
+        "wp_333",
+        "wp_364",
+        "wp_1095"
+      ],
+      "zone": "mid"
+    },
+    {
+      "id": "wp_1180",
+      "pos": {
+        "x": 35.8,
+        "y": 0.0,
+        "z": -7.2
+      },
+      "neighbors": [
+        "wp_1071",
+        "wp_1083",
+        "wp_1084",
+        "wp_1114",
+        "wp_1181"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_1181",
+      "pos": {
+        "x": 35.8,
+        "y": 0.0,
+        "z": -5.0
+      },
+      "neighbors": [
+        "wp_1071",
+        "wp_1072",
+        "wp_1083",
+        "wp_1084",
+        "wp_1180"
+      ],
+      "zone": "flank"
+    },
+    {
+      "id": "wp_1182",
+      "pos": {
+        "x": 31.6,
+        "y": 0.0,
+        "z": -21.6
+      },
+      "neighbors": [
+        "wp_1115",
+        "wp_1116",
+        "wp_1183"
+      ],
+      "zone": "site_b"
+    },
+    {
+      "id": "wp_1183",
+      "pos": {
+        "x": 31.6,
+        "y": 0.0,
+        "z": -20.2
+      },
+      "neighbors": [
+        "wp_1019",
+        "wp_1020",
+        "wp_1054",
+        "wp_1115",
+        "wp_1116",
+        "wp_1182"
+      ],
+      "zone": "site_b"
+    },
+    {
+      "id": "wp_1184",
+      "pos": {
+        "x": -27.0,
+        "y": 0.0,
+        "z": -29.0
+      },
+      "neighbors": [
+        "wp_36",
+        "wp_37",
+        "wp_71",
+        "wp_72",
+        "wp_73",
+        "wp_105",
+        "wp_106",
+        "wp_107",
+        "wp_141",
+        "wp_142"
+      ],
+      "zone": "site_a"
+    },
+    {
+      "id": "wp_1185",
+      "pos": {
         "x": 28.7,
         "y": 0.0,
         "z": -24.6
       },
       "neighbors": [
-        "wp_955",
-        "wp_956",
-        "wp_957",
-        "wp_990",
-        "wp_991",
-        "wp_1145"
+        "wp_983",
+        "wp_984",
+        "wp_985",
+        "wp_1018",
+        "wp_1186",
+        "wp_1187"
       ],
       "zone": "site_b"
     },
     {
-      "id": "wp_1145",
+      "id": "wp_1186",
       "pos": {
         "x": 28.7,
         "y": 0.0,
         "z": -26.2
       },
       "neighbors": [
-        "wp_954",
-        "wp_955",
-        "wp_956",
-        "wp_989",
-        "wp_990",
-        "wp_1026",
-        "wp_1144"
+        "wp_982",
+        "wp_983",
+        "wp_984",
+        "wp_1017",
+        "wp_1018",
+        "wp_1053",
+        "wp_1185",
+        "wp_1187"
       ],
       "zone": "site_b"
     },
     {
-      "id": "wp_1146",
+      "id": "wp_1187",
+      "pos": {
+        "x": 31.2,
+        "y": 0.0,
+        "z": -26.2
+      },
+      "neighbors": [
+        "wp_983",
+        "wp_1017",
+        "wp_1018",
+        "wp_1052",
+        "wp_1053",
+        "wp_1070",
+        "wp_1185",
+        "wp_1186"
+      ],
+      "zone": "site_b"
+    },
+    {
+      "id": "wp_1188",
       "pos": {
         "x": 26.2,
         "y": 0.0,
         "z": -29.1
       },
       "neighbors": [
-        "wp_885",
-        "wp_886",
-        "wp_919",
-        "wp_920",
-        "wp_953",
-        "wp_954",
-        "wp_1147"
+        "wp_916",
+        "wp_917",
+        "wp_948",
+        "wp_949",
+        "wp_981",
+        "wp_982",
+        "wp_1189"
       ],
       "zone": "site_b"
     },
     {
-      "id": "wp_1147",
+      "id": "wp_1189",
       "pos": {
         "x": 24.8,
         "y": 0.0,
         "z": -29.1
       },
       "neighbors": [
-        "wp_852",
-        "wp_853",
         "wp_885",
         "wp_886",
-        "wp_887",
-        "wp_919",
-        "wp_920",
-        "wp_953",
-        "wp_1146"
+        "wp_916",
+        "wp_917",
+        "wp_918",
+        "wp_948",
+        "wp_949",
+        "wp_981",
+        "wp_1188"
       ],
       "zone": "site_b"
     },
     {
-      "id": "wp_1148",
+      "id": "wp_1190",
       "pos": {
         "x": 4.3,
         "y": 0.0,
         "z": -15.1
       },
       "neighbors": [
-        "wp_512",
         "wp_550",
-        "wp_551",
-        "wp_552",
-        "wp_553",
-        "wp_594",
-        "wp_595"
+        "wp_587",
+        "wp_588",
+        "wp_589",
+        "wp_590",
+        "wp_629",
+        "wp_630"
       ],
       "zone": "mid"
     },
     {
-      "id": "wp_1149",
+      "id": "wp_1191",
       "pos": {
         "x": 7.3,
         "y": 0.0,
         "z": -25.7
       },
       "neighbors": [
-        "wp_588",
-        "wp_589",
-        "wp_590",
-        "wp_631",
-        "wp_632",
-        "wp_633",
-        "wp_672",
-        "wp_1150",
-        "wp_1151"
+        "wp_623",
+        "wp_624",
+        "wp_625",
+        "wp_666",
+        "wp_667",
+        "wp_668",
+        "wp_707",
+        "wp_1192",
+        "wp_1193"
       ],
       "zone": "mid"
     },
     {
-      "id": "wp_1150",
+      "id": "wp_1192",
       "pos": {
         "x": 7.3,
         "y": 0.0,
         "z": -24.2
       },
       "neighbors": [
-        "wp_549",
-        "wp_589",
-        "wp_590",
-        "wp_591",
-        "wp_632",
-        "wp_633",
-        "wp_634",
-        "wp_672",
-        "wp_1149",
-        "wp_1151"
+        "wp_585",
+        "wp_624",
+        "wp_625",
+        "wp_626",
+        "wp_667",
+        "wp_668",
+        "wp_669",
+        "wp_707",
+        "wp_1191",
+        "wp_1193"
       ],
       "zone": "mid"
     },
     {
-      "id": "wp_1151",
+      "id": "wp_1193",
       "pos": {
         "x": 7.3,
         "y": 0.0,
         "z": -27.2
       },
       "neighbors": [
-        "wp_587",
-        "wp_588",
-        "wp_589",
-        "wp_630",
-        "wp_631",
-        "wp_632",
-        "wp_633",
-        "wp_671",
-        "wp_1149",
-        "wp_1150"
+        "wp_622",
+        "wp_623",
+        "wp_624",
+        "wp_665",
+        "wp_666",
+        "wp_667",
+        "wp_668",
+        "wp_706",
+        "wp_1191",
+        "wp_1192"
       ],
       "zone": "flank"
     },
     {
-      "id": "wp_1152",
+      "id": "wp_1194",
       "pos": {
         "x": -31.2,
         "y": 0.0,
         "z": -4.2
       },
       "neighbors": [
-        "wp_7",
-        "wp_25",
-        "wp_26",
+        "wp_9",
+        "wp_10",
         "wp_27",
-        "wp_45",
-        "wp_46",
+        "wp_28",
+        "wp_29",
         "wp_47",
-        "wp_80"
+        "wp_48",
+        "wp_49",
+        "wp_82"
       ],
       "zone": "flank"
     },
     {
-      "id": "wp_1153",
+      "id": "wp_1195",
       "pos": {
         "x": 21.2,
         "y": 0.0,
         "z": -4.2
       },
       "neighbors": [
-        "wp_861",
-        "wp_862",
-        "wp_863",
+        "wp_893",
         "wp_894",
-        "wp_895",
-        "wp_1154"
+        "wp_923",
+        "wp_924",
+        "wp_1196"
       ],
       "zone": "flank"
     },
     {
-      "id": "wp_1154",
+      "id": "wp_1196",
       "pos": {
         "x": 20.1,
         "y": 0.0,
         "z": -4.2
       },
       "neighbors": [
-        "wp_861",
-        "wp_862",
-        "wp_863",
-        "wp_1153"
+        "wp_893",
+        "wp_894",
+        "wp_1195"
       ],
       "zone": "flank"
     },
     {
-      "id": "wp_1155",
+      "id": "wp_1197",
       "pos": {
         "x": 1.0,
         "y": 0.0,
         "z": 14.4
       },
       "neighbors": [
-        "wp_456",
-        "wp_488",
-        "wp_489",
-        "wp_525",
+        "wp_485",
         "wp_526",
-        "wp_565",
-        "wp_1156",
-        "wp_1157"
+        "wp_527",
+        "wp_561",
+        "wp_562",
+        "wp_600",
+        "wp_1198",
+        "wp_1199"
       ],
       "zone": "mid"
     },
     {
-      "id": "wp_1156",
+      "id": "wp_1198",
       "pos": {
         "x": -1.0,
         "y": 0.0,
         "z": 14.4
       },
       "neighbors": [
-        "wp_422",
-        "wp_456",
-        "wp_457",
-        "wp_488",
-        "wp_489",
-        "wp_525",
-        "wp_1155"
+        "wp_442",
+        "wp_485",
+        "wp_486",
+        "wp_526",
+        "wp_527",
+        "wp_561",
+        "wp_1197"
       ],
       "zone": "mid"
     },
     {
-      "id": "wp_1157",
+      "id": "wp_1199",
       "pos": {
         "x": 3.0,
         "y": 0.0,
         "z": 14.4
       },
       "neighbors": [
-        "wp_488",
-        "wp_525",
         "wp_526",
-        "wp_565",
-        "wp_566",
-        "wp_608",
-        "wp_1155"
+        "wp_561",
+        "wp_562",
+        "wp_600",
+        "wp_601",
+        "wp_643",
+        "wp_1197"
       ],
       "zone": "mid"
     },
     {
-      "id": "wp_1158",
+      "id": "wp_1200",
       "pos": {
         "x": 0.0,
         "y": 0.0,
         "z": 33.0
       },
       "neighbors": [
-        "wp_464",
-        "wp_465",
-        "wp_495",
-        "wp_496",
-        "wp_497",
-        "wp_498",
+        "wp_493",
+        "wp_494",
         "wp_533",
-        "wp_534"
+        "wp_534",
+        "wp_535",
+        "wp_536",
+        "wp_569",
+        "wp_570"
       ],
       "zone": "spawn"
     },
     {
-      "id": "wp_1159",
+      "id": "wp_1201",
       "pos": {
         "x": -6.0,
         "y": 0.0,
         "z": 37.0
       },
       "neighbors": [
-        "wp_362",
-        "wp_363",
-        "wp_397",
-        "wp_398",
-        "wp_399",
-        "wp_400",
-        "wp_432",
-        "wp_433"
+        "wp_374",
+        "wp_375",
+        "wp_413",
+        "wp_414",
+        "wp_415",
+        "wp_416",
+        "wp_452",
+        "wp_453"
       ],
       "zone": "spawn"
     },
     {
-      "id": "wp_1160",
+      "id": "wp_1202",
       "pos": {
         "x": 0.0,
         "y": 0.0,
         "z": 37.0
       },
       "neighbors": [
-        "wp_466",
-        "wp_467",
-        "wp_497",
-        "wp_498",
-        "wp_499",
-        "wp_500",
+        "wp_495",
+        "wp_496",
         "wp_535",
-        "wp_536"
+        "wp_536",
+        "wp_537",
+        "wp_538",
+        "wp_571",
+        "wp_572"
       ],
       "zone": "spawn"
     },
     {
-      "id": "wp_1161",
+      "id": "wp_1203",
       "pos": {
         "x": 6.0,
         "y": 0.0,
         "z": 37.0
       },
       "neighbors": [
-        "wp_576",
-        "wp_577",
-        "wp_618",
-        "wp_619",
-        "wp_620",
-        "wp_621",
-        "wp_659",
-        "wp_660"
+        "wp_611",
+        "wp_612",
+        "wp_653",
+        "wp_654",
+        "wp_655",
+        "wp_656",
+        "wp_694",
+        "wp_695"
       ],
       "zone": "spawn"
     }
@@ -22781,6 +23953,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "major": true
     },
     {
+      "name": "A GEN",
+      "x": -26.2,
+      "z": -20.0,
+      "y": 0.0
+    },
+    {
+      "name": "A DICE",
+      "x": -20.7,
+      "z": -14.1,
+      "y": 0.0
+    },
+    {
       "name": "A MAIN",
       "x": -27.5,
       "z": -1.0,
@@ -22789,7 +23973,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
     },
     {
       "name": "WINE",
-      "x": -35.2,
+      "x": -35.6,
       "z": -4.2,
       "y": 0.0
     },
@@ -22809,7 +23993,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
     },
     {
       "name": "A HELL",
-      "x": -28.5,
+      "x": -27.2,
       "z": -28.5,
       "y": 0.0
     },
@@ -22840,6 +24024,12 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "y": 0.85
     },
     {
+      "name": "SUBROZA",
+      "x": -6.4,
+      "z": -6.4,
+      "y": 0.0
+    },
+    {
       "name": "TILES",
       "x": -12.0,
       "z": 6.5,
@@ -22848,7 +24038,13 @@ export const ASCENT_MAP_DATA: AscentMapData = {
     {
       "name": "PIZZA",
       "x": -2.0,
-      "z": -13.8,
+      "z": -13.2,
+      "y": 0.0
+    },
+    {
+      "name": "MID LINK",
+      "x": -1.2,
+      "z": -21.5,
       "y": 0.0
     },
     {
@@ -22872,6 +24068,18 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "major": true
     },
     {
+      "name": "B LOGS",
+      "x": 23.2,
+      "z": -10.4,
+      "y": 0.0
+    },
+    {
+      "name": "B SWITCH",
+      "x": 15.8,
+      "z": -18.2,
+      "y": 0.0
+    },
+    {
       "name": "B LANE",
       "x": 35.8,
       "z": -16.5,
@@ -22885,7 +24093,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
     },
     {
       "name": "B SITE",
-      "x": 24.5,
+      "x": 25.5,
       "z": -20.1,
       "y": 0.0,
       "major": true
@@ -22919,6 +24127,13 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "z0": -45.4,
         "x1": 24.0,
         "z1": -32.5,
+        "level": "spawn_d"
+      },
+      {
+        "x0": -13.1,
+        "z0": -32.5,
+        "x1": 1.75,
+        "z1": -27.5,
         "level": "spawn_d"
       },
       {
@@ -22964,10 +24179,10 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "level": "ground"
       },
       {
-        "x0": -38.5,
-        "z0": -7.5,
+        "x0": -40.2,
+        "z0": -7.6,
         "x1": -31.0,
-        "z1": -1.0,
+        "z1": -0.8,
         "level": "ground"
       },
       {
@@ -23027,6 +24242,13 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "level": "ground"
       },
       {
+        "x0": -9.8,
+        "z0": -27.5,
+        "x1": -5.6,
+        "z1": -22.5,
+        "level": "ground"
+      },
+      {
         "x0": -15.75,
         "z0": 2.0,
         "x1": -8.0,
@@ -23051,7 +24273,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "x0": -4.75,
         "z0": -15.75,
         "x1": 2.0,
-        "z1": -11.5,
+        "z1": -10.5,
+        "level": "ground"
+      },
+      {
+        "x0": -4.75,
+        "z0": -27.5,
+        "x1": 1.75,
+        "z1": -15.75,
         "level": "ground"
       },
       {
@@ -23066,6 +24295,13 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "z0": -8.0,
         "x1": 35.0,
         "z1": 3.75,
+        "level": "ground"
+      },
+      {
+        "x0": 35.0,
+        "z0": -8.0,
+        "x1": 38.0,
+        "z1": -3.0,
         "level": "ground"
       },
       {
@@ -23227,7 +24463,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       {
         "x0": -14.25,
         "z0": -27.5,
-        "x1": 1.75,
+        "x1": -9.8,
+        "z1": -22.5,
+        "kind": "wall"
+      },
+      {
+        "x0": -5.6,
+        "z0": -27.5,
+        "x1": -4.75,
         "z1": -22.5,
         "kind": "wall"
       },
@@ -23269,7 +24512,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       {
         "x0": -24.25,
         "z0": 5.75,
-        "x1": -15.75,
+        "x1": -16.25,
         "z1": 6.25,
         "kind": "wall"
       },
@@ -23345,7 +24588,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       },
       {
         "x0": -41.4,
-        "z0": -1.0,
+        "z0": -0.8,
         "x1": -31.0,
         "z1": 6.0,
         "kind": "wall"
@@ -23353,29 +24596,50 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       {
         "x0": -41.4,
         "z0": -8.25,
-        "x1": -38.5,
-        "z1": -1.0,
+        "x1": -40.2,
+        "z1": -0.8,
         "kind": "wall"
       },
       {
-        "x0": -38.5,
+        "x0": -40.2,
         "z0": -8.25,
         "x1": -31.0,
-        "z1": -7.5,
+        "z1": -7.6,
         "kind": "wall"
       },
       {
-        "x0": -38.3,
-        "z0": -6.8,
-        "x1": -36.4,
-        "z1": -2.0,
+        "x0": -31.6,
+        "z0": -7.6,
+        "x1": -31.0,
+        "z1": -7.0,
+        "kind": "wall"
+      },
+      {
+        "x0": -31.6,
+        "z0": -1.4,
+        "x1": -31.0,
+        "z1": -0.8,
+        "kind": "wall"
+      },
+      {
+        "x0": -40.2,
+        "z0": -7.6,
+        "x1": -31.2,
+        "z1": -0.8,
+        "kind": "roof"
+      },
+      {
+        "x0": -40.0,
+        "z0": -6.9,
+        "x1": -38.1,
+        "z1": -1.9,
         "kind": "cover"
       },
       {
-        "x0": -35.2,
-        "z0": -7.4,
-        "x1": -33.6,
-        "z1": -5.9,
+        "x0": -36.9,
+        "z0": -7.45,
+        "x1": -35.0,
+        "z1": -5.85,
         "kind": "cover"
       },
       {
@@ -23449,6 +24713,13 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "kind": "wall"
       },
       {
+        "x0": -33.6,
+        "z0": -31.5,
+        "x1": -31.8,
+        "z1": -29.7,
+        "kind": "cover"
+      },
+      {
         "x0": -26.5,
         "z0": -37.2,
         "x1": -13.1,
@@ -23484,6 +24755,13 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "kind": "wall"
       },
       {
+        "x0": -9.8,
+        "z0": -27.5,
+        "x1": -5.6,
+        "z1": -22.5,
+        "kind": "roof"
+      },
+      {
         "x0": -5.25,
         "z0": -22.5,
         "x1": -4.75,
@@ -23491,17 +24769,24 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "kind": "wall"
       },
       {
-        "x0": -9.2,
-        "z0": -15.3,
-        "x1": -7.2,
-        "z1": -13.3,
+        "x0": -9.5,
+        "z0": -14.9,
+        "x1": -7.3,
+        "z1": -12.7,
+        "kind": "cover"
+      },
+      {
+        "x0": -8.95,
+        "z0": -6.2,
+        "x1": -7.65,
+        "z1": -4.9,
         "kind": "cover"
       },
       {
         "x0": -7.96,
-        "z0": -6.8,
+        "z0": -4.9,
         "x1": -7.6,
-        "z1": -2.6,
+        "z1": -2.0,
         "kind": "cover"
       },
       {
@@ -23519,43 +24804,99 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "kind": "wall"
       },
       {
-        "x0": -1.5,
-        "z0": 0.8,
-        "x1": 1.5,
-        "z1": 3.8,
+        "x0": -5.25,
+        "z0": -7.75,
+        "x1": -4.75,
+        "z1": -5.0,
+        "kind": "wall"
+      },
+      {
+        "x0": -1.4,
+        "z0": 2.6,
+        "x1": 1.4,
+        "z1": 5.4,
         "kind": "cover"
       },
       {
-        "x0": -6.8,
-        "z0": -10.4,
-        "x1": -4.6,
-        "z1": -8.2,
+        "x0": 1.6,
+        "z0": -5.6,
+        "x1": 3.9,
+        "z1": -3.3,
         "kind": "cover"
       },
       {
-        "x0": 7.2,
-        "z0": -2.2,
-        "x1": 9.0,
-        "z1": -0.4,
+        "x0": 0.3,
+        "z0": -5.2,
+        "x1": 1.6,
+        "z1": -3.7,
+        "kind": "cover"
+      },
+      {
+        "x0": 8.2,
+        "z0": -2.0,
+        "x1": 10.0,
+        "z1": -0.2,
+        "kind": "cover"
+      },
+      {
+        "x0": -4.75,
+        "z0": -14.8,
+        "x1": -3.45,
+        "z1": -11.4,
         "kind": "cover"
       },
       {
         "x0": -5.25,
         "z0": -16.25,
-        "x1": 2.25,
+        "x1": -2.6,
         "z1": -15.75,
         "kind": "wall"
       },
       {
-        "x0": -3.9,
-        "z0": -15.75,
-        "x1": -1.3,
-        "z1": -14.55,
+        "x0": 1.2,
+        "z0": -16.25,
+        "x1": 1.75,
+        "z1": -15.75,
+        "kind": "wall"
+      },
+      {
+        "x0": -4.75,
+        "z0": -27.5,
+        "x1": -2.6,
+        "z1": -27.0,
+        "kind": "wall"
+      },
+      {
+        "x0": 1.2,
+        "z0": -27.5,
+        "x1": 1.75,
+        "z1": -27.0,
+        "kind": "wall"
+      },
+      {
+        "x0": -4.75,
+        "z0": -27.5,
+        "x1": 1.75,
+        "z1": -21.5,
+        "kind": "roof"
+      },
+      {
+        "x0": -4.65,
+        "z0": -21.8,
+        "x1": -3.3,
+        "z1": -19.8,
         "kind": "cover"
       },
       {
         "x0": 1.75,
-        "z0": -25.5,
+        "z0": -27.5,
+        "x1": 2.25,
+        "z1": -26.0,
+        "kind": "wall"
+      },
+      {
+        "x0": 1.75,
+        "z0": -26.0,
         "x1": 2.25,
         "z1": -15.1,
         "kind": "wall"
@@ -23604,9 +24945,16 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       },
       {
         "x0": 13.75,
-        "z0": -19.4,
+        "z0": -14.85,
         "x1": 14.25,
         "z1": -8.0,
+        "kind": "wall"
+      },
+      {
+        "x0": 13.75,
+        "z0": -19.4,
+        "x1": 14.25,
+        "z1": -14.85,
         "kind": "wall"
       },
       {
@@ -23624,15 +24972,22 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "kind": "roof"
       },
       {
-        "x0": 3.0,
-        "z0": -22.8,
-        "x1": 4.8,
-        "z1": -20.2,
+        "x0": 2.4,
+        "z0": -23.4,
+        "x1": 4.1,
+        "z1": -20.6,
         "kind": "cover"
       },
       {
-        "x0": 35.0,
+        "x0": 38.0,
         "z0": -7.75,
+        "x1": 41.4,
+        "z1": -3.0,
+        "kind": "wall"
+      },
+      {
+        "x0": 35.0,
+        "z0": -3.0,
         "x1": 41.4,
         "z1": 4.0,
         "kind": "wall"
@@ -23659,6 +25014,27 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "kind": "cover"
       },
       {
+        "x0": 21.5,
+        "z0": -7.75,
+        "x1": 35.0,
+        "z1": 3.75,
+        "kind": "roof"
+      },
+      {
+        "x0": 30.9,
+        "z0": -7.6,
+        "x1": 32.7,
+        "z1": -5.8,
+        "kind": "cover"
+      },
+      {
+        "x0": 21.8,
+        "z0": -7.6,
+        "x1": 23.4,
+        "z1": -6.1,
+        "kind": "cover"
+      },
+      {
         "x0": 14.25,
         "z0": -8.25,
         "x1": 24.5,
@@ -23671,6 +25047,13 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "x1": 33.5,
         "z1": -7.75,
         "kind": "wall"
+      },
+      {
+        "x0": 22.0,
+        "z0": -11.4,
+        "x1": 24.4,
+        "z1": -9.4,
+        "kind": "cover"
       },
       {
         "x0": 38.0,
@@ -23701,6 +25084,27 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "kind": "cover"
       },
       {
+        "x0": 14.25,
+        "z0": -16.75,
+        "x1": 17.45,
+        "z1": -16.35,
+        "kind": "wall"
+      },
+      {
+        "x0": 16.35,
+        "z0": -17.55,
+        "x1": 17.35,
+        "z1": -16.75,
+        "kind": "cover"
+      },
+      {
+        "x0": 14.25,
+        "z0": -19.3,
+        "x1": 17.65,
+        "z1": -16.3,
+        "kind": "roof"
+      },
+      {
         "x0": 21.2,
         "z0": -22.4,
         "x1": 23.8,
@@ -23715,17 +25119,24 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "kind": "cover"
       },
       {
-        "x0": 15.8,
-        "z0": -18.2,
-        "x1": 17.4,
-        "z1": -16.6,
+        "x0": 24.4,
+        "z0": -23.9,
+        "x1": 26.2,
+        "z1": -22.4,
         "kind": "cover"
       },
       {
-        "x0": 25.4,
+        "x0": 29.4,
+        "z0": -22.2,
+        "x1": 31.0,
+        "z1": -20.6,
+        "kind": "cover"
+      },
+      {
+        "x0": 26.2,
         "z0": -13.8,
-        "x1": 28.2,
-        "z1": -12.2,
+        "x1": 28.6,
+        "z1": -12.4,
         "kind": "cover"
       },
       {

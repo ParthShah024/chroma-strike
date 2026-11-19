@@ -2,21 +2,26 @@
 
 A fast-paced, *Valorant*-inspired **3v3 Tactical 3D First-Person Shooter** built completely from first principles in **TypeScript, Three.js, custom GLSL shaders, and procedural Web Audio** — with zero external engine black boxes, zero texture assets, and zero audio files.
 
-> **Want to understand every single line and equation?** Read the complete interactive textbook **[docs/MASTERCLASS.md](docs/MASTERCLASS.md)** covering Delta-Time loops, Counter-Strafing physics, Slab/Sphere raycasting, Opaque GLSL Hollow Smokes, $4\times 4$ Forward Kinematics 3D character rigs, AI perception, Procedural PBR/Shadows, Headless **Blender 5.2 `.glb`** assets, and procedural audio synthesis.
+> **Want to understand every single line and equation?** Read the complete interactive textbook **[docs/MASTERCLASS.md](docs/MASTERCLASS.md)** covering Delta-Time loops, Counter-Strafing physics, Slab/Sphere raycasting, Opaque GLSL Hollow Smokes, $4\times 4$ Forward Kinematics 3D character rigs, AI perception, Procedural PBR/Shadows, Headless **Blender 5.2 `.glb`** assets, 6-player RFC 6455 WebSocket netcode, and procedural audio synthesis.
 
 ---
 
 ## Key Features
 
-- **Blender 5.2 "Ascent" (`84 m × 92 m`) True 3D S&D Compound & Breakable Blast Doors (ASCII Retired):**
-  - Built from a single-source-of-truth Blender Python script ([`scripts/blender/build_ascent_map.py`](scripts/blender/build_ascent_map.py)) outputting both **`public/models/ascent_map.glb`** (`24,420` tris) and exact physics/nav/vector data ([`src/arena/ascentMapData.ts`](src/arena/ascentMapData.ts) — `150` static AABBs, `1,162` multi-level 3D waypoints, `100%` BFS reachability, and **`0` opening sightlines**).
-  - Features thin architectural Venetian walls, curved stone archways, true **two-story A Heaven (`y = 3.00 m`) directly above A Hell (`y = 0.00 m`)** connected via a 7-tread CT staircase, sculpted **A Generator**, **A Dice**, **A Wine** oak barrels, raised **Mid Catwalk (`0.85 m`)**, roofed **Mid Market** (`1.10–2.50 m` window), **B Lane (`0.85 m`)**, enclosed **B Boat House** with sloped gable roof, skyline **Campanile Bell Tower**, and **`PCFSoftShadowMap`** sun shadows.
+- **Team Select Lobby -> Agent Select & 6-Player WebSocket Server (`3v3` Max):**
+  - Launches cleanly into a **Valorant Custom Game Lobby** ([`src/ui/lobby.ts`](src/ui/lobby.ts)): pick **Attackers (`0–3/3`)** or **Defenders (`0–3/3`)**, set difficulty & match format, adjust settings, and click **`START MATCH -> AGENT SELECT`**.
+  - Powered by a zero-dependency Node.js RFC 6455 WebSocket server ([`server/gameServer.mjs`](server/gameServer.mjs), port `5174`, `npm run server`) strictly capped at **6 players (`3/team`)** with AI bot auto-fill for empty slots — or play solo offline seamlessly with zero setup!
+- **Near 1:1 Blender 5.2 "Ascent" Replica (`84 m × 92 m`) & Breakable Blast Doors (ASCII Retired):**
+  - Built from a single-source-of-truth Blender Python script ([`scripts/blender/build_ascent_map.py`](scripts/blender/build_ascent_map.py)) outputting both **`public/models/ascent_map.glb`** (`35,540` tris) and exact physics/nav/vector data ([`src/arena/ascentMapData.ts`](src/arena/ascentMapData.ts) — `182` static AABBs, `1,204` multi-level 3D waypoints, `100%` BFS reachability, and **`0` opening sightlines**).
+  - Authentic 1:1 landmarks: sculpted 3D Olive Tree in **A Tree** + pergola + **CT/Heaven connector**, arched **A Wine** barrel alcove, **A Lobby <-> Mid Tiles**, **two-story A Heaven (`y = 3.00 m`) directly above A Hell (`y = 0.00 m`)**, **A Generator** turbine, **A Dice**, **Mid Subroza** cubby + **Catwalk (`0.85 m`)**, **Mid Pizza**, arched **Mid Market** (`1.10–2.50 m` window), enclosed **B Main** garage, **B Logs**, **B Lane (`0.85 m`)**, **B Boat House** dock + gondola + gable terracotta roof, and skyline palazzos + **Campanile Bell Tower**.
   - **Interactive Breakable Blast Doors (`A Tree Door` & `B Market Door`, `400 HP`):** Reset open every round; press **`[F]`** near wall switches to smoothly toggle (`0.6 s`) steel shutters in/out of `ARENA_COLLIDERS`, or shoot closed shutters (players & bots) to shatter them into tumbling debris!
-- **Next-Gen `[M]` 3D Orbit + 2D Vector Tactical Viewer & Rotating Radar Minimap (`[CapsLock]` / `[N]`):**
-  - Press **`[M]`** for the fullscreen **3D Orbit Viewer** (left-drag 360° orbit, wheel zoom, right-drag pan, 7 camera presets, projected 3D Ascent callout pins, live Buy Barrier & Blast Door toggles) OR switch to the **`2×` DPR 2D Vector Blueprint** featuring an interactive **Distance & Eye-Height (`1.62 m`) LoS Ruler**!
-  - Corner **`2×` DPR Vector Radar Minimap (`210×230`)** rotates dynamically around the player (**`[N]`** toggles Fixed North-Up), shows live Blast Door status/HP bars, `'S'` Pedestal, Buy Barriers, and Pulse `[X]` sonar sweeps; hold **`[CapsLock]`** (or click the minimap) for the **Full Tactical Map Overlay** with all `20` Ascent callouts!
-- **2-Site Search & Destroy Mode (`First to 6` + Single T-Spawn Spike Pedestal):**
-  - Every round spawns **one physical Spike** on the **Attacker Spawn `'S'` Pedestal** (`{ 0, 0.05, 33 }` South T-Spawn, or North CT mirror after Round 5 Halftime) — walk over it (`1.8 m`) during Buy Phase or Combat to carry it on your back, drop with **`[G]`**, hold **`[F]` (`3.0 s`)** on Site `A`/`B` to plant (`45 s` detonation clock), or hold **`[F]` (`5.0 s`)** as Defender to defuse with a **permanent `50%` halfway checkpoint**!
+- **Large 2D Valorant Map (`[M]` Default), Unified Settings (`[O]` / `[C]`) & Rotating Radar (`[CapsLock]` / `[N]`):**
+  - Press **`[M]`** for a large **`620×680 px`** (`2×` DPR) **2D Valorant Top-Down Tactical Map** (all 20 callouts, elevation coding, live Blast Door HP, Spike, FOV cones, Distance/LoS Ruler), with a **`[3D FLYOVER]`** toggle for live 3D camera inspection!
+  - Corner **`2×` DPR Vector Radar Minimap** (`compact` / `standard` / `large`) rotates around the player (**`[N]`** toggles Fixed North-Up); hold **`[CapsLock]`** for the **`560×614 px`** Full Tactical Overlay.
+  - Press **`[O]`** anytime for **Unified Settings** (`Controls`, **`Crosshair` `[C]`**, `Video & Minimap`, `Audio` volume/mute, and `Match` rules persisted to `localStorage`).
+- **2-Site Search & Destroy (`5 Attack / 5 Defense Swap, First to 10 Wins`) & Deliberate Pacing:**
+  - Plays **5 rounds on your chosen starting side**, **swaps Attack <-> Defense every 5 rounds** with `800¤` economy/ult resets, and crowns the **First to 10** (`First to 6` quick option in Lobby/Settings)!
+  - Calm tactical pacing (`6.2 m/s` run, `3.2 m/s` walk, `15 s` buy / `100 s` combat / `45 s` post-plant, readable AI reactions) paired with the **Single Physical T-Spawn Spike Pedestal** (`1.8 m` pickup, `[G]` drop, `3.0 s` `[F]` plant, `5.0 s` defuse w/ `50%` checkpoint).
 - **Valorant / CS Financial Economy & `[B]` Buyout Shop:**
   - Start at **`800¤`** (`9000¤` cap), earn **`+3000¤`** win / **`1900 / 2400 / 2900¤`** loss-streak bonus, **`+200¤`** per kill, and **`+300¤`** team plant/defuse bonuses. Survivors carry over weapons and remaining shield armor!
   - Press **`[B]`** during the Buy Phase to buy **Sidearm (`0¤`)**, **Spectre SMG (`1600¤`)**, **Pulse Rifle AR (`2900¤`)**, **Rail Sniper (`4700¤`)**, **Light Shield (`400¤`, `+25` Armor)**, or **Heavy Shield (`1000¤`, `+50` Armor)** with smart delta upgrades, **100% same-round `[R]` refunds**, squad economy strip, and `[P]` Attack/Defend side swap.
@@ -47,10 +52,11 @@ A fast-paced, *Valorant*-inspired **3v3 Tactical 3D First-Person Shooter** built
 | **`Q` / `E` / `X`** | Cast Agent Ability 1 / Ability 2 / **Signature `[X]` Ultimate** (`5` Ult Points) |
 | **`F` / `G`** | Hold **`F`** to **Plant / Defuse Spike** (`3 s` / `5 s`); Tap **`F`** at switches to **Toggle Blast Doors**; **`G`** to **Drop Spike** |
 | **`B` / `H`** | Open **`[B]` Buyout Shop & Economy** / **`[H]` 3D Agent Select & AI Difficulty** (during Buy Phase) |
-| **`M`** | Open/Close **Fullscreen 3D Orbit Viewer & `2D` Tactical Blueprint** (w/ LoS & Distance Ruler) |
+| **`M`** | Open/Close **Large `2D` Valorant Tactical Map** (`[3D FLYOVER]` toggle + LoS & Distance Ruler) |
 | **`CapsLock` / `N`** | Hold **`CapsLock`** (or click radar) for **Full Tactical Callout Map** / **`N`** toggles **Rotating Radar <-> Fixed** |
+| **`O` / `C`** | Open **Unified Settings (`Controls` / `Video` / `Audio` / `Match`)** / **Crosshair Tab** |
 | **`F1` – `F5` / `V`** | Quick Switch Agent (**Blaze**..**Volt**) / Toggle **1P <-> 3P Camera** |
-| **`C` / `Tab`** | **Crosshair Customizer** / Take Over Living Ally Bot when eliminated |
+| **`Tab`** | Take Over Living Ally Bot when eliminated |
 
 ---
 
@@ -59,9 +65,10 @@ A fast-paced, *Valorant*-inspired **3v3 Tactical 3D First-Person Shooter** built
 ### Option 1 — Standard Node.js (`>= 18`)
 ```bash
 npm install
-npm run dev
+npm run server   # optional: 6-player WebSocket lobby server on ws://127.0.0.1:5174
+npm run dev      # client dev server on http://127.0.0.1:5173
 ```
-Open **http://127.0.0.1:5173/** in your browser and click the arena to lock your mouse and enable Web Audio.
+Open **http://127.0.0.1:5173/** in your browser — pick **Attackers** or **Defenders** in the Lobby (`1–6` humans + bot fill), lock your Agent, and click the arena to lock your mouse!
 
 ### Regenerate Blender `.glb` Assets (Optional — Blender 5.2+ LTS)
 ```bash
@@ -70,7 +77,7 @@ blender --background --python scripts/blender/build_ascent_map.py
 ```
 
 ### Option 2 — Windows One-Click Launcher
-Double-click **[play.bat](play.bat)** (automatically detects standard or portable Node.js, installs dependencies if needed, opens your browser, and launches Vite).
+Double-click **[play.bat](play.bat)** (starts the 6-player WS server `5174` + Vite `5173` and opens your browser automatically).
 
 ### Production Build Check
 ```bash
@@ -84,52 +91,57 @@ npm run build
 ```text
 chroma-strike/
 ├── docs/
-│   └── MASTERCLASS.md            # Complete Chapters 1–8 engineering & math handbook
+│   └── MASTERCLASS.md            # Complete Chapters 1–9 engineering & math handbook
 ├── public/
 │   └── models/
 │       ├── agent_kayo.glb        # Blender 5.2 KAY/O combat android (16 nodes, 5 dorsal kits)
-│       └── ascent_map.glb        # Blender 5.2 Venetian Ascent 84x92m 3D compound + Blast Doors
+│       └── ascent_map.glb        # Blender 5.2 1:1 Venetian Ascent 84x92m 3D compound + Blast Doors
 ├── scripts/
 │   └── blender/
 │       ├── build_ascent_map.py   # Single-source Blender generator -> ascent_map.glb + ascentMapData.ts
 │       └── build_kayo_agent.py   # Headless Blender bmesh KAY/O generator -> agent_kayo.glb
+├── server/
+│   └── gameServer.mjs            # Zero-dependency 6-player (3v3 max) RFC 6455 WebSocket lobby/relay server
 ├── src/
 │   ├── abilities/
 │   │   ├── definitions.ts        # Immutable 5-agent AGENT_ABILITIES spec table ([Q], [E], [X])
 │   │   ├── shaders.ts            # Custom GLSL Smoke, Void, Singularity, Relay, Magma & Cryo shaders
-│   │   └── system.ts             # 15 abilities (5 agents + 5 [X] Ultimates), slide/vortex & .dispose()
+│   │   └── system.ts             # 15 abilities (5 agents + 5 [X] Ultimates), calm pacing & .dispose()
 │   ├── ai/
-│   │   └── botBrain.ts           # Multi-level 3D Nav (Heaven/Hell), Door Breaching, S&D & Ult AI
+│   │   └── botBrain.ts           # Multi-level 3D Nav (Heaven/Hell), Door Breaching, S&D & calm AI
 │   ├── arena/
-│   │   ├── ascentMapData.ts      # Blender-exported 150 AABBs, 1,162 waypoints, Blast Doors & vectors
+│   │   ├── ascentMapData.ts      # Blender-exported 182 AABBs, 1,204 waypoints, Blast Doors & vectors
 │   │   ├── map.ts                # GLB loader, in-place door colliders, Buy Barriers & Pedestal
 │   │   └── textures.ts           # Cached seamless CanvasTexture albedo + hex Buy-Barrier masks
 │   ├── audio/
-│   │   └── sfx.ts                # Zero-dependency procedural Web Audio + Door/Ultimate/Spike SFX
+│   │   └── sfx.ts                # Procedural Web Audio + master volume/mute & Door/Ult/Spike SFX
 │   ├── combat/
 │   │   ├── arsenal.ts            # WEAPON_SPECS (with buyout costs), SHIELD_SPECS & piecewise falloff
 │   │   ├── targets.ts            # Practice target module (Ch.1/2 sandbox)
 │   │   └── weapons.ts            # 4 viewmodels + mechanical KAY/O 1P hands, door hit & tracers
 │   ├── core/
-│   │   └── types.ts              # Pure simulation, ArenaDoor, Economy, Ultimate & Spike contracts
+│   │   └── types.ts              # Simulation, GameSettings, Lobby, ArenaDoor, Economy & Spike contracts
 │   ├── entities/
 │   │   ├── characterModel.ts     # Modular Blender KAY/O mounting, FK gait/Slide, IK & procedural backup
 │   │   ├── glbOverride.ts        # SPA-safe Blender .glb + GLTFLoader runtime loader
 │   │   └── spikeModel.ts         # Procedural 3D Radianite Spike canister, dropped beam & blast
 │   ├── match/
 │   │   ├── economy.ts            # Valorant/CS credits, loss streak, delta shields & survivor carryover
-│   │   └── roundManager.ts       # 2-Site S&D, single T-Spawn Spike, Blast Doors & 5-pt Ult economy
+│   │   └── roundManager.ts       # 5 ATK/5 DEF swaps, First to 10 (or 6), net sync & Single Spike
+│   ├── net/
+│   │   └── multiplayer.ts        # 6-player WebSocket client w/ 2.5s offline Solo Lobby fallback
 │   ├── physics/
-│   │   └── movement.ts           # Counter-strafe, Power-Slide duck, externalVelocity & stair-stepping
+│   │   └── movement.ts           # Calm counter-strafe (6.2 m/s), Power-Slide & stair-stepping
 │   ├── ui/
-│   │   ├── agentSelect.ts        # Dual-renderer 3D Agent Select ([Q]/[E]/[X] cards & difficulty)
+│   │   ├── agentSelect.ts        # Overlap-free 3D Agent Select ([Q]/[E]/[X] inspector & net locks)
 │   │   ├── buyMenu.ts            # Valorant/CS [B] Buyout Shop, Shield upgrades & Squad Economy
-│   │   ├── crosshair.ts          # CSS-variable reactive Crosshair Customizer
-│   │   ├── mapViewer.ts          # [M] Fullscreen 3D Orbit Viewer + 2D Vector Blueprint w/ LoS Ruler
-│   │   └── minimap.ts            # 2x DPR Vector Rotating Radar Minimap & [CapsLock] Callout Overlay
-│   └── main.ts                   # Game loop, PCFSoftShadowMap, [F] Door/Spike & HUD synchronization
-├── index.html                    # Minimalist S&D HUD, Radar, Tactical Full Map & Viewer modals
+│   │   ├── crosshair.ts          # CSS-variable reactive Crosshair Customizer (Settings Crosshair tab)
+│   │   ├── lobby.ts              # Attack/Defend Team Select Lobby (`0-3/3` per side, Start Match)
+│   │   ├── mapViewer.ts          # [M] Default Large 2D Valorant Map (+ 3D Flyover & LoS Ruler)
+│   │   ├── minimap.ts            # 2x DPR Vector Rotating Radar Minimap & [CapsLock] Callout Overlay
+│   │   └── settings.ts           # Persistent 5-tab Settings ([O] Controls/Crosshair/Video/Audio/Match)
+│   └── main.ts                   # Lobby -> Agent Select -> Match orchestrator, Settings & Net loop
+├── index.html                    # Lobby, Agent Select, Settings, S&D HUD, Radar & 2D Map modals
 ├── package.json
-├── play.bat                      # Windows one-click dev launcher
+├── play.bat                      # Windows one-click server + Vite dev launcher
 └── tsconfig.json
-```

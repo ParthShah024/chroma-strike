@@ -17,19 +17,20 @@ import {
   worldToMapY,
 } from './minimap';
 
+export type ViewerTab = '2d' | '3d';
+
 export interface MapViewerController {
   isOpen(): boolean;
   open(): void;
   close(): void;
   toggle(): boolean;
+  setTab(tab: ViewerTab): void;
   is3DViewActive(): boolean;
   render3D(renderer: THREE.WebGLRenderer, scene: THREE.Scene): void;
   update2D(hud: MatchHudState, combatants: readonly Combatant[], player: PlayerState): void;
   setOnClose(cb: () => void): void;
   dispose(): void;
 }
-
-type ViewerTab = '3d' | '2d';
 
 interface CameraPreset {
   id: string;
@@ -96,8 +97,8 @@ const PHI_MAX = 1.45;
 const RADIUS_MIN = 16;
 const RADIUS_MAX = 135;
 
-const BLUEPRINT_W = 580;
-const BLUEPRINT_H = 635;
+const DEFAULT_BLUEPRINT_W = 620;
+const DEFAULT_BLUEPRINT_H = 680;
 const BLUEPRINT_DPR = 2;
 
 function clamp(v: number, min: number, max: number): number {
@@ -137,26 +138,58 @@ export function createMapViewerController(_scene: THREE.Scene): MapViewerControl
   const zoomReadoutEl = document.getElementById('mv-2d-zoom') as HTMLSpanElement | null;
   const reset2dBtn = document.getElementById('mv-2d-reset-btn') as HTMLButtonElement | null;
 
-  if (canvas2d) {
-    canvas2d.width = BLUEPRINT_W * BLUEPRINT_DPR;
-    canvas2d.height = BLUEPRINT_H * BLUEPRINT_DPR;
+  let blueprintW = DEFAULT_BLUEPRINT_W;
+  let blueprintH = DEFAULT_BLUEPRINT_H;
+  let staticBlueprintW = 0;
+  let staticBlueprintH = 0;
+
+  // Cached static 2D blueprint (2x DPR backing buffer, e.g. 1240x1360)
+  const staticBlueprint = document.createElement('canvas');
+  const staticCtx = staticBlueprint.getContext('2d');
+
+  function syncBlueprintBufferSize(): void {
+    let targetW = DEFAULT_BLUEPRINT_W;
+    let targetH = DEFAULT_BLUEPRINT_H;
+
+    if (canvas2d && canvas2d.clientWidth > 40 && canvas2d.clientHeight > 40) {
+      targetW = Math.round(canvas2d.clientWidth);
+      targetH = Math.round(canvas2d.clientHeight);
+    }
+
+    const pixelW = targetW * BLUEPRINT_DPR;
+    const pixelH = targetH * BLUEPRINT_DPR;
+
+    if (canvas2d && (canvas2d.width !== pixelW || canvas2d.height !== pixelH)) {
+      canvas2d.width = pixelW;
+      canvas2d.height = pixelH;
+    }
+
+    if (targetW === staticBlueprintW && targetH === staticBlueprintH) {
+      blueprintW = targetW;
+      blueprintH = targetH;
+      return;
+    }
+
+    blueprintW = targetW;
+    blueprintH = targetH;
+    staticBlueprintW = targetW;
+    staticBlueprintH = targetH;
+
+    staticBlueprint.width = pixelW;
+    staticBlueprint.height = pixelH;
+    if (staticCtx) {
+      staticCtx.setTransform(BLUEPRINT_DPR, 0, 0, BLUEPRINT_DPR, 0, 0);
+      drawAscentBlueprintBase(staticCtx, {
+        width: blueprintW,
+        height: blueprintH,
+        showCallouts: true,
+        showSiteLabels: true,
+        labelScale: (blueprintW / 580) * 1.32,
+      });
+    }
   }
 
-  // Cached static 2D blueprint (1160x1270 backing buffer at 2x DPR)
-  const staticBlueprint = document.createElement('canvas');
-  staticBlueprint.width = BLUEPRINT_W * BLUEPRINT_DPR;
-  staticBlueprint.height = BLUEPRINT_H * BLUEPRINT_DPR;
-  const staticCtx = staticBlueprint.getContext('2d');
-  if (staticCtx) {
-    staticCtx.setTransform(BLUEPRINT_DPR, 0, 0, BLUEPRINT_DPR, 0, 0);
-    drawAscentBlueprintBase(staticCtx, {
-      width: BLUEPRINT_W,
-      height: BLUEPRINT_H,
-      showCallouts: true,
-      showSiteLabels: true,
-      labelScale: 1.32,
-    });
-  }
+  syncBlueprintBufferSize();
 
   // 3D Orbit Camera
   const orbitCam = new THREE.PerspectiveCamera(
@@ -167,7 +200,7 @@ export function createMapViewerController(_scene: THREE.Scene): MapViewerControl
   );
 
   let openState = false;
-  let activeTab: ViewerTab = '3d';
+  let activeTab: ViewerTab = '2d';
   let onCloseCallback: (() => void) | null = null;
 
   let showBarriers = false;
@@ -366,23 +399,23 @@ export function createMapViewerController(_scene: THREE.Scene): MapViewerControl
     const rect = canvas2d.getBoundingClientRect();
     if (rect.width <= 0 || rect.height <= 0) return null;
     return {
-      sx: ((clientX - rect.left) / rect.width) * BLUEPRINT_W,
-      sy: ((clientY - rect.top) / rect.height) * BLUEPRINT_H,
+      sx: ((clientX - rect.left) / rect.width) * blueprintW,
+      sy: ((clientY - rect.top) / rect.height) * blueprintH,
     };
   }
 
   function logicalToWorld2d(sx: number, sy: number): { x: number; z: number } {
-    const mx = (sx - BLUEPRINT_W * 0.5 - pan2dX) / zoom2d + BLUEPRINT_W * 0.5;
-    const my = (sy - BLUEPRINT_H * 0.5 - pan2dY) / zoom2d + BLUEPRINT_H * 0.5;
+    const mx = (sx - blueprintW * 0.5 - pan2dX) / zoom2d + blueprintW * 0.5;
+    const my = (sy - blueprintH * 0.5 - pan2dY) / zoom2d + blueprintH * 0.5;
     return {
-      x: mapToWorldX(mx, BLUEPRINT_W),
-      z: mapToWorldZ(my, BLUEPRINT_H),
+      x: mapToWorldX(mx, blueprintW),
+      z: mapToWorldZ(my, blueprintH),
     };
   }
 
   function clamp2dPan(): void {
-    const maxPanX = BLUEPRINT_W * 0.45 * zoom2d;
-    const maxPanY = BLUEPRINT_H * 0.45 * zoom2d;
+    const maxPanX = blueprintW * 0.45 * zoom2d;
+    const maxPanY = blueprintH * 0.45 * zoom2d;
     pan2dX = clamp(pan2dX, -maxPanX, maxPanX);
     pan2dY = clamp(pan2dY, -maxPanY, maxPanY);
   }
@@ -445,16 +478,16 @@ export function createMapViewerController(_scene: THREE.Scene): MapViewerControl
   function drawRulerOverlay(ctx: CanvasRenderingContext2D): void {
     if (!rulerActive || rulerDistM < 0.25) return;
 
-    const x0 = worldToMapX(rulerStart.x, BLUEPRINT_W);
-    const y0 = worldToMapY(rulerStart.z, BLUEPRINT_H);
-    const x1 = worldToMapX(rulerEnd.x, BLUEPRINT_W);
-    const y1 = worldToMapY(rulerEnd.z, BLUEPRINT_H);
+    const x0 = worldToMapX(rulerStart.x, blueprintW);
+    const y0 = worldToMapY(rulerStart.z, blueprintH);
+    const x1 = worldToMapX(rulerEnd.x, blueprintW);
+    const y1 = worldToMapY(rulerEnd.z, blueprintH);
     const invScale = 1 / Math.sqrt(zoom2d);
 
     ctx.save();
     if (rulerBlocked && rulerBlockPoint) {
-      const bx = worldToMapX(rulerBlockPoint.x, BLUEPRINT_W);
-      const by = worldToMapY(rulerBlockPoint.z, BLUEPRINT_H);
+      const bx = worldToMapX(rulerBlockPoint.x, blueprintW);
+      const by = worldToMapY(rulerBlockPoint.z, blueprintH);
 
       // Clear segment up to impact
       ctx.strokeStyle = '#fbbf24';
@@ -540,39 +573,42 @@ export function createMapViewerController(_scene: THREE.Scene): MapViewerControl
   }
 
   function render2DBlueprint(
-    hud: MatchHudState,
+    hud: MatchHudState | null,
     combatants: readonly Combatant[],
-    player: PlayerState
+    player: PlayerState | null
   ): void {
     if (!canvas2d || !ctx2d) return;
+    syncBlueprintBufferSize();
     const nowSec = performance.now() * 0.001;
 
     ctx2d.setTransform(BLUEPRINT_DPR, 0, 0, BLUEPRINT_DPR, 0, 0);
-    ctx2d.clearRect(0, 0, BLUEPRINT_W, BLUEPRINT_H);
+    ctx2d.clearRect(0, 0, blueprintW, blueprintH);
     ctx2d.fillStyle = '#070b12';
-    ctx2d.fillRect(0, 0, BLUEPRINT_W, BLUEPRINT_H);
+    ctx2d.fillRect(0, 0, blueprintW, blueprintH);
 
     ctx2d.save();
-    ctx2d.translate(BLUEPRINT_W * 0.5 + pan2dX, BLUEPRINT_H * 0.5 + pan2dY);
+    ctx2d.translate(blueprintW * 0.5 + pan2dX, blueprintH * 0.5 + pan2dY);
     ctx2d.scale(zoom2d, zoom2d);
-    ctx2d.translate(-BLUEPRINT_W * 0.5, -BLUEPRINT_H * 0.5);
+    ctx2d.translate(-blueprintW * 0.5, -blueprintH * 0.5);
 
-    ctx2d.drawImage(staticBlueprint, 0, 0, BLUEPRINT_W, BLUEPRINT_H);
+    ctx2d.drawImage(staticBlueprint, 0, 0, blueprintW, blueprintH);
 
-    const playerCombatant = combatants.find((c) => c.isPlayer);
-    drawAscentDynamicEntities(ctx2d, {
-      width: BLUEPRINT_W,
-      height: BLUEPRINT_H,
-      hud,
-      combatants,
-      player,
-      playerYaw: playerCombatant?.yaw ?? 0,
-      ultRevealActive: false,
-      nowSec,
-      detailedDoors: true,
-      drawSiteLabelsUpright: false,
-      entityScale: 1.4,
-    });
+    if (hud && player) {
+      const playerCombatant = combatants.find((c) => c.isPlayer);
+      drawAscentDynamicEntities(ctx2d, {
+        width: blueprintW,
+        height: blueprintH,
+        hud,
+        combatants,
+        player,
+        playerYaw: playerCombatant?.yaw ?? 0,
+        ultRevealActive: false,
+        nowSec,
+        detailedDoors: true,
+        drawSiteLabelsUpright: false,
+        entityScale: (blueprintW / 580) * 1.4,
+      });
+    }
 
     drawRulerOverlay(ctx2d);
     ctx2d.restore();
@@ -589,8 +625,11 @@ export function createMapViewerController(_scene: THREE.Scene): MapViewerControl
   }
 
   function redraw2DIfActive(): void {
-    if (openState && activeTab === '2d' && last2dSnapshot) {
+    if (!openState || activeTab !== '2d') return;
+    if (last2dSnapshot) {
       render2DBlueprint(last2dSnapshot.hud, last2dSnapshot.combatants, last2dSnapshot.player);
+    } else {
+      render2DBlueprint(null, [], null);
     }
   }
 
@@ -600,6 +639,10 @@ export function createMapViewerController(_scene: THREE.Scene): MapViewerControl
   const onWindowResize = () => {
     orbitCam.aspect = window.innerWidth / Math.max(1, window.innerHeight);
     orbitCam.updateProjectionMatrix();
+    if (openState && activeTab === '2d') {
+      syncBlueprintBufferSize();
+      redraw2DIfActive();
+    }
   };
 
   const onOrbitMouseDown = (e: MouseEvent) => {
@@ -644,13 +687,13 @@ export function createMapViewerController(_scene: THREE.Scene): MapViewerControl
     const pt = clientToLogical2d(e.clientX, e.clientY);
     if (!pt) return;
 
-    const beforeMx = (pt.sx - BLUEPRINT_W * 0.5 - pan2dX) / zoom2d + BLUEPRINT_W * 0.5;
-    const beforeMy = (pt.sy - BLUEPRINT_H * 0.5 - pan2dY) / zoom2d + BLUEPRINT_H * 0.5;
+    const beforeMx = (pt.sx - blueprintW * 0.5 - pan2dX) / zoom2d + blueprintW * 0.5;
+    const beforeMy = (pt.sy - blueprintH * 0.5 - pan2dY) / zoom2d + blueprintH * 0.5;
 
     const factor = Math.exp(-e.deltaY * 0.0012);
     zoom2d = clamp(zoom2d * factor, 0.75, 3.2);
-    pan2dX = pt.sx - BLUEPRINT_W * 0.5 - (beforeMx - BLUEPRINT_W * 0.5) * zoom2d;
-    pan2dY = pt.sy - BLUEPRINT_H * 0.5 - (beforeMy - BLUEPRINT_H * 0.5) * zoom2d;
+    pan2dX = pt.sx - blueprintW * 0.5 - (beforeMx - blueprintW * 0.5) * zoom2d;
+    pan2dY = pt.sy - blueprintH * 0.5 - (beforeMy - blueprintH * 0.5) * zoom2d;
     clamp2dPan();
     syncRulerHud();
     redraw2DIfActive();
@@ -722,20 +765,23 @@ export function createMapViewerController(_scene: THREE.Scene): MapViewerControl
     drag2dMode = null;
   };
 
-  const onTab3dClick = () => {
-    activeTab = '3d';
-    lastRenderMs = performance.now();
+  function setTab(tab: ViewerTab): void {
+    activeTab = tab;
+    if (tab === '3d') {
+      lastRenderMs = performance.now();
+    }
     syncTabUi();
     syncToggleUi();
-  };
+    if (tab === '2d') {
+      syncBlueprintBufferSize();
+      syncRulerHud();
+      redraw2DIfActive();
+    }
+  }
 
-  const onTab2dClick = () => {
-    activeTab = '2d';
-    syncTabUi();
-    syncToggleUi();
-    syncRulerHud();
-    redraw2DIfActive();
-  };
+  const onTab3dClick = () => setTab('3d');
+
+  const onTab2dClick = () => setTab('2d');
 
   const onCloseClick = () => close();
 
@@ -805,14 +851,10 @@ export function createMapViewerController(_scene: THREE.Scene): MapViewerControl
 
   function open(): void {
     openState = true;
-    activeTab = '3d';
-    lastRenderMs = performance.now();
     setArenaBuyBarriersVisible(showBarriers);
     modalEl?.classList.remove('hidden');
-    syncTabUi();
+    setTab('2d');
     syncPresetButtons();
-    syncToggleUi();
-    syncRulerHud();
   }
 
   function close(): void {
@@ -860,15 +902,14 @@ export function createMapViewerController(_scene: THREE.Scene): MapViewerControl
   }
 
   applyPreset('overview', true);
-  syncTabUi();
-  syncToggleUi();
-  syncRulerHud();
+  setTab('2d');
 
   return {
     isOpen: () => openState,
     open,
     close,
     toggle,
+    setTab,
     is3DViewActive: () => openState && activeTab === '3d',
     render3D,
     update2D,

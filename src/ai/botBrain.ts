@@ -123,31 +123,31 @@ interface DifficultyProfile {
 
 const DIFFICULTY_PROFILES: Record<AiDifficulty, DifficultyProfile> = {
   casual: {
-    reactionSec: 0.45,
-    slewRadPerSec: 3.8,
-    aimHeightM: 1.08,
-    aimErrorRad: 0.048,
-    burstLenScale: 0.7,
-    burstCooldownScale: 1.6,
-    fireIntervalScale: 1.15,
+    reactionSec: 0.58,
+    slewRadPerSec: 3.1,
+    aimHeightM: 1.04,
+    aimErrorRad: 0.056,
+    burstLenScale: 0.65,
+    burstCooldownScale: 1.85,
+    fireIntervalScale: 1.24,
   },
   tactical: {
-    reactionSec: 0.3,
-    slewRadPerSec: 5.4,
-    aimHeightM: 1.26,
-    aimErrorRad: 0.026,
-    burstLenScale: 1.0,
-    burstCooldownScale: 1.0,
-    fireIntervalScale: 1.0,
+    reactionSec: 0.38,
+    slewRadPerSec: 4.6,
+    aimHeightM: 1.22,
+    aimErrorRad: 0.032,
+    burstLenScale: 0.9,
+    burstCooldownScale: 1.22,
+    fireIntervalScale: 1.08,
   },
   pro: {
-    reactionSec: 0.2,
-    slewRadPerSec: 7.2,
-    aimHeightM: 1.44,
-    aimErrorRad: 0.012,
+    reactionSec: 0.24,
+    slewRadPerSec: 6.2,
+    aimHeightM: 1.4,
+    aimErrorRad: 0.016,
     burstLenScale: 1.0,
-    burstCooldownScale: 0.8,
-    fireIntervalScale: 0.96,
+    burstCooldownScale: 0.9,
+    fireIntervalScale: 1.0,
   },
 };
 
@@ -2063,7 +2063,7 @@ export function createBotBrainSystem(): BotBrainSystem {
     if (sdContext && sdContext.spike.status === 'planted') {
       let bestDist = Infinity;
       for (const c of combatants) {
-        if (c.isPlayer || !c.alive || c.team === sdContext.attackerTeam) continue;
+        if (c.isPlayer || c.isRemoteHuman || !c.alive || c.team === sdContext.attackerTeam) continue;
         const d = horizDist2D(c.position, sdContext.spike.position);
         if (d < bestDist) {
           bestDist = d;
@@ -2075,11 +2075,14 @@ export function createBotBrainSystem(): BotBrainSystem {
     // Determine designated Attacker bot for Buy-Phase T-Spawn Spike Pedestal pickup
     let designatedBuyCarrierId: string | null = null;
     const hasHumanAttacker = Boolean(
-      sdContext && combatants.some((c) => c.isPlayer && c.alive && c.team === sdContext.attackerTeam)
+      sdContext &&
+        combatants.some(
+          (c) => (c.isPlayer || c.isRemoteHuman) && c.alive && c.team === sdContext.attackerTeam
+        )
     );
     if (!isCombatActive && sdContext && sdContext.spike.status === 'dropped') {
       const attackerBots = combatants.filter(
-        (c) => !c.isPlayer && c.alive && c.team === sdContext.attackerTeam
+        (c) => !c.isPlayer && !c.isRemoteHuman && c.alive && c.team === sdContext.attackerTeam
       );
       const executeBot = attackerBots.find((b) => getOrCreateMemory(b).role === 'execute');
       if (executeBot) {
@@ -2098,7 +2101,7 @@ export function createBotBrainSystem(): BotBrainSystem {
 
     for (let i = 0; i < combatants.length; i++) {
       const c = combatants[i];
-      if (c.isPlayer || !c.alive) continue;
+      if (c.isPlayer || c.isRemoteHuman || !c.alive) continue;
       stepSingleBot(
         c,
         i,

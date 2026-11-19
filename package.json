@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "server": "node server/gameServer.mjs",
     "build": "tsc --noEmit && vite build"
   },
   "dependencies": {

@@ -369,6 +369,10 @@ export interface WeaponSpec {
 export interface Combatant extends TargetDummy {
   team: TeamId;
   isPlayer: boolean;
+  /** True when this slot is currently driven by a connected remote human player. */
+  isRemoteHuman?: boolean;
+  remotePlayerId?: string;
+  remoteName?: string;
   yaw: number;
   pitch: number;
   velocity: Vec3;
@@ -448,6 +452,8 @@ export interface MatchHudState {
   maxUltPoints?: number;
   doors?: ArenaDoorHudState[];
   nearbyDoorPrompt?: { doorId: string; label: string; action: 'CLOSE' | 'OPEN' } | null;
+  winTarget?: number;
+  swapInterval?: number;
 }
 
 // ============================================================================
@@ -506,4 +512,56 @@ export interface ArenaDoorHudState {
   maxX: number;
   minZ: number;
   maxZ: number;
+}
+
+// ============================================================================
+// Chapter 9: Persistent Settings, 6-Player Lobby & Netcode Contracts
+// ============================================================================
+
+export type LobbyPhase = 'lobby' | 'agent_select' | 'playing';
+
+export interface LobbyPlayerSlot {
+  id: string;
+  name: string;
+  side: TacticalSide;
+  slotIndex: 0 | 1 | 2;
+  agentColor: AgentColorId;
+  lockedIn: boolean;
+  isHost: boolean;
+}
+
+export interface RemotePlayerNetState {
+  playerId: string;
+  name: string;
+  side: TacticalSide;
+  slotIndex: 0 | 1 | 2;
+  agentColor: AgentColorId;
+  position: Vec3;
+  velocity: Vec3;
+  yaw: number;
+  pitch: number;
+  health: number;
+  armor: number;
+  alive: boolean;
+  weaponId: WeaponId;
+  firing?: boolean;
+  sliding?: boolean;
+  ultActive?: boolean;
+  timestampMs: number;
+}
+
+export interface GameSettings {
+  mouseSensitivity: number;
+  adsSensitivityMult: number;
+  invertY: boolean;
+  fovDeg: number;
+  shadowsEnabled: boolean;
+  minimapRotate: boolean;
+  minimapSize: 'compact' | 'standard' | 'large';
+  showFps: boolean;
+  masterVolume: number;
+  muted: boolean;
+  difficulty: AiDifficulty;
+  defaultSide: TacticalSide;
+  winTarget: 10 | 6;
 }

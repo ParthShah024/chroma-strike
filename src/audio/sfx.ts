@@ -25,6 +25,8 @@ import type { AbilityAudioEvent, AgentColorId, WeaponId } from '../core/types';
  */
 export interface SoundEngine {
   unlock(): void;
+  setMasterVolume(vol01: number): void;
+  setMuted(muted: boolean): void;
   playShot(stimmed: boolean): void;
   playWeaponShot(weaponId: WeaponId, stimmed: boolean, distanceM?: number): void;
   playHeadshot(): void;
@@ -62,6 +64,24 @@ export function createSoundEngine(): SoundEngine {
   let ctx: AudioContext | null = null;
   let masterGain: GainNode | null = null;
   let noiseBuffer: AudioBuffer | null = null;
+  let masterVolume = 0.85;
+  let muted = false;
+
+  function applyMasterGain(): void {
+    if (!ctx || !masterGain) return;
+    masterGain.gain.setValueAtTime(muted ? 0 : masterVolume, ctx.currentTime);
+  }
+
+  function setMasterVolume(vol01: number): void {
+    const safe = Number.isFinite(vol01) ? vol01 : 0.85;
+    masterVolume = Math.max(0, Math.min(1, safe));
+    applyMasterGain();
+  }
+
+  function setMuted(isMuted: boolean): void {
+    muted = Boolean(isMuted);
+    applyMasterGain();
+  }
 
   function getAudioContextCtor(): (new () => AudioContext) | null {
     const win = window as Window & {
@@ -88,7 +108,7 @@ export function createSoundEngine(): SoundEngine {
       compressor.release.setValueAtTime(0.12, ctx.currentTime);
 
       masterGain = ctx.createGain();
-      masterGain.gain.setValueAtTime(0.65, ctx.currentTime);
+      masterGain.gain.setValueAtTime(muted ? 0 : masterVolume, ctx.currentTime);
 
       masterGain.connect(compressor);
       compressor.connect(ctx.destination);
@@ -1816,6 +1836,8 @@ export function createSoundEngine(): SoundEngine {
 
   return {
     unlock,
+    setMasterVolume,
+    setMuted,
     playShot,
     playWeaponShot,
     playHeadshot,

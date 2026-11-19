@@ -9,9 +9,11 @@ import {
   Combatant,
   InputState,
   KillFeedEntry,
+  LobbyPlayerSlot,
   MatchHudState,
   MinimapContact,
   PlayerState,
+  RemotePlayerNetState,
   RoundPhase,
   ShieldTier,
   SmokeSphere,
@@ -70,6 +72,15 @@ import { createEconomySystem } from './economy';
  *   4. `'match_over'`          : Awaits `[Enter]` -> `restartMatch()`.
  */
 
+export interface StartMatchOptions {
+  startingSide: TacticalSide;
+  playerAgent: AgentColorId;
+  difficulty: AiDifficulty;
+  winTarget?: 10 | 6;
+  teamHumanSlots?: readonly LobbyPlayerSlot[];
+  localPlayerId?: string;
+}
+
 export interface MatchManager {
   combatants: Combatant[];
   enemyTargetsView: TargetsManager;
@@ -77,9 +88,13 @@ export interface MatchManager {
   getPlayerCombatant(): Combatant;
   getPlayerOwnedPrimary(): WeaponId | null;
   getPlayerSide(): TacticalSide;
+  getWinTarget(): 10 | 6;
   selectPlayerAgent(colorId: AgentColorId): void;
   setDifficulty(diff: AiDifficulty): void;
   getDifficulty(): AiDifficulty;
+  setMatchConfig(config: { winTarget?: 10 | 6; difficulty?: AiDifficulty }): void;
+  startNewMatch(options: StartMatchOptions): void;
+  applyRemotePlayers(remotes: readonly RemotePlayerNetState[]): void;
   tryTakeoverAlly(): AgentColorId | null;
   skipBuyPhase(): void;
   restartMatch(): void;
@@ -110,20 +125,20 @@ export interface MatchManager {
   ): MatchHudState;
 }
 
-const WINS_TO_WIN_MATCH = 6;
-const HALFTIME_AFTER_ROUND = 5;
+const WINS_TO_WIN_MATCH: 10 | 6 = 10;
+const SWAP_INTERVAL_ROUNDS = 5;
 const MAX_ULT_POINTS = 5;
 const INITIAL_ULT_POINTS = 2;
 const PLAYER_ULT_ACTIVE_SEC = 7.5;
-const BUY_PHASE_DURATION_SEC = 12.0;
-const COMBAT_PHASE_DURATION_SEC = 85.0;
+const BUY_PHASE_DURATION_SEC = 15.0;
+const COMBAT_PHASE_DURATION_SEC = 100.0;
 const POST_PLANT_DURATION_SEC = 45.0;
 const PLANT_TIME_SEC = 3.0;
 const DEFUSE_TIME_SEC = 5.0;
 const DEFUSE_INTERACT_RADIUS_M = 2.8;
 const SPIKE_PICKUP_RADIUS_M = 1.8;
 const SPIKE_BLAST_RADIUS_M = 15.0;
-const ROUND_END_DURATION_SEC = 3.2;
+const ROUND_END_DURATION_SEC = 4.0;
 const KILLFEED_MAX_AGE_SEC = 6.5;
 const MAX_KILLFEED_ENTRIES = 5;
 
@@ -213,6 +228,7 @@ function draftEnemyRoster(previous: AgentColorId[] | null): AgentColorId[] {
 
 function formatCombatantLabel(c: Combatant): string {
   if (c.isPlayer) return 'YOU';
+  if (c.isRemoteHuman && c.remoteName) return c.remoteName.toUpperCase();
   const prefix = c.team === 'ally' ? 'ALLY' : 'FOE';
   return `${prefix} ${c.colorId.toUpperCase()}`;
 }
@@ -275,6 +291,8 @@ export function createMatchManager(
   let phaseTimerSec = BUY_PHASE_DURATION_SEC;
   let allyScore = 0;
   let enemyScore = 0;
+  let winTarget: 10 | 6 = WINS_TO_WIN_MATCH;
+  let initialStartingSide: TacticalSide = 'attacker';
   let playerSide: TacticalSide = 'attacker';
   let halftimeSwapped = false;
   let roundBannerTitle: string | null = 'ROUND 1 — BUY PHASE';
@@ -384,6 +402,10 @@ export function createMatchManager(
 
   function getPlayerSide(): TacticalSide {
     return playerSide;
+  }
+
+  function getWinTarget(): 10 | 6 {
+    return winTarget;
   }
 
   function assignAgentToCombatant(c: Combatant, colorId: AgentColorId): void {
@@ -701,23 +723,23 @@ export function createMatchManager(
   function setupRound(nextRoundNum: number, redraftEnemies = true): void {
     roundNumber = nextRoundNum;
 
-    // Trigger Halftime Side Swap after Round 5 (entering Round 6)
-    let isHalftimeRound = false;
-    if (roundNumber === HALFTIME_AFTER_ROUND + 1 && !halftimeSwapped) {
-      halftimeSwapped = true;
+    // Trigger Recurring Side Swap every 5 rounds (Round 6, 11, 16, ...)
+    let isSwapRound = false;
+    if (roundNumber > 1 && (roundNumber - 1) % SWAP_INTERVAL_ROUNDS === 0) {
+      halftimeSwapped = !halftimeSwapped;
       playerSide = playerSide === 'attacker' ? 'defender' : 'attacker';
       economy.resetForHalftime(combatants);
       resetUltimatesForHalf();
-      isHalftimeRound = true;
+      isSwapRound = true;
     }
 
     phase = 'buy';
     phaseTimerSec = BUY_PHASE_DURATION_SEC;
     transientBannerTimer = 0;
-    roundBannerTitle = isHalftimeRound
-      ? `HALFTIME — SIDE SWAP (${playerSide.toUpperCase()}S)`
+    roundBannerTitle = isSwapRound
+      ? `SIDE SWAP — NOW ${playerSide.toUpperCase()}S (FIRST TO ${winTarget})`
       : `ROUND ${roundNumber} — BUY PHASE`;
-    roundBannerSubtitle = isHalftimeRound
+    roundBannerSubtitle = isSwapRound
       ? 'ECONOMY RESET (800¤ PISTOL ROUND)  •  ' + BUY_BANNER_SUBTITLE
       : BUY_BANNER_SUBTITLE;
 
@@ -960,11 +982,161 @@ export function createMatchManager(
     return difficulty;
   }
 
+  function setMatchConfig(config: { winTarget?: 10 | 6; difficulty?: AiDifficulty }): void {
+    if (config.winTarget === 10 || config.winTarget === 6) {
+      winTarget = config.winTarget;
+    }
+    if (config.difficulty) {
+      setDifficulty(config.difficulty);
+    }
+  }
+
+  function buildTeamRosterWithHumans(
+    preferredFirst: AgentColorId | null,
+    humanColors: AgentColorId[],
+    fallback: AgentColorId[]
+  ): AgentColorId[] {
+    const out: AgentColorId[] = [];
+    const pushUnique = (c: AgentColorId): void => {
+      if (out.length < 3 && !out.includes(c)) out.push(c);
+    };
+    if (preferredFirst) pushUnique(preferredFirst);
+    for (const hc of humanColors) pushUnique(hc);
+    for (const fc of fallback) pushUnique(fc);
+    for (const c of AGENT_ORDER) pushUnique(c);
+    return out;
+  }
+
+  function startNewMatch(options: StartMatchOptions): void {
+    winTarget = options.winTarget === 6 ? 6 : 10;
+    setDifficulty(options.difficulty);
+    preferredPlayerColor = options.playerAgent;
+    initialStartingSide = options.startingSide;
+    playerSide = options.startingSide;
+    halftimeSwapped = false;
+    allyScore = 0;
+    enemyScore = 0;
+    killFeed.length = 0;
+    ownedPrimaryById.clear();
+
+    for (const c of combatants) {
+      c.isRemoteHuman = false;
+      c.remotePlayerId = undefined;
+      c.remoteName = undefined;
+    }
+
+    const humanSlots = options.teamHumanSlots ?? [];
+    const allyHumanColors: AgentColorId[] = [];
+    const enemyHumanColors: AgentColorId[] = [];
+    for (const slot of humanSlots) {
+      if (options.localPlayerId && slot.id === options.localPlayerId) continue;
+      if (slot.side === options.startingSide) {
+        allyHumanColors.push(slot.agentColor);
+      } else {
+        enemyHumanColors.push(slot.agentColor);
+      }
+    }
+
+    allyRoster = buildTeamRosterWithHumans(
+      options.playerAgent,
+      allyHumanColors,
+      draftAllyRoster(options.playerAgent)
+    );
+    enemyRoster = buildTeamRosterWithHumans(
+      null,
+      enemyHumanColors,
+      draftEnemyRoster(enemyRoster)
+    );
+
+    economy.resetForNewMatch(combatants);
+    resetUltimatesForHalf();
+    setupRound(1, false);
+    sfx.playRoundCue('buy');
+  }
+
+  function applyRemotePlayers(remotes: readonly RemotePlayerNetState[]): void {
+    const claimedIds = new Set<string>();
+
+    for (const remote of remotes) {
+      const targetTeam: TeamId = remote.side === playerSide ? 'ally' : 'enemy';
+      const preferredId = `${targetTeam}-${remote.slotIndex}`;
+      let target = combatants.find(
+        (c) =>
+          c.id === preferredId &&
+          c.team === targetTeam &&
+          !c.isPlayer &&
+          !claimedIds.has(c.id)
+      );
+      if (!target) {
+        target = combatants.find(
+          (c) => c.team === targetTeam && !c.isPlayer && !claimedIds.has(c.id)
+        );
+      }
+      if (!target) continue;
+
+      claimedIds.add(target.id);
+      target.isRemoteHuman = true;
+      target.remotePlayerId = remote.playerId;
+      target.remoteName = remote.name;
+
+      if (target.colorId !== remote.agentColor) {
+        assignAgentToCombatant(target, remote.agentColor);
+        updateRigVisibilities();
+      }
+
+      const dx = remote.position.x - target.position.x;
+      const dy = remote.position.y - target.position.y;
+      const dz = remote.position.z - target.position.z;
+      const dist = Math.hypot(dx, dy, dz);
+      if (dist > 4.0) {
+        target.position.x = remote.position.x;
+        target.position.y = remote.position.y;
+        target.position.z = remote.position.z;
+      } else {
+        const lerpAlpha = 0.35;
+        target.position.x += dx * lerpAlpha;
+        target.position.y += dy * lerpAlpha;
+        target.position.z += dz * lerpAlpha;
+      }
+
+      target.velocity.x = remote.velocity.x;
+      target.velocity.y = remote.velocity.y;
+      target.velocity.z = remote.velocity.z;
+      target.yaw = remote.yaw;
+      target.pitch = remote.pitch;
+      target.health = Math.max(0, Math.min(target.maxHealth, remote.health));
+      target.armor = Math.max(0, remote.armor);
+      target.alive = remote.alive;
+      target.slideTimer = remote.sliding ? 0.2 : 0;
+      if (remote.ultActive) {
+        target.ultActiveTimer = Math.max(target.ultActiveTimer ?? 0, 0.5);
+      }
+
+      if (target.weaponId !== remote.weaponId) {
+        target.weaponId = remote.weaponId;
+        rigById.get(target.id)?.setWeaponModel(remote.weaponId);
+      }
+      if (remote.firing) {
+        rigById.get(target.id)?.triggerFireKick();
+      }
+    }
+
+    for (const c of combatants) {
+      if (!claimedIds.has(c.id) && c.isRemoteHuman) {
+        c.isRemoteHuman = false;
+        c.remotePlayerId = undefined;
+        c.remoteName = undefined;
+      }
+    }
+  }
+
   function tryTakeoverAlly(): AgentColorId | null {
     const current = getPlayerCombatant();
     if (current.alive) return null;
 
-    const livingAlly = combatants.find((c) => c.team === 'ally' && !c.isPlayer && c.alive);
+    const livingAlly = combatants.find(
+      (c) => c.team === 'ally' && !c.isPlayer && !c.isRemoteHuman && c.alive
+    );
     if (!livingAlly) return null;
 
     current.isPlayer = false;
@@ -1048,7 +1220,7 @@ export function createMatchManager(
   function restartMatch(): void {
     allyScore = 0;
     enemyScore = 0;
-    playerSide = 'attacker';
+    playerSide = initialStartingSide;
     halftimeSwapped = false;
     killFeed.length = 0;
     ownedPrimaryById.clear();
@@ -1171,12 +1343,12 @@ export function createMatchManager(
 
     if (winner === 'ally') {
       allyScore += 1;
-      roundBannerTitle = allyScore >= WINS_TO_WIN_MATCH ? 'MATCH POINT WON' : 'ROUND WON';
+      roundBannerTitle = allyScore >= winTarget ? 'MATCH POINT WON' : 'ROUND WON';
       roundBannerSubtitle = subtitle;
       sfx.playRoundCue('win');
     } else {
       enemyScore += 1;
-      roundBannerTitle = enemyScore >= WINS_TO_WIN_MATCH ? 'MATCH POINT LOST' : 'ROUND LOST';
+      roundBannerTitle = enemyScore >= winTarget ? 'MATCH POINT LOST' : 'ROUND LOST';
       roundBannerSubtitle = subtitle;
       sfx.playRoundCue('lose');
     }
@@ -1587,10 +1759,10 @@ export function createMatchManager(
     } else if (phase === 'round_end') {
       phaseTimerSec = Math.max(0, phaseTimerSec - dt);
       if (phaseTimerSec <= 0) {
-        if (allyScore >= WINS_TO_WIN_MATCH || enemyScore >= WINS_TO_WIN_MATCH) {
+        if (allyScore >= winTarget || enemyScore >= winTarget) {
           phase = 'match_over';
           phaseTimerSec = 0;
-          roundBannerTitle = allyScore >= WINS_TO_WIN_MATCH ? 'VICTORY' : 'DEFEAT';
+          roundBannerTitle = allyScore >= winTarget ? 'VICTORY' : 'DEFEAT';
           roundBannerSubtitle = 'PRESS [ENTER] FOR NEW MATCH';
         } else {
           setupRound(roundNumber + 1);
@@ -1604,7 +1776,7 @@ export function createMatchManager(
     spikeModel.update(dt, spikeHud);
 
     const hasLivingAllyBot = combatants.some(
-      (c) => c.team === 'ally' && !c.isPlayer && c.alive
+      (c) => c.team === 'ally' && !c.isPlayer && !c.isRemoteHuman && c.alive
     );
     const canTakeoverBot = phase === 'combat' && !playerCombatant.alive && hasLivingAllyBot;
 
@@ -1742,6 +1914,8 @@ export function createMatchManager(
       maxUltPoints: MAX_ULT_POINTS,
       doors: getArenaDoors(),
       nearbyDoorPrompt,
+      winTarget,
+      swapInterval: SWAP_INTERVAL_ROUNDS,
     };
   }
 
@@ -1752,9 +1926,13 @@ export function createMatchManager(
     getPlayerCombatant,
     getPlayerOwnedPrimary,
     getPlayerSide,
+    getWinTarget,
     selectPlayerAgent,
     setDifficulty,
     getDifficulty,
+    setMatchConfig,
+    startNewMatch,
+    applyRemotePlayers,
     tryTakeoverAlly,
     skipBuyPhase,
     restartMatch,
