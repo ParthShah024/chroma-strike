@@ -181,7 +181,6 @@ let gameStarted = false;
 
 const INPUT_BUFFER_SEC = 0.14;
 let jumpHeld = false;
-let jumpBufferTimer = 0;
 let fireBufferTimer = 0;
 let eyeOffsetSmoothed = 0;
 let slideTiltSmoothed = 0;
@@ -207,6 +206,7 @@ const input: InputState = {
   walk: false,
   crouch: false,
   jump: false,
+  jumpJustPressed: false,
   fire: false,
   fireJustPressed: false,
   ads: false,
@@ -401,6 +401,7 @@ function clearHeldInputs(): void {
   input.walk = false;
   input.crouch = false;
   input.jump = false;
+  input.jumpJustPressed = false;
   input.fire = false;
   input.fireJustPressed = false;
   input.reload = false;
@@ -409,7 +410,6 @@ function clearHeldInputs(): void {
   interactHeld = false;
   dropSpikePressed = false;
   jumpHeld = false;
-  jumpBufferTimer = 0;
   fireBufferTimer = 0;
 }
 
@@ -1160,7 +1160,6 @@ function handleKey(code: string, isDown: boolean): void {
     case 'Space':
       jumpHeld = isDown;
       input.jump = isDown;
-      if (isDown) jumpBufferTimer = INPUT_BUFFER_SEC; // 140ms jump buffer
       break;
     case 'KeyR':
       input.reload = isDown;
@@ -1385,9 +1384,13 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
         dropSpikePressed = true;
       }
 
-      // [Space] during Buy phase skips buy countdown cleanly
-      if (e.code === 'Space' && lastHudPhase === 'buy') {
-        match.skipBuyPhase();
+      // [Space] skips buy countdown during Buy phase, or edge-triggers a tactical jump in combat/free-roam
+      if (e.code === 'Space') {
+        if (lastHudPhase === 'buy') {
+          match.skipBuyPhase();
+        } else if (!jumpHeld) {
+          input.jumpJustPressed = true;
+        }
       }
 
       // Custom ability / ultimate binds (Key / Mouse3/4/5 / BrowserBack/Forward / Wheel) — ONLY during combat!
@@ -2270,6 +2273,7 @@ function tick(now: number): void {
       }
     }
     input.fireJustPressed = false;
+    input.jumpJustPressed = false;
     return;
   }
   frozenDrawn = false;
@@ -2282,9 +2286,7 @@ function tick(now: number): void {
   const isAlive = playerCombatant.alive;
   const activeSpec = WEAPON_SPECS[weapon.currentWeaponId];
 
-  // 140ms input buffers: a jump pressed just before landing still fires on touchdown.
-  jumpBufferTimer = Math.max(0, jumpBufferTimer - dt);
-  input.jump = jumpHeld || jumpBufferTimer > 0;
+  input.jump = jumpHeld;
 
   // Apply 0.25x movement speed multiplier while actively channeling Spike plant/defuse.
   const canChannelSpike = Boolean(
@@ -2701,8 +2703,9 @@ function tick(now: number): void {
     }
   }
 
-  // Clear one-frame semi-auto trigger flag at the end of the tick.
+  // Clear one-frame edge-triggered input flags at the end of the tick.
   input.fireJustPressed = false;
+  input.jumpJustPressed = false;
 }
 
 requestAnimationFrame(tick);

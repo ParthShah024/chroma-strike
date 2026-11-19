@@ -48,9 +48,16 @@ export const STEP_HEIGHT = 0.52;
 // in under 80ms for crisp first-shot accuracy.
 const ACCEL = 58;
 const FRICTION = 10.5;
-const AIR_ACCEL = 18;
-const GRAVITY = 19.5;
-const JUMP_SPEED = 6.8;
+const AIR_ACCEL = 7.5;
+const GRAVITY = 19.6;
+const JUMP_SPEED = 6.5;
+const AIR_SPEED_MULT = 0.78;
+const JUMP_TAKEOFF_HORIZ_DAMP = 0.84;
+const LANDING_VEL_DAMP = 0.58;
+const LANDING_SLOW_MULT = 0.62;
+const LANDING_SLOW_DURATION_SEC = 0.28;
+const JUMP_COOLDOWN_SEC = 0.42;
+const LANDING_JUMP_LOCKOUT_SEC = 0.32;
 
 /**
  * Small geometric inset used on non-moving axes during AABB overlap checks.
@@ -79,6 +86,8 @@ export function createInitialPlayerState(
     maxHealth: 100,
     colorId: 'red',
     crouching: false,
+    jumpCooldown: 0,
+    landingSlowTimer: 0,
   };
 }
 
@@ -224,6 +233,11 @@ export function updatePlayerMovement(
   const stepDt = Math.min(Math.max(dt, 0), MAX_STEP_DT);
   if (stepDt === 0) return;
 
+  const wasGrounded = player.grounded;
+  const preStepVy = player.velocity.y;
+  player.jumpCooldown = Math.max(0, (player.jumpCooldown ?? 0) - stepDt);
+  player.landingSlowTimer = Math.max(0, (player.landingSlowTimer ?? 0) - stepDt);
+
   const wantsCrouch = Boolean(input.crouch && !modifiers?.slideActive);
   const canStandUp =
     !player.crouching ||
@@ -260,27 +274,47 @@ export function updatePlayerMovement(
       wishZ /= wishLen;
     }
 
-    // Scale movement speed cap by stance (crouch / walk / run) and active ability modifiers.
+    // Scale movement speed cap by stance (crouch / walk / run), landing recovery slow,
+    // air speed cap, and active ability modifiers.
     const baseMoveSpeed = player.crouching ? CROUCH_SPEED : input.walk ? WALK_SPEED : RUN_SPEED;
-    const maxSpeed = baseMoveSpeed * (modifiers?.speedMultiplier ?? 1.0);
+    const stanceMult = player.grounded
+      ? (player.landingSlowTimer ?? 0) > 0
+        ? LANDING_SLOW_MULT
+        : 1.0
+      : AIR_SPEED_MULT;
+    const maxSpeed = baseMoveSpeed * stanceMult * (modifiers?.speedMultiplier ?? 1.0);
     updateHorizontalVelocity(player, wishX, wishZ, hasWish, maxSpeed, stepDt);
 
-    // 3. Jump impulse, vertical ability impulse (Windy Updraft), passive glide clamp & downward gravity.
-    //    Cryo Slow Field sets `modifiers.suppressJump = true` to ground targets/players.
+    if (!player.grounded && !modifiers?.slideActive) {
+      const curHoriz = getHorizontalSpeed(player.velocity);
+      if (curHoriz > maxSpeed && curHoriz > 1e-5) {
+        const targetHoriz = curHoriz + (maxSpeed - curHoriz) * (1 - Math.exp(-6.0 * stepDt));
+        const scale = targetHoriz / curHoriz;
+        player.velocity.x *= scale;
+        player.velocity.z *= scale;
+      }
+    }
+
+    // 3. Edge-triggered tactical jump impulse, vertical ability impulse (Windy Updraft),
+    //    passive glide clamp & downward gravity. Holding Space does NOT bunnyhop.
     if (modifiers?.verticalImpulse !== undefined && modifiers.verticalImpulse > 0) {
       player.velocity.y = modifiers.verticalImpulse;
       player.grounded = false;
       player.crouching = false;
     } else if (
       player.grounded &&
-      input.jump &&
+      Boolean(input.jumpJustPressed) &&
+      (player.jumpCooldown ?? 0) <= 0 &&
       !modifiers?.suppressJump &&
       (!player.crouching ||
         canStepUpToY(player.position.x, player.position.y, player.position.z, colliders, PLAYER_HEIGHT))
     ) {
       player.velocity.y = JUMP_SPEED;
+      player.velocity.x *= JUMP_TAKEOFF_HORIZ_DAMP;
+      player.velocity.z *= JUMP_TAKEOFF_HORIZ_DAMP;
       player.grounded = false;
       player.crouching = false;
+      player.jumpCooldown = JUMP_COOLDOWN_SEC;
     }
     player.velocity.y -= GRAVITY * stepDt;
     if (
@@ -444,6 +478,15 @@ export function updatePlayerMovement(
         player.velocity.y = 0;
       }
     }
+  }
+
+  // Tactical landing fatigue: touching down from a jump/drop damps momentum
+  // and applies a brief movement + re-jump recovery window.
+  if (!wasGrounded && player.grounded && preStepVy < -2.2) {
+    player.velocity.x *= LANDING_VEL_DAMP;
+    player.velocity.z *= LANDING_VEL_DAMP;
+    player.landingSlowTimer = LANDING_SLOW_DURATION_SEC;
+    player.jumpCooldown = Math.max(player.jumpCooldown ?? 0, LANDING_JUMP_LOCKOUT_SEC);
   }
 }
 

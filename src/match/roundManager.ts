@@ -1094,6 +1094,8 @@ export function createMatchManager(
       playerStateRef.maxArmor = pc.maxArmor ?? 0;
       playerStateRef.colorId = pc.colorId;
       playerStateRef.crouching = false;
+      playerStateRef.jumpCooldown = 0;
+      playerStateRef.landingSlowTimer = 0;
     }
 
     resetSpikeForRound();

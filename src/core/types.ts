@@ -94,6 +94,8 @@ export interface InputState {
   walk: boolean;
   crouch?: boolean;
   jump: boolean;
+  /** True only on the single frame Space was freshly pressed (prevents hold-Space bunnyhopping). */
+  jumpJustPressed?: boolean;
   fire: boolean;
   /** True only on the single frame the trigger was pulled (used to gate semi-auto weapons). */
   fireJustPressed?: boolean;
@@ -116,6 +118,10 @@ export interface PlayerState {
   maxArmor?: number;
   colorId: AgentColorId;
   crouching?: boolean;
+  /** Seconds remaining before another jump is allowed (prevents rapid bounce). */
+  jumpCooldown?: number;
+  /** Seconds of post-landing tactical movement recovery slowdown remaining. */
+  landingSlowTimer?: number;
 }
 
 export interface RaycastHit {
