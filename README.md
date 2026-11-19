@@ -18,10 +18,14 @@ A fast-paced, *Valorant*-inspired **3v3 Tactical 3D First-Person Shooter** built
 - **Valorant-Style Top-Bar HUD, Enemy Red Outline & 1P-Only Camera/Spectate:**
   - **Clean Battlefield & Top-Bar Telemetry (`#hud-top`):** Floating in-world health bars and team rims are gone, and **enemy HP is never shown anywhere on-screen**. Instead, `#hud-top` displays compact **teammate HP bars/numbers** alongside clear **gold `ULT` ready/active pills** for both allies and enemies.
   - **Enemy Red Silhouette Outline:** Enemy agents (both procedural rigs and Blender `.glb` chassis) wear a vivid `#ff223e` `BackSide` inverted-hull outline while alive for instant Valorant-style Friend-or-Foe contrast.
-  - **1st-Person-Only Camera:** The `[V]` 3rd-person camera toggle has been removed; combat stays crisp 1st-person and eliminated players auto-spectate living teammates from true **1st-person POV** (`Left/Right Click` cycles teammates, `[Tab]` takes over a bot), paired with the post-round **Combat Report** showing exact `OUT` vs. `IN` damage and head/body hits per opponent.
-- **Large 2D Valorant Map (`[M]` Default), Unified Settings (`[O]` / `[C]`) & Mouse-Button Rebinds:**
-  - Press **`[M]`** for a large **`620×680 px`** (`2×` DPR) **2D Valorant Top-Down Tactical Map** (all 20 callouts, elevation coding, live Blast Door HP, Spike, FOV cones, Distance/LoS Ruler), with a **`[3D FLYOVER]`** toggle; **`[CapsLock]`** holds the Full Tactical Overlay and **`[N]`** toggles Rotating Radar <-> Fixed North-Up.
-  - Press **`[O]`** anytime for **Unified Settings** (`Controls` incl. **Hold/Toggle ADS**, click-to-rebind **`[Q]/[E]/[X]` to Keyboard, `Mouse3/4/5`, or `WheelUp/Down`**, PLUS 1-click **`M3` / `M4` / `M5`** quick-bind pills beside every ability slot, **`Crosshair` `[C]`**, `Video & Minimap`, `Audio` volume/mute, and `Match` rules & **Custom Name**).
+  - **1st-Person-Only Camera:** The `[V]` 3rd-person camera toggle has been removed; combat stays crisp 1st-person and eliminated players auto-spectate living teammates from true **1st-person POV** (`Left/Right Click` cycles teammates, `[Tab]` takes over a bot), paired with an upgraded **Combat Report** showing a per-round **Kills / Assists / DMG OUT / DMG IN** summary strip plus `[KILL]`, `[ASSIST]` (`>=25 DMG` threshold), and `[KO]` badges per opponent.
+- **Post-Match Ranked Performance Summary & Brimstone-Style Controller Smoke Tablet:**
+  - **Ranked End-of-Match Scoreboard:** When a match finishes (`#match-summary-modal`), every combatant is ranked `#1..#6` with **`S+ / S / A / B / C` tiers**, **Match MVP** banner, `K / D / A`, Total Damage, `ADR`, `HS%`, and Average Combat Score (`ACS = round((150*K + 50*A + DMG) / Rounds)`), plus `[Enter]` Rematch & `[L]` Return to Lobby buttons.
+  - **Tactical Map Smoke Tablet (All Controllers):** Pressing `[Q]` on **Mist** or **Umbra** opens a top-down Brimstone-style Ascent tablet ([`src/ui/smokeTablet.ts`](src/ui/smokeTablet.ts)) showing active smokes, teammates, doors, and a `40 m` deployment radius (`Left-Click` places opaque Frost/Void smoke at floor/Heaven level; `Right-Click` / `[Q]` / `[Esc]` cancels cleanly).
+- **Unified `[M]` 2D/3D Map (No Sightlines), `[C / Ctrl]` Crouching & Mouse Rebinds:**
+  - Press **`[M]`** (or click the minimap) to open the large **`620×680 px`** (`2×` DPR) **2D Valorant Top-Down Tactical Map** (`[3D FLYOVER]` secondary tab, clean pan & scroll zoom with **no sightline clutter**; duplicate `[CapsLock]` overlay removed), while **`[N]`** toggles Rotating Radar <-> Fixed North-Up.
+  - Hold **`[C]`** or **`[Ctrl]`** to **Crouch** (`2.45 m/s` speed, `1.24 m` standing-clearance-checked capsule, `-0.52 m` 1P camera & `-0.46 m` hitbox profile drop, `~22–28%` tighter crouching weapon spread, and crouched 3D leg IK).
+  - Press **`[O]`** anytime for **Unified Settings** (`Controls` incl. **Hold/Toggle ADS**, click-to-rebind **`[Q]/[E]/[X]` to Keyboard, `Mouse3/4/5`, or `WheelUp/Down`**, PLUS 1-click **`M3` / `M4` / `M5`** quick-bind pills, **`Crosshair`**, `Video & Minimap`, `Audio`, and `Match` rules).
 - **2-Site Search & Destroy (`20 s` Forward Buy Phase, `5/5` Swap, First to 10) & `5.55 m/s` Tactical Pacing:**
   - Plays **5 rounds on your chosen starting side**, **swaps Attack <-> Defense every 5 rounds** with `800¤` economy/ult resets, and crowns the **First to 10** (`First to 6` quick option); deliberate tactical pacing (`5.55 m/s` normal run — ~10% slower than before, `3.0 m/s` walk) and Single T-Spawn Spike Pedestal.
   - **20-Second Forward Buy Phase (`11` Ascent Setup Chokes):** Expanded Buy Barriers sit at **12 forward segments across 11 Ascent chokes** (with real temporary `ARENA_COLLIDERS` walls during Buy Phase and `0` opening sightline leaks), letting **Defenders stage directly inside Site A, A Tree, Market, and Site B** while **Attackers advance right up to A Lobby, Top-Mid, and B Lobby**.
@@ -35,9 +39,9 @@ A fast-paced, *Valorant*-inspired **3v3 Tactical 3D First-Person Shooter** built
   - Articulated **`public/models/agent_kayo.glb`** sculpted in Blender 5.2 (`16` modular bone segments mounted into FK/IK limbs + distinct dorsal kits & custom aero-vanes, glowing `Mat_VisorLED` visors, **Ally Pearl-Titanium vs. Enemy Obsidian + Red Outline**, one-knee Spike kneel + holo-keypad, back-Spike, & Ult Overcharge rings).
   - Earn **`5` Ult Points** (`2/5` at start of each half, `+1` per kill / death / plant / defuse) to unleash each Agent's signature **`[X]` Ultimate**:
     - **Red — Blaze (Duelist):** `[Q]` Crimson Dash, `[E]` Inferno Orb, & **`[X]` Inferno Overdrive** (`8 s` `1.35x` fire rate + kills reset Dash!).
-    - **Blue — Mist (Controller):** `[Q]` Opaque Smoke Dome, `[E]` Cryo Field, & **`[X]` Glacial Whiteout** (`8.5 m` 75%-slow blizzard + `4.8 m` Frost Smoke).
+    - **Blue — Mist (Controller):** `[Q]` **Tactical Tablet Smoke Dome** (`40 m` top-down placement), `[E]` Cryo Field, & **`[X]` Glacial Whiteout** (`8.5 m` 75%-slow blizzard + `4.8 m` Frost Smoke).
     - **Green — Pulse (Initiator):** `[Q]` Wall-Bouncing Pop-Flash, `[E]` Bio-Stim Beacon, & **`[X]` Orbital Recon** (3 arena-wide emerald sonar pulses revealing all foes on Minimap!).
-    - **Violet — Umbra (Shadow Controller):** `[Q]` 2-charge Phase Void Shroud, `[E]` Singularity Vortex (`1.25x` Fragile), & **`[X]` Eclipse Curtain** (~`26 m` wall of 5 Void spheres).
+    - **Violet — Umbra (Shadow Controller):** `[Q]` **Tactical Tablet Void Shroud** (`40 m` top-down placement), `[E]` Singularity Vortex (`1.25x` Fragile), & **`[X]` Eclipse Curtain** (~`26 m` wall of 5 Void spheres).
     - **Gold — Volt (Electric Duelist):** `[Q]` Overdrive + Electric Power-Slide, `[E]` 1-Bounce Relay Bolt, & **`[X]` Thunderstorm** (`1.50x` sprint, `0.6 s` slides & `8.5 m` chain-lightning zaps!).
     - **Cyan — Windy (Sky Duelist — Jett-Inspired):** `[Q]` **Updraft** (`11.8 m/s` vertical boost to reach Heaven & crates), `[E]` **Tailwind Dash** (`24 m/s` wind dash chaining seamlessly mid-air after Updraft), Passive **`Space` Tailwind Drift** (`-2.2 m/s` slow fall), & **`[X]` Blade Storm** (`9 s` zero mid-air spread, `1.30x` fire rate, `0.45x` recoil, and kills refresh Dash + extend by `2.5 s`!).
 
@@ -48,17 +52,17 @@ A fast-paced, *Valorant*-inspired **3v3 Tactical 3D First-Person Shooter** built
 | Key / Input | Action |
 | :--- | :--- |
 | **`W A S D`** | Move & Counter-Strafe (`5.55 m/s` run, `0.0 m/s` for 100% first-shot accuracy) |
-| **`Shift` / `Space`** | Silent Walk (`3.0 m/s`, or **Power-Slide** during Volt Overdrive) / Jump, **Windy Slow-Fall Glide**, or Skip Buy |
+| **`Shift` / `C` or `Ctrl`** | Silent Walk (`3.0 m/s`, or **Power-Slide** during Volt Overdrive) / **Crouch** (`2.45 m/s`, steadier spread, lower hitbox) |
+| **`Space`** | Jump, **Windy Slow-Fall Glide**, or Skip Buy Phase |
 | **`Left Click`** | Fire (Semi-auto click for Pistol/Sniper, Hold for SMG/AR — damages closed Blast Doors!) |
 | **`Right Click`** | Optical Scope / ADS (`Sidearm`, `SMG`, `AR`, `Sniper`) |
 | **`1` `2` `3` `4` / Wheel** | Equip Purchased Weapons (`Sidearm` / Owned Primary) — Buys Weapons in Shop |
 | **`R`** | Reload (or 100% Weapon Refund in `[B]` Buy Shop) |
-| **`Q` / `E` / `X`** | Cast Agent Ability 1 / Ability 2 / **Signature `[X]` Ultimate** (`5` Pts — rebindable to `M3`/`M4`/`M5`/Wheel!) |
+| **`Q` / `E` / `X`** | Cast Abilities (`Q` opens **Smoke Tablet** for Controllers Mist/Umbra) / **Ultimate** (`5` Pts — bindable to `M3`/`M4`/`M5`/Wheel) |
 | **`F` / `G`** | Hold **`F`** to **Plant / Defuse Spike** (`3 s` / `5 s`); Tap **`F`** at switches to **Toggle Blast Doors**; **`G`** to **Drop Spike** |
 | **`B` / `H`** | Open **`[B]` Buyout Shop & Economy** (`20 s` setup window) / **`[H]` 3D Agent Select & AI Difficulty** |
-| **`M`** | Open/Close **Large `2D` Valorant Tactical Map** (`[3D FLYOVER]` toggle + LoS & Distance Ruler) |
-| **`CapsLock` / `N`** | Hold **`CapsLock`** (or click radar) for **Full Tactical Callout Map** / **`N`** toggles **Rotating Radar <-> Fixed** |
-| **`O` / `C`** | Open **Unified Settings (`Controls` incl. `M3`/`M4`/`M5` pills / `Video` / `Audio` / `Match`)** / **Crosshair Tab** |
+| **`M` / `N`** | Open/Close **Unified 2D Tactical Map** (`[3D FLYOVER]` tab; click radar) / **`N`** toggles **Rotating Radar <-> Fixed** |
+| **`O`** | Open **Unified Settings (`Controls` incl. `M3`/`M4`/`M5` pills / `Crosshair` / `Video` / `Audio` / `Match`)** |
 | **`F1` – `F6`** | Quick Switch Agent (**Blaze**, **Mist**, **Pulse**, **Umbra**, **Volt**, **Windy**) |
 | **`Tab`** | Take Over Living Ally Bot when eliminated |
 
@@ -96,7 +100,7 @@ Double-click **[play.bat](play.bat)** (starts the 6-player server `5174` + Vite 
 ```text
 chroma-strike/
 ├── docs/
-│   └── MASTERCLASS.md            # Complete Chapters 1–11 engineering & math handbook
+│   └── MASTERCLASS.md            # Complete Chapters 1–12 engineering & math handbook
 ├── public/
 │   └── models/
 │       ├── agent_kayo.glb        # Blender 5.2 KAY/O combat android (16 nodes + dorsal kits)
@@ -111,7 +115,7 @@ chroma-strike/
 │   ├── abilities/
 │   │   ├── definitions.ts        # Immutable 6-agent AGENT_ABILITIES spec table ([Q], [E], [X])
 │   │   ├── shaders.ts            # Custom GLSL Smoke, Void, Singularity, Relay, Magma & Cryo shaders
-│   │   └── system.ts             # 18 abilities incl. Windy Updraft/Dash/Glide/Blade Storm & .dispose()
+│   │   └── system.ts             # 18 abilities incl. Windy & Controller remote map smoke (`40m` tablet)
 │   ├── ai/
 │   │   └── botBrain.ts           # Multi-level 3D Nav, forward Buy Staging, Door Breaching & Windy AI
 │   ├── arena/
@@ -123,30 +127,31 @@ chroma-strike/
 │   ├── combat/
 │   │   ├── arsenal.ts            # WEAPON_SPECS (ADS FOV/spread/recoil & buyouts), SHIELD_SPECS & falloff
 │   │   ├── targets.ts            # Practice target module (Ch.1/2 sandbox)
-│   │   └── weapons.ts            # 4 centered-ADS viewmodels + KAY/O 1P hands, Blade Storm spread bypass
+│   │   └── weapons.ts            # 4 centered-ADS viewmodels + KAY/O 1P hands, crouch spread & Blade Storm
 │   ├── core/
-│   │   └── types.ts              # 6-Agent, AbilityKeybinds, Top-HUD Ally/Enemy, Lobby & Economy types
+│   │   └── types.ts              # 6-Agent, Crouch, CombatSummary, MatchPerformanceEntry & Economy types
 │   ├── entities/
-│   │   ├── characterModel.ts     # BackSide enemy red silhouette outline, Windy rig & 1P/FK gait (no 3D bars)
+│   │   ├── characterModel.ts     # BackSide enemy red outline, Windy rig, crouch IK & gait (no 3D bars)
 │   │   ├── glbOverride.ts        # SPA-safe Blender .glb + GLTFLoader runtime loader
 │   │   └── spikeModel.ts         # Procedural 3D Radianite Spike canister, dropped beam & blast
 │   ├── match/
 │   │   ├── economy.ts            # Valorant/CS credits, single-shield exclusion/refund & carryover
-│   │   └── roundManager.ts       # 20s Buy Phase, Top-Bar Telemetry, 1P Spectate & 5/5 Swap (First to 10)
+│   │   └── roundManager.ts       # Assists, Ranked Match Summary, Crouch Hitboxes, 20s Buy & 5/5 Swap
 │   ├── net/
-│   │   └── multiplayer.ts        # 6-player WebSocket client w/ custom callsigns & ?server= override
+│   │   └── multiplayer.ts        # 6-player WebSocket client w/ crouch sync & ?server= override
 │   ├── physics/
-│   │   └── movement.ts           # Counter-strafe (5.55 m/s run, 3.0 m/s walk), Updraft/Glide & Power-Slide
+│   │   └── movement.ts           # Counter-strafe (5.55 m/s), Crouch (2.45 m/s, 1.24m clearance) & Updraft
 │   ├── ui/
 │   │   ├── agentSelect.ts        # Clean 6-Agent 3D Select ([F1–F6], [1–6], [Q]/[E]/[X] loadout)
 │   │   ├── buyMenu.ts            # Valorant/CS [B] Buyout Shop (1-shield exclusion + Squad Economy)
 │   │   ├── crosshair.ts          # CSS-variable reactive Crosshair Customizer (Settings Crosshair tab)
 │   │   ├── lobby.ts              # Attack/Defend Team Select Lobby (`0-3/3`, Invite URL & Callsign)
-│   │   ├── mapViewer.ts          # [M] Default Large 2D Valorant Map (+ 3D Flyover & LoS Ruler)
-│   │   ├── minimap.ts            # 2x DPR Vector Rotating Radar Minimap & [CapsLock] Callout Overlay
-│   │   └── settings.ts           # Persistent 5-tab Settings ([O] Mouse3/4/5/Wheel + M3/M4/M5 pills, Name, Surrender)
-│   └── main.ts                   # 1P-Only Engine, Top-Bar Team HP/Ult Cards, Mouse Abilities & Net loop
-├── index.html                    # Lobby, Agent Select, Settings, Spectate, Combat Report & HUD modals
+│   │   ├── mapViewer.ts          # Unified [M] Large 2D Valorant Map + 3D Flyover (clean, no sightlines)
+│   │   ├── minimap.ts            # 2x DPR Vector Rotating Radar Minimap (renders smokes, click -> [M])
+│   │   ├── settings.ts           # Persistent 5-tab Settings ([O] Mouse3/4/5/Wheel + M3/M4/M5 pills)
+│   │   └── smokeTablet.ts        # Brimstone-style 40m top-down map Smoke Placement Tablet (Controllers)
+│   └── main.ts                   # Engine, Ranked Summary, Kills/Assists Report, Tablet, Crouch & Net loop
+├── index.html                    # Lobby, Agent Select, Smoke Tablet, Match Summary & HUD modals
 ├── package.json
 ├── play.bat                      # Windows one-click server + Vite dev launcher
 └── tsconfig.json

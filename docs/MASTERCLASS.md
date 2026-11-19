@@ -323,6 +323,23 @@ $$C_{t+1} = \min\!\Big(9000,\; C_t + R_{\text{round}}(L) + 200\,K + 300\,B_{\tex
 - **Forward Staging (`BUY_PHASE_DURATION_SEC = 20.0`):** `ascentMapData.ts` defines `12` axis-aware forward Buy-Barrier segments (`axis: 'x' | 'z'`) across `11` Ascent chokes, injected into `ARENA_COLLIDERS` by `syncDynamicColliders()` whenever barriers are active — letting Defenders set up directly on Site A, A Tree, Market, and Site B and Attackers stage at A Lobby, Top-Mid, and B Lobby with `0` opening LoS pairs (`185` colliders, `1,204` waypoints, `100%` BFS).
 - **1P-Only & Mouse Binds:** Removed `[V]` 3P camera mode, switched dead auto-spectate (`spectatedCombatantId`) to true 1st-person POV, and paired capture-phase `pointerdown` / `mousedown` / `pointerup` / `mouseup` / `auxclick` / `wheel` / `BrowserBack` / `BrowserForward` capture in [`settings.ts`](../src/ui/settings.ts) with 1-click `[M3]` `[M4]` `[M5]` quick-bind pills and `35 ms` pointer/mouse deduplication in [`main.ts`](../src/main.ts).
 
+---
+
+# Chapter 12 — Kills/Assists Combat Report, Ranked Post-Match Summary, Brimstone Smoke Tablet, Unified `[M]` Map & Crouching
+
+## 12.1 Assists Tracking & Post-Match Ranking (`ACS` & Tiers) ([roundManager.ts](../src/match/roundManager.ts), [main.ts](../src/main.ts))
+- **Damage-Attribution Assists (`ASSIST_DAMAGE_THRESHOLD = 25`):** `roundDamageByVictim` accumulates per-round damage dealt by every opposing attacker (`dmg`). On elimination, every non-killing opponent with `contribDmg >= 25` earns `+1` match assist and lights up an `ASSIST` badge on the local player's Combat Report (`#combat-report`), alongside a 4-cell `.cr-summary-bar` (`KILLS`, `ASSISTS`, `OUT`, `IN`).
+- **Ranked Match Summary (`#match-summary-modal`):** At `match_over`, `buildMatchSummary()` scores all 6 combatants via $ACS = \operatorname{round}\!\big((150K + 50A + \text{DMG}) / R\big)$ and ranks `#1..#6` with `S+ / S / A / B / C` tiers, a `MATCH MVP` banner, `K / D / A`, Total Damage, `ADR`, and `HS%`.
+
+## 12.2 Brimstone-Style Map Smoke Tablet for Controllers ([smokeTablet.ts](../src/ui/smokeTablet.ts), [system.ts](../src/abilities/system.ts))
+- **Unified Controller Flow (`Mist` & `Umbra`):** Pressing `[Q]` as any `role === 'Controller'` opens `#smoke-tablet-modal` (`460×504`, `2× DPR`) rendered with active smokes, teammates, doors, and a `40.0 m` deployment radius ring (`CONTROLLER_SMOKE_RANGE_M`).
+- **Floor-Snapped Placement (`castRemoteSmoke`):** Clicking inside range raycasts straight down from `y = 3.85 m` (`resolveTabletFloorY`) so smokes land cleanly on `0.00 m` floors, `+0.85 m` Catwalk/B Lane, or `+3.00 m` A Heaven without clipping onto tall >`4 m` building roofs, sharing the exact `2/round` `[Q]` pool and `[Esc]`/`[Q]`/Right-Click cancellation with zero charge loss.
+
+## 12.3 Unified `[M]` Map (No Sightlines) & Tactical Crouching ([mapViewer.ts](../src/ui/mapViewer.ts), [minimap.ts](../src/ui/minimap.ts), [movement.ts](../src/physics/movement.ts), [characterModel.ts](../src/entities/characterModel.ts))
+- **Single Clean `[M]` Blueprint:** Removed the duplicate `[CapsLock]` `#tactical-map-overlay` modal and the `[M]` LoS / Sightline ruler; both Left-Drag and Right-Drag pan the `2×` DPR Ascent blueprint while Scroll zooms (`0.75x–3.2x`), and clicking the corner Radar Minimap opens `[M]` directly.
+- **Tactical Crouching (`[C]` / `[Ctrl]`):** Enforces `CROUCH_HEIGHT = 1.24 m` via `canStepUpToY` overhead clearance before standing up, slows footwork to `CROUCH_SPEED = 2.45 m/s`, lowers 1P eye & 1P spectate camera by `CROUCH_EYE_OFFSET = -0.52 m`, drops combatant hitboxes (`CROUCH_HITBOX_DROP_M = 0.46 m`), tightens grounded weapon spread (`0.78x` base/spray, `0.72x` move), bends 3D character legs (`crouchBlend`), and replicates `crouching` over WebSockets ([multiplayer.ts](../src/net/multiplayer.ts), [gameServer.mjs](../server/gameServer.mjs)).
+
+
 
 
 

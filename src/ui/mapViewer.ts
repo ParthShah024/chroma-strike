@@ -1,20 +1,14 @@
 import * as THREE from 'three';
-import { Combatant, MatchHudState, PlayerState, Vec3 } from '../core/types';
+import { Combatant, MatchHudState, PlayerState, SmokeSphere, Vec3 } from '../core/types';
 import {
-  ARENA_COLLIDERS,
   ASCENT_CALLOUTS,
   getArenaDoors,
   setArenaBuyBarriersVisible,
   toggleArenaDoor,
 } from '../arena/map';
-import { EYE_HEIGHT, raycastAABB } from '../physics/movement';
 import {
   drawAscentBlueprintBase,
   drawAscentDynamicEntities,
-  mapToWorldX,
-  mapToWorldZ,
-  worldToMapX,
-  worldToMapY,
 } from './minimap';
 
 export type ViewerTab = '2d' | '3d';
@@ -27,7 +21,12 @@ export interface MapViewerController {
   setTab(tab: ViewerTab): void;
   is3DViewActive(): boolean;
   render3D(renderer: THREE.WebGLRenderer, scene: THREE.Scene): void;
-  update2D(hud: MatchHudState, combatants: readonly Combatant[], player: PlayerState): void;
+  update2D(
+    hud: MatchHudState,
+    combatants: readonly Combatant[],
+    player: PlayerState,
+    activeSmokes?: readonly SmokeSphere[]
+  ): void;
   setOnClose(cb: () => void): void;
   dispose(): void;
 }
@@ -134,7 +133,6 @@ export function createMapViewerController(_scene: THREE.Scene): MapViewerControl
   const layer2dEl = document.getElementById('map-viewer-2d-layer') as HTMLDivElement | null;
   const canvas2d = document.getElementById('map-viewer-2d-canvas') as HTMLCanvasElement | null;
   const ctx2d = canvas2d?.getContext('2d') ?? null;
-  const rulerReadoutEl = document.getElementById('mv-ruler-readout') as HTMLDivElement | null;
   const zoomReadoutEl = document.getElementById('mv-2d-zoom') as HTMLSpanElement | null;
   const reset2dBtn = document.getElementById('mv-2d-reset-btn') as HTMLButtonElement | null;
 
@@ -245,26 +243,19 @@ export function createMapViewerController(_scene: THREE.Scene): MapViewerControl
     }
   }
 
-  // 2D Blueprint Zoom / Pan / LoS Ruler state
+  // 2D Blueprint Zoom / Pan state (clean overview — no sightline projections)
   let zoom2d = 1.0;
   let pan2dX = 0;
   let pan2dY = 0;
-  let drag2dMode: 'ruler' | 'pan' | null = null;
+  let dragging2dPan = false;
   let drag2dLastSx = 0;
   let drag2dLastSy = 0;
-
-  let rulerActive = false;
-  let rulerStart = { x: 0, z: 0 };
-  let rulerEnd = { x: 0, z: 0 };
-  let rulerDistM = 0;
-  let rulerBlocked = false;
-  let rulerBlockPoint: Vec3 | null = null;
-  let rulerBlockDistM = 0;
 
   let last2dSnapshot: {
     hud: MatchHudState;
     combatants: readonly Combatant[];
     player: PlayerState;
+    activeSmokes?: readonly SmokeSphere[];
   } | null = null;
 
   const tempProj = new THREE.Vector3();
@@ -392,7 +383,7 @@ export function createMapViewerController(_scene: THREE.Scene): MapViewerControl
   }
 
   // -------------------------------------------------------------------------
-  // 2D Blueprint Coordinate Transforms & Interactive LoS Ruler
+  // 2D Blueprint Coordinate Transforms & Clean Overview Pan/Zoom
   // -------------------------------------------------------------------------
   function clientToLogical2d(clientX: number, clientY: number): { sx: number; sy: number } | null {
     if (!canvas2d) return null;
@@ -404,15 +395,6 @@ export function createMapViewerController(_scene: THREE.Scene): MapViewerControl
     };
   }
 
-  function logicalToWorld2d(sx: number, sy: number): { x: number; z: number } {
-    const mx = (sx - blueprintW * 0.5 - pan2dX) / zoom2d + blueprintW * 0.5;
-    const my = (sy - blueprintH * 0.5 - pan2dY) / zoom2d + blueprintH * 0.5;
-    return {
-      x: mapToWorldX(mx, blueprintW),
-      z: mapToWorldZ(my, blueprintH),
-    };
-  }
-
   function clamp2dPan(): void {
     const maxPanX = blueprintW * 0.45 * zoom2d;
     const maxPanY = blueprintH * 0.45 * zoom2d;
@@ -420,162 +402,17 @@ export function createMapViewerController(_scene: THREE.Scene): MapViewerControl
     pan2dY = clamp(pan2dY, -maxPanY, maxPanY);
   }
 
-  function recomputeRulerLoS(): void {
-    const dx = rulerEnd.x - rulerStart.x;
-    const dz = rulerEnd.z - rulerStart.z;
-    const dist = Math.hypot(dx, dz);
-    rulerDistM = dist;
-    rulerBlocked = false;
-    rulerBlockPoint = null;
-    rulerBlockDistM = dist;
-
-    if (dist < 0.15) {
-      syncRulerHud();
-      return;
-    }
-
-    const origin: Vec3 = { x: rulerStart.x, y: EYE_HEIGHT, z: rulerStart.z };
-    const dir: Vec3 = { x: dx / dist, y: 0, z: dz / dist };
-
-    let nearestDist = dist;
-    let nearestPoint: Vec3 | null = null;
-    for (const box of ARENA_COLLIDERS) {
-      const hit = raycastAABB(origin, dir, box, nearestDist);
-      if (hit && hit.distance < nearestDist) {
-        nearestDist = hit.distance;
-        nearestPoint = hit.point;
-      }
-    }
-
-    if (nearestPoint) {
-      rulerBlocked = true;
-      rulerBlockPoint = nearestPoint;
-      rulerBlockDistM = nearestDist;
-    }
-    syncRulerHud();
-  }
-
-  function syncRulerHud(): void {
+  function syncZoomHud(): void {
     if (zoomReadoutEl) {
       zoomReadoutEl.textContent = `${zoom2d.toFixed(2)}x`;
     }
-    if (!rulerReadoutEl) return;
-    if (!rulerActive || rulerDistM < 0.25) {
-      rulerReadoutEl.className = 'mv-ruler-readout';
-      rulerReadoutEl.textContent = 'RULER: Left-drag on blueprint to measure distance & 1.62m LoS';
-      return;
-    }
-
-    if (rulerBlocked) {
-      rulerReadoutEl.className = 'mv-ruler-readout blocked';
-      rulerReadoutEl.textContent = `SIGHTLINE: ${rulerDistM.toFixed(1)} m • BLOCKED @ ${rulerBlockDistM.toFixed(1)} m`;
-    } else {
-      rulerReadoutEl.className = 'mv-ruler-readout clear';
-      rulerReadoutEl.textContent = `SIGHTLINE: ${rulerDistM.toFixed(1)} m • CLEAR (1.62m EYE)`;
-    }
-  }
-
-  function drawRulerOverlay(ctx: CanvasRenderingContext2D): void {
-    if (!rulerActive || rulerDistM < 0.25) return;
-
-    const x0 = worldToMapX(rulerStart.x, blueprintW);
-    const y0 = worldToMapY(rulerStart.z, blueprintH);
-    const x1 = worldToMapX(rulerEnd.x, blueprintW);
-    const y1 = worldToMapY(rulerEnd.z, blueprintH);
-    const invScale = 1 / Math.sqrt(zoom2d);
-
-    ctx.save();
-    if (rulerBlocked && rulerBlockPoint) {
-      const bx = worldToMapX(rulerBlockPoint.x, blueprintW);
-      const by = worldToMapY(rulerBlockPoint.z, blueprintH);
-
-      // Clear segment up to impact
-      ctx.strokeStyle = '#fbbf24';
-      ctx.lineWidth = 2.2 * invScale;
-      ctx.beginPath();
-      ctx.moveTo(x0, y0);
-      ctx.lineTo(bx, by);
-      ctx.stroke();
-
-      // Obstructed segment beyond impact
-      ctx.strokeStyle = '#ef4444';
-      ctx.lineWidth = 1.9 * invScale;
-      ctx.setLineDash([5 * invScale, 4 * invScale]);
-      ctx.beginPath();
-      ctx.moveTo(bx, by);
-      ctx.lineTo(x1, y1);
-      ctx.stroke();
-      ctx.setLineDash([]);
-
-      // Impact X mark
-      const r = 4.5 * invScale;
-      ctx.strokeStyle = '#ff4d6d';
-      ctx.lineWidth = 2.2 * invScale;
-      ctx.beginPath();
-      ctx.moveTo(bx - r, by - r);
-      ctx.lineTo(bx + r, by + r);
-      ctx.moveTo(bx + r, by - r);
-      ctx.lineTo(bx - r, by + r);
-      ctx.stroke();
-    } else {
-      ctx.strokeStyle = '#2ecc71';
-      ctx.shadowColor = 'rgba(46, 204, 113, 0.7)';
-      ctx.shadowBlur = 6;
-      ctx.lineWidth = 2.3 * invScale;
-      ctx.beginPath();
-      ctx.moveTo(x0, y0);
-      ctx.lineTo(x1, y1);
-      ctx.stroke();
-      ctx.shadowBlur = 0;
-    }
-
-    // Endpoint nodes
-    for (const [nx, ny] of [
-      [x0, y0],
-      [x1, y1],
-    ]) {
-      ctx.fillStyle = '#ffffff';
-      ctx.strokeStyle = '#0d1117';
-      ctx.lineWidth = 1.5 * invScale;
-      ctx.beginPath();
-      ctx.arc(nx, ny, 3.6 * invScale, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-    }
-
-    // Floating distance + status pill at midpoint
-    const mx = (x0 + x1) * 0.5;
-    const my = (y0 + y1) * 0.5 - 12 * invScale;
-    const label = `${rulerDistM.toFixed(1)} m • ${rulerBlocked ? 'BLOCKED' : 'CLEAR'}`;
-    ctx.save();
-    ctx.translate(mx, my);
-    ctx.scale(invScale, invScale);
-    ctx.font = '800 10.5px Inter, "Segoe UI", sans-serif';
-    const textW = ctx.measureText(label).width;
-    const padX = 7;
-    const boxW = textW + padX * 2;
-    const boxH = 18;
-    ctx.fillStyle = 'rgba(9, 14, 23, 0.92)';
-    ctx.strokeStyle = rulerBlocked ? '#ef4444' : '#2ecc71';
-    ctx.lineWidth = 1.2;
-    ctx.beginPath();
-    ctx.roundRect(-boxW * 0.5, -boxH * 0.5, boxW, boxH, 5);
-    ctx.fill();
-    ctx.stroke();
-
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = rulerBlocked ? '#fca5a5' : '#86efac';
-    ctx.fillText(label, 0, 0.5);
-    ctx.restore();
-
-    ctx.restore();
   }
 
   function render2DBlueprint(
     hud: MatchHudState | null,
     combatants: readonly Combatant[],
-    player: PlayerState | null
+    player: PlayerState | null,
+    activeSmokes?: readonly SmokeSphere[]
   ): void {
     if (!canvas2d || !ctx2d) return;
     syncBlueprintBufferSize();
@@ -603,6 +440,7 @@ export function createMapViewerController(_scene: THREE.Scene): MapViewerControl
         player,
         playerYaw: playerCombatant?.yaw ?? 0,
         ultRevealActive: false,
+        activeSmokes,
         nowSec,
         detailedDoors: true,
         drawSiteLabelsUpright: false,
@@ -610,31 +448,36 @@ export function createMapViewerController(_scene: THREE.Scene): MapViewerControl
       });
     }
 
-    drawRulerOverlay(ctx2d);
     ctx2d.restore();
   }
 
   function update2D(
     hud: MatchHudState,
     combatants: readonly Combatant[],
-    player: PlayerState
+    player: PlayerState,
+    activeSmokes?: readonly SmokeSphere[]
   ): void {
-    last2dSnapshot = { hud, combatants, player };
+    last2dSnapshot = { hud, combatants, player, activeSmokes };
     if (!openState || activeTab !== '2d') return;
-    render2DBlueprint(hud, combatants, player);
+    render2DBlueprint(hud, combatants, player, activeSmokes);
   }
 
   function redraw2DIfActive(): void {
     if (!openState || activeTab !== '2d') return;
     if (last2dSnapshot) {
-      render2DBlueprint(last2dSnapshot.hud, last2dSnapshot.combatants, last2dSnapshot.player);
+      render2DBlueprint(
+        last2dSnapshot.hud,
+        last2dSnapshot.combatants,
+        last2dSnapshot.player,
+        last2dSnapshot.activeSmokes
+      );
     } else {
       render2DBlueprint(null, [], null);
     }
   }
 
   // -------------------------------------------------------------------------
-  // Event Listeners (3D Orbit/Pan/Zoom + 2D Zoom/Pan/LoS Ruler + Buttons)
+  // Event Listeners (3D Orbit/Pan/Zoom + 2D Zoom/Pan + Buttons)
   // -------------------------------------------------------------------------
   const onWindowResize = () => {
     orbitCam.aspect = window.innerWidth / Math.max(1, window.innerHeight);
@@ -666,18 +509,10 @@ export function createMapViewerController(_scene: THREE.Scene): MapViewerControl
     const pt = clientToLogical2d(e.clientX, e.clientY);
     if (!pt) return;
 
-    if (e.button === 2 || e.shiftKey) {
-      drag2dMode = 'pan';
+    if (e.button === 0 || e.button === 2) {
+      dragging2dPan = true;
       drag2dLastSx = pt.sx;
       drag2dLastSy = pt.sy;
-    } else if (e.button === 0) {
-      drag2dMode = 'ruler';
-      const world = logicalToWorld2d(pt.sx, pt.sy);
-      rulerStart = world;
-      rulerEnd = world;
-      rulerActive = true;
-      recomputeRulerLoS();
-      redraw2DIfActive();
     }
   };
 
@@ -695,7 +530,7 @@ export function createMapViewerController(_scene: THREE.Scene): MapViewerControl
     pan2dX = pt.sx - blueprintW * 0.5 - (beforeMx - blueprintW * 0.5) * zoom2d;
     pan2dY = pt.sy - blueprintH * 0.5 - (beforeMy - blueprintH * 0.5) * zoom2d;
     clamp2dPan();
-    syncRulerHud();
+    syncZoomHud();
     redraw2DIfActive();
   };
 
@@ -736,33 +571,21 @@ export function createMapViewerController(_scene: THREE.Scene): MapViewerControl
       return;
     }
 
-    if (activeTab === '2d' && drag2dMode) {
+    if (activeTab === '2d' && dragging2dPan) {
       const pt = clientToLogical2d(e.clientX, e.clientY);
       if (!pt) return;
-
-      if (drag2dMode === 'pan') {
-        pan2dX += pt.sx - drag2dLastSx;
-        pan2dY += pt.sy - drag2dLastSy;
-        drag2dLastSx = pt.sx;
-        drag2dLastSy = pt.sy;
-        clamp2dPan();
-        redraw2DIfActive();
-      } else if (drag2dMode === 'ruler') {
-        rulerEnd = logicalToWorld2d(pt.sx, pt.sy);
-        recomputeRulerLoS();
-        redraw2DIfActive();
-      }
+      pan2dX += pt.sx - drag2dLastSx;
+      pan2dY += pt.sy - drag2dLastSy;
+      drag2dLastSx = pt.sx;
+      drag2dLastSy = pt.sy;
+      clamp2dPan();
+      redraw2DIfActive();
     }
   };
 
   const onWindowMouseUp = () => {
-    if (drag2dMode === 'ruler' && rulerDistM < 0.25) {
-      rulerActive = false;
-      syncRulerHud();
-      redraw2DIfActive();
-    }
     drag3dMode = null;
-    drag2dMode = null;
+    dragging2dPan = false;
   };
 
   function setTab(tab: ViewerTab): void {
@@ -774,7 +597,7 @@ export function createMapViewerController(_scene: THREE.Scene): MapViewerControl
     syncToggleUi();
     if (tab === '2d') {
       syncBlueprintBufferSize();
-      syncRulerHud();
+      syncZoomHud();
       redraw2DIfActive();
     }
   }
@@ -810,8 +633,7 @@ export function createMapViewerController(_scene: THREE.Scene): MapViewerControl
     zoom2d = 1.0;
     pan2dX = 0;
     pan2dY = 0;
-    rulerActive = false;
-    syncRulerHud();
+    syncZoomHud();
     redraw2DIfActive();
   };
 
@@ -861,7 +683,7 @@ export function createMapViewerController(_scene: THREE.Scene): MapViewerControl
     if (!openState) return;
     openState = false;
     drag3dMode = null;
-    drag2dMode = null;
+    dragging2dPan = false;
     modalEl?.classList.add('hidden');
     syncBodyClasses();
     onCloseCallback?.();

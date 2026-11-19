@@ -48,8 +48,23 @@ import {
  * procedural WebAudio cues, and HUD overlays all receive a single coherent
  * `AbilityFrameFeedback` snapshot.
  */
+export const CONTROLLER_SMOKE_RANGE_M = 40.0;
+
+export function getControllerSmokeRadius(colorId: AgentColorId): number {
+  return colorId === 'violet' ? 3.6 : 4.2;
+}
+
 export interface AbilitySystem {
   cast(slot: AbilitySlot, player: PlayerState, input: InputState): boolean;
+  canCastControllerSmoke(colorId: AgentColorId): boolean;
+  getControllerSmokeCharges(colorId: AgentColorId): number;
+  castRemoteSmoke(
+    colorId: AgentColorId,
+    worldX: number,
+    worldZ: number,
+    playerPos: Vec3,
+    colliders: AABB[]
+  ): boolean;
   castForBot(
     slot: AbilitySlot,
     bot: Combatant,
@@ -3750,8 +3765,85 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
     };
   }
 
+  function canCastControllerSmoke(colorId: AgentColorId): boolean {
+    if (colorId !== 'blue' && colorId !== 'violet') return false;
+    return charges[colorId].q > 0 && cooldowns[colorId].q <= 0;
+  }
+
+  function getControllerSmokeCharges(colorId: AgentColorId): number {
+    return charges[colorId]?.q ?? 0;
+  }
+
+  function resolveTabletFloorY(x: number, z: number, colliders: AABB[]): number {
+    // Cast down from y = 3.85m (clears high roofs >= 4.2m while hitting A Heaven +3.0m & Catwalk +0.85m).
+    const rayOrigin: Vec3 = { x, y: 3.85, z };
+    const downDir: Vec3 = { x: 0, y: -1, z: 0 };
+    let bestDist = 4.5;
+    let floorY = 0;
+    for (const box of colliders) {
+      const hit = raycastAABB(rayOrigin, downDir, box, bestDist);
+      if (hit && hit.distance < bestDist && hit.normal.y >= 0.5) {
+        bestDist = hit.distance;
+        floorY = hit.point.y;
+      }
+    }
+    return floorY;
+  }
+
+  function castRemoteSmoke(
+    colorId: AgentColorId,
+    worldX: number,
+    worldZ: number,
+    playerPos: Vec3,
+    colliders: AABB[]
+  ): boolean {
+    if (!canCastControllerSmoke(colorId)) return false;
+    const dist = Math.hypot(worldX - playerPos.x, worldZ - playerPos.z);
+    if (dist > CONTROLLER_SMOKE_RANGE_M + 0.5) return false;
+
+    const maxHalfW = ARENA_WIDTH_M * 0.5 - 1.5;
+    const maxHalfD = ARENA_DEPTH_M * 0.5 - 1.5;
+    const cx = clamp(worldX, -maxHalfW, maxHalfW);
+    const cz = clamp(worldZ, -maxHalfD, maxHalfD);
+    const floorY = resolveTabletFloorY(cx, cz, colliders);
+
+    charges[colorId].q -= 1;
+    cooldowns[colorId].q = 0.25;
+
+    if (colorId === 'blue') {
+      spawnZone(
+        'smoke',
+        'blue',
+        playerTeam,
+        { x: cx, y: floorY + SMOKE_CENTER_Y_OFFSET, z: cz },
+        SMOKE_RADIUS,
+        SMOKE_DURATION_SEC,
+        playerCasterId
+      );
+      bursts.push(createSmokeShockwaveVisual({ x: cx, y: floorY, z: cz }));
+      pendingAudioEvents.push('smoke_bloom');
+      return true;
+    }
+
+    spawnZone(
+      'void_smoke',
+      'violet',
+      playerTeam,
+      { x: cx, y: floorY + VOID_SMOKE_FLOOR_Y_OFFSET, z: cz },
+      VOID_SMOKE_RADIUS,
+      VOID_SMOKE_DURATION_SEC,
+      playerCasterId
+    );
+    bursts.push(createSmokeShockwaveVisual({ x: cx, y: floorY, z: cz }, 0xc084fc));
+    pendingAudioEvents.push('void_bloom');
+    return true;
+  }
+
   return {
     cast,
+    canCastControllerSmoke,
+    getControllerSmokeCharges,
+    castRemoteSmoke,
     castForBot,
     notifyKill,
     resetRound,

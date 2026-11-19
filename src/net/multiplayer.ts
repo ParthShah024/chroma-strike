@@ -71,6 +71,7 @@ export interface PlayerStateOutbound {
   weaponId: WeaponId;
   firing?: boolean;
   sliding?: boolean;
+  crouching?: boolean;
   ultActive?: boolean;
 }
 
@@ -504,6 +505,7 @@ export function createMultiplayerClient(serverUrl?: string): MultiplayerClient {
             weaponId: (msg.weaponId as WeaponId) ?? 'pistol',
             firing: Boolean(msg.firing),
             sliding: Boolean(msg.sliding),
+            crouching: Boolean(msg.crouching),
             ultActive: Boolean(msg.ultActive),
             timestampMs: Date.now(),
           };

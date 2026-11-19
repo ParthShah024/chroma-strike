@@ -1563,31 +1563,6 @@
         font-size: 11.5px;
       }
 
-      .mv-ruler-readout {
-        padding: 9px 11px;
-        border-radius: 8px;
-        background: rgba(255, 255, 255, 0.04);
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        font-size: 11px;
-        font-weight: 800;
-        letter-spacing: 0.04em;
-        line-height: 1.4;
-        color: var(--text-muted);
-        font-variant-numeric: tabular-nums;
-      }
-
-      .mv-ruler-readout.clear {
-        border-color: rgba(46, 204, 113, 0.65);
-        background: rgba(46, 204, 113, 0.12);
-        color: #86efac;
-      }
-
-      .mv-ruler-readout.blocked {
-        border-color: rgba(239, 68, 68, 0.65);
-        background: rgba(239, 68, 68, 0.12);
-        color: #fca5a5;
-      }
-
       .mv-2d-controls-row {
         display: flex;
         align-items: center;
@@ -1624,36 +1599,36 @@
         border: 1px solid rgba(255, 255, 255, 0.25);
       }
 
-      /* Full-Screen [CapsLock] Tactical Map Overlay */
-      #tactical-map-overlay {
+      /* Brimstone-Style Tactical Smoke Placement Tablet (Controllers) */
+      #smoke-tablet-modal {
         position: fixed;
         inset: 0;
-        z-index: 28;
+        z-index: 29;
         display: flex;
         align-items: center;
         justify-content: center;
-        background: rgba(6, 10, 16, 0.78);
-        backdrop-filter: blur(8px);
-        padding: 16px;
+        background: rgba(6, 10, 16, 0.7);
+        backdrop-filter: blur(7px);
+        padding: 14px;
       }
 
-      #tactical-map-overlay.hidden {
+      #smoke-tablet-modal.hidden {
         display: none;
       }
 
-      .tactical-map-card {
+      .smoke-tablet-card {
         display: flex;
         flex-direction: column;
         align-items: center;
         gap: 10px;
         padding: 14px 16px;
         border-radius: 14px;
-        background: rgba(13, 18, 27, 0.94);
-        border: 1px solid rgba(255, 255, 255, 0.16);
-        box-shadow: 0 24px 64px rgba(0, 0, 0, 0.72);
+        background: rgba(11, 16, 25, 0.96);
+        border: 1px solid rgba(56, 189, 248, 0.38);
+        box-shadow: 0 24px 64px rgba(0, 0, 0, 0.78);
       }
 
-      .tactical-map-head {
+      .smoke-tablet-head {
         width: 100%;
         display: flex;
         align-items: center;
@@ -1661,52 +1636,221 @@
         gap: 10px;
       }
 
-      .tactical-map-title {
+      #smoke-tablet-title {
+        font-size: 12.5px;
+        font-weight: 900;
+        letter-spacing: 0.12em;
+        color: #7ee7ff;
+      }
+
+      .smoke-tablet-head-right {
         display: flex;
         align-items: center;
         gap: 8px;
-        font-size: 13px;
+      }
+
+      #smoke-tablet-charges {
+        padding: 3px 8px;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        color: #e0f2fe;
+        background: rgba(56, 189, 248, 0.16);
+        border: 1px solid rgba(56, 189, 248, 0.45);
+      }
+
+      #smoke-tablet-canvas {
+        display: block;
+        width: min(74vh, 460px);
+        height: auto;
+        max-width: calc(100vw - 48px);
+        max-height: calc(100vh - 150px);
+        aspect-ratio: 460 / 504;
+        border-radius: 9px;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        cursor: crosshair;
+      }
+
+      #smoke-tablet-hint {
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        color: #bae6fd;
+        text-align: center;
+      }
+
+      #smoke-tablet-hint.out-of-range {
+        color: #fca5a5;
+      }
+
+      /* Post-Match Ranked Performance Scoreboard Modal */
+      #match-summary-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 36;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(6, 9, 15, 0.84);
+        backdrop-filter: blur(12px);
+        padding: 20px;
+      }
+
+      #match-summary-modal.hidden {
+        display: none;
+      }
+
+      .ms-card {
+        width: min(880px, 95vw);
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        padding: 22px 24px;
+        border-radius: 16px;
+        background: rgba(12, 17, 26, 0.96);
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        box-shadow: 0 28px 80px rgba(0, 0, 0, 0.8);
+      }
+
+      .ms-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+      }
+
+      #ms-outcome {
+        font-size: 28px;
         font-weight: 900;
         letter-spacing: 0.14em;
-        color: #fff;
+        color: #86efac;
       }
 
-      #tactical-map-side {
-        padding: 2px 8px;
-        border-radius: 999px;
-        font-size: 9.5px;
+      #ms-outcome.defeat {
+        color: #fda4af;
+      }
+
+      #ms-score {
+        font-size: 24px;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        color: #fff;
+        font-variant-numeric: tabular-nums;
+      }
+
+      #ms-mvp-banner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 9px 14px;
+        border-radius: 10px;
+        background: linear-gradient(90deg, rgba(250, 204, 21, 0.16), rgba(56, 189, 248, 0.08));
+        border: 1px solid rgba(250, 204, 21, 0.45);
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        color: #fef08a;
+      }
+
+      .ms-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .ms-table th {
+        padding: 8px 10px;
+        text-align: left;
+        font-size: 10px;
         font-weight: 900;
         letter-spacing: 0.1em;
-      }
-
-      #tactical-map-side.atk {
-        color: #ff9a76;
-        background: rgba(255, 123, 84, 0.18);
-        border: 1px solid rgba(255, 123, 84, 0.5);
-      }
-
-      #tactical-map-side.def {
-        color: #7ee7ff;
-        background: rgba(56, 189, 248, 0.18);
-        border: 1px solid rgba(56, 189, 248, 0.5);
-      }
-
-      #tactical-map-canvas {
-        display: block;
-        width: min(78vh, 560px);
-        height: auto;
-        max-width: calc(100vw - 56px);
-        max-height: calc(100vh - 130px);
-        aspect-ratio: 84 / 92;
-        border-radius: 8px;
-        border: 1px solid rgba(255, 255, 255, 0.12);
-      }
-
-      .tactical-map-foot {
-        font-size: 10px;
-        font-weight: 700;
-        letter-spacing: 0.08em;
         color: var(--text-muted);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+      }
+
+      .ms-table td {
+        padding: 9px 10px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        font-weight: 700;
+      }
+
+      .ms-row-self {
+        background: rgba(56, 189, 248, 0.1);
+      }
+
+      .ms-tier-pill {
+        display: inline-block;
+        min-width: 28px;
+        text-align: center;
+        padding: 2px 7px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 900;
+      }
+
+      .ms-tier-pill.tier-splus {
+        background: rgba(250, 204, 21, 0.25);
+        color: #fde047;
+        border: 1px solid rgba(250, 204, 21, 0.65);
+      }
+
+      .ms-tier-pill.tier-s {
+        background: rgba(168, 85, 247, 0.24);
+        color: #e9d5ff;
+        border: 1px solid rgba(168, 85, 247, 0.6);
+      }
+
+      .ms-tier-pill.tier-a {
+        background: rgba(56, 189, 248, 0.2);
+        color: #7dd3fc;
+        border: 1px solid rgba(56, 189, 248, 0.55);
+      }
+
+      .ms-tier-pill.tier-b {
+        background: rgba(34, 197, 94, 0.18);
+        color: #86efac;
+        border: 1px solid rgba(34, 197, 94, 0.45);
+      }
+
+      .ms-tier-pill.tier-c {
+        background: rgba(148, 163, 184, 0.15);
+        color: #cbd5e1;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+      }
+
+      .ms-player-cell {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .ms-team-tag {
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 9.5px;
+        font-weight: 900;
+      }
+
+      .ms-team-tag.ally {
+        color: #7ee7ff;
+        background: rgba(56, 189, 248, 0.16);
+      }
+
+      .ms-team-tag.enemy {
+        color: #fda4af;
+        background: rgba(255, 59, 92, 0.16);
+      }
+
+      .ms-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 10px;
+        padding-top: 4px;
       }
       /* ================= Wave 2B: violet/gold agents, HUD juice ================= */
       .agent-dot[data-color='violet'] {
@@ -3894,6 +4038,52 @@
         text-align: center;
         padding: 4px 0;
       }
+
+      .cr-summary-bar {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 6px;
+        padding: 6px 8px;
+        margin-bottom: 8px;
+        border-radius: 7px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        font-size: 10.5px;
+        font-weight: 800;
+        text-align: center;
+      }
+
+      .cr-summary-bar span {
+        display: block;
+        font-size: 9px;
+        color: var(--text-muted);
+        letter-spacing: 0.08em;
+      }
+
+      .cr-badge {
+        display: inline-block;
+        padding: 1px 5px;
+        border-radius: 4px;
+        font-size: 9px;
+        font-weight: 900;
+        letter-spacing: 0.05em;
+        flex-shrink: 0;
+      }
+
+      .cr-badge.kill {
+        color: #86efac;
+        background: rgba(34, 197, 94, 0.22);
+      }
+
+      .cr-badge.assist {
+        color: #fde047;
+        background: rgba(250, 204, 21, 0.2);
+      }
+
+      .cr-badge.ko {
+        color: #fda4af;
+        background: rgba(255, 59, 92, 0.22);
+      }
     </style>
   </head>
   <body class="in-frontend">
@@ -3910,7 +4100,7 @@
     </div>
 
     <!-- Top Left 2x-DPR Vector Radar Minimap -->
-    <div id="minimap-wrap" title="Click for Full Tactical Map [CapsLock]">
+    <div id="minimap-wrap" title="Click or press [M] for Tactical Map">
       <div class="minimap-head">
         <span>ASCENT • RADAR</span>
         <span class="minimap-sites"><b class="site-a">A</b><b class="site-b">B</b></span>
@@ -3918,24 +4108,7 @@
       <canvas id="minimap-canvas" width="420" height="460"></canvas>
       <div class="minimap-footer">
         <button type="button" id="minimap-mode-pill">[N] RADAR</button>
-        <span class="minimap-caps-hint">[CAPS] FULL MAP</span>
-      </div>
-    </div>
-
-    <!-- Full-Screen [CapsLock] Valorant Tactical Map Overlay -->
-    <div id="tactical-map-overlay" class="hidden" role="dialog" aria-label="Tactical Map">
-      <div class="tactical-map-card">
-        <div class="tactical-map-head">
-          <div class="tactical-map-title">
-            CHROMA ASCENT &mdash; TACTICAL MAP
-            <span id="tactical-map-side" class="atk">ATTACKER</span>
-          </div>
-          <button type="button" class="xhair-close" id="tactical-map-close">CLOSE [CAPS]</button>
-        </div>
-        <canvas id="tactical-map-canvas" width="1120" height="1228"></canvas>
-        <div class="tactical-map-foot">
-          HEAVEN (+3.0m) &bull; CATWALK / B LANE (+0.85m) &bull; BLAST DOORS (CYAN OPEN / AMBER CLOSED / RED BROKEN)
-        </div>
+        <span class="minimap-caps-hint">[M] FULL MAP</span>
       </div>
     </div>
 
@@ -4011,9 +4184,8 @@
       <div id="kill-medal-streak"></div>
     </div>
     <div id="control-strip">
-      <b>[Q / E]</b> Abilities &bull; <b>[X]</b> Ult &bull; <b>[B]</b> Buy &bull;
-      <b>[F]</b> Doors/Spike &bull; <b>[Caps]</b> Tactical Map &bull; <b>[N]</b> Radar &bull;
-      <b>[M]</b> 3D/2D Viewer &bull; <b>[Space]</b> Skip Buy
+      <b>[Q / E]</b> Abilities &bull; <b>[X]</b> Ult &bull; <b>[C / Ctrl]</b> Crouch &bull; <b>[B]</b> Buy &bull;
+      <b>[F]</b> Doors/Spike &bull; <b>[N]</b> Radar &bull; <b>[M]</b> Tactical Map &bull; <b>[Space]</b> Skip Buy
     </div>
 
     <!-- Minimalist Bottom HUD -->
@@ -4053,7 +4225,7 @@
         <div class="hint-chip" id="hint-buy">[B] SHOP</div>
         <div class="hint-chip" id="hint-agents">[H] AGENTS</div>
         <div class="hint-chip" id="hint-settings">[O] SETTINGS</div>
-        <div class="hint-chip" id="hint-xhair">[C] XHAIR</div>
+        <div class="hint-chip" id="hint-crouch">[C/CTRL] CROUCH</div>
         <div class="hint-chip" id="hint-map">[M] MAP</div>
       </div>
     </div>
@@ -4283,7 +4455,7 @@
           <button type="button" class="mv-tab active" id="mv-tab-2d">2D TACTICAL MAP</button>
           <button type="button" class="mv-tab" id="mv-tab-3d">3D FLYOVER</button>
         </div>
-        <span class="mv-hint">L-Drag LoS Ruler &bull; R-Drag Pan &bull; Scroll Zoom</span>
+        <span class="mv-hint">Drag to Pan &bull; Scroll to Zoom</span>
         <button type="button" class="xhair-close" id="mv-close-btn">CLOSE [M]</button>
       </div>
 
@@ -4313,18 +4485,14 @@
         <div class="mv-2d-card">
           <canvas id="map-viewer-2d-canvas" width="1280" height="1402"></canvas>
           <div class="mv-2d-sidebar">
-            <div class="xhair-section-label">Tactical Sightline &amp; LoS Ruler</div>
-            <div id="mv-ruler-readout" class="mv-ruler-readout">
-              RULER: Left-drag on blueprint to measure distance &amp; 1.62m LoS
-            </div>
+            <div class="xhair-section-label">2D Blueprint Overview</div>
             <div class="mv-2d-controls-row">
               <span>Zoom: <b id="mv-2d-zoom">1.00x</b></span>
               <button type="button" class="mv-dock-btn" id="mv-2d-reset-btn">Reset View</button>
             </div>
             <div class="xhair-section-label">Controls</div>
             <div class="mv-legend">
-              <div><b>Left-Drag:</b> Distance &amp; 1.62m Eye LoS</div>
-              <div><b>Right-Drag / Shift:</b> Pan Blueprint</div>
+              <div><b>Left / Right Drag:</b> Pan Blueprint</div>
               <div><b>Mouse Wheel:</b> Smooth Zoom (0.75x&ndash;3.2x)</div>
             </div>
             <div class="xhair-section-label">Elevation &amp; Tactical Legend</div>
@@ -4588,6 +4756,55 @@
       </div>
     </div>
 
+    <!-- Brimstone-Style Tactical Smoke Placement Tablet (Controllers) -->
+    <div id="smoke-tablet-modal" class="hidden" role="dialog" aria-label="Tactical Smoke Tablet">
+      <div class="smoke-tablet-card">
+        <div class="smoke-tablet-head">
+          <div id="smoke-tablet-title">TACTICAL TABLET &bull; SMOKE</div>
+          <div class="smoke-tablet-head-right">
+            <span id="smoke-tablet-charges">2 / 2 CHARGES</span>
+            <button type="button" class="xhair-close" id="smoke-tablet-cancel">CANCEL [ESC]</button>
+          </div>
+        </div>
+        <canvas id="smoke-tablet-canvas" width="920" height="1008"></canvas>
+        <div id="smoke-tablet-hint">LEFT-CLICK TO PLACE SMOKE &bull; RIGHT-CLICK / [Q] / [ESC] CANCEL</div>
+      </div>
+    </div>
+
+    <!-- Post-Match Ranked Performance Scoreboard -->
+    <div id="match-summary-modal" class="hidden" role="dialog" aria-label="Match Summary">
+      <div class="ms-card">
+        <div class="ms-head">
+          <div>
+            <div id="ms-outcome">VICTORY</div>
+            <div class="overlay-sub" style="margin-bottom: 0;">POST-MATCH PERFORMANCE &amp; RANKING SUMMARY</div>
+          </div>
+          <div id="ms-score">10 &mdash; 6</div>
+        </div>
+        <div id="ms-mvp-banner">MVP: YOU</div>
+        <table class="ms-table">
+          <thead>
+            <tr>
+              <th>RANK</th>
+              <th>TIER</th>
+              <th>PLAYER</th>
+              <th>SIDE</th>
+              <th>K / D / A</th>
+              <th>DMG</th>
+              <th>ADR</th>
+              <th>HS%</th>
+              <th>SCORE</th>
+            </tr>
+          </thead>
+          <tbody id="ms-tbody"></tbody>
+        </table>
+        <div class="ms-actions">
+          <button type="button" class="buy-foot-btn" id="ms-lobby-btn">[L] RETURN TO LOBBY</button>
+          <button type="button" class="buy-foot-btn primary" id="ms-rematch-btn">[ENTER] PLAY AGAIN</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Click-to-play Pointer Lock overlay -->
     <div id="overlay" class="hidden">
       <div class="overlay-card">
@@ -4595,17 +4812,17 @@
         <div class="overlay-sub">3v3 Search &amp; Destroy — Counter-strafe for 100% first-shot accuracy</div>
         <div class="controls-grid">
           <div class="ctrl-item"><span class="key">WASD / Shift</span> Move / Walk (Slide: Volt)</div>
+          <div class="ctrl-item"><span class="key">C / Ctrl</span> Crouch (Steady Aim)</div>
           <div class="ctrl-item"><span class="key">Space</span> Jump / Windy Glide / Skip Buy</div>
           <div class="ctrl-item"><span class="key">1-4 / Wheel</span> Sidearm / Owned Primary</div>
           <div class="ctrl-item"><span class="key">Right Click</span> Scope / ADS</div>
           <div class="ctrl-item"><span class="key">B</span> Buyout Shop (Buy Phase)</div>
           <div class="ctrl-item"><span class="key">H / F1-F6</span> Agent Select / Switch</div>
           <div class="ctrl-item"><span class="key">F / G</span> Doors &amp; Spike / Drop</div>
-          <div class="ctrl-item"><span class="key">Q / E</span> Tactical Abilities</div>
+          <div class="ctrl-item"><span class="key">Q / E</span> Abilities (Q Tablet: Controllers)</div>
           <div class="ctrl-item"><span class="key">X</span> Ultimate Ability (5 Pts)</div>
-          <div class="ctrl-item"><span class="key">O / C</span> Settings / Crosshair</div>
-          <div class="ctrl-item"><span class="key">M</span> 2D Tactical Map / 3D Flyover</div>
-          <div class="ctrl-item"><span class="key">Caps / N</span> Tactical Map / Radar</div>
+          <div class="ctrl-item"><span class="key">O</span> Settings &amp; Crosshair</div>
+          <div class="ctrl-item"><span class="key">M / N</span> 2D Tactical Map / Radar</div>
           <div class="ctrl-item"><span class="key">Tab</span> Bot Takeover</div>
           <div class="ctrl-item"><span class="key">Left Click / R</span> Shoot / Reload</div>
         </div>
@@ -4615,7 +4832,7 @@
             [O] SETTINGS
           </button>
           <button type="button" class="overlay-xhair-btn" id="open-xhair-from-overlay">
-            [C] CROSSHAIR
+            CROSSHAIR
           </button>
           <button type="button" class="overlay-xhair-btn" id="open-map-from-overlay">
             [M] 2D TACTICAL MAP

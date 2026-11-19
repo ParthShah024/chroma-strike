@@ -7,6 +7,8 @@ import { loadOptionalGlbAsset } from './glbOverride';
 export interface CharacterRigExtraState {
   /** Seconds of Power-Slide remaining (> 0 = sliding). Optional for older callers. */
   slideTimer?: number;
+  /** True when the combatant is actively crouched. */
+  crouching?: boolean;
   /** Seconds of concussion remaining (> 0 = gold-white electric shimmer). */
   concussTimer?: number;
   /** Carrying the Spike: shows the Mini-Radianite canister slung across the upper back. */
@@ -47,6 +49,8 @@ export interface CharacterRig {
       occludedBySmoke: boolean;
       /** Seconds of Power-Slide remaining (> 0 = sliding). Optional for older callers. */
       slideTimer?: number;
+      /** True when the combatant is actively crouched. */
+      crouching?: boolean;
       /** Seconds of concussion remaining (> 0 = gold-white electric shimmer). */
       concussTimer?: number;
       /** Carrying the Spike (dorsal canister visible while alive). */
@@ -2279,6 +2283,7 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
   let lastHitWasHeadshot = false;
   let wasAlive = true;
   let slideBlend = 0; // 0 = normal gait .. 1 = full Power-Slide pose
+  let crouchBlend = 0; // 0 = upright .. 1 = tactical crouch pose
   let plantBlend = 0; // 0 = standing .. 1 = full one-knee plant/defuse crouch
   let ultBlend = 0; // 0 = off .. 1 = full Ultimate Overcharge aura
 
@@ -2426,6 +2431,7 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
       blindTimer: number;
       occludedBySmoke: boolean;
       slideTimer?: number;
+      crouching?: boolean;
       concussTimer?: number;
       hasSpike?: boolean;
       channelingSpike?: boolean;
@@ -2470,9 +2476,11 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
         rightLeg.knee.rotation.x *= relax;
       }
       plantBlend *= Math.exp(-14 * stepDt);
+      crouchBlend *= Math.exp(-14 * stepDt);
       if (plantBlend < 1e-4) plantBlend = 0;
+      if (crouchBlend < 1e-4) crouchBlend = 0;
       ultBlend = 0;
-      const slideY = SLIDE_DROP_M * slideBlend;
+      const slideY = SLIDE_DROP_M * slideBlend - 0.36 * crouchBlend;
       bodyTiltGroup.position.y = slideY + (PLANT_DROP_M - slideY) * plantBlend;
       keypadGroup.visible = false;
       ultGroup.visible = false;
@@ -2488,6 +2496,7 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
       bodyTiltGroup.rotation.x = 0;
       bodyTiltGroup.position.y = 0;
       slideBlend = 0;
+      crouchBlend = 0;
       plantBlend = 0;
       ultBlend = 0;
       gaitPhase = 0;
@@ -2553,14 +2562,31 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
     slideBlend += ((sliding ? 1 : 0) - slideBlend) * (1 - Math.exp(-14 * stepDt));
     if (slideBlend < 1e-4) slideBlend = 0;
     const sb = slideBlend;
-    leftLeg.hip.rotation.x = gaitHipL + (SLIDE_LEAD_HIP_RAD - gaitHipL) * sb;
-    rightLeg.hip.rotation.x = gaitHipR + (SLIDE_TRAIL_HIP_RAD - gaitHipR) * sb;
-    leftLeg.knee.rotation.x = gaitKneeL + (SLIDE_LEAD_KNEE_RAD - gaitKneeL) * sb;
-    rightLeg.knee.rotation.x = gaitKneeR + (SLIDE_TRAIL_KNEE_RAD - gaitKneeR) * sb;
-    bodyTiltGroup.position.y = SLIDE_DROP_M * sb;
+
+    const crouchingPose = Boolean(state.crouching) && !sliding && !state.channelingSpike;
+    crouchBlend += ((crouchingPose ? 1 : 0) - crouchBlend) * (1 - Math.exp(-14 * stepDt));
+    if (crouchBlend < 1e-4) crouchBlend = 0;
+    const cb = crouchBlend;
+
+    const slideHipL = gaitHipL + (SLIDE_LEAD_HIP_RAD - gaitHipL) * sb;
+    const slideHipR = gaitHipR + (SLIDE_TRAIL_HIP_RAD - gaitHipR) * sb;
+    const slideKneeL = gaitKneeL + (SLIDE_LEAD_KNEE_RAD - gaitKneeL) * sb;
+    const slideKneeR = gaitKneeR + (SLIDE_TRAIL_KNEE_RAD - gaitKneeR) * sb;
+
+    const crouchHipL = 0.88 + gaitHipL * 0.55;
+    const crouchHipR = 0.88 + gaitHipR * 0.55;
+    const crouchKneeL = -1.08 + gaitKneeL * 0.45;
+    const crouchKneeR = -1.08 + gaitKneeR * 0.45;
+
+    leftLeg.hip.rotation.x = slideHipL + (crouchHipL - slideHipL) * cb;
+    rightLeg.hip.rotation.x = slideHipR + (crouchHipR - slideHipR) * cb;
+    leftLeg.knee.rotation.x = slideKneeL + (crouchKneeL - slideKneeL) * cb;
+    rightLeg.knee.rotation.x = slideKneeR + (crouchKneeR - slideKneeR) * cb;
+    const baseDrop = SLIDE_DROP_M * sb;
+    bodyTiltGroup.position.y = baseDrop + (-0.36 - baseDrop) * cb;
 
     // -----------------------------------------------------------------------
-    // Spike plant / defuse: blend (on top of gait + slide) into a one-knee
+    // Spike plant / defuse: blend (on top of gait + slide + crouch) into a one-knee
     // tactical crouch with `b += (target - b)(1 - e^(-12 dt))`. Cancelling,
     // standing up or finishing simply drives the target back to 0.
     // -----------------------------------------------------------------------
@@ -2585,8 +2611,9 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
     upperBody.position.y = WAIST_Y + bob + breathe;
     const gaitLean = -0.07 * motion - airBlend * 0.05;
     const slideLean = gaitLean + (SLIDE_TORSO_LEAN_RAD - gaitLean) * sb;
+    const crouchLean = slideLean + (-0.11 - slideLean) * cb;
     upperBody.rotation.set(
-      slideLean + (PLANT_TORSO_LEAN_RAD - slideLean) * pb,
+      crouchLean + (PLANT_TORSO_LEAN_RAD - crouchLean) * pb,
       twist,
       Math.sin(gaitPhase) * 0.025 * motion * (1 - sb)
     );

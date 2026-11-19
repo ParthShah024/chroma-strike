@@ -92,6 +92,7 @@ export interface InputState {
   left: boolean;
   right: boolean;
   walk: boolean;
+  crouch?: boolean;
   jump: boolean;
   fire: boolean;
   /** True only on the single frame the trigger was pulled (used to gate semi-auto weapons). */
@@ -114,6 +115,7 @@ export interface PlayerState {
   armor?: number;
   maxArmor?: number;
   colorId: AgentColorId;
+  crouching?: boolean;
 }
 
 export interface RaycastHit {
@@ -156,6 +158,8 @@ export interface TargetDummy {
   concussTimer?: number;
   /** Remaining seconds of Volt Power-Slide low-profile stance. */
   slideTimer?: number;
+  /** True when the combatant is actively crouched (lowers profile & hitbox height). */
+  crouching?: boolean;
 }
 
 export interface ShotResult {
@@ -493,6 +497,8 @@ export interface MatchHudState {
   winTarget?: number;
   swapInterval?: number;
   combatReport?: RoundCombatReportEntry[];
+  roundCombatSummary?: RoundCombatSummary;
+  matchSummary?: MatchPerformanceEntry[];
   surrendered?: boolean;
 }
 
@@ -586,6 +592,7 @@ export interface RemotePlayerNetState {
   weaponId: WeaponId;
   firing?: boolean;
   sliding?: boolean;
+  crouching?: boolean;
   ultActive?: boolean;
   timestampMs: number;
 }
@@ -607,8 +614,38 @@ export interface RoundCombatReportEntry {
   hitsInHead: number;
   hitsInBody: number;
   killedOpponent: boolean;
+  assistedOpponent?: boolean;
   killedByOpponent: boolean;
   weaponTag: string;
+}
+
+export type MatchRankTier = 'S+' | 'S' | 'A' | 'B' | 'C';
+
+export interface RoundCombatSummary {
+  kills: number;
+  assists: number;
+  deaths: number;
+  damageDealt: number;
+  damageTaken: number;
+}
+
+export interface MatchPerformanceEntry {
+  id: string;
+  displayName: string;
+  team: TeamId;
+  colorId: AgentColorId;
+  isPlayer: boolean;
+  isRemoteHuman: boolean;
+  rank: number;
+  tier: MatchRankTier;
+  isMvp: boolean;
+  kills: number;
+  deaths: number;
+  assists: number;
+  damageDealt: number;
+  adr: number;
+  hsPct: number;
+  combatScore: number;
 }
 
 export interface GameSettings {

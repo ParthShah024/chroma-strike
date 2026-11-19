@@ -11,10 +11,13 @@ import {
   KillFeedEntry,
   LobbyPlayerSlot,
   MatchHudState,
+  MatchPerformanceEntry,
+  MatchRankTier,
   MinimapContact,
   PlayerState,
   RemotePlayerNetState,
   RoundCombatReportEntry,
+  RoundCombatSummary,
   RoundPhase,
   ShieldTier,
   SmokeSphere,
@@ -161,6 +164,8 @@ const HEAD_HEIGHT = 0.44;
 const TARGET_CHEST_HEIGHT = 1.2;
 const EYE_HEIGHT_M = 1.6;
 const SLIDE_HITBOX_DROP_M = 0.5;
+const CROUCH_HITBOX_DROP_M = 0.46;
+const ASSIST_DAMAGE_THRESHOLD = 25;
 const VULNERABLE_DAMAGE_MULT = 1.25;
 
 const BUY_BANNER_SUBTITLE =
@@ -312,10 +317,45 @@ export function createMatchManager(
   const botCallsignById = new Map<string, string>();
   const combatReportByOpponent = new Map<string, RoundCombatReportEntry>();
   const combatReportRawDamage = new Map<string, { out: number; in: number }>();
+  const roundDamageByVictim = new Map<string, Map<string, number>>();
+  const matchStatsById = new Map<
+    string,
+    {
+      kills: number;
+      deaths: number;
+      assists: number;
+      rawDamageDealt: number;
+      headshotHits: number;
+      totalHits: number;
+    }
+  >();
   const remoteTargetsByCombatantId = new Map<
     string,
     { position: Vec3; yaw: number; pitch: number; lastFireTracerAtMs: number }
   >();
+
+  function getOrCreateMatchStat(id: string) {
+    let st = matchStatsById.get(id);
+    if (!st) {
+      st = { kills: 0, deaths: 0, assists: 0, rawDamageDealt: 0, headshotHits: 0, totalHits: 0 };
+      matchStatsById.set(id, st);
+    }
+    return st;
+  }
+
+  function resetMatchStats(): void {
+    matchStatsById.clear();
+    for (const c of combatants) {
+      matchStatsById.set(c.id, {
+        kills: 0,
+        deaths: 0,
+        assists: 0,
+        rawDamageDealt: 0,
+        headshotHits: 0,
+        totalHits: 0,
+      });
+    }
+  }
 
   let localPlayerName = 'YOU';
   let surrendered = false;
@@ -619,6 +659,7 @@ export function createMatchManager(
   }
 
   // Seed Round 1 Economy (800¤ pistol round), Bot Buy Phase, Spike & AI
+  resetMatchStats();
   economy.resetForNewMatch(combatants);
   economy.beginBuyPhase(combatants);
   economy.runBotBuyPhase(combatants, getAttackerTeam());
@@ -666,17 +707,9 @@ export function createMatchManager(
     }
   }
 
-  function recordCombatReportDamage(
-    opponent: Combatant,
-    direction: 'out' | 'in',
-    dmg: number,
-    isHeadshot: boolean,
-    killed: boolean,
-    weaponTag: string
-  ): void {
+  function ensureCombatReportEntry(opponent: Combatant, weaponTag = ''): RoundCombatReportEntry {
     let entry = combatReportByOpponent.get(opponent.id);
-    let raw = combatReportRawDamage.get(opponent.id);
-    if (!entry || !raw) {
+    if (!entry) {
       entry = {
         opponentId: opponent.id,
         opponentName: formatCombatantLabel(opponent),
@@ -688,17 +721,30 @@ export function createMatchManager(
         hitsInHead: 0,
         hitsInBody: 0,
         killedOpponent: false,
+        assistedOpponent: false,
         killedByOpponent: false,
         weaponTag,
       };
-      raw = { out: 0, in: 0 };
       combatReportByOpponent.set(opponent.id, entry);
-      combatReportRawDamage.set(opponent.id, raw);
+      combatReportRawDamage.set(opponent.id, { out: 0, in: 0 });
     } else {
       entry.opponentName = formatCombatantLabel(opponent);
       entry.opponentColor = opponent.colorId;
       if (weaponTag) entry.weaponTag = weaponTag;
     }
+    return entry;
+  }
+
+  function recordCombatReportDamage(
+    opponent: Combatant,
+    direction: 'out' | 'in',
+    dmg: number,
+    isHeadshot: boolean,
+    killed: boolean,
+    weaponTag: string
+  ): void {
+    const entry = ensureCombatReportEntry(opponent, weaponTag);
+    const raw = combatReportRawDamage.get(opponent.id)!;
 
     if (direction === 'out') {
       raw.out += dmg;
@@ -758,8 +804,22 @@ export function createMatchManager(
 
     const killed = victim.health <= 0;
 
-    // 4. Per-round Combat Report tracking for local player engagements.
+    // 4. Per-round Combat Report & Match Leaderboard Stats tracking.
     if (attacker && attacker.team !== victim.team) {
+      let dmgMap = roundDamageByVictim.get(victim.id);
+      if (!dmgMap) {
+        dmgMap = new Map<string, number>();
+        roundDamageByVictim.set(victim.id, dmgMap);
+      }
+      dmgMap.set(attacker.id, (dmgMap.get(attacker.id) ?? 0) + dmg);
+
+      const attackerStat = getOrCreateMatchStat(attacker.id);
+      attackerStat.rawDamageDealt += dmg;
+      if (dmg >= 1 || isHeadshot) {
+        attackerStat.totalHits += 1;
+        if (isHeadshot) attackerStat.headshotHits += 1;
+      }
+
       if (attacker.isPlayer) {
         recordCombatReportDamage(victim, 'out', dmg, isHeadshot, killed, weaponTag);
       } else if (victim.isPlayer) {
@@ -795,9 +855,27 @@ export function createMatchManager(
 
     if (victim.health <= 0) {
       victim.alive = false;
+      victim.crouching = false;
       victim.velocity.x = 0;
       victim.velocity.y = 0;
       victim.velocity.z = 0;
+
+      getOrCreateMatchStat(victim.id).deaths += 1;
+
+      // Credit Assist (+1) to every opposing contributor dealing >= ASSIST_DAMAGE_THRESHOLD who didn't land the final blow.
+      const dmgContributors = roundDamageByVictim.get(victim.id);
+      if (dmgContributors) {
+        for (const [contribId, contribDmg] of dmgContributors.entries()) {
+          if (contribId === attacker?.id || contribDmg < ASSIST_DAMAGE_THRESHOLD) continue;
+          const contrib = combatantById.get(contribId);
+          if (!contrib || contrib.team === victim.team) continue;
+          getOrCreateMatchStat(contribId).assists += 1;
+          if (contrib.isPlayer) {
+            const entry = ensureCombatReportEntry(victim);
+            entry.assistedOpponent = true;
+          }
+        }
+      }
 
       // Drop Spike immediately on carrier death
       if (spikeStatus === 'carried' && spikeCarrierId === victim.id) {
@@ -809,6 +887,7 @@ export function createMatchManager(
 
       if (attacker) {
         if (attacker.team !== victim.team) {
+          getOrCreateMatchStat(attacker.id).kills += 1;
           economy.onKill(attacker.id, combatants);
           addUltPoint(attacker, 1);
           abilities.notifyKill(attacker.colorId, attacker.isPlayer);
@@ -841,7 +920,12 @@ export function createMatchManager(
 
   function getCombatantHitboxes(target: TargetDummy): { head: AABB; body: AABB } {
     const { x, y, z } = target.position;
-    const drop = (target.slideTimer ?? 0) > 0 ? SLIDE_HITBOX_DROP_M : 0;
+    const drop =
+      (target.slideTimer ?? 0) > 0
+        ? SLIDE_HITBOX_DROP_M
+        : target.crouching
+          ? CROUCH_HITBOX_DROP_M
+          : 0;
     return {
       body: {
         min: { x: x - BODY_HALF_WIDTH, y, z: z - BODY_HALF_WIDTH },
@@ -931,6 +1015,7 @@ export function createMatchManager(
     dotFlashCooldownById.clear();
     combatReportByOpponent.clear();
     combatReportRawDamage.clear();
+    roundDamageByVictim.clear();
     remoteTargetsByCombatantId.clear();
     activeFiringBotTeam = null;
 
@@ -969,6 +1054,7 @@ export function createMatchManager(
       c.vulnerableTimer = 0;
       c.concussTimer = 0;
       c.slideTimer = 0;
+      c.crouching = false;
       c.ultActiveTimer = 0;
       c.yaw = def.yaw;
       c.pitch = 0;
@@ -1007,6 +1093,7 @@ export function createMatchManager(
       playerStateRef.armor = pc.armor ?? 0;
       playerStateRef.maxArmor = pc.maxArmor ?? 0;
       playerStateRef.colorId = pc.colorId;
+      playerStateRef.crouching = false;
     }
 
     resetSpikeForRound();
@@ -1209,6 +1296,7 @@ export function createMatchManager(
     enemyScore = 0;
     killFeed.length = 0;
     ownedPrimaryById.clear();
+    resetMatchStats();
     if (options.playerName !== undefined) {
       localPlayerName = sanitizeDisplayName(options.playerName, 'YOU');
     }
@@ -1310,6 +1398,7 @@ export function createMatchManager(
       target.health = Math.max(0, Math.min(target.maxHealth, remote.health));
       target.armor = Math.max(0, remote.armor);
       target.alive = remote.alive;
+      target.crouching = Boolean(remote.crouching);
       target.slideTimer = remote.sliding ? 0.2 : 0;
       if (remote.ultActive) {
         target.ultActiveTimer = Math.max(target.ultActiveTimer ?? 0, 0.5);
@@ -1324,7 +1413,12 @@ export function createMatchManager(
         const nowMs = Date.now();
         if (nowMs - nextSnap.lastFireTracerAtMs >= 75) {
           nextSnap.lastFireTracerAtMs = nowMs;
-          const drop = (target.slideTimer ?? 0) > 0 ? SLIDE_HITBOX_DROP_M : 0;
+          const drop =
+            (target.slideTimer ?? 0) > 0
+              ? SLIDE_HITBOX_DROP_M
+              : target.crouching
+                ? CROUCH_HITBOX_DROP_M
+                : 0;
           const eyeOrigin: Vec3 = {
             x: target.position.x,
             y: target.position.y + EYE_HEIGHT_M - drop,
@@ -1523,6 +1617,7 @@ export function createMatchManager(
     surrendered = false;
     killFeed.length = 0;
     ownedPrimaryById.clear();
+    resetMatchStats();
     economy.resetForNewMatch(combatants);
     resetUltimatesForHalf();
     setupRound(1);
@@ -1569,6 +1664,7 @@ export function createMatchManager(
       player.armor = pc.armor ?? 0;
       player.maxArmor = pc.maxArmor ?? 0;
       player.colorId = pc.colorId;
+      player.crouching = Boolean(pc.crouching);
       lastSyncedPlayerHealth = pc.health;
       pendingSyncCombatantToPlayer = false;
       return;
@@ -1594,6 +1690,8 @@ export function createMatchManager(
 
     if (pc.health <= 0 && pc.alive) {
       pc.alive = false;
+      pc.crouching = false;
+      getOrCreateMatchStat(pc.id).deaths += 1;
       addUltPoint(pc, 1);
       if (spikeStatus === 'carried' && spikeCarrierId === pc.id) {
         dropSpikeAt(pc.position, null);
@@ -1610,6 +1708,7 @@ export function createMatchManager(
     pc.velocity.y = player.velocity.y;
     pc.velocity.z = player.velocity.z;
     pc.grounded = player.grounded;
+    pc.crouching = Boolean(player.crouching);
     pc.yaw = yaw;
     pc.pitch = pitch;
 
@@ -2140,6 +2239,7 @@ export function createMatchManager(
           blindTimer: c.blindTimer,
           occludedBySmoke,
           slideTimer: c.slideTimer,
+          crouching: Boolean(c.crouching),
           concussTimer: c.concussTimer,
           hasSpike: spikeStatus === 'carried' && spikeCarrierId === c.id,
           channelingSpike: channelingCombatantId === c.id,
@@ -2208,6 +2308,17 @@ export function createMatchManager(
         ? findNearbyDoorSwitch(player.position, 2.5)
         : null;
 
+    const combatReportList = Array.from(combatReportByOpponent.values()).map((entry) => ({
+      ...entry,
+    }));
+    const roundCombatSummary: RoundCombatSummary = {
+      kills: combatReportList.filter((e) => e.killedOpponent).length,
+      assists: combatReportList.filter((e) => e.assistedOpponent).length,
+      deaths: playerCombatant.alive ? 0 : 1,
+      damageDealt: combatReportList.reduce((sum, e) => sum + e.damageOut, 0),
+      damageTaken: combatReportList.reduce((sum, e) => sum + e.damageIn, 0),
+    };
+
     return {
       phase,
       roundNumber,
@@ -2247,9 +2358,61 @@ export function createMatchManager(
       nearbyDoorPrompt,
       winTarget,
       swapInterval: SWAP_INTERVAL_ROUNDS,
-      combatReport: Array.from(combatReportByOpponent.values()).map((entry) => ({ ...entry })),
+      combatReport: combatReportList,
+      roundCombatSummary,
+      matchSummary: phase === 'match_over' ? buildMatchSummary() : undefined,
       surrendered,
     };
+  }
+
+  function computeRankTier(combatScore: number, isFirst: boolean): MatchRankTier {
+    if (combatScore >= 320 || (isFirst && combatScore >= 260)) return 'S+';
+    if (combatScore >= 245) return 'S';
+    if (combatScore >= 185) return 'A';
+    if (combatScore >= 125) return 'B';
+    return 'C';
+  }
+
+  function buildMatchSummary(): MatchPerformanceEntry[] {
+    const roundsPlayed = Math.max(1, allyScore + enemyScore, roundNumber);
+    const unsorted = combatants.map((c) => {
+      const st = getOrCreateMatchStat(c.id);
+      const damageDealt = Math.round(st.rawDamageDealt);
+      const adr = Math.round(damageDealt / roundsPlayed);
+      const hsPct = st.totalHits > 0 ? Math.round((st.headshotHits / st.totalHits) * 100) : 0;
+      const combatScore = Math.round((st.kills * 150 + st.assists * 50 + damageDealt) / roundsPlayed);
+      return {
+        id: c.id,
+        displayName: formatCombatantLabel(c),
+        team: c.team,
+        colorId: c.colorId,
+        isPlayer: c.isPlayer,
+        isRemoteHuman: Boolean(c.isRemoteHuman),
+        kills: st.kills,
+        deaths: st.deaths,
+        assists: st.assists,
+        damageDealt,
+        adr,
+        hsPct,
+        combatScore,
+      };
+    });
+
+    unsorted.sort(
+      (a, b) =>
+        b.combatScore - a.combatScore ||
+        b.kills - a.kills ||
+        b.damageDealt - a.damageDealt ||
+        b.assists - a.assists ||
+        a.deaths - b.deaths
+    );
+
+    return unsorted.map((entry, idx) => ({
+      ...entry,
+      rank: idx + 1,
+      isMvp: idx === 0,
+      tier: computeRankTier(entry.combatScore, idx === 0),
+    }));
   }
 
   return {

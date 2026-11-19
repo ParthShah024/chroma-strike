@@ -1392,17 +1392,23 @@ export function createWeaponSystem(
 
     const horizontalSpeed = getHorizontalSpeed(player.velocity);
     const isStationary = horizontalSpeed < 0.45 && player.grounded;
-    const stationaryBase = ignoreAirSpread
-      ? 0
-      : isScoped && currentWeaponId === 'sniper' && adsBlend >= 0.65
-        ? spec.scopedSpreadRad
-        : spec.baseSpreadRad * adsSpreadFactor;
+    const crouchGrounded = Boolean(player.crouching && player.grounded);
+    const crouchBaseMult = crouchGrounded ? 0.78 : 1;
+    const crouchMoveMult = crouchGrounded ? 0.72 : 1;
+    const stationaryBase =
+      (ignoreAirSpread
+        ? 0
+        : isScoped && currentWeaponId === 'sniper' && adsBlend >= 0.65
+          ? spec.scopedSpreadRad
+          : spec.baseSpreadRad * adsSpreadFactor) * crouchBaseMult;
     const movePart =
       (isStationary ? 0 : (horizontalSpeed / RUN_SPEED) * spec.moveSpreadRad) *
       moveSpreadScale *
-      adsDynamicFactor;
+      adsDynamicFactor *
+      crouchMoveMult;
     const airPart = player.grounded || ignoreAirSpread ? 0 : spec.airSpreadRad;
-    const sprayPart = state.recoilAccumulator * 0.035 * adsDynamicFactor * (ignoreAirSpread ? 0.25 : 1);
+    const sprayPart =
+      state.recoilAccumulator * 0.035 * adsDynamicFactor * (ignoreAirSpread ? 0.25 : 1) * crouchBaseMult;
     state.currentSpread = stationaryBase + movePart + airPart + sprayPart;
 
     let result: ShotResult = {

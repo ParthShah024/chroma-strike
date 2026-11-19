@@ -788,6 +788,7 @@ export function createGameServer(options = {}) {
           weaponId: msg.weaponId ?? 'pistol',
           firing: Boolean(msg.firing),
           sliding: Boolean(msg.sliding),
+          crouching: Boolean(msg.crouching),
           ultActive: Boolean(msg.ultActive),
           timestampMs: Date.now(),
         },

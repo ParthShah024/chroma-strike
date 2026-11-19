@@ -27,6 +27,15 @@ export const RUN_SPEED = 5.55;
 /** Maximum Shift-walk speed in meters per second (silent, low-spread movement). */
 export const WALK_SPEED = 3.0;
 
+/** Maximum crouched movement speed in meters per second (quietest, tightest spread). */
+export const CROUCH_SPEED = 2.45;
+
+/** Full standing capsule height drops to this height (in meters) while crouched. */
+export const CROUCH_HEIGHT = 1.24;
+
+/** Vertical eye offset (in meters) applied to 1P/spectator camera while crouched. */
+export const CROUCH_EYE_OFFSET = -0.52;
+
 /**
  * Maximum vertical ledge/stair height in meters that a grounded player or bot
  * can automatically step up onto while moving horizontally (Quake/Valorant style).
@@ -69,6 +78,7 @@ export function createInitialPlayerState(
     health: 100,
     maxHealth: 100,
     colorId: 'red',
+    crouching: false,
   };
 }
 
@@ -214,6 +224,13 @@ export function updatePlayerMovement(
   const stepDt = Math.min(Math.max(dt, 0), MAX_STEP_DT);
   if (stepDt === 0) return;
 
+  const wantsCrouch = Boolean(input.crouch && !modifiers?.slideActive);
+  const canStandUp =
+    !player.crouching ||
+    wantsCrouch ||
+    canStepUpToY(player.position.x, player.position.y, player.position.z, colliders, PLAYER_HEIGHT);
+  player.crouching = wantsCrouch || !canStandUp;
+
   if (modifiers?.dashActive) {
     // Impulse override: lock velocity to the dash impulse vector and skip
     // ground friction, acceleration, and gravity for the duration of the dash.
@@ -243,9 +260,9 @@ export function updatePlayerMovement(
       wishZ /= wishLen;
     }
 
-    // Scale movement speed cap by active ability modifiers (e.g., 0.55x Cryo slow, 1.22x Bio-Stim).
-    const maxSpeed =
-      (input.walk ? WALK_SPEED : RUN_SPEED) * (modifiers?.speedMultiplier ?? 1.0);
+    // Scale movement speed cap by stance (crouch / walk / run) and active ability modifiers.
+    const baseMoveSpeed = player.crouching ? CROUCH_SPEED : input.walk ? WALK_SPEED : RUN_SPEED;
+    const maxSpeed = baseMoveSpeed * (modifiers?.speedMultiplier ?? 1.0);
     updateHorizontalVelocity(player, wishX, wishZ, hasWish, maxSpeed, stepDt);
 
     // 3. Jump impulse, vertical ability impulse (Windy Updraft), passive glide clamp & downward gravity.
@@ -253,9 +270,17 @@ export function updatePlayerMovement(
     if (modifiers?.verticalImpulse !== undefined && modifiers.verticalImpulse > 0) {
       player.velocity.y = modifiers.verticalImpulse;
       player.grounded = false;
-    } else if (player.grounded && input.jump && !modifiers?.suppressJump) {
+      player.crouching = false;
+    } else if (
+      player.grounded &&
+      input.jump &&
+      !modifiers?.suppressJump &&
+      (!player.crouching ||
+        canStepUpToY(player.position.x, player.position.y, player.position.z, colliders, PLAYER_HEIGHT))
+    ) {
       player.velocity.y = JUMP_SPEED;
       player.grounded = false;
+      player.crouching = false;
     }
     player.velocity.y -= GRAVITY * stepDt;
     if (
@@ -267,7 +292,11 @@ export function updatePlayerMovement(
     }
   }
 
-  const activeHeight = modifiers?.slideActive ? 1.22 : PLAYER_HEIGHT;
+  const activeHeight = modifiers?.slideActive
+    ? 1.22
+    : player.crouching
+      ? CROUCH_HEIGHT
+      : PLAYER_HEIGHT;
   const extVx = modifiers?.externalVelocity?.x ?? 0;
   const extVz = modifiers?.externalVelocity?.z ?? 0;
 

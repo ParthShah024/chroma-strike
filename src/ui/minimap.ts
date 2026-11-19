@@ -4,6 +4,7 @@ import {
   Combatant,
   MatchHudState,
   PlayerState,
+  SmokeSphere,
 } from '../core/types';
 import {
   ARENA_DEPTH_M,
@@ -18,21 +19,23 @@ import {
 
 export type MinimapSizePreset = 'compact' | 'standard' | 'large';
 
+export interface MinimapOptions {
+  onOpenFullMap?: () => void;
+}
+
 export interface MinimapController {
   update(
     hud: MatchHudState,
     combatants: readonly Combatant[],
     player: PlayerState,
     playerYaw: number,
-    ultRevealActive?: boolean
+    ultRevealActive?: boolean,
+    activeSmokes?: readonly SmokeSphere[]
   ): void;
   toggleRotateMode(): boolean;
   setRotateMode(rotate: boolean): void;
   isRotateMode(): boolean;
   setSizePreset(size: MinimapSizePreset): void;
-  setExpanded(expanded: boolean): void;
-  isExpanded(): boolean;
-  toggleExpanded(): boolean;
   dispose(): void;
 }
 
@@ -52,6 +55,7 @@ export interface DynamicDrawConfig {
   player: PlayerState;
   playerYaw: number;
   ultRevealActive?: boolean;
+  activeSmokes?: readonly SmokeSphere[];
   nowSec: number;
   detailedDoors?: boolean;
   undoRotationRad?: number;
@@ -68,10 +72,6 @@ const MINIMAP_SIZE_PRESETS: Record<MinimapSizePreset, { widthPx: number; heightP
   standard: { widthPx: 210, heightPx: 230 },
   large: { widthPx: 255, heightPx: 280 },
 };
-
-const DEFAULT_TACTICAL_W = 560;
-const DEFAULT_TACTICAL_H = 614;
-const TACTICAL_DPR = 2;
 
 const RADAR_ZOOM = 1.32;
 const ROTATE_STORAGE_KEY = 'chroma_strike_minimap_rotate_v1';
@@ -488,13 +488,33 @@ export function drawAscentDynamicEntities(
     player,
     playerYaw,
     ultRevealActive,
+    activeSmokes,
     nowSec,
     detailedDoors = false,
     undoRotationRad = 0,
     entityScale = 1,
   } = cfg;
 
-  // 1. Buy-Phase Barrier spans (all 12 forward attacker/defender lane & window spans)
+  // 1. Active Smoke Domes
+  if (activeSmokes && activeSmokes.length > 0) {
+    const pxPerMeter = width / ARENA_WIDTH_M;
+    ctx.save();
+    for (const s of activeSmokes) {
+      const sx = worldToMapX(s.center.x, width);
+      const sy = worldToMapY(s.center.z, height);
+      const r = s.radius * pxPerMeter;
+      ctx.fillStyle = 'rgba(148, 163, 184, 0.42)';
+      ctx.strokeStyle = 'rgba(226, 232, 240, 0.72)';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.arc(sx, sy, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // 2. Buy-Phase Barrier spans (all 12 forward attacker/defender lane & window spans)
   if (hud.phase === 'buy') {
     ctx.save();
     ctx.lineWidth = 1.6;
@@ -712,31 +732,20 @@ function saveRotatePreference(rotate: boolean): void {
 
 /**
  * Creates the 2x-DPR vector Radar Minimap (`#minimap-canvas`) with
- * rotating player-centered mode (`[N]` toggle) and `[CapsLock]` full tactical
- * map overlay (`#tactical-map-overlay`).
+ * rotating player-centered mode (`[N]` toggle) and click-to-open `[M]` Tactical Map.
  */
-export function createMinimapController(): MinimapController {
+export function createMinimapController(options?: MinimapOptions): MinimapController {
   const wrapEl = document.getElementById('minimap-wrap') as HTMLDivElement | null;
   const modePillEl = document.getElementById('minimap-mode-pill') as HTMLButtonElement | null;
   const canvas = document.getElementById('minimap-canvas') as HTMLCanvasElement | null;
   const ctx = canvas?.getContext('2d') ?? null;
 
-  const tacticalOverlayEl = document.getElementById('tactical-map-overlay') as HTMLDivElement | null;
-  const tacticalCanvas = document.getElementById('tactical-map-canvas') as HTMLCanvasElement | null;
-  const tacticalCtx = tacticalCanvas?.getContext('2d') ?? null;
-  const tacticalCloseBtn = document.getElementById('tactical-map-close') as HTMLButtonElement | null;
-  const tacticalSideEl = document.getElementById('tactical-map-side') as HTMLSpanElement | null;
-
   if (canvas) {
     canvas.width = MINIMAP_W * MINIMAP_DPR;
     canvas.height = MINIMAP_H * MINIMAP_DPR;
   }
-  if (tacticalCanvas && (!tacticalCanvas.hasAttribute('width') || !tacticalCanvas.hasAttribute('height'))) {
-    tacticalCanvas.width = DEFAULT_TACTICAL_W * TACTICAL_DPR;
-    tacticalCanvas.height = DEFAULT_TACTICAL_H * TACTICAL_DPR;
-  }
 
-  // Static offscreen blueprint caches (zero per-frame architectural redraw)
+  // Static offscreen blueprint cache (zero per-frame architectural redraw)
   const miniStatic = document.createElement('canvas');
   miniStatic.width = MINIMAP_W * MINIMAP_DPR;
   miniStatic.height = MINIMAP_H * MINIMAP_DPR;
@@ -751,68 +760,14 @@ export function createMinimapController(): MinimapController {
     });
   }
 
-  const tacticalStatic = document.createElement('canvas');
-  const tacticalStaticCtx = tacticalStatic.getContext('2d');
-
-  function getTacticalDimensions(): {
-    pixelW: number;
-    pixelH: number;
-    logicalW: number;
-    logicalH: number;
-  } {
-    if (tacticalCanvas && tacticalCanvas.clientWidth > 40 && tacticalCanvas.clientHeight > 40) {
-      const targetPxW = Math.round(tacticalCanvas.clientWidth * TACTICAL_DPR);
-      const targetPxH = Math.round(tacticalCanvas.clientHeight * TACTICAL_DPR);
-      if (tacticalCanvas.width < targetPxW || tacticalCanvas.height < targetPxH) {
-        tacticalCanvas.width = targetPxW;
-        tacticalCanvas.height = targetPxH;
-      }
-    }
-    const pixelW =
-      tacticalCanvas && tacticalCanvas.width > 0
-        ? tacticalCanvas.width
-        : DEFAULT_TACTICAL_W * TACTICAL_DPR;
-    const pixelH =
-      tacticalCanvas && tacticalCanvas.height > 0
-        ? tacticalCanvas.height
-        : DEFAULT_TACTICAL_H * TACTICAL_DPR;
-    return {
-      pixelW,
-      pixelH,
-      logicalW: pixelW / TACTICAL_DPR,
-      logicalH: pixelH / TACTICAL_DPR,
-    };
-  }
-
-  function ensureTacticalStatic(): { logicalW: number; logicalH: number } {
-    const { pixelW, pixelH, logicalW, logicalH } = getTacticalDimensions();
-    if (tacticalStatic.width !== pixelW || tacticalStatic.height !== pixelH) {
-      tacticalStatic.width = pixelW;
-      tacticalStatic.height = pixelH;
-      if (tacticalStaticCtx) {
-        tacticalStaticCtx.setTransform(TACTICAL_DPR, 0, 0, TACTICAL_DPR, 0, 0);
-        drawAscentBlueprintBase(tacticalStaticCtx, {
-          width: logicalW,
-          height: logicalH,
-          showCallouts: true,
-          showSiteLabels: true,
-          labelScale: (logicalW / 480) * 1.22,
-        });
-      }
-    }
-    return { logicalW, logicalH };
-  }
-
-  ensureTacticalStatic();
-
   let rotateMode = loadRotatePreference();
-  let expandedState = false;
   let lastSnapshot: {
     hud: MatchHudState;
     combatants: readonly Combatant[];
     player: PlayerState;
     playerYaw: number;
     ultRevealActive?: boolean;
+    activeSmokes?: readonly SmokeSphere[];
   } | null = null;
 
   function syncModePill(): void {
@@ -826,7 +781,8 @@ export function createMinimapController(): MinimapController {
     combatants: readonly Combatant[],
     player: PlayerState,
     playerYaw: number,
-    ultRevealActive?: boolean
+    ultRevealActive?: boolean,
+    activeSmokes?: readonly SmokeSphere[]
   ): void {
     if (!canvas || !ctx) return;
     const nowSec = performance.now() * 0.001;
@@ -857,6 +813,7 @@ export function createMinimapController(): MinimapController {
         player,
         playerYaw,
         ultRevealActive,
+        activeSmokes,
         nowSec,
         detailedDoors: false,
         undoRotationRad: -rot,
@@ -901,6 +858,7 @@ export function createMinimapController(): MinimapController {
         player,
         playerYaw,
         ultRevealActive,
+        activeSmokes,
         nowSec,
         detailedDoors: false,
         drawSiteLabelsUpright: true,
@@ -909,53 +867,16 @@ export function createMinimapController(): MinimapController {
     }
   }
 
-  function renderTacticalOverlay(
-    hud: MatchHudState,
-    combatants: readonly Combatant[],
-    player: PlayerState,
-    playerYaw: number,
-    ultRevealActive?: boolean
-  ): void {
-    if (!expandedState || !tacticalCanvas || !tacticalCtx) return;
-    const nowSec = performance.now() * 0.001;
-
-    if (tacticalSideEl) {
-      const side = hud.playerSide ?? 'attacker';
-      tacticalSideEl.textContent = side === 'attacker' ? 'ATTACKER' : 'DEFENDER';
-      tacticalSideEl.classList.toggle('atk', side === 'attacker');
-      tacticalSideEl.classList.toggle('def', side === 'defender');
-    }
-
-    const { logicalW, logicalH } = ensureTacticalStatic();
-    tacticalCtx.setTransform(TACTICAL_DPR, 0, 0, TACTICAL_DPR, 0, 0);
-    tacticalCtx.clearRect(0, 0, logicalW, logicalH);
-    tacticalCtx.drawImage(tacticalStatic, 0, 0, logicalW, logicalH);
-
-    drawAscentDynamicEntities(tacticalCtx, {
-      width: logicalW,
-      height: logicalH,
-      hud,
-      combatants,
-      player,
-      playerYaw,
-      ultRevealActive,
-      nowSec,
-      detailedDoors: true,
-      drawSiteLabelsUpright: false,
-      entityScale: (logicalW / 480) * 1.35,
-    });
-  }
-
   function update(
     hud: MatchHudState,
     combatants: readonly Combatant[],
     player: PlayerState,
     playerYaw: number,
-    ultRevealActive?: boolean
+    ultRevealActive?: boolean,
+    activeSmokes?: readonly SmokeSphere[]
   ): void {
-    lastSnapshot = { hud, combatants, player, playerYaw, ultRevealActive };
-    renderMini(hud, combatants, player, playerYaw, ultRevealActive);
-    renderTacticalOverlay(hud, combatants, player, playerYaw, ultRevealActive);
+    lastSnapshot = { hud, combatants, player, playerYaw, ultRevealActive, activeSmokes };
+    renderMini(hud, combatants, player, playerYaw, ultRevealActive, activeSmokes);
   }
 
   function redrawLast(): void {
@@ -965,14 +886,8 @@ export function createMinimapController(): MinimapController {
       lastSnapshot.combatants,
       lastSnapshot.player,
       lastSnapshot.playerYaw,
-      lastSnapshot.ultRevealActive
-    );
-    renderTacticalOverlay(
-      lastSnapshot.hud,
-      lastSnapshot.combatants,
-      lastSnapshot.player,
-      lastSnapshot.playerYaw,
-      lastSnapshot.ultRevealActive
+      lastSnapshot.ultRevealActive,
+      lastSnapshot.activeSmokes
     );
   }
 
@@ -1000,20 +915,6 @@ export function createMinimapController(): MinimapController {
     wrapEl?.setAttribute('data-size', size);
   }
 
-  function setExpanded(expanded: boolean): void {
-    if (expandedState === expanded) return;
-    expandedState = expanded;
-    tacticalOverlayEl?.classList.toggle('hidden', !expanded);
-    if (expanded) {
-      redrawLast();
-    }
-  }
-
-  function toggleExpanded(): boolean {
-    setExpanded(!expandedState);
-    return expandedState;
-  }
-
   const onPillClick = (e: MouseEvent) => {
     e.stopPropagation();
     toggleRotateMode();
@@ -1021,32 +922,17 @@ export function createMinimapController(): MinimapController {
 
   const onWrapClick = (e: MouseEvent) => {
     e.stopPropagation();
-    toggleExpanded();
-  };
-
-  const onCloseClick = (e: MouseEvent) => {
-    e.stopPropagation();
-    setExpanded(false);
-  };
-
-  const onOverlayBackdropClick = (e: MouseEvent) => {
-    if (e.target === tacticalOverlayEl) {
-      setExpanded(false);
-    }
+    options?.onOpenFullMap?.();
   };
 
   modePillEl?.addEventListener('click', onPillClick);
   wrapEl?.addEventListener('click', onWrapClick);
-  tacticalCloseBtn?.addEventListener('click', onCloseClick);
-  tacticalOverlayEl?.addEventListener('click', onOverlayBackdropClick);
 
   syncModePill();
 
   function dispose(): void {
     modePillEl?.removeEventListener('click', onPillClick);
     wrapEl?.removeEventListener('click', onWrapClick);
-    tacticalCloseBtn?.removeEventListener('click', onCloseClick);
-    tacticalOverlayEl?.removeEventListener('click', onOverlayBackdropClick);
   }
 
   return {
@@ -1055,9 +941,6 @@ export function createMinimapController(): MinimapController {
     setRotateMode,
     isRotateMode: () => rotateMode,
     setSizePreset,
-    setExpanded,
-    isExpanded: () => expandedState,
-    toggleExpanded,
     dispose,
   };
 }

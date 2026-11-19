@@ -10,6 +10,7 @@ import {
   GameSettings,
   InputState,
   MatchHudState,
+  MatchPerformanceEntry,
   MovementModifiers,
   RoundCombatReportEntry,
   RoundPhase,
@@ -20,6 +21,7 @@ import {
   WeaponId,
 } from './core/types';
 import {
+  CROUCH_EYE_OFFSET,
   EYE_HEIGHT,
   createInitialPlayerState,
   getHorizontalSpeed,
@@ -53,6 +55,7 @@ import { createAgentSelectController } from './ui/agentSelect';
 import { createBuyMenuController } from './ui/buyMenu';
 import { createMinimapController } from './ui/minimap';
 import { createMapViewerController } from './ui/mapViewer';
+import { createSmokeTabletController } from './ui/smokeTablet';
 
 /**
  * Clamp a number between min and max.
@@ -122,7 +125,45 @@ crosshair.setModalDelegate({
   close: () => settings.close(),
   isOpen: () => settings.isOpen(),
 });
-const minimap = createMinimapController();
+const minimap = createMinimapController({
+  onOpenFullMap: () => {
+    if (!gameStarted || lobby.isOpen() || agentSelect.isOpen() || matchSummaryOpen) return;
+    sfx.unlock();
+    smokeTablet.close(false);
+    settings.close();
+    buyMenu.close();
+    mapViewer.open();
+    if (isPointerLocked()) document.exitPointerLock();
+    syncOverlayVisibility();
+  },
+});
+
+const smokeTablet = createSmokeTabletController({
+  onPlaceSmoke: (worldX, worldZ) => {
+    const ok = abilities.castRemoteSmoke(
+      player.colorId,
+      worldX,
+      worldZ,
+      player.position,
+      ARENA_COLLIDERS
+    );
+    if (!ok) {
+      sfx.playBuyError();
+      return;
+    }
+    smokeTablet.close(false);
+    syncOverlayVisibility();
+    if (gameStarted && !isAnyModalOpen() && lastHudPhase === 'combat' && match.getPlayerCombatant().alive) {
+      canvas.requestPointerLock();
+    }
+  },
+  onClose: () => {
+    syncOverlayVisibility();
+    if (gameStarted && !isAnyModalOpen() && lastHudPhase === 'combat' && match.getPlayerCombatant().alive) {
+      canvas.requestPointerLock();
+    }
+  },
+});
 
 let currentSettings: GameSettings = settings.getSettings();
 let baseFovDeg = currentSettings.fovDeg;
@@ -146,8 +187,9 @@ let eyeOffsetSmoothed = 0;
 let slideTiltSmoothed = 0;
 let interactHeld = false;
 let dropSpikePressed = false;
-let capsHeld = false;
 let unownedHintTimer = 0;
+let matchSummaryOpen = false;
+let lastMatchSummarySig = '';
 
 let lastAbilityFeedback: AbilityFrameFeedback | null = null;
 let lastHudPhase: RoundPhase = 'buy';
@@ -163,6 +205,7 @@ const input: InputState = {
   left: false,
   right: false,
   walk: false,
+  crouch: false,
   jump: false,
   fire: false,
   fireJustPressed: false,
@@ -199,6 +242,13 @@ const hitmarkerEl = document.getElementById('hitmarker') as HTMLDivElement;
 const targetIdLabelEl = document.getElementById('target-id-label') as HTMLDivElement;
 const spectatorBarEl = document.getElementById('spectator-bar') as HTMLDivElement;
 const combatReportEl = document.getElementById('combat-report') as HTMLDivElement;
+const matchSummaryModalEl = document.getElementById('match-summary-modal') as HTMLDivElement;
+const msOutcomeEl = document.getElementById('ms-outcome') as HTMLDivElement;
+const msScoreEl = document.getElementById('ms-score') as HTMLDivElement;
+const msMvpBannerEl = document.getElementById('ms-mvp-banner') as HTMLDivElement;
+const msTbodyEl = document.getElementById('ms-tbody') as HTMLTableSectionElement;
+const msLobbyBtn = document.getElementById('ms-lobby-btn') as HTMLButtonElement;
+const msRematchBtn = document.getElementById('ms-rematch-btn') as HTMLButtonElement;
 
 const allyScoreEl = document.getElementById('ally-score') as HTMLDivElement;
 const enemyScoreEl = document.getElementById('enemy-score') as HTMLDivElement;
@@ -234,7 +284,7 @@ const ammoEl = document.getElementById('hud-ammo') as HTMLDivElement;
 const speedEl = document.getElementById('hud-speed') as HTMLDivElement;
 const hintBuyEl = document.getElementById('hint-buy') as HTMLDivElement;
 const hintSettingsEl = document.getElementById('hint-settings') as HTMLDivElement;
-const hintXhairEl = document.getElementById('hint-xhair') as HTMLDivElement;
+const hintCrouchEl = document.getElementById('hint-crouch') as HTMLDivElement;
 const hintMapEl = document.getElementById('hint-map') as HTMLDivElement;
 const hintAgentsEl = document.getElementById('hint-agents') as HTMLDivElement;
 const damageArcEl = document.getElementById('damage-arc') as HTMLDivElement;
@@ -324,7 +374,9 @@ function isAnyModalOpen(): boolean {
     crosshair.isOpen() ||
     mapViewer.isOpen() ||
     agentSelect.isOpen() ||
-    buyMenu.isOpen()
+    buyMenu.isOpen() ||
+    smokeTablet.isOpen() ||
+    matchSummaryOpen
   );
 }
 
@@ -336,7 +388,7 @@ function syncOverlayVisibility(): void {
   overlaySurrenderBtn.classList.toggle('hidden', lastHudPhase === 'match_over');
   hintBuyEl.classList.toggle('active', buyMenu.isOpen());
   hintSettingsEl.classList.toggle('active', settings.isOpen());
-  hintXhairEl.classList.toggle('active', crosshair.isOpen());
+  hintCrouchEl.classList.toggle('active', Boolean(player.crouching));
   hintMapEl.classList.toggle('active', mapViewer.isOpen());
   hintAgentsEl.classList.toggle('active', agentSelect.isOpen());
 }
@@ -347,6 +399,7 @@ function clearHeldInputs(): void {
   input.left = false;
   input.right = false;
   input.walk = false;
+  input.crouch = false;
   input.jump = false;
   input.fire = false;
   input.fireJustPressed = false;
@@ -365,7 +418,7 @@ function openBuyMenu(): void {
   if (lastHudPhase !== 'buy') return;
   if (isPointerLocked()) document.exitPointerLock();
   clearHeldInputs();
-  minimap.setExpanded(false);
+  smokeTablet.close(false);
   settings.close();
   mapViewer.close();
   buyMenu.open();
@@ -377,7 +430,7 @@ function openAgentSelect(): void {
   if (isPointerLocked()) document.exitPointerLock();
   clearHeldInputs();
   frozenDrawn = false;
-  minimap.setExpanded(false);
+  smokeTablet.close(false);
   settings.close();
   agentSelect.open(match.getPlayerCombatant().colorId);
   buyMenu.close();
@@ -553,6 +606,10 @@ function returnToLobbyFromMatch(): void {
   resetOverlaySurrenderConfirm();
   gameStarted = false;
   frozenDrawn = false;
+  matchSummaryOpen = false;
+  lastMatchSummarySig = '';
+  smokeTablet.close(false);
+  matchSummaryModalEl.classList.add('hidden');
   spectateTargetId = null;
   spectatorBarEl.classList.add('hidden');
   combatReportEl.classList.add('hidden');
@@ -783,7 +840,7 @@ openSettingsFromOverlayBtn.addEventListener('click', (e: MouseEvent) => {
   e.stopPropagation();
   resetOverlaySurrenderConfirm();
   sfx.unlock();
-  minimap.setExpanded(false);
+  smokeTablet.close(false);
   crosshair.syncControls();
   settings.open('controls');
   syncOverlayVisibility();
@@ -793,7 +850,7 @@ openXhairFromOverlayBtn.addEventListener('click', (e: MouseEvent) => {
   e.stopPropagation();
   resetOverlaySurrenderConfirm();
   sfx.unlock();
-  minimap.setExpanded(false);
+  smokeTablet.close(false);
   crosshair.syncControls();
   settings.open('crosshair');
   syncOverlayVisibility();
@@ -803,9 +860,24 @@ openMapFromOverlayBtn.addEventListener('click', (e: MouseEvent) => {
   e.stopPropagation();
   resetOverlaySurrenderConfirm();
   sfx.unlock();
-  minimap.setExpanded(false);
+  smokeTablet.close(false);
   mapViewer.open();
   syncOverlayVisibility();
+});
+
+msRematchBtn.addEventListener('click', () => {
+  sfx.unlock();
+  matchSummaryOpen = false;
+  lastMatchSummarySig = '';
+  matchSummaryModalEl.classList.add('hidden');
+  match.restartMatch();
+  syncLocalPlayerFromCombatant();
+  openAgentSelect();
+});
+
+msLobbyBtn.addEventListener('click', () => {
+  sfx.unlock();
+  returnToLobbyFromMatch();
 });
 
 overlaySurrenderBtn.addEventListener('click', (e: MouseEvent) => {
@@ -902,6 +974,19 @@ function triggerAbilityByBindCode(code: string): boolean {
   if (!match.getPlayerCombatant().alive) return false;
   const binds = currentSettings.keybinds;
   if (code === binds.abilityQ) {
+    if (AGENT_PALETTES[player.colorId].role === 'Controller') {
+      if (abilities.canCastControllerSmoke(player.colorId)) {
+        clearHeldInputs();
+        weapon.setAdsActive(false);
+        input.ads = false;
+        smokeTablet.open(player.colorId, abilities.getControllerSmokeCharges(player.colorId));
+        if (isPointerLocked()) document.exitPointerLock();
+        syncOverlayVisibility();
+        return true;
+      }
+      sfx.playBuyError();
+      return false;
+    }
     abilities.cast('q', player, input);
     return true;
   }
@@ -1067,6 +1152,11 @@ function handleKey(code: string, isDown: boolean): void {
     case 'ShiftRight':
       input.walk = isDown;
       break;
+    case 'KeyC':
+    case 'ControlLeft':
+    case 'ControlRight':
+      input.crouch = isDown;
+      break;
     case 'Space':
       jumpHeld = isDown;
       input.jump = isDown;
@@ -1111,12 +1201,12 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
   if (
     e.code === 'Space' ||
     e.code === 'Tab' ||
-    e.code === 'CapsLock' ||
     e.code === 'F1' ||
     e.code === 'F2' ||
     e.code === 'F3' ||
     e.code === 'F4' ||
-    e.code === 'F5'
+    e.code === 'F5' ||
+    e.code === 'F6'
   ) {
     e.preventDefault();
   }
@@ -1134,31 +1224,26 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
   }
 
   if (!e.repeat) {
+    // Active Brimstone-style Smoke Tablet: [Esc] or bound [Q] key cancels cleanly back to combat.
+    if (smokeTablet.isOpen()) {
+      const normalizedTabletCode =
+        e.code === 'BrowserBack' ? 'Mouse4' : e.code === 'BrowserForward' ? 'Mouse5' : e.code;
+      if (e.code === 'Escape' || normalizedTabletCode === currentSettings.keybinds.abilityQ) {
+        e.preventDefault();
+        smokeTablet.close(true);
+        return;
+      }
+    }
+
     // [O] Settings Modal toggle (Controls tab)
     if (e.code === 'KeyO') {
-      minimap.setExpanded(false);
+      smokeTablet.close(false);
       const wasMapOpen = mapViewer.isOpen();
       const wasBuyOpen = buyMenu.isOpen();
       if (wasMapOpen) mapViewer.close();
       if (wasBuyOpen) buyMenu.close();
       crosshair.syncControls();
       const nowOpen = settings.toggle('controls');
-      if (nowOpen && isPointerLocked()) {
-        document.exitPointerLock();
-      }
-      syncOverlayVisibility();
-      return;
-    }
-
-    // [C] Crosshair Customizer tab inside unified Settings Modal
-    if (e.code === 'KeyC' && !lobby.isOpen()) {
-      minimap.setExpanded(false);
-      const wasMapOpen = mapViewer.isOpen();
-      const wasBuyOpen = buyMenu.isOpen();
-      if (wasMapOpen) mapViewer.close();
-      if (wasBuyOpen) buyMenu.close();
-      crosshair.syncControls();
-      const nowOpen = settings.toggle('crosshair');
       if (nowOpen && isPointerLocked()) {
         document.exitPointerLock();
       }
@@ -1174,6 +1259,28 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
 
     if (lobby.isOpen()) {
       return;
+    }
+
+    // Post-Match Ranked Summary actions ([Enter] Rematch / [L] Return to Lobby)
+    if (
+      lastHudPhase === 'match_over' &&
+      matchSummaryOpen &&
+      !settings.isOpen() &&
+      !mapViewer.isOpen()
+    ) {
+      if (e.code === 'Enter') {
+        matchSummaryOpen = false;
+        lastMatchSummarySig = '';
+        matchSummaryModalEl.classList.add('hidden');
+        match.restartMatch();
+        syncLocalPlayerFromCombatant();
+        openAgentSelect();
+        return;
+      }
+      if (e.code === 'KeyL') {
+        returnToLobbyFromMatch();
+        return;
+      }
     }
 
     // [B] opens/closes Buyout Shop during the Buy phase (never overlaps Settings/MapViewer).
@@ -1203,8 +1310,8 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
     }
 
     // [M] Ascent 2D Tactical Map & 3D Flyover Viewer toggle
-    if (e.code === 'KeyM') {
-      minimap.setExpanded(false);
+    if (e.code === 'KeyM' && !matchSummaryOpen) {
+      smokeTablet.close(false);
       const wasSettingsOpen = settings.isOpen();
       const wasBuyOpen = buyMenu.isOpen();
       const nowOpen = mapViewer.toggle();
@@ -1217,17 +1324,11 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
       return;
     }
 
-    if (e.code === 'Escape' && isAnyModalOpen()) {
+    if (e.code === 'Escape' && (settings.isOpen() || mapViewer.isOpen() || buyMenu.isOpen())) {
       settings.close();
       mapViewer.close();
       buyMenu.close();
       syncOverlayVisibility();
-      return;
-    }
-
-    if (e.code === 'Escape' && minimap.isExpanded()) {
-      capsHeld = false;
-      minimap.setExpanded(false);
       return;
     }
 
@@ -1239,13 +1340,6 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
     if (e.code === 'KeyN') {
       const rotateNow = minimap.toggleRotateMode();
       settings.applyPatch({ minimapRotate: rotateNow });
-      return;
-    }
-
-    // [CapsLock] Hold / peek Full Tactical Map Overlay
-    if (e.code === 'CapsLock') {
-      capsHeld = true;
-      minimap.setExpanded(true);
       return;
     }
 
@@ -1268,18 +1362,6 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
           syncLocalPlayerFromCombatant();
         }
       }
-      return;
-    }
-
-    // [Enter] Restart match once 'match_over' is reached; [L] returns to Lobby
-    if (e.code === 'Enter' && lastHudPhase === 'match_over') {
-      match.restartMatch();
-      syncLocalPlayerFromCombatant();
-      openAgentSelect(); // fresh draft: pick your agent for the new match
-      return;
-    }
-    if (e.code === 'KeyL' && lastHudPhase === 'match_over') {
-      returnToLobbyFromMatch();
       return;
     }
 
@@ -1328,10 +1410,6 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
 });
 
 window.addEventListener('keyup', (e: KeyboardEvent) => {
-  if (e.code === 'CapsLock' && capsHeld) {
-    capsHeld = false;
-    minimap.setExpanded(false);
-  }
   handleKey(e.code, false);
 });
 
@@ -1710,6 +1788,7 @@ function syncCombatReport(hud: MatchHudState, isAlive: boolean): void {
     gameStarted &&
     !isAnyModalOpen() &&
     hud.phase !== 'buy' &&
+    hud.phase !== 'match_over' &&
     (!isAlive || hud.phase === 'round_end');
   if (!show) {
     combatReportEl.classList.add('hidden');
@@ -1718,10 +1797,17 @@ function syncCombatReport(hud: MatchHudState, isAlive: boolean): void {
 
   combatReportEl.classList.remove('hidden');
   const entries: RoundCombatReportEntry[] = hud.combatReport ?? [];
-  const sig = `${hud.roundNumber}|${entries
+  const summary = hud.roundCombatSummary ?? {
+    kills: entries.filter((e) => e.killedOpponent).length,
+    assists: entries.filter((e) => e.assistedOpponent).length,
+    deaths: isAlive ? 0 : 1,
+    damageDealt: entries.reduce((sum, e) => sum + e.damageOut, 0),
+    damageTaken: entries.reduce((sum, e) => sum + e.damageIn, 0),
+  };
+  const sig = `${hud.roundNumber}|${summary.kills}:${summary.assists}:${summary.damageDealt}:${summary.damageTaken}|${entries
     .map(
       (e) =>
-        `${e.opponentId}:${e.opponentName}:${e.damageOut}:${e.hitsOutHead}:${e.hitsOutBody}:${e.damageIn}:${e.hitsInHead}:${e.hitsInBody}:${e.killedOpponent}:${e.killedByOpponent}`
+        `${e.opponentId}:${e.opponentName}:${e.damageOut}:${e.hitsOutHead}:${e.hitsOutBody}:${e.damageIn}:${e.hitsInHead}:${e.hitsInBody}:${e.killedOpponent}:${Boolean(e.assistedOpponent)}:${e.killedByOpponent}`
     )
     .join(';')}`;
   if (sig === lastCombatReportSig) return;
@@ -1737,6 +1823,25 @@ function syncCombatReport(hud: MatchHudState, isAlive: boolean): void {
   head.appendChild(titleSpan);
   head.appendChild(subSpan);
   combatReportEl.appendChild(head);
+
+  const summaryBar = document.createElement('div');
+  summaryBar.className = 'cr-summary-bar';
+  const summaryCells: Array<[string, string]> = [
+    ['KILLS', String(summary.kills)],
+    ['ASSISTS', String(summary.assists)],
+    ['OUT', String(summary.damageDealt)],
+    ['IN', String(summary.damageTaken)],
+  ];
+  for (const [label, val] of summaryCells) {
+    const cell = document.createElement('div');
+    const lbl = document.createElement('span');
+    lbl.textContent = label;
+    const valNode = document.createTextNode(val);
+    cell.appendChild(lbl);
+    cell.appendChild(valNode);
+    summaryBar.appendChild(cell);
+  }
+  combatReportEl.appendChild(summaryBar);
 
   if (entries.length === 0) {
     const empty = document.createElement('div');
@@ -1759,10 +1864,27 @@ function syncCombatReport(hud: MatchHudState, isAlive: boolean): void {
     dot.style.boxShadow = `0 0 6px ${cssColor}`;
     const nameEl = document.createElement('span');
     nameEl.className = 'cr-name';
-    const statusMark = entry.killedOpponent ? ' [KILL]' : entry.killedByOpponent ? ' [KO]' : '';
-    nameEl.textContent = `${entry.opponentName}${statusMark}`;
+    nameEl.textContent = entry.opponentName;
     opp.appendChild(dot);
     opp.appendChild(nameEl);
+
+    if (entry.killedOpponent) {
+      const b = document.createElement('span');
+      b.className = 'cr-badge kill';
+      b.textContent = 'KILL';
+      opp.appendChild(b);
+    } else if (entry.assistedOpponent) {
+      const b = document.createElement('span');
+      b.className = 'cr-badge assist';
+      b.textContent = 'ASSIST';
+      opp.appendChild(b);
+    }
+    if (entry.killedByOpponent) {
+      const b = document.createElement('span');
+      b.className = 'cr-badge ko';
+      b.textContent = 'KO';
+      opp.appendChild(b);
+    }
 
     const outCol = document.createElement('div');
     outCol.className = 'cr-stat';
@@ -1790,6 +1912,118 @@ function syncCombatReport(hud: MatchHudState, isAlive: boolean): void {
     row.appendChild(outCol);
     row.appendChild(inCol);
     combatReportEl.appendChild(row);
+  }
+}
+
+function tierClassName(tier: MatchPerformanceEntry['tier']): string {
+  if (tier === 'S+') return 'tier-splus';
+  if (tier === 'S') return 'tier-s';
+  if (tier === 'A') return 'tier-a';
+  if (tier === 'B') return 'tier-b';
+  return 'tier-c';
+}
+
+function syncMatchSummary(hud: MatchHudState): void {
+  const show = Boolean(gameStarted && hud.phase === 'match_over' && hud.matchSummary);
+  if (!show) {
+    if (matchSummaryOpen) {
+      matchSummaryOpen = false;
+      lastMatchSummarySig = '';
+      matchSummaryModalEl.classList.add('hidden');
+      syncOverlayVisibility();
+    }
+    return;
+  }
+
+  if (!matchSummaryOpen) {
+    matchSummaryOpen = true;
+    smokeTablet.close(false);
+    clearHeldInputs();
+    weapon.setAdsActive(false);
+    input.ads = false;
+    if (isPointerLocked()) document.exitPointerLock();
+    syncOverlayVisibility();
+  }
+
+  matchSummaryModalEl.classList.remove('hidden');
+
+  const rows = hud.matchSummary ?? [];
+  const sig = `${hud.allyScore}-${hud.enemyScore}-${Boolean(hud.surrendered)}|${rows
+    .map((r) => `${r.id}:${r.kills}/${r.deaths}/${r.assists}:${r.damageDealt}:${r.tier}`)
+    .join(';')}`;
+  if (sig === lastMatchSummarySig) return;
+  lastMatchSummarySig = sig;
+
+  const won = !hud.surrendered && hud.allyScore >= hud.enemyScore;
+  msOutcomeEl.textContent = hud.surrendered
+    ? 'MATCH SURRENDERED'
+    : won
+      ? 'VICTORY'
+      : 'DEFEAT';
+  msOutcomeEl.classList.toggle('defeat', !won);
+  msScoreEl.textContent = `${hud.allyScore} — ${hud.enemyScore}`;
+
+  const mvp = rows[0];
+  if (mvp) {
+    const mvpAgent = AGENT_PALETTES[mvp.colorId].name.split(' ')[0].toUpperCase();
+    msMvpBannerEl.textContent = `MATCH MVP: ${mvp.displayName} (${mvpAgent}) • TIER ${mvp.tier} • ${mvp.kills}K / ${mvp.deaths}D / ${mvp.assists}A • ${mvp.combatScore} ACS`;
+  } else {
+    msMvpBannerEl.textContent = 'MATCH COMPLETE';
+  }
+
+  msTbodyEl.replaceChildren();
+  for (const r of rows) {
+    const tr = document.createElement('tr');
+    if (r.isPlayer) tr.className = 'ms-row-self';
+
+    const rankTd = document.createElement('td');
+    rankTd.textContent = `#${r.rank}`;
+
+    const tierTd = document.createElement('td');
+    const pill = document.createElement('span');
+    pill.className = `ms-tier-pill ${tierClassName(r.tier)}`;
+    pill.textContent = r.tier;
+    tierTd.appendChild(pill);
+
+    const playerTd = document.createElement('td');
+    const wrap = document.createElement('div');
+    wrap.className = 'ms-player-cell';
+    const dot = document.createElement('span');
+    dot.className = 'cr-dot';
+    dot.style.background = AGENT_PALETTES[r.colorId].css;
+    dot.style.boxShadow = `0 0 6px ${AGENT_PALETTES[r.colorId].css}`;
+    const nameSpan = document.createElement('span');
+    const agentShort = AGENT_PALETTES[r.colorId].name.split(' ')[0];
+    nameSpan.textContent = r.isMvp
+      ? `${r.displayName} (${agentShort}) ★`
+      : `${r.displayName} (${agentShort})`;
+    wrap.appendChild(dot);
+    wrap.appendChild(nameSpan);
+    playerTd.appendChild(wrap);
+
+    const teamTd = document.createElement('td');
+    const teamTag = document.createElement('span');
+    teamTag.className = `ms-team-tag ${r.team}`;
+    teamTag.textContent = r.team === 'ally' ? 'ALLY' : 'ENEMY';
+    teamTd.appendChild(teamTag);
+
+    const kdaTd = document.createElement('td');
+    kdaTd.textContent = `${r.kills} / ${r.deaths} / ${r.assists}`;
+
+    const dmgTd = document.createElement('td');
+    dmgTd.textContent = String(r.damageDealt);
+
+    const adrTd = document.createElement('td');
+    adrTd.textContent = String(r.adr);
+
+    const hsTd = document.createElement('td');
+    hsTd.textContent = `${r.hsPct}%`;
+
+    const scoreTd = document.createElement('td');
+    scoreTd.textContent = String(r.combatScore);
+
+    tr.append(rankTd, tierTd, playerTd, teamTd, kdaTd, dmgTd, adrTd, hsTd, scoreTd);
+    msTbodyEl.appendChild(tr);
   }
 }
 
@@ -1924,7 +2158,9 @@ function syncMatchHud(hud: MatchHudState): void {
   }
 
   // Round callout & takeover banner
-  if (hud.bannerTitle) {
+  if (hud.phase === 'match_over') {
+    roundBannerEl.classList.add('hidden');
+  } else if (hud.bannerTitle) {
     roundBannerEl.classList.remove('hidden');
     roundBannerTitleEl.textContent = hud.bannerTitle;
     roundBannerSubEl.textContent = hud.bannerSubtitle ?? '';
@@ -2019,7 +2255,7 @@ function tick(now: number): void {
       }
       syncMatchHud(frozenHud);
       syncAbilityXSlot(frozenHud, lastAbilityFeedback?.xHud);
-      minimap.update(frozenHud, match.combatants, player, pc.yaw, false);
+      minimap.update(frozenHud, match.combatants, player, pc.yaw, false, []);
       if (!mapViewer.isOpen()) {
         renderer.render(scene, camera);
       }
@@ -2030,7 +2266,7 @@ function tick(now: number): void {
         updateArenaDoors(dt);
         mapViewer.render3D(renderer, scene);
       } else if (lastFrozenHud) {
-        mapViewer.update2D(lastFrozenHud, match.combatants, player);
+        mapViewer.update2D(lastFrozenHud, match.combatants, player, []);
       }
     }
     input.fireJustPressed = false;
@@ -2113,9 +2349,14 @@ function tick(now: number): void {
     sfx.playAbility(ev);
   }
 
-  // Smooth eye-height lerp (Power-Slide camera drop) + slide tilt.
+  // Smooth eye-height lerp (Power-Slide / Tactical Crouch camera drop) + slide tilt.
   const eyeAlpha = 1 - Math.exp(-16 * dt);
-  eyeOffsetSmoothed += ((feedback.eyeHeightOffset ?? 0) - eyeOffsetSmoothed) * eyeAlpha;
+  const targetEyeOffset = Math.min(
+    feedback.eyeHeightOffset ?? 0,
+    player.crouching ? CROUCH_EYE_OFFSET : 0
+  );
+  eyeOffsetSmoothed += (targetEyeOffset - eyeOffsetSmoothed) * eyeAlpha;
+  hintCrouchEl.classList.toggle('active', Boolean(isAlive && player.crouching));
   const slideTiltTarget = feedback.slideActive ? -0.038 : 0;
   slideTiltSmoothed += (slideTiltTarget - slideTiltSmoothed) * (1 - Math.exp(-14 * dt));
 
@@ -2168,7 +2409,12 @@ function tick(now: number): void {
     camera.rotation.x = specPitch;
     camera.rotation.z = 0;
 
-    const specDrop = (spectateTarget.slideTimer ?? 0) > 0 ? -0.42 : 0;
+    const specDrop =
+      (spectateTarget.slideTimer ?? 0) > 0
+        ? -0.42
+        : spectateTarget.crouching
+          ? CROUCH_EYE_OFFSET
+          : 0;
     camera.position.set(
       spectateTarget.position.x,
       spectateTarget.position.y + EYE_HEIGHT + specDrop,
@@ -2210,7 +2456,7 @@ function tick(now: number): void {
       feedback.fireRateMultiplier,
       feedback.recoilMultiplier,
       feedback.moveSpreadMultiplier,
-      feedback.eyeHeightOffset,
+      eyeOffsetSmoothed,
       Boolean(feedback.ignoreAirSpread)
     );
     firedThisFrame = shot.fired;
@@ -2304,6 +2550,7 @@ function tick(now: number): void {
       weaponId: weapon.currentWeaponId,
       firing: firedThisFrame,
       sliding: Boolean(feedback.slideActive),
+      crouching: Boolean(player.crouching),
       ultActive: (playerCombatant.ultActiveTimer ?? 0) > 0,
     });
     match.applyRemotePlayers(net.getRemotePlayers());
@@ -2336,7 +2583,14 @@ function tick(now: number): void {
       buyMenu.sync(hud);
     }
   }
-  minimap.update(hud, match.combatants, player, input.yaw, ultRevealActive);
+  minimap.update(
+    hud,
+    match.combatants,
+    player,
+    input.yaw,
+    ultRevealActive,
+    feedback.activeSmokes
+  );
 
   // Update health, abilities, screen FX, match scoreboard, killfeed & banners.
   const isHealing =
@@ -2359,6 +2613,23 @@ function tick(now: number): void {
   updateTargetIdLabel(isAlive, effectivePitch, feedback.activeSmokes);
   syncSpectatorBar(hud, isAlive, spectateTarget);
   syncCombatReport(hud, isAlive);
+  syncMatchSummary(hud);
+
+  if (smokeTablet.isOpen()) {
+    if (!isAlive || hud.phase !== 'combat') {
+      smokeTablet.close(false);
+      syncOverlayVisibility();
+    } else {
+      smokeTablet.render(
+        hud,
+        match.combatants,
+        player,
+        input.yaw,
+        feedback.activeSmokes,
+        abilities.getControllerSmokeCharges(player.colorId)
+      );
+    }
+  }
 
   // Beginner control strip fades after ~25s of live combat.
   if (hud.phase === 'combat') {
@@ -2426,7 +2697,7 @@ function tick(now: number): void {
   } else {
     renderer.render(scene, camera);
     if (mapViewer.isOpen()) {
-      mapViewer.update2D(hud, match.combatants, player);
+      mapViewer.update2D(hud, match.combatants, player, feedback.activeSmokes);
     }
   }
 

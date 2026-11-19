@@ -54,7 +54,7 @@ export const AGENT_ABILITIES: Record<AgentColorId, Record<AbilitySlot, AbilitySp
       shortTag: 'SMOKE',
       cooldownSec: 1.2,
       maxCharges: 2,
-      description: '4.2m vision-blocking hollow sphere (2/round)',
+      description: 'Map-placed opaque frost smoke dome via Tactical Tablet (2/round)',
     },
     e: {
       slot: 'e',
@@ -112,7 +112,7 @@ export const AGENT_ABILITIES: Record<AgentColorId, Record<AbilitySlot, AbilitySp
       shortTag: 'SHROUD',
       cooldownSec: 1.2,
       maxCharges: 2,
-      description: 'Zero-drop phase smoke — re-tap Q to bloom (2/round)',
+      description: 'Map-placed opaque void smoke dome via Tactical Tablet (2/round)',
     },
     e: {
       slot: 'e',
