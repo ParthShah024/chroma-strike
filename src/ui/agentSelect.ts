@@ -174,14 +174,14 @@ export function createAgentSelectController(options: AgentSelectOptions): AgentS
           <span class="agent-role-badge">${palette.role}</span>
         </span>
       </span>`;
-    const takenBadge = card.querySelector('.agent-taken-badge') as HTMLSpanElement;
+    const takenBadge = card.querySelector('.agent-taken-badge') as HTMLSpanElement | null;
     card.addEventListener('click', () => selectAgent(id, true));
     card.addEventListener('dblclick', () => {
       if (!takenByTeammate.has(id)) lockIn();
     });
     cardList.appendChild(card);
     cardById.set(id, card);
-    takenBadgeById.set(id, takenBadge);
+    if (takenBadge) takenBadgeById.set(id, takenBadge);
   });
 
   function syncLoadoutBox(): void {
@@ -450,6 +450,7 @@ export function createAgentSelectController(options: AgentSelectOptions): AgentS
       currentSide === 'attacker' ? 'ally' : 'enemy',
       colorId
     );
+    previewRig.setOverheadUiVisible(false);
     previewRig.setWeaponModel('ar');
     previewRig.setVisible(true);
     applyStageColors(colorId);
@@ -597,6 +598,13 @@ export function createAgentSelectController(options: AgentSelectOptions): AgentS
 
   function onKeyDown(e: KeyboardEvent): void {
     if (!open) return;
+    if (
+      e.target instanceof HTMLInputElement ||
+      e.target instanceof HTMLTextAreaElement ||
+      e.target instanceof HTMLSelectElement
+    ) {
+      return;
+    }
     const digit = /^Digit([1-5])$/.exec(e.code);
     if (digit) {
       selectAgent(AGENT_ORDER[Number(digit[1]) - 1], true);

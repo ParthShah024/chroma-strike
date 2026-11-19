@@ -163,7 +163,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "min": {
         "x": -41.4,
         "y": 0.0,
-        "z": 20.0
+        "z": 20.25
       },
       "max": {
         "x": -32.0,
@@ -176,7 +176,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "min": {
         "x": 32.0,
         "y": 0.0,
-        "z": 20.0
+        "z": 20.25
       },
       "max": {
         "x": 41.4,
@@ -239,7 +239,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
     },
     {
       "min": {
-        "x": -32.0,
+        "x": -41.4,
         "y": 0.0,
         "z": 19.75
       },
@@ -322,7 +322,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "z": 19.75
       },
       "max": {
-        "x": 32.0,
+        "x": 41.4,
         "y": 5.4,
         "z": 20.25
       },
@@ -350,7 +350,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "max": {
         "x": -13.1,
         "y": 6.0,
-        "z": -37.0
+        "z": -36.8
       },
       "tag": "wall"
     },
@@ -410,12 +410,12 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "min": {
         "x": -41.4,
         "y": 0.0,
-        "z": 6.0
+        "z": 6.25
       },
       "max": {
         "x": -35.0,
         "y": 5.6,
-        "z": 20.0
+        "z": 19.75
       },
       "tag": "wall"
     },
@@ -426,7 +426,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "z": 13.5
       },
       "max": {
-        "x": -15.75,
+        "x": -16.0,
         "y": 5.4,
         "z": 14.1
       },
@@ -460,7 +460,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
     },
     {
       "min": {
-        "x": -35.0,
+        "x": -41.4,
         "y": 0.0,
         "z": 5.75
       },
@@ -491,7 +491,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "z": 5.75
       },
       "max": {
-        "x": -16.25,
+        "x": -15.75,
         "y": 5.4,
         "z": 6.25
       },
@@ -553,12 +553,12 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "min": {
         "x": 35.0,
         "y": 0.0,
-        "z": 4.0
+        "z": 4.25
       },
       "max": {
         "x": 41.4,
         "y": 5.6,
-        "z": 20.0
+        "z": 19.75
       },
       "tag": "wall"
     },
@@ -592,7 +592,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "min": {
         "x": 11.25,
         "y": 0.0,
-        "z": -8.0
+        "z": -7.75
       },
       "max": {
         "x": 17.5,
@@ -634,7 +634,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "z": 3.75
       },
       "max": {
-        "x": 35.0,
+        "x": 41.4,
         "y": 5.4,
         "z": 4.25
       },
@@ -644,7 +644,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "min": {
         "x": -24.25,
         "y": 0.0,
-        "z": -8.0
+        "z": -7.75
       },
       "max": {
         "x": -15.75,
@@ -657,7 +657,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "min": {
         "x": -15.75,
         "y": 0.0,
-        "z": -8.0
+        "z": -7.75
       },
       "max": {
         "x": -11.8,
@@ -675,7 +675,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "max": {
         "x": -31.0,
         "y": 5.6,
-        "z": 6.0
+        "z": 5.75
       },
       "tag": "wall"
     },
@@ -695,6 +695,19 @@ export const ASCENT_MAP_DATA: AscentMapData = {
     {
       "min": {
         "x": -40.2,
+        "y": 0.0,
+        "z": -8.25
+      },
+      "max": {
+        "x": -36.0,
+        "y": 5.4,
+        "z": -7.6
+      },
+      "tag": "wall"
+    },
+    {
+      "min": {
+        "x": -36.0,
         "y": 0.0,
         "z": -8.25
       },
@@ -798,7 +811,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
     },
     {
       "min": {
-        "x": -36.0,
+        "x": -31.0,
         "y": 0.0,
         "z": -8.25
       },
@@ -839,7 +852,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "min": {
         "x": -14.25,
         "y": 0.0,
-        "z": -16.4
+        "z": -16.18
       },
       "max": {
         "x": -13.75,
@@ -852,12 +865,12 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "min": {
         "x": -14.25,
         "y": 0.0,
-        "z": -24.0
+        "z": -22.5
       },
       "max": {
         "x": -13.75,
         "y": 5.4,
-        "z": -19.6
+        "z": -19.82
       },
       "tag": "wall"
     },
@@ -946,7 +959,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "z": -32.5
       },
       "max": {
-        "x": -20.0,
+        "x": -20.5,
         "y": 2.65,
         "z": -32.0
       },
@@ -956,7 +969,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "min": {
         "x": -20.5,
         "y": 0.0,
-        "z": -32.0
+        "z": -32.1
       },
       "max": {
         "x": -20.0,
@@ -1066,32 +1079,6 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "x": -26.0,
         "y": 6.0,
         "z": -32.0
-      },
-      "tag": "wall"
-    },
-    {
-      "min": {
-        "x": -26.5,
-        "y": 3.0,
-        "z": -37.0
-      },
-      "max": {
-        "x": -26.0,
-        "y": 6.0,
-        "z": -32.0
-      },
-      "tag": "wall"
-    },
-    {
-      "min": {
-        "x": -26.5,
-        "y": 0.0,
-        "z": -37.2
-      },
-      "max": {
-        "x": -13.1,
-        "y": 6.0,
-        "z": -36.8
       },
       "tag": "wall"
     },
@@ -1299,7 +1286,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "max": {
         "x": -4.75,
         "y": 5.4,
-        "z": -8.0
+        "z": -8.25
       },
       "tag": "wall"
     },
@@ -1372,7 +1359,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "min": {
         "x": -7.96,
         "y": 0.85,
-        "z": -4.9
+        "z": -4.86
       },
       "max": {
         "x": -7.6,
@@ -1513,7 +1500,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
     },
     {
       "min": {
-        "x": -4.75,
+        "x": -4.72,
         "y": 0.0,
         "z": -14.8
       },
@@ -1526,7 +1513,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
     },
     {
       "min": {
-        "x": -5.25,
+        "x": -4.75,
         "y": 0.0,
         "z": -16.25
       },
@@ -1645,12 +1632,12 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "min": {
         "x": 1.75,
         "y": 0.0,
-        "z": -26.0
+        "z": -25.5
       },
       "max": {
         "x": 2.25,
         "y": 4.2,
-        "z": -15.1
+        "z": -15.35
       },
       "tag": "wall"
     },
@@ -1780,7 +1767,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "max": {
         "x": 14.25,
         "y": 5.4,
-        "z": -8.0
+        "z": -7.75
       },
       "tag": "wall"
     },
@@ -1788,12 +1775,12 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "min": {
         "x": 13.75,
         "y": 0.0,
-        "z": -19.4
+        "z": -19.18
       },
       "max": {
         "x": 14.25,
         "y": 4.2,
-        "z": -14.85
+        "z": -15.35
       },
       "tag": "wall"
     },
@@ -1801,12 +1788,12 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "min": {
         "x": 13.75,
         "y": 0.0,
-        "z": -26.0
+        "z": -25.5
       },
       "max": {
         "x": 14.25,
         "y": 4.2,
-        "z": -22.6
+        "z": -22.82
       },
       "tag": "wall"
     },
@@ -1858,7 +1845,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "max": {
         "x": 41.4,
         "y": 5.6,
-        "z": 4.0
+        "z": 3.75
       },
       "tag": "wall"
     },
@@ -1879,7 +1866,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "min": {
         "x": 17.5,
         "y": 0.0,
-        "z": -8.0
+        "z": -7.75
       },
       "max": {
         "x": 21.5,
@@ -2033,7 +2020,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
     },
     {
       "min": {
-        "x": 36.0,
+        "x": 36.5,
         "y": 0.0,
         "z": -32.5
       },
@@ -2072,12 +2059,12 @@ export const ASCENT_MAP_DATA: AscentMapData = {
     },
     {
       "min": {
-        "x": 33.5,
+        "x": 33.53,
         "y": 0.85,
         "z": -15.4
       },
       "max": {
-        "x": 33.9,
+        "x": 33.93,
         "y": 1.95,
         "z": -11.0
       },
@@ -2085,12 +2072,12 @@ export const ASCENT_MAP_DATA: AscentMapData = {
     },
     {
       "min": {
-        "x": 33.5,
+        "x": 33.53,
         "y": 0.85,
         "z": -19.2
       },
       "max": {
-        "x": 33.9,
+        "x": 33.93,
         "y": 1.95,
         "z": -16.6
       },
@@ -2282,12 +2269,12 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       "min": {
         "x": 36.0,
         "y": 0.0,
-        "z": -32.5
+        "z": -32.0
       },
       "max": {
         "x": 36.5,
         "y": 3.6,
-        "z": -24.4
+        "z": -24.9
       },
       "tag": "wall"
     },
@@ -2449,6 +2436,32 @@ export const ASCENT_MAP_DATA: AscentMapData = {
     },
     {
       "min": {
+        "x": -14.25,
+        "y": 0.0,
+        "z": -19.82
+      },
+      "max": {
+        "x": -13.75,
+        "y": 6.35,
+        "z": -19.6
+      },
+      "tag": "wall"
+    },
+    {
+      "min": {
+        "x": -14.25,
+        "y": 0.0,
+        "z": -16.4
+      },
+      "max": {
+        "x": -13.75,
+        "y": 6.35,
+        "z": -16.18
+      },
+      "tag": "wall"
+    },
+    {
+      "min": {
         "x": 13.72,
         "y": 3.0,
         "z": -22.75
@@ -2457,6 +2470,32 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "x": 14.28,
         "y": 6.35,
         "z": -19.25
+      },
+      "tag": "wall"
+    },
+    {
+      "min": {
+        "x": 13.75,
+        "y": 0.0,
+        "z": -22.82
+      },
+      "max": {
+        "x": 14.25,
+        "y": 6.35,
+        "z": -22.6
+      },
+      "tag": "wall"
+    },
+    {
+      "min": {
+        "x": 13.75,
+        "y": 0.0,
+        "z": -19.4
+      },
+      "max": {
+        "x": 14.25,
+        "y": 6.35,
+        "z": -19.18
       },
       "tag": "wall"
     }
@@ -24371,14 +24410,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       },
       {
         "x0": -41.4,
-        "z0": 20.0,
+        "z0": 20.25,
         "x1": -32.0,
         "z1": 45.4,
         "kind": "wall"
       },
       {
         "x0": 32.0,
-        "z0": 20.0,
+        "z0": 20.25,
         "x1": 41.4,
         "z1": 45.4,
         "kind": "wall"
@@ -24412,7 +24451,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "kind": "cover"
       },
       {
-        "x0": -32.0,
+        "x0": -41.4,
         "z0": 19.75,
         "x1": -28.0,
         "z1": 20.25,
@@ -24435,7 +24474,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       {
         "x0": 28.0,
         "z0": 19.75,
-        "x1": 32.0,
+        "x1": 41.4,
         "z1": 20.25,
         "kind": "wall"
       },
@@ -24450,7 +24489,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "x0": -26.0,
         "z0": -45.4,
         "x1": -13.1,
-        "z1": -37.0,
+        "z1": -36.8,
         "kind": "wall"
       },
       {
@@ -24483,15 +24522,15 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       },
       {
         "x0": -41.4,
-        "z0": 6.0,
+        "z0": 6.25,
         "x1": -35.0,
-        "z1": 20.0,
+        "z1": 19.75,
         "kind": "wall"
       },
       {
         "x0": -30.5,
         "z0": 13.5,
-        "x1": -15.75,
+        "x1": -16.0,
         "z1": 14.1,
         "kind": "wall"
       },
@@ -24503,7 +24542,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "kind": "wall"
       },
       {
-        "x0": -35.0,
+        "x0": -41.4,
         "z0": 5.75,
         "x1": -31.0,
         "z1": 6.25,
@@ -24512,7 +24551,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       {
         "x0": -24.25,
         "z0": 5.75,
-        "x1": -16.25,
+        "x1": -15.75,
         "z1": 6.25,
         "kind": "wall"
       },
@@ -24539,9 +24578,9 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       },
       {
         "x0": 35.0,
-        "z0": 4.0,
+        "z0": 4.25,
         "x1": 41.4,
-        "z1": 20.0,
+        "z1": 19.75,
         "kind": "wall"
       },
       {
@@ -24553,7 +24592,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       },
       {
         "x0": 11.25,
-        "z0": -8.0,
+        "z0": -7.75,
         "x1": 17.5,
         "z1": 5.5,
         "kind": "wall"
@@ -24568,20 +24607,20 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       {
         "x0": 30.5,
         "z0": 3.75,
-        "x1": 35.0,
+        "x1": 41.4,
         "z1": 4.25,
         "kind": "wall"
       },
       {
         "x0": -24.25,
-        "z0": -8.0,
+        "z0": -7.75,
         "x1": -15.75,
         "z1": 5.75,
         "kind": "wall"
       },
       {
         "x0": -15.75,
-        "z0": -8.0,
+        "z0": -7.75,
         "x1": -11.8,
         "z1": 2.0,
         "kind": "wall"
@@ -24590,7 +24629,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "x0": -41.4,
         "z0": -0.8,
         "x1": -31.0,
-        "z1": 6.0,
+        "z1": 5.75,
         "kind": "wall"
       },
       {
@@ -24602,6 +24641,13 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       },
       {
         "x0": -40.2,
+        "z0": -8.25,
+        "x1": -36.0,
+        "z1": -7.6,
+        "kind": "wall"
+      },
+      {
+        "x0": -36.0,
         "z0": -8.25,
         "x1": -31.0,
         "z1": -7.6,
@@ -24650,7 +24696,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "kind": "wall"
       },
       {
-        "x0": -36.0,
+        "x0": -31.0,
         "z0": -8.25,
         "x1": -30.0,
         "z1": -7.75,
@@ -24665,16 +24711,16 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       },
       {
         "x0": -14.25,
-        "z0": -16.4,
+        "z0": -16.18,
         "x1": -13.75,
         "z1": -7.75,
         "kind": "wall"
       },
       {
         "x0": -14.25,
-        "z0": -24.0,
+        "z0": -22.5,
         "x1": -13.75,
-        "z1": -19.6,
+        "z1": -19.82,
         "kind": "wall"
       },
       {
@@ -24720,13 +24766,6 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "kind": "cover"
       },
       {
-        "x0": -26.5,
-        "z0": -37.2,
-        "x1": -13.1,
-        "z1": -36.8,
-        "kind": "wall"
-      },
-      {
         "x0": -34.0,
         "z0": -24.38,
         "x1": -26.8,
@@ -24765,7 +24804,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "x0": -5.25,
         "z0": -22.5,
         "x1": -4.75,
-        "z1": -8.0,
+        "z1": -8.25,
         "kind": "wall"
       },
       {
@@ -24784,7 +24823,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       },
       {
         "x0": -7.96,
-        "z0": -4.9,
+        "z0": -4.86,
         "x1": -7.6,
         "z1": -2.0,
         "kind": "cover"
@@ -24839,14 +24878,14 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "kind": "cover"
       },
       {
-        "x0": -4.75,
+        "x0": -4.72,
         "z0": -14.8,
         "x1": -3.45,
         "z1": -11.4,
         "kind": "cover"
       },
       {
-        "x0": -5.25,
+        "x0": -4.75,
         "z0": -16.25,
         "x1": -2.6,
         "z1": -15.75,
@@ -24896,9 +24935,9 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       },
       {
         "x0": 1.75,
-        "z0": -26.0,
+        "z0": -25.5,
         "x1": 2.25,
-        "z1": -15.1,
+        "z1": -15.35,
         "kind": "wall"
       },
       {
@@ -24947,21 +24986,21 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "x0": 13.75,
         "z0": -14.85,
         "x1": 14.25,
-        "z1": -8.0,
+        "z1": -7.75,
         "kind": "wall"
       },
       {
         "x0": 13.75,
-        "z0": -19.4,
+        "z0": -19.18,
         "x1": 14.25,
-        "z1": -14.85,
+        "z1": -15.35,
         "kind": "wall"
       },
       {
         "x0": 13.75,
-        "z0": -26.0,
+        "z0": -25.5,
         "x1": 14.25,
-        "z1": -22.6,
+        "z1": -22.82,
         "kind": "wall"
       },
       {
@@ -24989,7 +25028,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "x0": 35.0,
         "z0": -3.0,
         "x1": 41.4,
-        "z1": 4.0,
+        "z1": 3.75,
         "kind": "wall"
       },
       {
@@ -25001,7 +25040,7 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       },
       {
         "x0": 17.5,
-        "z0": -8.0,
+        "z0": -7.75,
         "x1": 21.5,
         "z1": -7.0,
         "kind": "wall"
@@ -25063,23 +25102,23 @@ export const ASCENT_MAP_DATA: AscentMapData = {
         "kind": "wall"
       },
       {
-        "x0": 36.0,
+        "x0": 36.5,
         "z0": -32.5,
         "x1": 38.0,
         "z1": -24.4,
         "kind": "wall"
       },
       {
-        "x0": 33.5,
+        "x0": 33.53,
         "z0": -15.4,
-        "x1": 33.9,
+        "x1": 33.93,
         "z1": -11.0,
         "kind": "cover"
       },
       {
-        "x0": 33.5,
+        "x0": 33.53,
         "z0": -19.2,
-        "x1": 33.9,
+        "x1": 33.93,
         "z1": -16.6,
         "kind": "cover"
       },
@@ -25155,9 +25194,9 @@ export const ASCENT_MAP_DATA: AscentMapData = {
       },
       {
         "x0": 36.0,
-        "z0": -32.5,
+        "z0": -32.0,
         "x1": 36.5,
-        "z1": -24.4,
+        "z1": -24.9,
         "kind": "wall"
       },
       {

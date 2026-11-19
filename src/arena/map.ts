@@ -518,8 +518,8 @@ function decalMat(color: number, opacity: number): THREE.MeshBasicMaterial {
     opacity,
     depthWrite: false,
     polygonOffset: true,
-    polygonOffsetFactor: -1,
-    polygonOffsetUnits: -1,
+    polygonOffsetFactor: -2,
+    polygonOffsetUnits: -2,
     toneMapped: false,
   });
 }
@@ -588,7 +588,7 @@ function buildSiteHologramsAndPedestalBeam(root: THREE.Group): void {
       letterMat.map = floorTex;
       const letter = new THREE.Mesh(new THREE.PlaneGeometry(3.6, 3.6), letterMat);
       letter.rotation.x = -Math.PI / 2;
-      letter.position.set(zone.center.x, 0.018, zone.center.z);
+      letter.position.set(zone.center.x, zone.center.y + 0.022, zone.center.z);
       letter.renderOrder = 4;
       root.add(letter);
     }
@@ -618,7 +618,7 @@ function buildSiteHologramsAndPedestalBeam(root: THREE.Group): void {
   const ringMat = decalMat(COLOR_RADIANITE, 0.92);
   const ring = new THREE.Mesh(new THREE.RingGeometry(0.54, 0.68, 6, 1, Math.PI / 6), ringMat);
   ring.rotation.x = -Math.PI / 2;
-  ring.position.y = ped.y + 0.006;
+  ring.position.y = ped.y + 0.022;
   ring.renderOrder = 4;
   pedGroup.add(ring);
 
@@ -805,7 +805,16 @@ function bindLoadedAscentGlb(gltfRoot: THREE.Group, fallbackGroup: THREE.Group):
     applyDoorVisualState(d);
   }
 
+  // Completely hide & exclude procedural fallback geometry from rendering, shadows, and raycasting
   fallbackGroup.visible = false;
+  fallbackGroup.traverse((child) => {
+    child.visible = false;
+    if (child instanceof THREE.Mesh) {
+      child.castShadow = false;
+      child.receiveShadow = false;
+      child.raycast = () => {};
+    }
+  });
 }
 
 /**
@@ -848,13 +857,24 @@ function buildBuyBarriers(): THREE.Group {
     defender: glowMat(COLOR_BARRIER_DEFEND),
   };
 
-  ASCENT_MAP_DATA.buyBarrierSpans.forEach((span, idx) => {
+  // Frame-deduplicated animation callback attached to EVERY curtain so frustum culling never freezes UV scrolling
+  let lastAnimTime = -1;
+  const animateBarriers = () => {
+    const t = nowSeconds();
+    if (t === lastAnimTime) return;
+    lastAnimTime = t;
+    sideMatByTeam.attacker.opacity = baseOpacity * (0.82 + 0.18 * Math.sin(t * 2.4));
+    sideMatByTeam.defender.opacity = baseOpacity * (0.82 + 0.18 * Math.sin(t * 2.4 + 1.7));
+    if (hex.map) hex.map.offset.set((t * 0.015) % 1, (t * 0.11) % 1);
+    if (hex.alphaMap && hex.map) hex.alphaMap.offset.copy(hex.map.offset);
+  };
+
+  ASCENT_MAP_DATA.buyBarrierSpans.forEach((span) => {
     const w = Math.max(0.2, span.x1 - span.x0 - 0.06);
     const h = span.height;
     const cx = (span.x0 + span.x1) * 0.5;
     const curtainMat = sideMatByTeam[span.side];
     const railMat = railMats[span.side];
-    const phase = span.side === 'attacker' ? 0 : 1.7;
 
     const geo = new THREE.PlaneGeometry(w, h);
     const uv = geo.getAttribute('uv');
@@ -866,19 +886,12 @@ function buildBuyBarriers(): THREE.Group {
     const curtain = new THREE.Mesh(geo, curtainMat);
     curtain.position.set(cx, span.baseY + h * 0.5, span.z);
     curtain.renderOrder = 7;
-    if (idx === 0 || idx === 3) {
-      curtain.onBeforeRender = () => {
-        const t = nowSeconds();
-        curtainMat.opacity = baseOpacity * (0.82 + 0.18 * Math.sin(t * 2.4 + phase));
-        if (hex.map) hex.map.offset.set((t * 0.015) % 1, (t * 0.11) % 1);
-        if (hex.alphaMap && hex.map) hex.alphaMap.offset.copy(hex.map.offset);
-      };
-    }
+    curtain.onBeforeRender = animateBarriers;
     group.add(curtain);
 
-    // Emitter floor strip & side posts framing each barrier span
+    // Emitter floor strip (bottom strictly above 0.016m inlays) & side posts framing each barrier span
     const floorBar = new THREE.Mesh(new THREE.BoxGeometry(w, 0.05, 0.12), railMat);
-    floorBar.position.set(cx, span.baseY + 0.026, span.z);
+    floorBar.position.set(cx, span.baseY + 0.042, span.z);
     group.add(floorBar);
 
     const topBar = new THREE.Mesh(new THREE.BoxGeometry(w, 0.05, 0.1), railMat);
@@ -892,14 +905,14 @@ function buildBuyBarriers(): THREE.Group {
     }
   });
 
-  // Subtle floor fence lines across spawns
+  // Subtle floor fence lines across spawns (raised cleanly above 0.016m floor inlays)
   for (const [zLine, hexCol] of [
     [ASCENT_MAP_DATA.spawns.buyMinAllyZ, COLOR_BARRIER_ATTACK],
     [ASCENT_MAP_DATA.spawns.buyMaxDefenderZ, COLOR_BARRIER_DEFEND],
   ] as const) {
     const lineGeo = new THREE.BufferGeometry().setAttribute(
       'position',
-      new THREE.Float32BufferAttribute([-38, 0.014, zLine, 38, 0.014, zLine], 3)
+      new THREE.Float32BufferAttribute([-38, 0.022, zLine, 38, 0.022, zLine], 3)
     );
     const lineMat = new THREE.LineBasicMaterial({
       color: hexCol,

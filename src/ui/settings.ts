@@ -1,8 +1,40 @@
-import type { AiDifficulty, GameSettings, TacticalSide } from '../core/types';
+import type { AbilityKeybinds, AiDifficulty, GameSettings, TacticalSide } from '../core/types';
 
 export type SettingsTabId = 'controls' | 'crosshair' | 'video' | 'audio' | 'match';
 
 export const SETTINGS_STORAGE_KEY = 'chroma_strike_settings_v1';
+export const CALLSIGN_STORAGE_KEY = 'chroma_strike_callsign_v1';
+
+const DEFAULT_KEYBINDS: AbilityKeybinds = {
+  abilityQ: 'KeyQ',
+  abilityE: 'KeyE',
+  abilityX: 'KeyX',
+};
+
+function sanitizeCallsign(raw: unknown, fallback = 'AGENT-1'): string {
+  if (typeof raw !== 'string') return fallback;
+  const cleaned = raw.trim().replace(/[^\w\s\-().]/g, '').slice(0, 20);
+  return cleaned.length > 0 ? cleaned : fallback;
+}
+
+export function loadInitialCallsignFallback(): string {
+  try {
+    if (typeof localStorage === 'undefined') return 'AGENT-1';
+    const raw = localStorage.getItem(CALLSIGN_STORAGE_KEY);
+    return sanitizeCallsign(raw, 'AGENT-1');
+  } catch {
+    return 'AGENT-1';
+  }
+}
+
+function saveCallsignStorage(name: string): void {
+  try {
+    if (typeof localStorage === 'undefined') return;
+    localStorage.setItem(CALLSIGN_STORAGE_KEY, sanitizeCallsign(name));
+  } catch {
+    // Ignore storage failures in private browsing.
+  }
+}
 
 export const DEFAULT_GAME_SETTINGS: GameSettings = {
   mouseSensitivity: 0.85,
@@ -18,6 +50,9 @@ export const DEFAULT_GAME_SETTINGS: GameSettings = {
   difficulty: 'casual',
   defaultSide: 'attacker',
   winTarget: 10,
+  playerName: loadInitialCallsignFallback(),
+  adsMode: 'hold',
+  keybinds: { ...DEFAULT_KEYBINDS },
 };
 
 export interface SettingsController {
@@ -31,6 +66,7 @@ export interface SettingsController {
   resetDefaults(): void;
   setOnChange(cb: (s: GameSettings) => void): void;
   setOnClose(cb: () => void): void;
+  setOnSurrender(cb: () => void): void;
 }
 
 const VALID_TABS: readonly SettingsTabId[] = ['controls', 'crosshair', 'video', 'audio', 'match'];
@@ -41,6 +77,90 @@ const VALID_MINIMAP_SIZES: readonly GameSettings['minimapSize'][] = [
 ];
 const VALID_DIFFICULTIES: readonly AiDifficulty[] = ['casual', 'tactical', 'pro'];
 const VALID_SIDES: readonly TacticalSide[] = ['attacker', 'defender'];
+const VALID_ADS_MODES: readonly GameSettings['adsMode'][] = ['hold', 'toggle'];
+
+const ALLOWED_EXTRA_CODES = new Set([
+  'Space',
+  'ShiftLeft',
+  'ShiftRight',
+  'ControlLeft',
+  'ControlRight',
+  'AltLeft',
+  'AltRight',
+  'Tab',
+  'CapsLock',
+  'Backquote',
+  'Minus',
+  'Equal',
+  'BracketLeft',
+  'BracketRight',
+  'Backslash',
+  'Semicolon',
+  'Quote',
+  'Comma',
+  'Period',
+  'Slash',
+  'ArrowUp',
+  'ArrowDown',
+  'ArrowLeft',
+  'ArrowRight',
+  'Mouse3',
+  'Mouse4',
+  'Mouse5',
+]);
+
+function isValidKeybindCode(code: unknown): code is string {
+  if (typeof code !== 'string') return false;
+  if (/^Key[A-Z]$/.test(code)) return true;
+  if (/^Digit[0-9]$/.test(code)) return true;
+  if (/^Numpad[0-9]$/.test(code)) return true;
+  if (/^F([1-9]|1[0-2])$/.test(code)) return true;
+  return ALLOWED_EXTRA_CODES.has(code);
+}
+
+const BIND_LABEL_MAP: Record<string, string> = {
+  Mouse3: 'MMB',
+  Mouse4: 'M4',
+  Mouse5: 'M5',
+  Space: 'SPC',
+  ShiftLeft: 'SHF',
+  ShiftRight: 'RSHF',
+  ControlLeft: 'CTL',
+  ControlRight: 'RCTL',
+  AltLeft: 'ALT',
+  AltRight: 'RALT',
+  Tab: 'TAB',
+  CapsLock: 'CAPS',
+  Backquote: '`',
+  Minus: '-',
+  Equal: '=',
+  BracketLeft: '[',
+  BracketRight: ']',
+  Backslash: '\\',
+  Semicolon: ';',
+  Quote: "'",
+  Comma: ',',
+  Period: '.',
+  Slash: '/',
+  ArrowUp: 'UP',
+  ArrowDown: 'DN',
+  ArrowLeft: 'LFT',
+  ArrowRight: 'RGT',
+};
+
+/**
+ * Converts a KeyboardEvent.code or mouse button code (`Mouse3`..`Mouse5`)
+ * into a compact HUD keycap label (e.g. `KeyQ` -> `Q`, `Mouse4` -> `M4`).
+ */
+export function formatBindLabel(code: string): string {
+  if (!code) return '?';
+  if (BIND_LABEL_MAP[code]) return BIND_LABEL_MAP[code];
+  if (/^Key([A-Z])$/.test(code)) return code.slice(3);
+  if (/^Digit([0-9])$/.test(code)) return code.slice(5);
+  if (/^Numpad([0-9])$/.test(code)) return `N${code.slice(6)}`;
+  if (/^F([1-9]|1[0-2])$/.test(code)) return code;
+  return code.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 4) || '?';
+}
 
 function clampFloat(value: unknown, min: number, max: number, fallback: number): number {
   const num = typeof value === 'number' && Number.isFinite(value) ? value : fallback;
@@ -50,6 +170,22 @@ function clampFloat(value: unknown, min: number, max: number, fallback: number):
 function clampInt(value: unknown, min: number, max: number, fallback: number): number {
   const num = typeof value === 'number' && Number.isFinite(value) ? Math.round(value) : fallback;
   return Math.max(min, Math.min(max, num));
+}
+
+function sanitizeKeybinds(raw: unknown): AbilityKeybinds {
+  const src = (raw && typeof raw === 'object' ? raw : {}) as Partial<AbilityKeybinds>;
+  return {
+    abilityQ: isValidKeybindCode(src.abilityQ) ? src.abilityQ : DEFAULT_KEYBINDS.abilityQ,
+    abilityE: isValidKeybindCode(src.abilityE) ? src.abilityE : DEFAULT_KEYBINDS.abilityE,
+    abilityX: isValidKeybindCode(src.abilityX) ? src.abilityX : DEFAULT_KEYBINDS.abilityX,
+  };
+}
+
+function cloneSettings(s: GameSettings): GameSettings {
+  return {
+    ...s,
+    keybinds: { ...s.keybinds },
+  };
 }
 
 function sanitizeSettings(raw: Partial<GameSettings> | null | undefined): GameSettings {
@@ -90,17 +226,22 @@ function sanitizeSettings(raw: Partial<GameSettings> | null | undefined): GameSe
       ? (src.defaultSide as TacticalSide)
       : DEFAULT_GAME_SETTINGS.defaultSide,
     winTarget: src.winTarget === 6 || src.winTarget === 10 ? src.winTarget : DEFAULT_GAME_SETTINGS.winTarget,
+    playerName: sanitizeCallsign(src.playerName, DEFAULT_GAME_SETTINGS.playerName),
+    adsMode: VALID_ADS_MODES.includes(src.adsMode as GameSettings['adsMode'])
+      ? (src.adsMode as GameSettings['adsMode'])
+      : DEFAULT_GAME_SETTINGS.adsMode,
+    keybinds: sanitizeKeybinds(src.keybinds),
   };
 }
 
 function loadSettings(): GameSettings {
   try {
-    if (typeof localStorage === 'undefined') return { ...DEFAULT_GAME_SETTINGS };
+    if (typeof localStorage === 'undefined') return cloneSettings(DEFAULT_GAME_SETTINGS);
     const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
-    if (!raw) return { ...DEFAULT_GAME_SETTINGS };
+    if (!raw) return cloneSettings(DEFAULT_GAME_SETTINGS);
     return sanitizeSettings(JSON.parse(raw) as Partial<GameSettings>);
   } catch {
-    return { ...DEFAULT_GAME_SETTINGS };
+    return cloneSettings(DEFAULT_GAME_SETTINGS);
   }
 }
 
@@ -118,6 +259,13 @@ function safeGetEl<T extends HTMLElement>(id: string): T | null {
   return document.getElementById(id) as T | null;
 }
 
+function mapMouseButtonToBindCode(button: number): string | null {
+  if (button === 1) return 'Mouse3';
+  if (button === 3) return 'Mouse4';
+  if (button === 4) return 'Mouse5';
+  return null;
+}
+
 /**
  * Creates the persistent Settings Modal controller (`#settings-modal`) managing
  * Controls, Crosshair host tab, Video & Minimap, Audio, and Match preferences.
@@ -128,6 +276,13 @@ export function createSettingsController(): SettingsController {
   let activeTab: SettingsTabId = 'controls';
   let onChangeCallback: ((s: GameSettings) => void) | null = null;
   let onCloseCallback: (() => void) | null = null;
+  let onSurrenderCallback: (() => void) | null = null;
+
+  let listeningSlot: keyof AbilityKeybinds | null = null;
+  let suppressAuxUntilMs = 0;
+
+  let surrenderArmed = false;
+  let surrenderTimer: ReturnType<typeof setTimeout> | null = null;
 
   const modalEl = safeGetEl<HTMLDivElement>('settings-modal');
   const closeBtn = safeGetEl<HTMLButtonElement>('settings-close-btn');
@@ -148,6 +303,11 @@ export function createSettingsController(): SettingsController {
   const adsSensInput = safeGetEl<HTMLInputElement>('set-ads-sens');
   const adsSensVal = safeGetEl<HTMLElement>('set-ads-sens-val');
   const invertYInput = safeGetEl<HTMLInputElement>('set-invert-y');
+  const adsModeSelect = safeGetEl<HTMLSelectElement>('set-ads-mode');
+  const bindAbilityQBtn = safeGetEl<HTMLButtonElement>('bind-ability-q');
+  const bindAbilityEBtn = safeGetEl<HTMLButtonElement>('bind-ability-e');
+  const bindAbilityXBtn = safeGetEl<HTMLButtonElement>('bind-ability-x');
+  const bindResetBtn = safeGetEl<HTMLButtonElement>('bind-reset-btn');
 
   // Video & Minimap tab
   const fovInput = safeGetEl<HTMLInputElement>('set-fov');
@@ -163,9 +323,18 @@ export function createSettingsController(): SettingsController {
   const mutedInput = safeGetEl<HTMLInputElement>('set-muted');
 
   // Match tab
+  const playerNameInput = safeGetEl<HTMLInputElement>('set-player-name');
   const difficultySelect = safeGetEl<HTMLSelectElement>('set-difficulty');
   const defaultSideSelect = safeGetEl<HTMLSelectElement>('set-default-side');
   const winTargetSelect = safeGetEl<HTMLSelectElement>('set-win-target');
+  const surrenderBtn = safeGetEl<HTMLButtonElement>('set-surrender-btn');
+  const defaultSurrenderLabel = surrenderBtn?.textContent?.trim() || 'SURRENDER MATCH';
+
+  const bindButtons: Record<keyof AbilityKeybinds, HTMLButtonElement | null> = {
+    abilityQ: bindAbilityQBtn,
+    abilityE: bindAbilityEBtn,
+    abilityX: bindAbilityXBtn,
+  };
 
   function syncTabs(): void {
     for (const btn of tabButtons) {
@@ -182,6 +351,19 @@ export function createSettingsController(): SettingsController {
     }
   }
 
+  function syncBindButtons(): void {
+    const slots: (keyof AbilityKeybinds)[] = ['abilityQ', 'abilityE', 'abilityX'];
+    for (const slot of slots) {
+      const btn = bindButtons[slot];
+      if (!btn) continue;
+      const isListening = listeningSlot === slot;
+      btn.classList.toggle('listening', isListening);
+      btn.textContent = isListening
+        ? 'PRESS KEY OR M3/M4/M5...'
+        : formatBindLabel(settings.keybinds[slot]);
+    }
+  }
+
   function syncControls(): void {
     if (mouseSensInput) mouseSensInput.value = settings.mouseSensitivity.toFixed(2);
     if (mouseSensVal) mouseSensVal.textContent = settings.mouseSensitivity.toFixed(2);
@@ -190,6 +372,8 @@ export function createSettingsController(): SettingsController {
     if (adsSensVal) adsSensVal.textContent = `${settings.adsSensitivityMult.toFixed(2)}x`;
 
     if (invertYInput) invertYInput.checked = settings.invertY;
+    if (adsModeSelect) adsModeSelect.value = settings.adsMode;
+    syncBindButtons();
 
     if (fovInput) fovInput.value = String(settings.fovDeg);
     if (fovVal) fovVal.textContent = `${settings.fovDeg}°`;
@@ -204,27 +388,148 @@ export function createSettingsController(): SettingsController {
     if (masterVolVal) masterVolVal.textContent = `${volPct}%`;
     if (mutedInput) mutedInput.checked = settings.muted;
 
+    if (playerNameInput && typeof document !== 'undefined' && document.activeElement !== playerNameInput) {
+      playerNameInput.value = settings.playerName;
+    }
     if (difficultySelect) difficultySelect.value = settings.difficulty;
     if (defaultSideSelect) defaultSideSelect.value = settings.defaultSide;
     if (winTargetSelect) winTargetSelect.value = String(settings.winTarget);
   }
 
   function applyPatch(patch: Partial<GameSettings>): void {
-    settings = sanitizeSettings({ ...settings, ...patch });
+    const merged: Partial<GameSettings> = {
+      ...settings,
+      ...patch,
+      keybinds: patch.keybinds
+        ? { ...settings.keybinds, ...patch.keybinds }
+        : { ...settings.keybinds },
+    };
+    settings = sanitizeSettings(merged);
     saveSettings(settings);
+    if (patch.playerName !== undefined) {
+      saveCallsignStorage(settings.playerName);
+    }
     syncControls();
-    onChangeCallback?.({ ...settings });
+    onChangeCallback?.(cloneSettings(settings));
+  }
+
+  function commitKeybind(slot: keyof AbilityKeybinds, code: string): void {
+    const nextBinds: AbilityKeybinds = { ...settings.keybinds };
+    const prevCode = nextBinds[slot];
+    if (prevCode !== code) {
+      const slots: (keyof AbilityKeybinds)[] = ['abilityQ', 'abilityE', 'abilityX'];
+      for (const other of slots) {
+        if (other !== slot && nextBinds[other] === code) {
+          nextBinds[other] = prevCode;
+        }
+      }
+      nextBinds[slot] = code;
+      applyPatch({ keybinds: nextBinds });
+    }
+  }
+
+  function stopListening(): void {
+    if (listeningSlot === null) return;
+    listeningSlot = null;
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('keydown', onRebindKeyDown, true);
+      window.removeEventListener('mousedown', onRebindMouseDown, true);
+    }
+    syncBindButtons();
+  }
+
+  function startListening(slot: keyof AbilityKeybinds): void {
+    if (listeningSlot === slot) {
+      stopListening();
+      return;
+    }
+    stopListening();
+    listeningSlot = slot;
+    syncBindButtons();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('keydown', onRebindKeyDown, true);
+      window.addEventListener('mousedown', onRebindMouseDown, true);
+    }
+  }
+
+  function onRebindKeyDown(e: KeyboardEvent): void {
+    if (listeningSlot === null) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.code === 'Escape') {
+      stopListening();
+      return;
+    }
+    if (isValidKeybindCode(e.code)) {
+      const targetSlot = listeningSlot;
+      stopListening();
+      commitKeybind(targetSlot, e.code);
+    }
+  }
+
+  function onRebindMouseDown(e: MouseEvent): void {
+    if (listeningSlot === null) return;
+    const mouseCode = mapMouseButtonToBindCode(e.button);
+    if (mouseCode) {
+      e.preventDefault();
+      e.stopPropagation();
+      suppressAuxUntilMs = performance.now() + 450;
+      const targetSlot = listeningSlot;
+      stopListening();
+      commitKeybind(targetSlot, mouseCode);
+      return;
+    }
+    // Left or right click outside cancels listening cleanly (let another bind button click handle itself).
+    if (e.button === 0 && listeningSlot && e.target === bindButtons[listeningSlot]) {
+      return;
+    }
+    if (e.button === 2) {
+      e.preventDefault();
+    }
+    stopListening();
+  }
+
+  function onAuxMouseGuard(e: MouseEvent): void {
+    if (e.button !== 1 && e.button !== 3 && e.button !== 4) return;
+    if (listeningSlot !== null || performance.now() <= suppressAuxUntilMs) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('mouseup', onAuxMouseGuard, true);
+    window.addEventListener('auxclick', onAuxMouseGuard, true);
+  }
+
+  function resetSurrenderConfirm(): void {
+    if (surrenderTimer !== null) {
+      clearTimeout(surrenderTimer);
+      surrenderTimer = null;
+    }
+    surrenderArmed = false;
+    if (surrenderBtn) {
+      surrenderBtn.textContent = defaultSurrenderLabel;
+      surrenderBtn.classList.remove('confirming');
+    }
   }
 
   function resetDefaults(): void {
-    settings = { ...DEFAULT_GAME_SETTINGS };
+    stopListening();
+    resetSurrenderConfirm();
+    settings = cloneSettings(DEFAULT_GAME_SETTINGS);
     saveSettings(settings);
+    saveCallsignStorage(settings.playerName);
     syncControls();
-    onChangeCallback?.({ ...settings });
+    onChangeCallback?.(cloneSettings(settings));
   }
 
   function setActiveTab(tab: SettingsTabId): void {
     if (!VALID_TABS.includes(tab)) return;
+    if (tab !== activeTab) {
+      stopListening();
+      resetSurrenderConfirm();
+    }
     activeTab = tab;
     syncTabs();
   }
@@ -233,14 +538,24 @@ export function createSettingsController(): SettingsController {
     if (tab) {
       setActiveTab(tab);
     }
+    const latestCallsign = loadInitialCallsignFallback();
+    if (latestCallsign !== settings.playerName) {
+      settings = sanitizeSettings({ ...settings, playerName: latestCallsign });
+      saveSettings(settings);
+    }
     openState = true;
     syncTabs();
     syncControls();
+    if (playerNameInput) {
+      playerNameInput.value = settings.playerName;
+    }
     modalEl?.classList.remove('hidden');
   }
 
   function close(): void {
     if (!openState) return;
+    stopListening();
+    resetSurrenderConfirm();
     openState = false;
     modalEl?.classList.add('hidden');
     onCloseCallback?.();
@@ -287,6 +602,18 @@ export function createSettingsController(): SettingsController {
     applyPatch({ invertY: invertYInput.checked });
   });
 
+  adsModeSelect?.addEventListener('change', () => {
+    applyPatch({ adsMode: adsModeSelect.value === 'toggle' ? 'toggle' : 'hold' });
+  });
+
+  bindAbilityQBtn?.addEventListener('click', () => startListening('abilityQ'));
+  bindAbilityEBtn?.addEventListener('click', () => startListening('abilityE'));
+  bindAbilityXBtn?.addEventListener('click', () => startListening('abilityX'));
+  bindResetBtn?.addEventListener('click', () => {
+    stopListening();
+    applyPatch({ keybinds: { ...DEFAULT_KEYBINDS } });
+  });
+
   // Video & Minimap bindings
   fovInput?.addEventListener('input', () => {
     const val = Number(fovInput.value);
@@ -320,6 +647,27 @@ export function createSettingsController(): SettingsController {
   });
 
   // Match bindings
+  function commitPlayerName(): void {
+    if (!playerNameInput) return;
+    const nextName = sanitizeCallsign(playerNameInput.value, 'AGENT-1');
+    playerNameInput.value = nextName;
+    saveCallsignStorage(nextName);
+    if (nextName !== settings.playerName) {
+      applyPatch({ playerName: nextName });
+    }
+  }
+
+  playerNameInput?.addEventListener('keydown', (e: KeyboardEvent) => {
+    if (e.code === 'Enter') {
+      e.preventDefault();
+      commitPlayerName();
+      playerNameInput.blur();
+    }
+    e.stopPropagation();
+  });
+  playerNameInput?.addEventListener('change', commitPlayerName);
+  playerNameInput?.addEventListener('blur', commitPlayerName);
+
   difficultySelect?.addEventListener('change', () => {
     applyPatch({ difficulty: difficultySelect.value as AiDifficulty });
   });
@@ -332,13 +680,28 @@ export function createSettingsController(): SettingsController {
     applyPatch({ winTarget: Number(winTargetSelect.value) === 6 ? 6 : 10 });
   });
 
+  surrenderBtn?.addEventListener('click', () => {
+    if (!surrenderArmed) {
+      surrenderArmed = true;
+      surrenderBtn.textContent = 'CONFIRM SURRENDER?';
+      surrenderBtn.classList.add('confirming');
+      surrenderTimer = setTimeout(() => {
+        resetSurrenderConfirm();
+      }, 3000);
+      return;
+    }
+    resetSurrenderConfirm();
+    close();
+    onSurrenderCallback?.();
+  });
+
   // Initial sync
   syncTabs();
   syncControls();
 
   return {
     getSettings(): GameSettings {
-      return { ...settings };
+      return cloneSettings(settings);
     },
     isOpen(): boolean {
       return openState;
@@ -354,6 +717,9 @@ export function createSettingsController(): SettingsController {
     },
     setOnClose(cb: () => void): void {
       onCloseCallback = cb;
+    },
+    setOnSurrender(cb: () => void): void {
+      onSurrenderCallback = cb;
     },
   };
 }

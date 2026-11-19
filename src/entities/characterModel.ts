@@ -30,6 +30,8 @@ export interface CharacterRig {
   triggerFireKick(): void;
   triggerHitFlash(isHeadshot: boolean): void;
   setVisible(visible: boolean): void;
+  setOverheadUiVisible(visible: boolean): void;
+  setDisplayName(name: string): void;
   update(
     dt: number,
     state: {
@@ -191,6 +193,17 @@ interface TeamStyle {
   badge: number;
 }
 
+const ENEMY_HIGHLIGHT_HEX = 0xff2a4b;
+const ALLY_HIGHLIGHT_HEX = 0x22d3ee;
+
+const DEFAULT_AGENT_CODENAME: Record<AgentColorId, string> = {
+  red: 'BLAZE',
+  blue: 'MIST',
+  green: 'PULSE',
+  violet: 'UMBRA',
+  gold: 'VOLT',
+};
+
 const TEAM_STYLE: Record<TeamId, TeamStyle> = {
   ally: {
     suit: 0xf2f6ff, // Pearl-Titanium white
@@ -198,21 +211,21 @@ const TEAM_STYLE: Record<TeamId, TeamStyle> = {
     suitEmissiveIntensity: 0.07,
     suitRoughness: 0.46,
     suitMetalness: 0.12,
-    ring: 0x9ff0ff, // cyan-white
-    ringOpacity: 0.55,
-    barFrame: 0xd8fbff,
-    badge: 0x6ce8ff,
+    ring: ALLY_HIGHLIGHT_HEX, // crisp teal-cyan
+    ringOpacity: 0.85,
+    barFrame: ALLY_HIGHLIGHT_HEX,
+    badge: ALLY_HIGHLIGHT_HEX,
   },
   enemy: {
     suit: 0x141722, // deep matte obsidian
-    suitEmissive: 0x000000,
-    suitEmissiveIntensity: 0.0,
+    suitEmissive: 0x1a0308,
+    suitEmissiveIntensity: 0.12,
     suitRoughness: 0.66,
     suitMetalness: 0.28,
-    ring: 0xff4422, // amber-red
-    ringOpacity: 0.65,
-    barFrame: 0x05060a,
-    badge: 0xff4422,
+    ring: ENEMY_HIGHLIGHT_HEX, // vivid crimson-red
+    ringOpacity: 0.92,
+    barFrame: ENEMY_HIGHLIGHT_HEX,
+    badge: ENEMY_HIGHLIGHT_HEX,
   },
 };
 
@@ -634,12 +647,25 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
   // -------------------------------------------------------------------------
   // Per-rig materials (so hit-flash / cryo tint affect one character only)
   // -------------------------------------------------------------------------
+  const teamHighlightHex = isEnemy ? ENEMY_HIGHLIGHT_HEX : ALLY_HIGHLIGHT_HEX;
+  const _baseArmorEmissive = new THREE.Color(agent.primary);
+  if (isEnemy) {
+    // Subtle crimson armor emissive tint so enemy silhouettes read unmistakably at a glance
+    _baseArmorEmissive.lerp(new THREE.Color(ENEMY_HIGHLIGHT_HEX), 0.35);
+  }
+  const baseArmorEmissiveIntensity = isEnemy
+    ? finish.emissiveIntensity + 0.18
+    : finish.emissiveIntensity;
+  const trimBaseEmissiveColor = isEnemy
+    ? new THREE.Color(agent.trim).lerp(new THREE.Color(ENEMY_HIGHLIGHT_HEX), 0.35)
+    : new THREE.Color(agent.trim);
+
   const armorMat = new THREE.MeshStandardMaterial({
     color: agent.primary,
     roughness: finish.roughness,
     metalness: finish.metalness,
-    emissive: agent.primary,
-    emissiveIntensity: finish.emissiveIntensity,
+    emissive: _baseArmorEmissive,
+    emissiveIntensity: baseArmorEmissiveIntensity,
     side: THREE.DoubleSide, // open domes (pauldrons) / shells read solid from below
   });
   const helmetMat = armorMat.clone(); // separate so headshots flash the head harder
@@ -651,11 +677,26 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
     emissiveIntensity: teamStyle.suitEmissiveIntensity,
   });
   const trimMat = new THREE.MeshStandardMaterial({
-    color: agent.trim,
-    emissive: agent.trim,
-    emissiveIntensity: 1.2,
+    color: isEnemy ? trimBaseEmissiveColor : agent.trim,
+    emissive: trimBaseEmissiveColor,
+    emissiveIntensity: isEnemy ? 1.55 : 1.2,
     roughness: 0.2,
     metalness: 0.1,
+  });
+  const teamHighlightMat = new THREE.MeshStandardMaterial({
+    color: teamHighlightHex,
+    emissive: teamHighlightHex,
+    emissiveIntensity: isEnemy ? 1.65 : 1.25,
+    roughness: 0.18,
+    metalness: 0.12,
+  });
+  const teamAuraMat = new THREE.MeshBasicMaterial({
+    color: teamHighlightHex,
+    transparent: true,
+    opacity: isEnemy ? 0.34 : 0.18,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    side: THREE.DoubleSide,
   });
   // Unlit pure glow for optics / visors / energy cores: always full brightness.
   const glowMat = new THREE.MeshBasicMaterial({ color: agent.trim });
@@ -1409,8 +1450,84 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
   let activeWeapon: WeaponId = 'ar';
 
   // -------------------------------------------------------------------------
+  // Team Silhouette Rim Highlights (Enemy #ff2a4b crimson / Ally #22d3ee cyan)
+  // Kept visible on BOTH procedural & articulated KAY/O GLB rigs!
+  // -------------------------------------------------------------------------
+  const teamRimUpperGroup = new THREE.Group();
+  upperBody.add(teamRimUpperGroup);
+  for (const side of [-1, 1] as const) {
+    // Vivid shoulder silhouette rim arcs visible from front, flank, and rear
+    const shRim = addMesh(
+      teamRimUpperGroup,
+      new THREE.TorusGeometry(0.118, isEnemy ? 0.013 : 0.0095, 8, 28, Math.PI * 1.15),
+      teamHighlightMat,
+      side * 0.252,
+      U(1.335),
+      0
+    );
+    shRim.rotation.set(Math.PI * 0.44, side * 0.25, -side * 0.34);
+  }
+  // Collar chest bar & dorsal upper-back bar in team color
+  addMesh(teamRimUpperGroup, new THREE.BoxGeometry(0.15, 0.015, 0.014), teamHighlightMat, 0, U(1.325), -0.142);
+  addMesh(teamRimUpperGroup, new THREE.BoxGeometry(0.16, 0.015, 0.014), teamHighlightMat, 0, U(1.31), 0.145);
+  if (isEnemy) {
+    // Subtle crimson shoulder-line silhouette rim aura for instant enemy target acquisition
+    const enemyUpperAura = addMesh(
+      teamRimUpperGroup,
+      new THREE.TorusGeometry(0.285, 0.016, 8, 36),
+      teamAuraMat,
+      0,
+      U(1.31),
+      0
+    );
+    enemyUpperAura.rotation.x = Math.PI / 2;
+    enemyUpperAura.scale.set(1.12, 0.72, 1);
+  }
+
+  const teamRimWaistGroup = new THREE.Group();
+  bodyTiltGroup.add(teamRimWaistGroup);
+  const waistTeamRim = addMesh(
+    teamRimWaistGroup,
+    new THREE.TorusGeometry(0.164, isEnemy ? 0.013 : 0.0095, 8, 32),
+    teamHighlightMat,
+    0,
+    0.875,
+    0
+  );
+  waistTeamRim.rotation.x = Math.PI / 2;
+  waistTeamRim.scale.set(TORSO_SCALE_X, 0.82, 1);
+  if (isEnemy) {
+    const enemyWaistAura = addMesh(
+      teamRimWaistGroup,
+      new THREE.TorusGeometry(0.195, 0.014, 8, 32),
+      teamAuraMat,
+      0,
+      0.875,
+      0
+    );
+    enemyWaistAura.rotation.x = Math.PI / 2;
+    enemyWaistAura.scale.set(TORSO_SCALE_X, 0.82, 1);
+  }
+
+  // Team visor brow badge on helmet (crimson for enemy, cyan for ally)
+  const teamVisorBadgeGroup = new THREE.Group();
+  headGroup.add(teamVisorBadgeGroup);
+  addMesh(
+    teamVisorBadgeGroup,
+    new THREE.CylinderGeometry(0.174, 0.172, isEnemy ? 0.02 : 0.015, 24, 1, true, Math.PI - 0.68, 1.36),
+    teamHighlightMat,
+    0,
+    0.056,
+    0.004
+  );
+
+  // -------------------------------------------------------------------------
   // Floor team ring + overhead indicators (children of root, never tilted)
   // -------------------------------------------------------------------------
+  const teamRing = new THREE.Group();
+  teamRing.position.set(0, 0.022, 0);
+  root.add(teamRing);
+
   const teamRingMat = new THREE.MeshBasicMaterial({
     color: teamStyle.ring,
     transparent: true,
@@ -1418,17 +1535,57 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
     side: THREE.DoubleSide,
     depthWrite: false,
   });
-  const teamRing = addMesh(root, new THREE.RingGeometry(0.36, 0.43, 32), teamRingMat, 0, 0.02, 0);
-  teamRing.rotation.x = -Math.PI / 2;
+  const teamRingInner = addMesh(teamRing, new THREE.RingGeometry(0.34, 0.44, 36), teamRingMat);
+  teamRingInner.rotation.x = -Math.PI / 2;
+  teamRingInner.renderOrder = 8;
+
+  const teamRingOuterMat = new THREE.MeshBasicMaterial({
+    color: teamStyle.ring,
+    transparent: true,
+    opacity: isEnemy ? 0.48 : 0.34,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+  });
+  const teamRingOuter = addMesh(teamRing, new THREE.RingGeometry(0.45, 0.51, 36), teamRingOuterMat);
+  teamRingOuter.rotation.x = -Math.PI / 2;
+  teamRingOuter.renderOrder = 9;
 
   const healthBarGroup = new THREE.Group();
   healthBarGroup.position.set(0, HEALTH_BAR_Y, 0);
   root.add(healthBarGroup);
 
-  const frameMat = new THREE.MeshBasicMaterial({ color: teamStyle.barFrame, side: THREE.DoubleSide, transparent: true, opacity: 0.95 });
-  addMesh(healthBarGroup, new THREE.PlaneGeometry(HEALTH_BAR_WIDTH + 0.1, HEALTH_BAR_HEIGHT + 0.05), frameMat);
-  const barBgMat = new THREE.MeshBasicMaterial({ color: 0x0b0e14, side: THREE.DoubleSide, transparent: true, opacity: 0.9 });
-  addMesh(healthBarGroup, new THREE.PlaneGeometry(HEALTH_BAR_WIDTH + 0.06, HEALTH_BAR_HEIGHT + 0.022), barBgMat, 0, 0, 0.002);
+  // Explicit incremental renderOrder (10..15) + depthWrite: false prevent stacked-plane Z-fighting at distance.
+  const frameMat = new THREE.MeshBasicMaterial({
+    color: teamStyle.barFrame,
+    side: THREE.DoubleSide,
+    transparent: true,
+    opacity: 0.96,
+    depthWrite: false,
+  });
+  const frameMesh = addMesh(
+    healthBarGroup,
+    new THREE.PlaneGeometry(HEALTH_BAR_WIDTH + 0.1, HEALTH_BAR_HEIGHT + 0.05),
+    frameMat
+  );
+  frameMesh.renderOrder = 10;
+
+  const barBgMat = new THREE.MeshBasicMaterial({
+    color: 0x0b0e14,
+    side: THREE.DoubleSide,
+    transparent: true,
+    opacity: 0.92,
+    depthWrite: false,
+  });
+  const bgMesh = addMesh(
+    healthBarGroup,
+    new THREE.PlaneGeometry(HEALTH_BAR_WIDTH + 0.06, HEALTH_BAR_HEIGHT + 0.022),
+    barBgMat,
+    0,
+    0,
+    0.002
+  );
+  bgMesh.renderOrder = 11;
 
   // Left-anchored fills so `scale.x` drains right-to-left.
   const makeFillGeo = (): THREE.PlaneGeometry => {
@@ -1436,23 +1593,135 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
     geo.translate(HEALTH_BAR_WIDTH / 2, 0, 0);
     return geo;
   };
-  const ghostMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, transparent: true, opacity: 0.6 });
+  const ghostMat = new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    side: THREE.DoubleSide,
+    transparent: true,
+    opacity: 0.65,
+    depthWrite: false,
+  });
   const ghostFill = addMesh(healthBarGroup, makeFillGeo(), ghostMat, -HEALTH_BAR_WIDTH / 2, 0, 0.004);
-  const healthFillMat = new THREE.MeshBasicMaterial({ color: agent.primary, side: THREE.DoubleSide });
-  const healthFill = addMesh(healthBarGroup, makeFillGeo(), healthFillMat, -HEALTH_BAR_WIDTH / 2, 0, 0.006);
+  ghostFill.renderOrder = 12;
 
-  // Team badge on the left edge: ally = cyan-white disc, enemy = red diamond pip.
+  const healthFillMat = new THREE.MeshBasicMaterial({
+    color: teamHighlightHex,
+    side: THREE.DoubleSide,
+    transparent: true,
+    opacity: 0.98,
+    depthWrite: false,
+  });
+  const healthFill = addMesh(healthBarGroup, makeFillGeo(), healthFillMat, -HEALTH_BAR_WIDTH / 2, 0, 0.006);
+  healthFill.renderOrder = 13;
+
+  // Team badge on the left edge: ally = cyan disc, enemy = crimson diamond pip.
   const badgeX = -(HEALTH_BAR_WIDTH + 0.1) / 2 - 0.03;
-  const badgeMat = new THREE.MeshBasicMaterial({ color: teamStyle.badge, side: THREE.DoubleSide });
+  const badgeMat = new THREE.MeshBasicMaterial({
+    color: teamStyle.badge,
+    side: THREE.DoubleSide,
+    transparent: true,
+    opacity: 0.98,
+    depthWrite: false,
+  });
   if (isEnemy) {
     const pipBack = addMesh(healthBarGroup, new THREE.PlaneGeometry(0.09, 0.09), frameMat, badgeX, 0, 0.006);
     pipBack.rotation.z = Math.PI / 4;
+    pipBack.renderOrder = 13;
     const pip = addMesh(healthBarGroup, new THREE.PlaneGeometry(0.065, 0.065), badgeMat, badgeX, 0, 0.008);
     pip.rotation.z = Math.PI / 4;
+    pip.renderOrder = 14;
   } else {
-    addMesh(healthBarGroup, new THREE.CircleGeometry(0.058, 20), frameMat, badgeX, 0, 0.006);
-    addMesh(healthBarGroup, new THREE.CircleGeometry(0.042, 20), badgeMat, badgeX, 0, 0.008);
+    const discBack = addMesh(healthBarGroup, new THREE.CircleGeometry(0.058, 20), frameMat, badgeX, 0, 0.006);
+    discBack.renderOrder = 13;
+    const disc = addMesh(healthBarGroup, new THREE.CircleGeometry(0.042, 20), badgeMat, badgeX, 0, 0.008);
+    disc.renderOrder = 14;
   }
+
+  // Crisp 3D Overhead Team Nameplate (`ALLY • <NAME>` in cyan / `ENEMY • <NAME>` in crimson)
+  let displayName = DEFAULT_AGENT_CODENAME[colorId];
+  const nameplateCanvas = document.createElement('canvas');
+  nameplateCanvas.width = 512;
+  nameplateCanvas.height = 96;
+  const nameplateCtx = nameplateCanvas.getContext('2d');
+  const nameplateTex = new THREE.CanvasTexture(nameplateCanvas);
+  nameplateTex.colorSpace = THREE.SRGBColorSpace;
+  nameplateTex.minFilter = THREE.LinearFilter;
+  nameplateTex.magFilter = THREE.LinearFilter;
+
+  function redrawNameplate(): void {
+    if (!nameplateCtx) return;
+    const w = nameplateCanvas.width;
+    const h = nameplateCanvas.height;
+    nameplateCtx.clearRect(0, 0, w, h);
+
+    const accentCss = isEnemy ? '#ff2a4b' : '#22d3ee';
+    const textCss = isEnemy ? '#ffe6eb' : '#e0faff';
+    const prefix = isEnemy ? 'ENEMY' : 'ALLY';
+
+    // Rounded dark tactical nameplate pill
+    const padX = 14;
+    const padY = 12;
+    const rw = w - padX * 2;
+    const rh = h - padY * 2;
+    const rad = 16;
+    nameplateCtx.beginPath();
+    nameplateCtx.moveTo(padX + rad, padY);
+    nameplateCtx.lineTo(padX + rw - rad, padY);
+    nameplateCtx.quadraticCurveTo(padX + rw, padY, padX + rw, padY + rad);
+    nameplateCtx.lineTo(padX + rw, padY + rh - rad);
+    nameplateCtx.quadraticCurveTo(padX + rw, padY + rh, padX + rw - rad, padY + rh);
+    nameplateCtx.lineTo(padX + rad, padY + rh);
+    nameplateCtx.quadraticCurveTo(padX, padY + rh, padX, padY + rh - rad);
+    nameplateCtx.lineTo(padX, padY + rad);
+    nameplateCtx.quadraticCurveTo(padX, padY, padX + rad, padY);
+    nameplateCtx.closePath();
+
+    nameplateCtx.fillStyle = isEnemy ? 'rgba(24, 6, 12, 0.84)' : 'rgba(6, 18, 26, 0.84)';
+    nameplateCtx.fill();
+    nameplateCtx.lineWidth = 4;
+    nameplateCtx.strokeStyle = accentCss;
+    nameplateCtx.stroke();
+
+    // Draw crisp centered "ALLY • NAME" or "ENEMY • NAME"
+    const labelFull = `${prefix} • ${displayName}`;
+    const fontSize = labelFull.length > 16 ? 34 : 40;
+    nameplateCtx.font = `900 ${fontSize}px "Segoe UI", "Inter", system-ui, sans-serif`;
+    nameplateCtx.textBaseline = 'middle';
+    const prefixPart = `${prefix} • `;
+    const prefixW = nameplateCtx.measureText(prefixPart).width;
+    const nameW = nameplateCtx.measureText(displayName).width;
+    const startX = (w - (prefixW + nameW)) * 0.5;
+    const midY = h * 0.5 + 1;
+
+    nameplateCtx.textAlign = 'left';
+    nameplateCtx.lineWidth = 5;
+    nameplateCtx.strokeStyle = 'rgba(0, 0, 0, 0.88)';
+    nameplateCtx.strokeText(prefixPart, startX, midY);
+    nameplateCtx.fillStyle = accentCss;
+    nameplateCtx.fillText(prefixPart, startX, midY);
+
+    nameplateCtx.strokeText(displayName, startX + prefixW, midY);
+    nameplateCtx.fillStyle = textCss;
+    nameplateCtx.fillText(displayName, startX + prefixW, midY);
+
+    nameplateTex.needsUpdate = true;
+  }
+  redrawNameplate();
+
+  const nameplateMat = new THREE.MeshBasicMaterial({
+    map: nameplateTex,
+    transparent: true,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+  });
+  const nameplateMesh = addMesh(
+    healthBarGroup,
+    new THREE.PlaneGeometry(1.18, 0.22),
+    nameplateMat,
+    0,
+    0.185,
+    0.008
+  );
+  nameplateMesh.renderOrder = 15;
 
   const blindHaloMat = new THREE.MeshBasicMaterial({ color: 0xc8ffe0, side: THREE.DoubleSide });
   const blindHalo = addMesh(root, new THREE.TorusGeometry(0.28, 0.026, 6, 16), blindHaloMat, 0, BLIND_HALO_Y, 0);
@@ -1579,23 +1848,20 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
   }
 
   // -------------------------------------------------------------------------
-  // Articulated Blender KAY/O Combat Android + optional full-body `.glb` override
-  // (procedural rig stays 100% intact if absent or while loading)
+  // Articulated Blender KAY/O Combat Android (procedural rig stays 100% intact
+  // while loading or if absent)
   // -------------------------------------------------------------------------
-  const glbHolder = new THREE.Group();
-  bodyTiltGroup.add(glbHolder);
   let disposed = false;
-  let fullBodyGlbMounted = false;
 
-  // Snapshot procedural body meshes per bone slot BEFORE mounting any GLB so
-  // weapons, IK pivots, Spike, holo-keypad, Ult aura, and arcs remain untouched.
+  // Snapshot procedural body meshes per bone slot BEFORE mounting KAY/O GLB so
+  // weapons, IK pivots, team rim highlights, Spike, holo-keypad, Ult aura, and arcs remain untouched.
   const keepBodyGroups = new Set<THREE.Object3D>([
     upperBody,
     leftLeg.hip,
     rightLeg.hip,
     keypadGroup,
     ultMotesGroup,
-    glbHolder,
+    teamRimWaistGroup,
   ]);
   const keepUpperGroups = new Set<THREE.Object3D>([
     headGroup,
@@ -1604,12 +1870,13 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
     aimPivot,
     spikeGroup,
     ultGroup,
+    teamRimUpperGroup,
   ]);
   const procPelvisNodes = bodyTiltGroup.children.filter(
     (c) => !keepBodyGroups.has(c) && !(c instanceof THREE.Line)
   );
   const procTorsoNodes = upperBody.children.filter((c) => !keepUpperGroups.has(c));
-  const procHeadNodes = [...headGroup.children];
+  const procHeadNodes = headGroup.children.filter((c) => c !== teamVisorBadgeGroup);
   const procUpperArmL = leftArm.shoulder.children.filter((c) => c !== leftArm.elbow);
   const procUpperArmR = rightArm.shoulder.children.filter((c) => c !== rightArm.elbow);
   const procForearmL = [...leftArm.elbow.children];
@@ -1620,9 +1887,19 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
   const procShinR = rightLeg.knee.children.filter((c) => c instanceof THREE.Mesh);
 
   const kayoPrimaryHex = KAYO_AGENT_PRIMARY_HEX[colorId];
+  const kayoBaseArmorEmissive = new THREE.Color(kayoPrimaryHex);
+  if (isEnemy) {
+    kayoBaseArmorEmissive.lerp(new THREE.Color(ENEMY_HIGHLIGHT_HEX), 0.35);
+  }
+  const kayoArmorEmissiveIntensity = isEnemy
+    ? KAYO_ARMOR_BASE_EMISSIVE + 0.22
+    : KAYO_ARMOR_BASE_EMISSIVE;
+  const kayoVisorColor = isEnemy
+    ? new THREE.Color(agent.trim).lerp(new THREE.Color(ENEMY_HIGHLIGHT_HEX), 0.35)
+    : new THREE.Color(agent.trim);
   const kayoChassisHex = isEnemy ? KAYO_ENEMY_OBSIDIAN_HEX : KAYO_ALLY_PEARL_HEX;
-  const kayoChassisEmissiveHex = isEnemy ? 0x000000 : 0xcbd8eb;
-  const kayoChassisEmissiveBase = isEnemy ? 0.0 : 0.06;
+  const kayoChassisEmissiveHex = isEnemy ? 0x1a0308 : 0xcbd8eb;
+  const kayoChassisEmissiveBase = isEnemy ? 0.1 : 0.06;
 
   interface KayoClonedMaterials {
     armorPrimary: THREE.MeshStandardMaterial | null;
@@ -1650,7 +1927,7 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
    * materials per rig (never mutating the shared cached template).
    */
   function applyKayoGlb(kayoGlb: THREE.Object3D): void {
-    if (disposed || fullBodyGlbMounted) return;
+    if (disposed) return;
 
     const rigMatCache = new Map<string, THREE.Material>();
 
@@ -1669,16 +1946,16 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
           cloned.color.setHex(kayoPrimaryHex);
           cloned.metalness = 0.38;
           cloned.roughness = 0.34;
-          cloned.emissive.setHex(kayoPrimaryHex);
-          cloned.emissiveIntensity = KAYO_ARMOR_BASE_EMISSIVE;
+          cloned.emissive.copy(kayoBaseArmorEmissive);
+          cloned.emissiveIntensity = kayoArmorEmissiveIntensity;
           if (isHead) {
             kayoMats.headArmorPrimary = cloned;
           } else {
             kayoMats.armorPrimary = cloned;
           }
         } else if (matName === 'Mat_VisorLED') {
-          cloned.color.setHex(agent.trim);
-          cloned.emissive.setHex(agent.trim);
+          cloned.color.copy(kayoVisorColor);
+          cloned.emissive.copy(kayoVisorColor);
           cloned.emissiveIntensity = KAYO_VISOR_BASE_EMISSIVE;
           cloned.metalness = 0.05;
           cloned.roughness = 0.14;
@@ -1691,18 +1968,18 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
           cloned.emissiveIntensity = kayoChassisEmissiveBase;
           kayoMats.chassisDark = cloned;
         } else if (matName === 'Mat_TeamStripe') {
-          cloned.color.setHex(kayoChassisHex);
-          cloned.metalness = isEnemy ? 0.34 : 0.22;
-          cloned.roughness = isEnemy ? 0.48 : 0.3;
-          cloned.emissive.setHex(isEnemy ? 0x000000 : KAYO_ALLY_PEARL_HEX);
-          cloned.emissiveIntensity = isEnemy ? 0.0 : 0.18;
+          cloned.color.setHex(teamHighlightHex);
+          cloned.metalness = 0.2;
+          cloned.roughness = 0.24;
+          cloned.emissive.setHex(teamHighlightHex);
+          cloned.emissiveIntensity = isEnemy ? 1.45 : 1.15;
           kayoMats.teamStripe = cloned;
         } else if (matName === 'Mat_ArmorSecondary') {
           cloned.color.setHex(isEnemy ? 0x232a38 : 0xb8c5d9);
           cloned.metalness = isEnemy ? 0.6 : 0.5;
           cloned.roughness = isEnemy ? 0.38 : 0.36;
-          cloned.emissive.setHex(isEnemy ? 0x000000 : 0x9fb4d1);
-          cloned.emissiveIntensity = isEnemy ? 0.0 : 0.04;
+          cloned.emissive.setHex(isEnemy ? 0x24050c : 0x9fb4d1);
+          cloned.emissiveIntensity = isEnemy ? 0.12 : 0.04;
         } else if (matName === 'Mat_JointMetal') {
           cloned.color.setHex(isEnemy ? 0x3a4354 : 0x96a4b8);
           cloned.metalness = isEnemy ? 0.84 : 0.82;
@@ -1763,50 +2040,7 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
     mountSegment('Kayo_Shin_R', rightLeg.knee, 0, procShinR);
   }
 
-  /**
-   * Swaps the body for a per-agent full-body Blender override mesh (`agent_<colorId>.glb`):
-   * auto-fit to the 1.82 m hitbox height, feet on the floor, centred on the root. The
-   * weapon, Spike, keypad, ult aura and overhead UI remain procedural.
-   */
-  function applyGlbOverride(glb: THREE.Object3D): void {
-    if (disposed) return;
-    fullBodyGlbMounted = true;
-    glb.updateMatrixWorld(true);
-    const box = new THREE.Box3().setFromObject(glb);
-    const size = box.getSize(new THREE.Vector3());
-    if (!Number.isFinite(size.y) || size.y < 1e-4) return;
-    glb.scale.multiplyScalar(1.82 / size.y);
-    glb.updateMatrixWorld(true);
-    box.setFromObject(glb);
-    const center = box.getCenter(new THREE.Vector3());
-    glb.position.x -= center.x;
-    glb.position.z -= center.z;
-    glb.position.y -= box.min.y;
-    glb.traverse((node) => {
-      node.userData.sharedGlb = true;
-      if (node instanceof THREE.Mesh) {
-        node.castShadow = true;
-        node.receiveShadow = true;
-      }
-    });
-    glbHolder.add(glb);
-
-    for (const part of kayoMountedParts) {
-      part.visible = false;
-    }
-
-    const keepBody = new Set<THREE.Object3D>([upperBody, glbHolder, keypadGroup, ultMotesGroup]);
-    const keepUpper = new Set<THREE.Object3D>([aimPivot, spikeGroup, ultGroup]);
-    for (const child of bodyTiltGroup.children) {
-      if (!keepBody.has(child) && !(child instanceof THREE.Line)) child.visible = false;
-    }
-    for (const child of upperBody.children) {
-      if (!keepUpper.has(child)) child.visible = false;
-    }
-  }
-
   const cancelKayoGlbRequest = requestAgentGlb(KAYO_GLB_URL, applyKayoGlb);
-  const cancelGlbRequest = requestAgentGlb(`/models/agent_${colorId}.glb`, applyGlbOverride);
 
   // -------------------------------------------------------------------------
   // Animation & visual state
@@ -1932,8 +2166,26 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
     lastHitWasHeadshot = isHeadshot;
   }
 
+  let overheadUiVisible = true;
+
   function setVisible(visible: boolean): void {
     root.visible = visible;
+  }
+
+  function setOverheadUiVisible(visible: boolean): void {
+    overheadUiVisible = visible;
+    if (!visible) {
+      healthBarGroup.visible = false;
+      teamRing.visible = false;
+      blindHalo.visible = false;
+    }
+  }
+
+  function setDisplayName(name: string): void {
+    const cleaned = (name || '').trim().toUpperCase().slice(0, 16) || DEFAULT_AGENT_CODENAME[colorId];
+    if (cleaned === displayName) return;
+    displayName = cleaned;
+    redrawNameplate();
   }
 
   function update(
@@ -2020,7 +2272,7 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
     } else {
       bodyTiltGroup.rotation.x *= Math.exp(-14 * stepDt);
     }
-    teamRing.visible = true;
+    teamRing.visible = overheadUiVisible;
 
     // -----------------------------------------------------------------------
     // Design Note E — 2-joint walk gait (hip + knee Forward Kinematics)
@@ -2147,7 +2399,7 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
     ultBlend += ((state.ultActive ? 1 : 0) - ultBlend) * (1 - Math.exp(-8 * stepDt));
     if (ultBlend < 1e-3) ultBlend = 0;
     const ultPulse = 0.5 + 0.5 * Math.sin(time * 6);
-    trimMat.emissiveIntensity = 1.15 + Math.sin(time * 3.1) * 0.2 + ultBlend * (1.3 + 0.6 * ultPulse);
+    trimMat.emissiveIntensity = (isEnemy ? 1.5 : 1.15) + Math.sin(time * 3.1) * 0.2 + ultBlend * (1.3 + 0.6 * ultPulse);
     if (kayoMats.visorLed) {
       const visorBreath = (1 - ultBlend) * Math.sin(time * 3.1) * 0.14;
       kayoMats.visorLed.emissiveIntensity =
@@ -2257,19 +2509,19 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
         kayoMats.chassisDark.emissiveIntensity = kayoChassisEmissiveBase;
       }
     } else {
-      armorMat.emissive.setHex(agent.primary);
-      helmetMat.emissive.setHex(agent.primary);
+      armorMat.emissive.copy(_baseArmorEmissive);
+      helmetMat.emissive.copy(_baseArmorEmissive);
       suitMat.emissive.setHex(teamStyle.suitEmissive);
-      armorMat.emissiveIntensity = finish.emissiveIntensity;
-      helmetMat.emissiveIntensity = finish.emissiveIntensity;
+      armorMat.emissiveIntensity = baseArmorEmissiveIntensity;
+      helmetMat.emissiveIntensity = baseArmorEmissiveIntensity;
       suitMat.emissiveIntensity = teamStyle.suitEmissiveIntensity;
       if (kayoMats.armorPrimary) {
-        kayoMats.armorPrimary.emissive.setHex(kayoPrimaryHex);
-        kayoMats.armorPrimary.emissiveIntensity = KAYO_ARMOR_BASE_EMISSIVE;
+        kayoMats.armorPrimary.emissive.copy(kayoBaseArmorEmissive);
+        kayoMats.armorPrimary.emissiveIntensity = kayoArmorEmissiveIntensity;
       }
       if (kayoMats.headArmorPrimary) {
-        kayoMats.headArmorPrimary.emissive.setHex(kayoPrimaryHex);
-        kayoMats.headArmorPrimary.emissiveIntensity = KAYO_ARMOR_BASE_EMISSIVE;
+        kayoMats.headArmorPrimary.emissive.copy(kayoBaseArmorEmissive);
+        kayoMats.headArmorPrimary.emissiveIntensity = kayoArmorEmissiveIntensity;
       }
       if (kayoMats.chassisDark) {
         kayoMats.chassisDark.emissive.setHex(kayoChassisEmissiveHex);
@@ -2286,8 +2538,8 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
       if (kayoMats.headArmorPrimary) kayoMats.headArmorPrimary.emissiveIntensity += boost;
     }
 
-    // Overhead health bar & blind halo (hidden when occluded by smoke).
-    const showOverhead = !state.occludedBySmoke;
+    // Overhead health bar, 3D team nameplate & blind halo (hidden when overheadUiVisible is false or occluded by smoke).
+    const showOverhead = overheadUiVisible && !state.occludedBySmoke;
     healthBarGroup.visible = showOverhead;
 
     if (showOverhead) {
@@ -2315,7 +2567,7 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
   function dispose(targetScene: THREE.Scene): void {
     disposed = true;
     cancelKayoGlbRequest();
-    cancelGlbRequest();
+    nameplateTex.dispose();
     targetScene.remove(root);
     root.traverse((node) => {
       // GLB clones share geometry with the cached template: never dispose shared buffers here.
@@ -2349,6 +2601,8 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
     triggerFireKick,
     triggerHitFlash,
     setVisible,
+    setOverheadUiVisible,
+    setDisplayName,
     update,
     dispose,
   };

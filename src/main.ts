@@ -6,13 +6,17 @@ import {
   AbilityHudSlotState,
   AgentColorId,
   AiDifficulty,
+  Combatant,
   GameSettings,
   InputState,
   MatchHudState,
   MovementModifiers,
+  RoundCombatReportEntry,
   RoundPhase,
+  SmokeSphere,
   SpikeHudState,
   TacticalSide,
+  Vec3,
   WeaponId,
 } from './core/types';
 import {
@@ -21,6 +25,7 @@ import {
   getHorizontalSpeed,
   getLookDirection,
   raycastAABB,
+  raycastSphere,
   updatePlayerMovement,
 } from './physics/movement';
 import {
@@ -43,7 +48,7 @@ import { createSoundEngine } from './audio/sfx';
 import { createMatchManager } from './match/roundManager';
 import { createMultiplayerClient } from './net/multiplayer';
 import { createCrosshairController } from './ui/crosshair';
-import { createSettingsController } from './ui/settings';
+import { createSettingsController, formatBindLabel } from './ui/settings';
 import { createLobbyController } from './ui/lobby';
 import { createAgentSelectController } from './ui/agentSelect';
 import { createBuyMenuController } from './ui/buyMenu';
@@ -71,12 +76,12 @@ const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(
   82,
   window.innerWidth / window.innerHeight,
-  0.05,
-  300
+  0.08,
+  230
 );
-// Tight near plane so first-person viewmodels/slide-cam never clip; far=300 covers 84x92m diagonals.
-camera.near = 0.05;
-camera.far = 300;
+// Tighter near/far ratio eliminates far-plane wall Z-fighting while covering 84x92m diagonals.
+camera.near = 0.08;
+camera.far = 230;
 camera.updateProjectionMatrix();
 // YXZ Euler order applies yaw (around world Y) before pitch (around local X),
 // preventing camera roll/tilt when looking diagonally in an FPS.
@@ -184,11 +189,18 @@ const openXhairFromOverlayBtn = document.getElementById(
 const openMapFromOverlayBtn = document.getElementById(
   'open-map-from-overlay'
 ) as HTMLButtonElement;
+const overlaySurrenderBtn = document.getElementById(
+  'overlay-surrender-btn'
+) as HTMLButtonElement;
 const fpsCounterEl = document.getElementById('fps-counter') as HTMLDivElement;
 const screenFxEl = document.getElementById('screen-fx') as HTMLDivElement;
 const scopeOverlayEl = document.getElementById('scope-overlay') as HTMLDivElement;
 const crosshairEl = document.getElementById('crosshair') as HTMLDivElement;
 const headshotRingEl = document.getElementById('headshot-ring') as HTMLDivElement;
+const hitmarkerEl = document.getElementById('hitmarker') as HTMLDivElement;
+const targetIdLabelEl = document.getElementById('target-id-label') as HTMLDivElement;
+const spectatorBarEl = document.getElementById('spectator-bar') as HTMLDivElement;
+const combatReportEl = document.getElementById('combat-report') as HTMLDivElement;
 
 const allyScoreEl = document.getElementById('ally-score') as HTMLDivElement;
 const enemyScoreEl = document.getElementById('enemy-score') as HTMLDivElement;
@@ -324,6 +336,7 @@ function syncOverlayVisibility(): void {
   document.body.classList.toggle('in-frontend', inFrontend || !gameStarted);
   // Keep `#overlay` (Pause / Resume) hidden before game starts, while playing (pointer locked), OR in any modal.
   overlayEl.classList.toggle('hidden', !gameStarted || isPointerLocked() || isAnyModalOpen());
+  overlaySurrenderBtn.classList.toggle('hidden', lastHudPhase === 'match_over');
   hintBuyEl.classList.toggle('active', buyMenu.isOpen());
   hintSettingsEl.classList.toggle('active', settings.isOpen());
   hintXhairEl.classList.toggle('active', crosshair.isOpen());
@@ -411,6 +424,28 @@ const buyMenu = createBuyMenuController({
 });
 
 let syncingLobbySettings = false;
+let spectateTargetId: string | null = null;
+let lastSpectateTargetId: string | null = null;
+let overlaySurrenderArmed = false;
+let overlaySurrenderTimer: ReturnType<typeof setTimeout> | null = null;
+
+function resetOverlaySurrenderConfirm(): void {
+  if (overlaySurrenderTimer !== null) {
+    clearTimeout(overlaySurrenderTimer);
+    overlaySurrenderTimer = null;
+  }
+  overlaySurrenderArmed = false;
+  overlaySurrenderBtn.textContent = 'SURRENDER';
+  overlaySurrenderBtn.classList.remove('confirming');
+}
+
+function triggerLocalSurrender(): void {
+  if (!gameStarted || lastHudPhase === 'match_over') return;
+  match.surrenderMatch();
+  if (net.isOnline()) {
+    net.sendSurrender();
+  }
+}
 
 function applySettings(s: GameSettings): void {
   currentSettings = s;
@@ -437,17 +472,23 @@ function applySettings(s: GameSettings): void {
   showFps = s.showFps;
   fpsCounterEl.classList.toggle('hidden', !showFps);
 
+  match.setPlayerName(s.playerName);
+  net.setPlayerName(s.playerName);
+
   match.setMatchConfig({
     difficulty: s.difficulty,
     winTarget: s.winTarget,
   });
 
-  if (!syncingLobbySettings && !gameStarted && !net.isOnline()) {
+  if (!syncingLobbySettings) {
     syncingLobbySettings = true;
-    net.setConfig({
-      difficulty: s.difficulty,
-      winTarget: s.winTarget,
-    });
+    lobby.setCallsign(s.playerName);
+    if (!gameStarted && !net.isOnline()) {
+      net.setConfig({
+        difficulty: s.difficulty,
+        winTarget: s.winTarget,
+      });
+    }
     syncingLobbySettings = false;
   }
 }
@@ -476,12 +517,22 @@ const lobby = createLobbyController({
     }
   },
   onCallsignChange: (callsign: string) => {
-    if (!gameStarted) {
+    match.setPlayerName(callsign);
+    net.setPlayerName(callsign);
+    if (!syncingLobbySettings) {
+      syncingLobbySettings = true;
+      settings.applyPatch({ playerName: callsign });
+      syncingLobbySettings = false;
+    }
+    if (!gameStarted && !net.isOnline()) {
       net.connect(callsign);
     }
   },
   onRetryConnect: (callsign: string) => {
     net.connect(callsign);
+  },
+  onConnectCustomServer: (url: string) => {
+    net.connect(lobby.getCallsign(), url);
   },
   onOpenSettings: () => {
     sfx.unlock();
@@ -497,6 +548,49 @@ const lobby = createLobbyController({
     syncOverlayVisibility();
   },
 });
+
+function returnToLobbyFromMatch(): void {
+  if (isPointerLocked()) document.exitPointerLock();
+  clearHeldInputs();
+  weapon.setAdsActive(false);
+  input.ads = false;
+  resetOverlaySurrenderConfirm();
+  gameStarted = false;
+  frozenDrawn = false;
+  spectateTargetId = null;
+  lastSpectateTargetId = null;
+  spectatorBarEl.classList.add('hidden');
+  combatReportEl.classList.add('hidden');
+  targetIdLabelEl.classList.add('hidden');
+  if (net.isOnline() && !net.isHost()) {
+    net.reconnect();
+  } else {
+    net.returnToLobby();
+  }
+  lobby.open();
+  syncOverlayVisibility();
+}
+
+async function refreshLanInviteUrl(): Promise<void> {
+  const candidates: string[] = ['/health'];
+  if (typeof window !== 'undefined' && window.location?.port === '5173') {
+    const proto = window.location.protocol === 'https:' ? 'https:' : 'http:';
+    candidates.unshift(`${proto}//${window.location.hostname}:5174/health`);
+  }
+  for (const healthUrl of candidates) {
+    try {
+      const res = await fetch(healthUrl, { cache: 'no-store' });
+      if (!res.ok) continue;
+      const data = (await res.json()) as { lanUrls?: string[] };
+      if (Array.isArray(data.lanUrls) && data.lanUrls.length > 0 && typeof data.lanUrls[0] === 'string') {
+        lobby.setInviteUrl(data.lanUrls[0]);
+        return;
+      }
+    } catch {
+      // Try next candidate
+    }
+  }
+}
 
 const agentSelect = createAgentSelectController({
   getCurrentAgent: () => match.getPlayerCombatant().colorId,
@@ -581,11 +675,17 @@ net.onMatchStart((snapshot) => {
   const chosenAgent = localSlot?.agentColor ?? agentSelect.getPreviewAgent();
   const startingSide = localSlot?.side ?? lobby.getSelectedSide();
 
+  spectateTargetId = null;
+  lastSpectateTargetId = null;
+  lastSeenKillId = 0;
+  playerKillTimes = [];
+
   match.startNewMatch({
     startingSide,
     playerAgent: chosenAgent,
     difficulty: snapshot.difficulty,
     winTarget: snapshot.winTarget,
+    playerName: currentSettings.playerName,
     teamHumanSlots: snapshot.players,
     localPlayerId: localId,
   });
@@ -593,6 +693,7 @@ net.onMatchStart((snapshot) => {
 
   gameStarted = true;
   frozenDrawn = false;
+  resetOverlaySurrenderConfirm();
   syncOverlayVisibility();
   canvas.requestPointerLock();
 });
@@ -608,6 +709,19 @@ net.onDoorEvent((ev) => {
   } else if (ev.action === 'damage' || ev.action === 'break') {
     match.handleDoorShotHit(ev.doorId, ev.damage ?? 25);
   }
+});
+
+net.onDamage((ev) => {
+  if (!gameStarted || ev.fromId === net.getLocalPlayerId()) return;
+  const rawTarget = ev.targetPlayerId ?? ev.targetSlotId;
+  if (!rawTarget) return;
+  const victimKey = rawTarget === net.getLocalPlayerId() ? 'local' : rawTarget;
+  match.applyRemoteDamage(victimKey, ev.damage, ev.headshot, ev.fromId, ev.weaponTag);
+});
+
+net.onSurrender(() => {
+  if (!gameStarted) return;
+  match.surrenderMatch();
 });
 
 net.onError((err) => {
@@ -628,6 +742,12 @@ settings.setOnClose(() => {
   }
 });
 
+settings.setOnSurrender(() => {
+  triggerLocalSurrender();
+  settings.close();
+  syncOverlayVisibility();
+});
+
 // Apply persisted settings & launch into Custom Game Lobby first (`Lobby -> Agent Select -> Match`).
 applySettings(currentSettings);
 net.setConfig({
@@ -639,6 +759,7 @@ if (currentSettings.defaultSide !== 'attacker') {
 }
 lobby.open();
 net.connect(lobby.getCallsign());
+void refreshLanInviteUrl();
 syncOverlayVisibility();
 
 crosshair.setOnClose(() => {
@@ -659,12 +780,14 @@ mapViewer.setOnClose(() => {
 
 overlayEl.addEventListener('click', () => {
   if (!gameStarted || isAnyModalOpen()) return;
+  resetOverlaySurrenderConfirm();
   sfx.unlock();
   canvas.requestPointerLock();
 });
 
 openSettingsFromOverlayBtn.addEventListener('click', (e: MouseEvent) => {
   e.stopPropagation();
+  resetOverlaySurrenderConfirm();
   sfx.unlock();
   minimap.setExpanded(false);
   crosshair.syncControls();
@@ -674,6 +797,7 @@ openSettingsFromOverlayBtn.addEventListener('click', (e: MouseEvent) => {
 
 openXhairFromOverlayBtn.addEventListener('click', (e: MouseEvent) => {
   e.stopPropagation();
+  resetOverlaySurrenderConfirm();
   sfx.unlock();
   minimap.setExpanded(false);
   crosshair.syncControls();
@@ -683,10 +807,29 @@ openXhairFromOverlayBtn.addEventListener('click', (e: MouseEvent) => {
 
 openMapFromOverlayBtn.addEventListener('click', (e: MouseEvent) => {
   e.stopPropagation();
+  resetOverlaySurrenderConfirm();
   sfx.unlock();
   minimap.setExpanded(false);
   mapViewer.open();
   syncOverlayVisibility();
+});
+
+overlaySurrenderBtn.addEventListener('click', (e: MouseEvent) => {
+  e.stopPropagation();
+  if (!gameStarted || lastHudPhase === 'match_over') return;
+  if (!overlaySurrenderArmed) {
+    overlaySurrenderArmed = true;
+    overlaySurrenderBtn.textContent = 'CONFIRM SURRENDER?';
+    overlaySurrenderBtn.classList.add('confirming');
+    if (overlaySurrenderTimer !== null) clearTimeout(overlaySurrenderTimer);
+    overlaySurrenderTimer = setTimeout(() => {
+      resetOverlaySurrenderConfirm();
+    }, 3500);
+    return;
+  }
+  resetOverlaySurrenderConfirm();
+  triggerLocalSurrender();
+  canvas.requestPointerLock();
 });
 
 canvas.addEventListener('click', () => {
@@ -701,9 +844,21 @@ document.addEventListener('pointerlockchange', () => {
   const locked = isPointerLocked();
   syncOverlayVisibility();
 
-  // Clear held movement/fire inputs when unlocking so keys never get stuck.
+  // Clear held movement/fire/ADS inputs when unlocking so keys or Hold-ADS never get stuck.
   if (!locked) {
     clearHeldInputs();
+    weapon.setAdsActive(false);
+    input.ads = false;
+  } else {
+    resetOverlaySurrenderConfirm();
+  }
+});
+
+window.addEventListener('blur', () => {
+  clearHeldInputs();
+  if (currentSettings.adsMode === 'hold' || isPointerLocked()) {
+    weapon.setAdsActive(false);
+    input.ads = false;
   }
 });
 
@@ -734,25 +889,107 @@ window.addEventListener('contextmenu', (e: MouseEvent) => {
   e.preventDefault();
 });
 
+function mapMouseBindCode(button: number): string | null {
+  if (button === 1) return 'Mouse3';
+  if (button === 3) return 'Mouse4';
+  if (button === 4) return 'Mouse5';
+  return null;
+}
+
+function triggerAbilityByBindCode(code: string): boolean {
+  if (!isPointerLocked() || isAnyModalOpen() || lastHudPhase !== 'combat') return false;
+  if (!match.getPlayerCombatant().alive) return false;
+  const binds = currentSettings.keybinds;
+  if (code === binds.abilityQ) {
+    abilities.cast('q', player, input);
+    return true;
+  }
+  if (code === binds.abilityE) {
+    abilities.cast('e', player, input);
+    return true;
+  }
+  if (code === binds.abilityX) {
+    match.tryCastPlayerUltimate(player, input);
+    return true;
+  }
+  return false;
+}
+
+function cycleSpectateTarget(delta: 1 | -1): void {
+  const teammates = match.getLivingTeammates();
+  if (teammates.length === 0) {
+    spectateTargetId = null;
+    return;
+  }
+  const idx = teammates.findIndex((t) => t.id === spectateTargetId);
+  const nextIdx =
+    idx < 0
+      ? 0
+      : (idx + delta + teammates.length) % teammates.length;
+  spectateTargetId = teammates[nextIdx].id;
+}
+
 window.addEventListener('mousedown', (e: MouseEvent) => {
+  const mouseBind = mapMouseBindCode(e.button);
+  if (mouseBind) {
+    if (isPointerLocked() || settings.isOpen()) {
+      e.preventDefault();
+    }
+    if (isPointerLocked() && !isAnyModalOpen()) {
+      sfx.unlock();
+      triggerAbilityByBindCode(mouseBind);
+    }
+    return;
+  }
+
   if (!isPointerLocked() || isAnyModalOpen()) return;
   sfx.unlock();
+
+  const alive = match.getPlayerCombatant().alive;
+  if (!alive) {
+    if (lastHudPhase === 'combat') {
+      if (e.button === 0) cycleSpectateTarget(1);
+      else if (e.button === 2) cycleSpectateTarget(-1);
+    }
+    return;
+  }
 
   if (e.button === 0) {
     input.fire = true;
     input.fireJustPressed = true;
     fireBufferTimer = INPUT_BUFFER_SEC; // 140ms semi-auto fire buffer
   } else if (e.button === 2) {
-    if (match.getPlayerCombatant().alive) {
-      weapon.toggleScope();
+    if (currentSettings.adsMode === 'hold') {
+      weapon.setAdsActive(true);
+    } else {
+      weapon.setAdsActive(!weapon.isScoped);
+    }
+    input.ads = weapon.isScoped;
+  }
+});
+
+window.addEventListener('mouseup', (e: MouseEvent) => {
+  if (e.button === 1 || e.button === 3 || e.button === 4) {
+    if (isPointerLocked() || settings.isOpen()) {
+      e.preventDefault();
+    }
+    return;
+  }
+  if (e.button === 0) {
+    input.fire = false;
+  } else if (e.button === 2) {
+    if (currentSettings.adsMode === 'hold' && weapon.isScoped) {
+      weapon.setAdsActive(false);
       input.ads = weapon.isScoped;
     }
   }
 });
 
-window.addEventListener('mouseup', (e: MouseEvent) => {
-  if (e.button === 0) {
-    input.fire = false;
+window.addEventListener('auxclick', (e: MouseEvent) => {
+  if (e.button === 1 || e.button === 3 || e.button === 4) {
+    if (isPointerLocked() || settings.isOpen()) {
+      e.preventDefault();
+    }
   }
 });
 
@@ -990,17 +1227,23 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
       if (!match.getPlayerCombatant().alive) {
         const taken = match.tryTakeoverAlly();
         if (taken) {
+          spectateTargetId = null;
+          lastSpectateTargetId = null;
           syncLocalPlayerFromCombatant();
         }
       }
       return;
     }
 
-    // [Enter] Restart match once 'match_over' is reached
+    // [Enter] Restart match once 'match_over' is reached; [L] returns to Lobby
     if (e.code === 'Enter' && lastHudPhase === 'match_over') {
       match.restartMatch();
       syncLocalPlayerFromCombatant();
       openAgentSelect(); // fresh draft: pick your agent for the new match
+      return;
+    }
+    if (e.code === 'KeyL' && lastHudPhase === 'match_over') {
+      returnToLobbyFromMatch();
       return;
     }
 
@@ -1037,16 +1280,8 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
         match.skipBuyPhase();
       }
 
-      // [Q] / [E] / [X] Cast tactical abilities & Ultimate when alive
-      if (match.getPlayerCombatant().alive) {
-        if (e.code === 'KeyQ') {
-          abilities.cast('q', player, input);
-        } else if (e.code === 'KeyE') {
-          abilities.cast('e', player, input);
-        } else if (e.code === 'KeyX') {
-          match.tryCastPlayerUltimate(player, input);
-        }
-      }
+      // Custom ability / ultimate binds (Q / E / X or Mouse3/4/5) — ONLY during combat!
+      triggerAbilityByBindCode(e.code);
     }
   }
 
@@ -1066,26 +1301,43 @@ window.addEventListener('keyup', (e: KeyboardEvent) => {
 // ---------------------------------------------------------------------------
 function syncAbilitySlot(
   el: HTMLDivElement,
-  keyLabel: 'Q' | 'E',
+  bindCode: string,
   slot: AbilityHudSlotState
 ): void {
   const activeTimer = slot.activeTimer ?? 0;
-  el.classList.toggle('ready', slot.ready);
+  const maxCharges = slot.maxCharges ?? 2;
+  const charges = clamp(slot.charges ?? (slot.ready ? maxCharges : 0), 0, maxCharges);
+  const hasCharges = charges > 0;
+  el.classList.toggle('ready', slot.ready && hasCharges);
   el.classList.toggle('active-fx', activeTimer > 0);
-  const pct = slot.ready
-    ? 100
-    : clamp((1 - slot.cooldownRemaining / Math.max(slot.cooldownTotal, 0.001)) * 100, 0, 100);
+
+  const pct = !hasCharges
+    ? 0
+    : slot.ready
+      ? 100
+      : clamp((1 - slot.cooldownRemaining / Math.max(slot.cooldownTotal, 0.001)) * 100, 0, 100);
   el.style.setProperty('--cd-pct', `${pct.toFixed(1)}%`);
 
-  // Multi-charge pill (e.g. Umbra's 2/2 Void Shroud) or active-duration timer (Volt Overdrive).
+  // 2 crisp per-round charge pips + optional active-duration timer (e.g. Volt Overdrive / Bio-Stim).
   let extra = '';
-  if ((slot.maxCharges ?? 0) > 1) {
-    extra = `<span class="ab-charges" id="${el.id}-charges">${slot.charges ?? 0}/${slot.maxCharges}</span>`;
-  } else if (activeTimer > 0) {
-    extra = `<span class="ab-charges timer" id="${el.id}-charges">${activeTimer.toFixed(1)}s</span>`;
+  if (maxCharges > 1) {
+    let pips = '<span class="ab-pips">';
+    for (let i = 0; i < maxCharges; i++) {
+      pips += `<span class="ab-pip${i < charges ? ' lit' : ''}"></span>`;
+    }
+    pips += '</span>';
+    extra += pips;
+  }
+  if (activeTimer > 0) {
+    extra += `<span class="ab-charges timer" id="${el.id}-charges">${activeTimer.toFixed(1)}s</span>`;
   }
 
-  const label = slot.ready ? slot.shortTag : `${slot.cooldownRemaining.toFixed(1)}s`;
+  const keyLabel = formatBindLabel(bindCode);
+  const label = !hasCharges
+    ? '0/2'
+    : slot.ready
+      ? slot.shortTag
+      : `${slot.cooldownRemaining.toFixed(1)}s`;
   const html = `<span class="ab-key">[${keyLabel}]</span>${label}${extra}`;
   if (el.dataset.html !== html) {
     el.dataset.html = html;
@@ -1112,11 +1364,12 @@ function syncAbilityXSlot(hud: MatchHudState, xHud?: AbilityHudSlotState): void 
   }
   pipsHtml += '</span>';
 
+  const keyLabel = formatBindLabel(currentSettings.keybinds.abilityX);
   const timerHtml =
     activeTimer > 0
       ? `<span class="ab-charges timer">${activeTimer.toFixed(1)}s</span>`
       : '';
-  const html = `<span class="ab-key">[X]</span>${shortTag}${pipsHtml}${timerHtml}`;
+  const html = `<span class="ab-key">[${keyLabel}]</span>${shortTag}${pipsHtml}${timerHtml}`;
   if (abilityXEl.dataset.html !== html) {
     abilityXEl.dataset.html = html;
     abilityXEl.innerHTML = html;
@@ -1213,7 +1466,9 @@ let playerKillTimes: number[] = [];
 let lastDamageSeqSeen = 0;
 let damageArcAngleRad = 0;
 let damageArcTimer = 0;
+let hitmarkerTimer = 0;
 let combatSecondsPlayed = 0;
+let lastCombatReportSig = '';
 
 function triggerKillMedal(headshot: boolean, streak: number): void {
   killMedalTitleEl.textContent = headshot ? 'HEADSHOT' : 'ELIMINATED';
@@ -1225,14 +1480,201 @@ function triggerKillMedal(headshot: boolean, streak: number): void {
 }
 
 function syncKillMedal(hud: MatchHudState): void {
+  const myName = (match.getPlayerCombatant().displayName ?? 'YOU').toUpperCase();
   const fresh = hud.killFeed.filter((k) => k.id > lastSeenKillId).sort((a, b) => a.id - b.id);
   for (const k of fresh) {
     lastSeenKillId = Math.max(lastSeenKillId, k.id);
-    if (k.killerName !== 'YOU' || k.killerTeam !== 'ally') continue;
+    if (k.killerName !== myName || k.killerTeam !== 'ally') continue;
     const now = performance.now();
     playerKillTimes = playerKillTimes.filter((ts) => now - ts <= MULTI_KILL_WINDOW_MS);
     playerKillTimes.push(now);
     triggerKillMedal(k.headshot, playerKillTimes.length);
+  }
+}
+
+function updateTargetIdLabel(
+  isAlive: boolean,
+  effectivePitch: number,
+  activeSmokes: SmokeSphere[]
+): void {
+  if (!isAlive || !gameStarted || isAnyModalOpen()) {
+    targetIdLabelEl.classList.add('hidden');
+    return;
+  }
+
+  const origin: Vec3 = {
+    x: player.position.x,
+    y: player.position.y + EYE_HEIGHT + eyeOffsetSmoothed,
+    z: player.position.z,
+  };
+  const lookDir = getLookDirection(input.yaw, effectivePitch);
+
+  let closestWallDist = 140;
+  for (const box of ARENA_COLLIDERS) {
+    const wallHit = raycastAABB(origin, lookDir, box, closestWallDist);
+    if (wallHit && wallHit.distance < closestWallDist) {
+      closestWallDist = wallHit.distance;
+    }
+  }
+
+  let bestCombatant: Combatant | null = null;
+  let bestDist = 140;
+
+  for (const c of match.combatants) {
+    if (c.isPlayer || !c.alive) continue;
+    const maxTestDist = c.team === 'enemy' ? Math.min(bestDist, closestWallDist) : bestDist;
+    const { head, body } = match.allTargetsView.getHitboxes(c);
+    const headHit = raycastAABB(origin, lookDir, head, maxTestDist);
+    const bodyHit = raycastAABB(origin, lookDir, body, maxTestDist);
+
+    let hitDist: number | null = null;
+    if (headHit && bodyHit) {
+      hitDist = Math.min(headHit.distance, bodyHit.distance);
+    } else if (headHit) {
+      hitDist = headHit.distance;
+    } else if (bodyHit) {
+      hitDist = bodyHit.distance;
+    }
+    if (hitDist === null) continue;
+
+    if (c.team === 'enemy' && activeSmokes.length > 0) {
+      let smoked = false;
+      for (const smoke of activeSmokes) {
+        if (raycastSphere(origin, lookDir, smoke.center, smoke.radius, hitDist) !== null) {
+          smoked = true;
+          break;
+        }
+      }
+      if (smoked) continue;
+    }
+
+    if (hitDist < bestDist) {
+      bestDist = hitDist;
+      bestCombatant = c;
+    }
+  }
+
+  if (!bestCombatant) {
+    targetIdLabelEl.classList.add('hidden');
+    return;
+  }
+
+  const labelName = (
+    bestCombatant.displayName ||
+    AGENT_PALETTES[bestCombatant.colorId].name.split(' ')[0]
+  ).toUpperCase();
+
+  if (bestCombatant.team === 'enemy') {
+    targetIdLabelEl.textContent = `ENEMY • ${labelName}`;
+    targetIdLabelEl.classList.remove('hidden', 'ally');
+    targetIdLabelEl.classList.add('enemy');
+  } else {
+    targetIdLabelEl.textContent = `ALLY • ${labelName} (FRIENDLY)`;
+    targetIdLabelEl.classList.remove('hidden', 'enemy');
+    targetIdLabelEl.classList.add('ally');
+  }
+}
+
+function syncSpectatorBar(hud: MatchHudState, isAlive: boolean, target: Combatant | null): void {
+  if (!gameStarted || isAnyModalOpen() || isAlive || hud.phase !== 'combat' || !target) {
+    spectatorBarEl.classList.add('hidden');
+    return;
+  }
+  const name = (
+    target.displayName || AGENT_PALETTES[target.colorId].name.split(' ')[0]
+  ).toUpperCase();
+  const agent = AGENT_PALETTES[target.colorId].name.split(' ')[0].toUpperCase();
+  const hp = Math.max(0, Math.ceil(target.health));
+  const takeover = hud.canTakeoverBot ? ' • [TAB] TAKE OVER' : '';
+  spectatorBarEl.textContent = `SPECTATING: ${name} • ${agent} • ${hp} HP • [LMB/RMB] NEXT${takeover}`;
+  spectatorBarEl.classList.remove('hidden');
+}
+
+function syncCombatReport(hud: MatchHudState, isAlive: boolean): void {
+  const show =
+    gameStarted &&
+    !isAnyModalOpen() &&
+    hud.phase !== 'buy' &&
+    (!isAlive || hud.phase === 'round_end');
+  if (!show) {
+    combatReportEl.classList.add('hidden');
+    return;
+  }
+
+  combatReportEl.classList.remove('hidden');
+  const entries: RoundCombatReportEntry[] = hud.combatReport ?? [];
+  const sig = `${hud.roundNumber}|${entries
+    .map(
+      (e) =>
+        `${e.opponentId}:${e.opponentName}:${e.damageOut}:${e.hitsOutHead}:${e.hitsOutBody}:${e.damageIn}:${e.hitsInHead}:${e.hitsInBody}:${e.killedOpponent}:${e.killedByOpponent}`
+    )
+    .join(';')}`;
+  if (sig === lastCombatReportSig) return;
+  lastCombatReportSig = sig;
+
+  combatReportEl.replaceChildren();
+  const head = document.createElement('div');
+  head.className = 'cr-head';
+  const titleSpan = document.createElement('span');
+  titleSpan.textContent = `COMBAT REPORT • R${hud.roundNumber}`;
+  const subSpan = document.createElement('span');
+  subSpan.textContent = 'OUT / IN';
+  head.appendChild(titleSpan);
+  head.appendChild(subSpan);
+  combatReportEl.appendChild(head);
+
+  if (entries.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'cr-empty';
+    empty.textContent = 'No damage exchanged this round';
+    combatReportEl.appendChild(empty);
+    return;
+  }
+
+  for (const entry of entries) {
+    const row = document.createElement('div');
+    row.className = 'cr-row';
+
+    const opp = document.createElement('div');
+    opp.className = 'cr-opp';
+    const dot = document.createElement('span');
+    dot.className = 'cr-dot';
+    const cssColor = AGENT_PALETTES[entry.opponentColor].css;
+    dot.style.background = cssColor;
+    dot.style.boxShadow = `0 0 6px ${cssColor}`;
+    const nameEl = document.createElement('span');
+    nameEl.className = 'cr-name';
+    const statusMark = entry.killedOpponent ? ' [KILL]' : entry.killedByOpponent ? ' [KO]' : '';
+    nameEl.textContent = `${entry.opponentName}${statusMark}`;
+    opp.appendChild(dot);
+    opp.appendChild(nameEl);
+
+    const outCol = document.createElement('div');
+    outCol.className = 'cr-stat';
+    const outDmg = document.createElement('span');
+    outDmg.className = 'cr-out';
+    outDmg.textContent = `${entry.damageOut} OUT`;
+    const outHits = document.createElement('span');
+    outHits.className = 'cr-hits';
+    outHits.textContent = `${entry.hitsOutHead}H ${entry.hitsOutBody}B`;
+    outCol.appendChild(outDmg);
+    outCol.appendChild(outHits);
+
+    const inCol = document.createElement('div');
+    inCol.className = 'cr-stat';
+    const inDmg = document.createElement('span');
+    inDmg.className = 'cr-in';
+    inDmg.textContent = `${entry.damageIn} IN`;
+    const inHits = document.createElement('span');
+    inHits.className = 'cr-hits';
+    inHits.textContent = `${entry.hitsInHead}H ${entry.hitsInBody}B`;
+    inCol.appendChild(inDmg);
+    inCol.appendChild(inHits);
+
+    row.appendChild(opp);
+    row.appendChild(outCol);
+    row.appendChild(inCol);
+    combatReportEl.appendChild(row);
   }
 }
 
@@ -1597,43 +2039,44 @@ function tick(now: number): void {
     -1.48,
     1.48
   );
-  camera.rotation.y = input.yaw;
-  camera.rotation.x = effectivePitch;
-  camera.rotation.z = slideTiltSmoothed;
 
-  // Camera Positioning: 1st-Person vs Wall-Clamped 3rd-Person Over-the-Shoulder
+  // Auto-Spectate Target Resolution (when dead during combat, follow a living teammate)
+  let spectateTarget: Combatant | null = null;
+  if (!isAlive && lastHudPhase === 'combat') {
+    const teammates = match.getLivingTeammates();
+    if (teammates.length > 0) {
+      spectateTarget = teammates.find((t) => t.id === spectateTargetId) ?? teammates[0];
+      spectateTargetId = spectateTarget.id;
+    } else {
+      spectateTargetId = null;
+    }
+  } else {
+    spectateTargetId = null;
+    lastSpectateTargetId = null;
+  }
+
+  // Camera Positioning: 1st-Person, 3rd-Person Over-the-Shoulder, or Teammate Spectate
   const useThirdPersonCamera = thirdPerson || !isAlive;
   weapon.setViewmodelVisible(!useThirdPersonCamera);
 
-  if (!useThirdPersonCamera) {
-    camera.position.set(
-      player.position.x,
-      player.position.y + EYE_HEIGHT + eyeOffsetSmoothed,
-      player.position.z
-    );
-  } else {
-    /**
-     * Wall-Clamped 3rd-Person Over-the-Shoulder Camera Math:
-     * 1. Construct the camera's horizontal right vector orthogonal to yaw forward:
-     *    With Three.js YXZ yaw, forward = (-sin(yaw), 0, -cos(yaw)),
-     *    so right = forward × up(0,1,0) = (cos(yaw), 0, -sin(yaw)).
-     * 2. Place a shoulder anchor 0.48m to the right and 1.68m above feet.
-     * 3. Cast a ray backward along `-lookDir` up to 2.8m against `ARENA_COLLIDERS`
-     *    via `raycastAABB`. Pull the camera forward by 0.25m from any wall hit
-     *    (clamped to at least 0.35m from the shoulder) so walls never occlude the player.
-     */
-    const rightX = Math.cos(input.yaw);
-    const rightZ = -Math.sin(input.yaw);
-    const anchor = {
-      x: player.position.x + rightX * 0.48,
-      y: player.position.y + 1.68 + eyeOffsetSmoothed,
-      z: player.position.z + rightZ * 0.48,
-    };
+  if (spectateTarget) {
+    const specYaw = spectateTarget.yaw;
+    const specPitch = clamp(spectateTarget.pitch, -1.48, 1.48);
+    camera.rotation.y = specYaw;
+    camera.rotation.x = specPitch;
+    camera.rotation.z = 0;
 
-    const lookDir = getLookDirection(input.yaw, effectivePitch);
+    const rightX = Math.cos(specYaw);
+    const rightZ = -Math.sin(specYaw);
+    const anchor = {
+      x: spectateTarget.position.x + rightX * 0.42,
+      y: spectateTarget.position.y + 1.58,
+      z: spectateTarget.position.z + rightZ * 0.42,
+    };
+    const lookDir = getLookDirection(specYaw, specPitch);
     const backDir = { x: -lookDir.x, y: -lookDir.y, z: -lookDir.z };
 
-    let hitDist = 2.8;
+    let hitDist = 2.6;
     for (const box of ARENA_COLLIDERS) {
       const hit = raycastAABB(anchor, backDir, box, hitDist);
       if (hit && hit.distance < hitDist) {
@@ -1641,11 +2084,67 @@ function tick(now: number): void {
       }
     }
     const camDist = Math.max(0.35, hitDist - 0.25);
-    camera.position.set(
-      anchor.x + backDir.x * camDist,
-      anchor.y + backDir.y * camDist,
-      anchor.z + backDir.z * camDist
-    );
+    const targetCamX = anchor.x + backDir.x * camDist;
+    const targetCamY = anchor.y + backDir.y * camDist;
+    const targetCamZ = anchor.z + backDir.z * camDist;
+
+    if (lastSpectateTargetId !== spectateTarget.id) {
+      camera.position.set(targetCamX, targetCamY, targetCamZ);
+      lastSpectateTargetId = spectateTarget.id;
+    } else {
+      const camAlpha = 1 - Math.exp(-18 * dt);
+      camera.position.x += (targetCamX - camera.position.x) * camAlpha;
+      camera.position.y += (targetCamY - camera.position.y) * camAlpha;
+      camera.position.z += (targetCamZ - camera.position.z) * camAlpha;
+    }
+  } else {
+    lastSpectateTargetId = null;
+    camera.rotation.y = input.yaw;
+    camera.rotation.x = effectivePitch;
+    camera.rotation.z = slideTiltSmoothed;
+
+    if (!useThirdPersonCamera) {
+      camera.position.set(
+        player.position.x,
+        player.position.y + EYE_HEIGHT + eyeOffsetSmoothed,
+        player.position.z
+      );
+    } else {
+      /**
+       * Wall-Clamped 3rd-Person Over-the-Shoulder Camera Math:
+       * 1. Construct the camera's horizontal right vector orthogonal to yaw forward:
+       *    With Three.js YXZ yaw, forward = (-sin(yaw), 0, -cos(yaw)),
+       *    so right = forward × up(0,1,0) = (cos(yaw), 0, -sin(yaw)).
+       * 2. Place a shoulder anchor 0.48m to the right and 1.68m above feet.
+       * 3. Cast a ray backward along `-lookDir` up to 2.8m against `ARENA_COLLIDERS`
+       *    via `raycastAABB`. Pull the camera forward by 0.25m from any wall hit
+       *    (clamped to at least 0.35m from the shoulder) so walls never occlude the player.
+       */
+      const rightX = Math.cos(input.yaw);
+      const rightZ = -Math.sin(input.yaw);
+      const anchor = {
+        x: player.position.x + rightX * 0.48,
+        y: player.position.y + 1.68 + eyeOffsetSmoothed,
+        z: player.position.z + rightZ * 0.48,
+      };
+
+      const lookDir = getLookDirection(input.yaw, effectivePitch);
+      const backDir = { x: -lookDir.x, y: -lookDir.y, z: -lookDir.z };
+
+      let hitDist = 2.8;
+      for (const box of ARENA_COLLIDERS) {
+        const hit = raycastAABB(anchor, backDir, box, hitDist);
+        if (hit && hit.distance < hitDist) {
+          hitDist = hit.distance;
+        }
+      }
+      const camDist = Math.max(0.35, hitDist - 0.25);
+      camera.position.set(
+        anchor.x + backDir.x * camDist,
+        anchor.y + backDir.y * camDist,
+        anchor.z + backDir.z * camDist
+      );
+    }
   }
 
   // Step weapon cooldowns, spread, hitscan raycast & tracers (only while player is alive).
@@ -1655,6 +2154,14 @@ function tick(now: number): void {
   if (isAlive) {
     // Semi-auto fire buffer: a click during cooldown/reload still fires within 140ms.
     if (fireBufferTimer > 0) input.fireJustPressed = true;
+
+    const remotePoolBefore = net.isOnline()
+      ? new Map<string, number>(
+          match.combatants
+            .filter((c) => c.team === 'enemy' && c.isRemoteHuman && c.alive)
+            .map((c) => [c.id, c.health + (c.armor ?? 0)])
+        )
+      : null;
 
     const shot = weapon.update(
       dt,
@@ -1697,13 +2204,36 @@ function tick(now: number): void {
         sfx.playLowAmmoClick();
       }
 
-      if (shot.hitType === 'head') {
-        sfx.playHeadshot();
-        headshotFlashTimer = 0.16;
-        crosshairEl.classList.add('headshot');
-        headshotRingEl.classList.add('active');
-      } else if (shot.hitType === 'body') {
-        sfx.playBodyHit();
+      if (shot.hitType === 'head' || shot.hitType === 'body') {
+        const isHead = shot.hitType === 'head';
+        if (isHead) {
+          sfx.playHeadshot();
+          headshotFlashTimer = 0.16;
+          crosshairEl.classList.add('headshot');
+          headshotRingEl.classList.add('active');
+        } else {
+          sfx.playBodyHit();
+        }
+
+        hitmarkerTimer = isHead ? 0.16 : 0.13;
+        hitmarkerEl.classList.toggle('headshot', isHead);
+        hitmarkerEl.classList.add('active');
+
+        if (remotePoolBefore && shot.damageDealt > 0) {
+          const hitRemote = match.combatants.find((c) => {
+            const before = remotePoolBefore.get(c.id);
+            return before !== undefined && c.health + (c.armor ?? 0) < before - 1e-4;
+          });
+          if (hitRemote) {
+            net.sendDamage({
+              targetPlayerId: hitRemote.remotePlayerId,
+              targetSlotId: hitRemote.id,
+              damage: shot.damageDealt,
+              headshot: isHead,
+              weaponTag: activeSpec.shortTag,
+            });
+          }
+        }
       }
     }
   } else {
@@ -1750,6 +2280,8 @@ function tick(now: number): void {
     const c = match.getPlayerCombatant();
     input.yaw = c.yaw;
     input.pitch = c.pitch;
+    spectateTargetId = null;
+    lastSpectateTargetId = null;
     switchAgentColor(c.colorId);
     syncWeaponPills(weapon.currentWeaponId);
   }
@@ -1757,6 +2289,7 @@ function tick(now: number): void {
   lastRoundNumber = hud.roundNumber;
   lastPlayerSide = hud.playerSide ?? 'attacker';
   lastSpikeHud = hud.spike ?? null;
+  overlaySurrenderBtn.classList.toggle('hidden', hud.phase === 'match_over');
 
   if (buyMenu.isOpen()) {
     if (hud.phase !== 'buy') {
@@ -1778,13 +2311,16 @@ function tick(now: number): void {
   hpEl.classList.toggle('low', !isHealing && isLowHp);
   hpEl.classList.toggle('dead', !isAlive);
 
-  syncAbilitySlot(abilityQEl, 'Q', feedback.qHud);
-  syncAbilitySlot(abilityEEl, 'E', feedback.eHud);
+  syncAbilitySlot(abilityQEl, currentSettings.keybinds.abilityQ, feedback.qHud);
+  syncAbilitySlot(abilityEEl, currentSettings.keybinds.abilityE, feedback.eHud);
   syncAbilityXSlot(hud, feedback.xHud);
   syncScreenFx(feedback);
   syncMatchHud(hud);
   syncKillMedal(hud);
   syncDamageArc(hud, dt, player.health);
+  updateTargetIdLabel(isAlive, effectivePitch, feedback.activeSmokes);
+  syncSpectatorBar(hud, isAlive, spectateTarget);
+  syncCombatReport(hud, isAlive);
 
   // Beginner control strip fades after ~25s of live combat.
   if (hud.phase === 'combat') {
@@ -1792,7 +2328,7 @@ function tick(now: number): void {
     if (combatSecondsPlayed > 25) controlStripEl.classList.add('faded');
   }
 
-  // Sniper scope overlay vs CSS-variable reactive hipfire crosshair.
+  // Sniper scope overlay vs CSS-variable reactive hipfire crosshair + smooth ADS fade.
   const isScopedSniper =
     isAlive && weapon.isScoped && weapon.currentWeaponId === 'sniper';
   scopeOverlayEl.classList.toggle('hidden', !isScopedSniper);
@@ -1802,11 +2338,31 @@ function tick(now: number): void {
     isScopedSniper
   );
 
+  const adsBlend = weapon.getAdsBlend();
+  let crosshairOpacity = 1;
+  if (!isAlive) {
+    crosshairOpacity = 0;
+  } else if (!thirdPerson && weapon.currentWeaponId !== 'sniper') {
+    if (adsBlend > 0.65) {
+      crosshairOpacity = 0;
+    } else if (adsBlend > 0.25) {
+      crosshairOpacity = clamp(1 - (adsBlend - 0.25) / 0.4, 0, 1);
+    }
+  }
+  crosshairEl.style.opacity = crosshairOpacity.toFixed(3);
+
   if (headshotFlashTimer > 0) {
     headshotFlashTimer -= dt;
     if (headshotFlashTimer <= 0) {
       crosshairEl.classList.remove('headshot');
       headshotRingEl.classList.remove('active');
+    }
+  }
+
+  if (hitmarkerTimer > 0) {
+    hitmarkerTimer -= dt;
+    if (hitmarkerTimer <= 0) {
+      hitmarkerEl.classList.remove('active', 'headshot');
     }
   }
 

@@ -140,9 +140,11 @@ const BEACON_FIRE_RATE_MULT = 1.35;
 const BEACON_RECOIL_MULT = 0.65;
 const BEACON_MOTE_COUNT = 22;
 
+// Round-Scoped Ability Charge Policy (All Agents [Q] & [E])
+const MAX_ROUND_CHARGES = 2;
+const ABILITY_RECAST_LOCKOUT_SEC = 1.2;
+
 // Violet — Umbra (Shadow Smoker / Controller)
-const VOID_MAX_CHARGES = 2;
-const VOID_RECHARGE_SEC = 14.0;
 const VOID_RECAST_LOCK_SEC = 0.35;
 const VOID_REBLOOM_MIN_AGE_SEC = 0.08;
 const VOID_ORB_SPEED = 32.0;
@@ -305,12 +307,6 @@ interface BotSlideEntry {
   slideTimer: number;
   overdriveTimer: number;
   dir: Vec3;
-}
-
-interface BotVoidChargeState {
-  charges: number;
-  rechargeTimer: number;
-  recastLock: number;
 }
 
 interface ActivePulseUlt {
@@ -627,7 +623,15 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
   let nextEntityId = 1;
   let zoneSeq = 0;
 
-  // Independent per-agent cooldown pools across all 5 roster agents.
+  // Strictly round-scoped [Q]/[E] charge pools (2 per round; reset ONLY on resetRound()).
+  const charges: Record<AgentColorId, { q: number; e: number }> = {
+    red: { q: MAX_ROUND_CHARGES, e: MAX_ROUND_CHARGES },
+    blue: { q: MAX_ROUND_CHARGES, e: MAX_ROUND_CHARGES },
+    green: { q: MAX_ROUND_CHARGES, e: MAX_ROUND_CHARGES },
+    violet: { q: MAX_ROUND_CHARGES, e: MAX_ROUND_CHARGES },
+    gold: { q: MAX_ROUND_CHARGES, e: MAX_ROUND_CHARGES },
+  };
+  // Short anti-double-click lockout timers per agent (1.2s; NEVER refill charges).
   const cooldowns: Record<AgentColorId, Record<AbilitySlot, number>> = {
     red: { q: 0, e: 0, x: 0 },
     blue: { q: 0, e: 0, x: 0 },
@@ -635,13 +639,22 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
     violet: { q: 0, e: 0, x: 0 },
     gold: { q: 0, e: 0, x: 0 },
   };
+  const botCharges = new Map<string, { q: number; e: number }>();
   const botCooldowns = new Map<string, Record<AbilitySlot, number>>();
   const botDashes = new Map<string, BotDashEntry>();
   const botSlides = new Map<string, BotSlideEntry>();
-  const botVoidStates = new Map<string, BotVoidChargeState>();
   const botBlazeUlts = new Map<string, BotBlazeUltEntry>();
   const botVoltUlts = new Map<string, BotVoltUltEntry>();
   const activePulseUlts: ActivePulseUlt[] = [];
+
+  function getOrInitBotCharges(botId: string): { q: number; e: number } {
+    let ch = botCharges.get(botId);
+    if (!ch) {
+      ch = { q: MAX_ROUND_CHARGES, e: MAX_ROUND_CHARGES };
+      botCharges.set(botId, ch);
+    }
+    return ch;
+  }
 
   function getOrInitBotCooldowns(botId: string): Record<AbilitySlot, number> {
     let cd = botCooldowns.get(botId);
@@ -650,15 +663,6 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
       botCooldowns.set(botId, cd);
     }
     return cd;
-  }
-
-  function getOrInitBotVoidState(botId: string): BotVoidChargeState {
-    let st = botVoidStates.get(botId);
-    if (!st) {
-      st = { charges: VOID_MAX_CHARGES, rechargeTimer: 0, recastLock: 0 };
-      botVoidStates.set(botId, st);
-    }
-    return st;
   }
 
   const projectiles: ProjectileEntry[] = [];
@@ -676,11 +680,6 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
 
   // Active Green Q player blind state
   let playerFlashTimer = 0;
-
-  // Active Violet Q (Void Shroud) 2-charge pool
-  let voidCharges = VOID_MAX_CHARGES;
-  let voidRechargeTimer = 0;
-  let voidRecastLockTimer = 0;
 
   // Active Gold Q (Overdrive + Electric Power Slide) & Concuss state
   let overdriveTimer = 0;
@@ -1839,7 +1838,8 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
     if (slot === 'x') {
       if (colorId === 'red') {
         blazeUltTimer = BLAZE_ULT_DURATION_SEC;
-        cooldowns.red.q = 0; // Immediate Crimson Dash refresh
+        charges.red.q = Math.min(MAX_ROUND_CHARGES, charges.red.q + 1); // Bonus Dash charge (cap 2)
+        cooldowns.red.q = 0; // Immediate lockout clear
         bursts.push(createUltActivationRingVisual(player.position, AGENT_PALETTES.red.hex, 5.5));
         pendingAudioEvents.push('ult_blaze');
         return true;
@@ -1902,7 +1902,7 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
       return false;
     }
 
-    // Special Case 1: Umbra (violet) [Q] Void Shroud (2 charges + mid-air re-tap bloom)
+    // Special Case 1: Umbra (violet) [Q] Void Shroud (strictly 2/round + free mid-air re-tap bloom)
     if (colorId === 'violet' && slot === 'q') {
       const inFlightIdx = projectiles.findIndex(
         (p) => p.isPlayerCast && p.data.kind === 'void_orb'
@@ -1913,21 +1913,18 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
           bloomVoidOrb(activeOrb, false, pendingAudioEvents);
           disposeObject3D(scene, activeOrb.group);
           projectiles.splice(inFlightIdx, 1);
-          voidRecastLockTimer = VOID_RECAST_LOCK_SEC;
+          cooldowns.violet.q = Math.max(cooldowns.violet.q, VOID_RECAST_LOCK_SEC);
           return true;
         }
         return false;
       }
 
-      if (voidCharges <= 0 || voidRecastLockTimer > 0) {
+      if (charges.violet.q <= 0 || cooldowns.violet.q > 0) {
         return false;
       }
 
-      voidCharges -= 1;
-      if (voidRechargeTimer <= 0) {
-        voidRechargeTimer = VOID_RECHARGE_SEC;
-      }
-      voidRecastLockTimer = VOID_RECAST_LOCK_SEC;
+      charges.violet.q -= 1;
+      cooldowns.violet.q = ABILITY_RECAST_LOCKOUT_SEC;
 
       spawnProjectileFromOrigin(
         'void_orb',
@@ -1950,7 +1947,7 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
       return true;
     }
 
-    // Special Case 2: Volt (gold) [Q] Overdrive + Electric Power Slide (also rapid-slides during Thunderstorm!)
+    // Special Case 2: Volt (gold) [Q] Overdrive + Electric Power Slide (free slides while Overdrive/Ult active)
     if (colorId === 'gold' && slot === 'q') {
       if (overdriveTimer > 0 || voltUltTimer > 0) {
         if (player.grounded && slideTimer <= 0 && slideLockoutTimer <= 0) {
@@ -1960,11 +1957,12 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
         return false;
       }
 
-      if (cooldowns.gold.q > 0) {
+      if (charges.gold.q <= 0 || cooldowns.gold.q > 0) {
         return false;
       }
 
-      cooldowns.gold.q = AGENT_ABILITIES.gold.q.cooldownSec;
+      charges.gold.q -= 1;
+      cooldowns.gold.q = ABILITY_RECAST_LOCKOUT_SEC;
       overdriveTimer = OVERDRIVE_DURATION_SEC;
       slideLockoutTimer = 0;
       walkArmedForSlide = !input.walk;
@@ -1977,12 +1975,12 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
       return true;
     }
 
-    if (cooldowns[colorId][slot] > 0) {
+    if (charges[colorId][slot] <= 0 || cooldowns[colorId][slot] > 0) {
       return false;
     }
 
-    const spec = AGENT_ABILITIES[colorId][slot];
-    cooldowns[colorId][slot] = spec.cooldownSec;
+    charges[colorId][slot] -= 1;
+    cooldowns[colorId][slot] = ABILITY_RECAST_LOCKOUT_SEC;
 
     if (colorId === 'red' && slot === 'q') {
       // Crimson Dash: 0.24s cubic ease-out burst from 30.0 m/s -> 8.2 m/s
@@ -2159,7 +2157,9 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
           combatant: bot,
           timer: BLAZE_ULT_DURATION_SEC,
         });
-        getOrInitBotCooldowns(bot.id).q = 0; // Immediate Dash refresh
+        const bCh = getOrInitBotCharges(bot.id);
+        bCh.q = Math.min(MAX_ROUND_CHARGES, bCh.q + 1); // Bonus Dash charge (cap 2)
+        getOrInitBotCooldowns(bot.id).q = 0; // Immediate lockout clear
         bursts.push(createUltActivationRingVisual(bot.position, AGENT_PALETTES.red.hex, 5.5));
         pendingAudioEvents.push('ult_blaze');
         return true;
@@ -2223,17 +2223,16 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
       return false;
     }
 
-    if (bot.colorId === 'violet' && slot === 'q') {
-      const vState = getOrInitBotVoidState(bot.id);
-      if (vState.charges <= 0 || vState.recastLock > 0) {
-        return false;
-      }
-      vState.charges -= 1;
-      if (vState.rechargeTimer <= 0) {
-        vState.rechargeTimer = VOID_RECHARGE_SEC;
-      }
-      vState.recastLock = 0.65;
+    const ch = getOrInitBotCharges(bot.id);
+    const cd = getOrInitBotCooldowns(bot.id);
+    if (ch[slot] <= 0 || cd[slot] > 0) {
+      return false;
+    }
 
+    ch[slot] -= 1;
+    cd[slot] = ABILITY_RECAST_LOCKOUT_SEC;
+
+    if (bot.colorId === 'violet' && slot === 'q') {
       spawnProjectileFromOrigin(
         'void_orb',
         'violet',
@@ -2252,14 +2251,6 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
       pendingAudioEvents.push('void_cast');
       return true;
     }
-
-    const cd = getOrInitBotCooldowns(bot.id);
-    if (cd[slot] > 0) {
-      return false;
-    }
-
-    const spec = AGENT_ABILITIES[bot.colorId][slot];
-    cd[slot] = spec.cooldownSec;
 
     if (bot.colorId === 'red' && slot === 'q') {
       const horizSpeed = Math.hypot(bot.velocity.x, bot.velocity.z);
@@ -2437,11 +2428,14 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
     if (killerColor !== 'red') return;
     if (isPlayer) {
       if (blazeUltTimer > 0) {
-        cooldowns.red.q = 0; // Inferno Overdrive kill refreshes Crimson Dash!
+        charges.red.q = Math.min(MAX_ROUND_CHARGES, charges.red.q + 1); // Bonus Dash charge (cap 2)
+        cooldowns.red.q = 0; // Clear lockout
       }
     } else {
       for (const [botId, entry] of botBlazeUlts.entries()) {
         if (entry.timer > 0 && entry.combatant.alive) {
+          const bCh = getOrInitBotCharges(botId);
+          bCh.q = Math.min(MAX_ROUND_CHARGES, bCh.q + 1);
           getOrInitBotCooldowns(botId).q = 0;
         }
       }
@@ -2534,9 +2528,6 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
     zoneSeq = 0;
     dashTimer = 0;
     playerFlashTimer = 0;
-    voidCharges = VOID_MAX_CHARGES;
-    voidRechargeTimer = 0;
-    voidRecastLockTimer = 0;
     overdriveTimer = 0;
     slideTimer = 0;
     slideLockoutTimer = 0;
@@ -2554,19 +2545,17 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
 
     botDashes.clear();
     botSlides.clear();
-    botVoidStates.clear();
     botBlazeUlts.clear();
     botVoltUlts.clear();
+    botCharges.clear();
+    botCooldowns.clear();
 
     for (const color of AGENT_ORDER) {
+      charges[color].q = MAX_ROUND_CHARGES;
+      charges[color].e = MAX_ROUND_CHARGES;
       cooldowns[color].q = 0;
       cooldowns[color].e = 0;
       cooldowns[color].x = 0;
-    }
-    for (const cd of botCooldowns.values()) {
-      cd.q = 0;
-      cd.e = 0;
-      cd.x = 0;
     }
   }
 
@@ -2590,41 +2579,17 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
       playerCasterId = 'player';
     }
 
-    // 1. Tick all 5 agent cooldowns & multi-charge timers independently.
+    // 1. Tick short anti-double-click lockouts (charges strictly reset ONLY on resetRound()).
     for (const color of AGENT_ORDER) {
       cooldowns[color].q = Math.max(0, cooldowns[color].q - stepDt);
       cooldowns[color].e = Math.max(0, cooldowns[color].e - stepDt);
       cooldowns[color].x = Math.max(0, cooldowns[color].x - stepDt);
     }
 
-    voidRecastLockTimer = Math.max(0, voidRecastLockTimer - stepDt);
-    if (voidCharges < VOID_MAX_CHARGES) {
-      voidRechargeTimer -= stepDt;
-      if (voidRechargeTimer <= 0) {
-        voidCharges += 1;
-        voidRechargeTimer = voidCharges < VOID_MAX_CHARGES ? VOID_RECHARGE_SEC : 0;
-      }
-    } else {
-      voidRechargeTimer = 0;
-    }
-    cooldowns.violet.q = voidCharges > 0 ? voidRecastLockTimer : voidRechargeTimer;
-
     for (const cd of botCooldowns.values()) {
       cd.q = Math.max(0, cd.q - stepDt);
       cd.e = Math.max(0, cd.e - stepDt);
       cd.x = Math.max(0, cd.x - stepDt);
-    }
-    for (const vState of botVoidStates.values()) {
-      vState.recastLock = Math.max(0, vState.recastLock - stepDt);
-      if (vState.charges < VOID_MAX_CHARGES) {
-        vState.rechargeTimer -= stepDt;
-        if (vState.rechargeTimer <= 0) {
-          vState.charges += 1;
-          vState.rechargeTimer = vState.charges < VOID_MAX_CHARGES ? VOID_RECHARGE_SEC : 0;
-        }
-      } else {
-        vState.rechargeTimer = 0;
-      }
     }
 
     // Tick active AI bot Blaze & Volt Ultimates
@@ -3505,12 +3470,14 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
       playerFlashTimer = Math.max(0, playerFlashTimer - stepDt);
     }
 
-    // 7. Build HUD slot descriptors for the active agent palette
+    // 7. Build HUD slot descriptors for the active agent palette (strictly 2/round on [Q] & [E])
     const qSpec = AGENT_ABILITIES[player.colorId].q;
     const eSpec = AGENT_ABILITIES[player.colorId].e;
     const xSpec = AGENT_ABILITIES[player.colorId].x;
     const qCd = cooldowns[player.colorId].q;
     const eCd = cooldowns[player.colorId].e;
+    const qCharges = charges[player.colorId].q;
+    const eCharges = charges[player.colorId].e;
 
     let qHud: AbilityHudSlotState;
     if (player.colorId === 'violet') {
@@ -3520,36 +3487,32 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
           p.data.kind === 'void_orb' &&
           p.data.age > VOID_REBLOOM_MIN_AGE_SEC
       );
-      const canCastVoid =
-        hasBloomableVoidOrb || (voidCharges > 0 && voidRecastLockTimer <= 0);
-      const qRemain = hasBloomableVoidOrb
-        ? 0
-        : voidCharges > 0
-          ? voidRecastLockTimer
-          : voidRechargeTimer;
+      const canCastVoid = hasBloomableVoidOrb || (qCharges > 0 && qCd <= 0);
 
       qHud = {
         name: qSpec.name,
         shortTag: qSpec.shortTag,
-        cooldownRemaining: qRemain,
-        cooldownTotal: qSpec.cooldownSec,
+        cooldownRemaining: hasBloomableVoidOrb ? 0 : qCd,
+        cooldownTotal: ABILITY_RECAST_LOCKOUT_SEC,
         ready: canCastVoid,
-        charges: voidCharges,
-        maxCharges: VOID_MAX_CHARGES,
+        charges: qCharges,
+        maxCharges: MAX_ROUND_CHARGES,
       };
     } else if (player.colorId === 'gold') {
+      const activeSprint = Math.max(overdriveTimer, voltUltTimer);
       const canSlideNow =
-        (overdriveTimer > 0 || voltUltTimer > 0) &&
+        activeSprint > 0 &&
         player.grounded &&
         slideTimer <= 0 &&
         slideLockoutTimer <= 0;
-      const activeSprint = Math.max(overdriveTimer, voltUltTimer);
       qHud = {
         name: qSpec.name,
         shortTag: qSpec.shortTag,
-        cooldownRemaining: activeSprint > 0 ? 0 : qCd,
-        cooldownTotal: qSpec.cooldownSec,
-        ready: activeSprint > 0 ? canSlideNow : qCd <= 0,
+        cooldownRemaining: activeSprint > 0 ? slideLockoutTimer : qCd,
+        cooldownTotal: activeSprint > 0 ? SLIDE_LOCKOUT_SEC : ABILITY_RECAST_LOCKOUT_SEC,
+        ready: activeSprint > 0 ? canSlideNow : qCharges > 0 && qCd <= 0,
+        charges: qCharges,
+        maxCharges: MAX_ROUND_CHARGES,
         activeTimer: activeSprint > 0 ? activeSprint : undefined,
       };
     } else {
@@ -3557,8 +3520,10 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
         name: qSpec.name,
         shortTag: qSpec.shortTag,
         cooldownRemaining: qCd,
-        cooldownTotal: qSpec.cooldownSec,
-        ready: qCd <= 0,
+        cooldownTotal: ABILITY_RECAST_LOCKOUT_SEC,
+        ready: qCharges > 0 && qCd <= 0,
+        charges: qCharges,
+        maxCharges: MAX_ROUND_CHARGES,
       };
     }
 
@@ -3566,8 +3531,10 @@ export function createAbilitySystem(scene: THREE.Scene): AbilitySystem {
       name: eSpec.name,
       shortTag: eSpec.shortTag,
       cooldownRemaining: eCd,
-      cooldownTotal: eSpec.cooldownSec,
-      ready: eCd <= 0,
+      cooldownTotal: ABILITY_RECAST_LOCKOUT_SEC,
+      ready: eCharges > 0 && eCd <= 0,
+      charges: eCharges,
+      maxCharges: MAX_ROUND_CHARGES,
     };
 
     const playerUltActiveRemain =

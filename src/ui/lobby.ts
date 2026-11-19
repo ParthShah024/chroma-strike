@@ -15,6 +15,7 @@ export interface LobbyControllerOptions {
   onWinTargetChange: (winTarget: 10 | 6) => void;
   onCallsignChange?: (callsign: string) => void;
   onRetryConnect: (callsign: string) => void;
+  onConnectCustomServer?: (url: string) => void;
   onOpenSettings: () => void;
   onStartMatch: () => void;
   onClose?: () => void;
@@ -30,6 +31,8 @@ export interface LobbyController {
   getDifficulty(): AiDifficulty;
   getWinTarget(): 10 | 6;
   getCallsign(): string;
+  setCallsign(name: string): void;
+  setInviteUrl(url: string): void;
   dispose(): void;
 }
 
@@ -74,6 +77,44 @@ function escapeHtml(text: string): string {
     .replace(/"/g, '&quot;');
 }
 
+function getDefaultInviteUrl(): string {
+  if (typeof window === 'undefined' || !window.location) {
+    return 'http://127.0.0.1:5174/';
+  }
+  const loc = window.location;
+  if (loc.port === '5173') {
+    return `${loc.protocol}//${loc.hostname}:5174${loc.pathname}${loc.search}`;
+  }
+  return loc.href;
+}
+
+async function copyTextToClipboard(text: string): Promise<boolean> {
+  if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      // Fall through to execCommand fallback (e.g. non-HTTPS LAN origins)
+    }
+  }
+  if (typeof document === 'undefined') return false;
+  try {
+    const area = document.createElement('textarea');
+    area.value = text;
+    area.setAttribute('readonly', '');
+    area.style.position = 'fixed';
+    area.style.left = '-9999px';
+    area.style.opacity = '0';
+    document.body.appendChild(area);
+    area.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(area);
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Creates the 6-Player Custom Lobby screen controller (`#lobby-modal`).
  * Displays first on launch (`Lobby -> Agent Select -> Lock In -> Match`),
@@ -86,6 +127,11 @@ export function createLobbyController(options: LobbyControllerOptions): LobbyCon
   const callsignInput = requireEl<HTMLInputElement>('lobby-callsign-input');
   const settingsBtn = requireEl<HTMLButtonElement>('lobby-settings-btn');
   const errorEl = requireEl<HTMLDivElement>('lobby-error');
+
+  const inviteUrlEl = document.getElementById('lobby-invite-url');
+  const copyInviteBtn = document.getElementById('lobby-copy-invite-btn') as HTMLButtonElement | null;
+  const serverInput = document.getElementById('lobby-server-input') as HTMLInputElement | null;
+  const connectCustomBtn = document.getElementById('lobby-connect-custom-btn') as HTMLButtonElement | null;
 
   const atkCountEl = requireEl<HTMLSpanElement>('lobby-atk-count');
   const defCountEl = requireEl<HTMLSpanElement>('lobby-def-count');
@@ -109,11 +155,38 @@ export function createLobbyController(options: LobbyControllerOptions): LobbyCon
   let difficulty: AiDifficulty = options.initialDifficulty ?? 'casual';
   let winTarget: 10 | 6 = options.initialWinTarget === 6 ? 6 : 10;
   let callsign = loadSavedCallsign();
+  let inviteUrl = getDefaultInviteUrl();
   let lastOnline = false;
   let lastIsHost = true;
   let errorTimer: ReturnType<typeof setTimeout> | null = null;
+  let copyTimer: ReturnType<typeof setTimeout> | null = null;
+  const defaultCopyBtnLabel = copyInviteBtn?.textContent?.trim() || 'COPY INVITE';
 
   callsignInput.value = callsign;
+
+  function renderInviteUrl(): void {
+    if (!inviteUrlEl) return;
+    if (inviteUrlEl instanceof HTMLInputElement || inviteUrlEl instanceof HTMLTextAreaElement) {
+      inviteUrlEl.value = inviteUrl;
+    } else {
+      inviteUrlEl.textContent = inviteUrl;
+    }
+  }
+
+  function setInviteUrl(url: string): void {
+    const trimmed = url.trim();
+    inviteUrl = trimmed.length > 0 ? trimmed : getDefaultInviteUrl();
+    renderInviteUrl();
+  }
+
+  function setCallsign(name: string): void {
+    const next = sanitizeCallsign(name);
+    callsign = next;
+    callsignInput.value = next;
+    saveCallsign(next);
+  }
+
+  renderInviteUrl();
 
   function clearErrorTimer(): void {
     if (errorTimer !== null) {
@@ -324,6 +397,49 @@ export function createLobbyController(options: LobbyControllerOptions): LobbyCon
     commitCallsign(true);
   }
 
+  function onCopyInviteClick(): void {
+    const currentUrl =
+      inviteUrlEl instanceof HTMLInputElement || inviteUrlEl instanceof HTMLTextAreaElement
+        ? inviteUrlEl.value.trim() || inviteUrl
+        : inviteUrl;
+    void copyTextToClipboard(currentUrl).then((ok) => {
+      if (!copyInviteBtn) return;
+      if (copyTimer !== null) {
+        clearTimeout(copyTimer);
+        copyTimer = null;
+      }
+      copyInviteBtn.textContent = ok ? 'COPIED!' : 'COPY FAILED';
+      copyInviteBtn.classList.toggle('copied', ok);
+      copyTimer = setTimeout(() => {
+        copyInviteBtn.textContent = defaultCopyBtnLabel;
+        copyInviteBtn.classList.remove('copied');
+        copyTimer = null;
+      }, 1800);
+    });
+  }
+
+  function onConnectCustomClick(): void {
+    commitCallsign(false);
+    showError('');
+    const customUrl = serverInput?.value.trim() ?? '';
+    if (customUrl.length > 0 && options.onConnectCustomServer) {
+      options.onConnectCustomServer(customUrl);
+    } else if (options.onConnectCustomServer) {
+      options.onConnectCustomServer(customUrl);
+    } else {
+      options.onRetryConnect(callsign);
+    }
+  }
+
+  function onServerInputKeyDown(e: KeyboardEvent): void {
+    if (e.code === 'Enter') {
+      e.preventDefault();
+      onConnectCustomClick();
+      serverInput?.blur();
+    }
+    e.stopPropagation();
+  }
+
   joinAtkBtn.addEventListener('click', onJoinAtk);
   joinDefBtn.addEventListener('click', onJoinDef);
   retryBtn.addEventListener('click', onRetry);
@@ -331,6 +447,9 @@ export function createLobbyController(options: LobbyControllerOptions): LobbyCon
   startBtn.addEventListener('click', onStartClick);
   callsignInput.addEventListener('keydown', onCallsignKeyDown);
   callsignInput.addEventListener('blur', onCallsignBlur);
+  copyInviteBtn?.addEventListener('click', onCopyInviteClick);
+  connectCustomBtn?.addEventListener('click', onConnectCustomClick);
+  serverInput?.addEventListener('keydown', onServerInputKeyDown);
 
   for (const pill of diffPills) {
     pill.addEventListener('click', () => {
@@ -353,8 +472,14 @@ export function createLobbyController(options: LobbyControllerOptions): LobbyCon
   }
 
   function open(): void {
+    const latest = loadSavedCallsign();
+    if (latest !== callsign) {
+      callsign = latest;
+      callsignInput.value = latest;
+    }
     openState = true;
     modal.classList.remove('hidden');
+    renderInviteUrl();
     syncControlsState();
   }
 
@@ -367,6 +492,10 @@ export function createLobbyController(options: LobbyControllerOptions): LobbyCon
 
   function dispose(): void {
     clearErrorTimer();
+    if (copyTimer !== null) {
+      clearTimeout(copyTimer);
+      copyTimer = null;
+    }
     joinAtkBtn.removeEventListener('click', onJoinAtk);
     joinDefBtn.removeEventListener('click', onJoinDef);
     retryBtn.removeEventListener('click', onRetry);
@@ -374,6 +503,9 @@ export function createLobbyController(options: LobbyControllerOptions): LobbyCon
     startBtn.removeEventListener('click', onStartClick);
     callsignInput.removeEventListener('keydown', onCallsignKeyDown);
     callsignInput.removeEventListener('blur', onCallsignBlur);
+    copyInviteBtn?.removeEventListener('click', onCopyInviteClick);
+    connectCustomBtn?.removeEventListener('click', onConnectCustomClick);
+    serverInput?.removeEventListener('keydown', onServerInputKeyDown);
   }
 
   modal.classList.add('hidden');
@@ -389,6 +521,8 @@ export function createLobbyController(options: LobbyControllerOptions): LobbyCon
     getDifficulty: () => difficulty,
     getWinTarget: () => winTarget,
     getCallsign: () => callsign,
+    setCallsign,
+    setInviteUrl,
     dispose,
   };
 }

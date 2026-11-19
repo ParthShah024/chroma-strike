@@ -369,6 +369,8 @@ export interface WeaponSpec {
 export interface Combatant extends TargetDummy {
   team: TeamId;
   isPlayer: boolean;
+  /** Crisp callsign / custom player name shown on overhead nameplates, kill feed, and combat reports. */
+  displayName?: string;
   /** True when this slot is currently driven by a connected remote human player. */
   isRemoteHuman?: boolean;
   remotePlayerId?: string;
@@ -454,6 +456,8 @@ export interface MatchHudState {
   nearbyDoorPrompt?: { doorId: string; label: string; action: 'CLOSE' | 'OPEN' } | null;
   winTarget?: number;
   swapInterval?: number;
+  combatReport?: RoundCombatReportEntry[];
+  surrendered?: boolean;
 }
 
 // ============================================================================
@@ -550,6 +554,27 @@ export interface RemotePlayerNetState {
   timestampMs: number;
 }
 
+export interface AbilityKeybinds {
+  abilityQ: string;
+  abilityE: string;
+  abilityX: string;
+}
+
+export interface RoundCombatReportEntry {
+  opponentId: string;
+  opponentName: string;
+  opponentColor: AgentColorId;
+  damageOut: number;
+  hitsOutHead: number;
+  hitsOutBody: number;
+  damageIn: number;
+  hitsInHead: number;
+  hitsInBody: number;
+  killedOpponent: boolean;
+  killedByOpponent: boolean;
+  weaponTag: string;
+}
+
 export interface GameSettings {
   mouseSensitivity: number;
   adsSensitivityMult: number;
@@ -564,4 +589,7 @@ export interface GameSettings {
   difficulty: AiDifficulty;
   defaultSide: TacticalSide;
   winTarget: 10 | 6;
+  playerName: string;
+  adsMode: 'hold' | 'toggle';
+  keybinds: AbilityKeybinds;
 }

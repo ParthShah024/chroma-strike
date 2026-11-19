@@ -1,26 +1,129 @@
 import http from 'node:http';
 import crypto from 'node:crypto';
+import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 /**
  * ============================================================================
- * Chroma Strike — Zero-Dependency 6-Player Tactical WebSocket Server (RFC 6455)
+ * Chroma Strike — Zero-Dependency 6-Player Single-Port HTTP + WS Server (RFC 6455)
  * ============================================================================
- * Built exclusively on Node.js built-ins (`node:http`, `node:crypto`).
+ * Built exclusively on Node.js built-ins (`node:http`, `node:crypto`, `node:fs`, `node:os`).
  *
  * Hard Constraints:
  *  - MAX_PLAYERS  = 6 (7th simultaneous connection receives SERVER_FULL + close 4000)
  *  - MAX_PER_TEAM = 3 (Attackers 0..2, Defenders 0..2)
  *  - Phases: 'lobby' -> 'agent_select' -> 'playing'
- *  - Health endpoint: GET /health -> 200 OK JSON + CORS
+ *  - Health endpoint: GET /health -> 200 OK JSON + CORS + lanUrls
+ *  - Single-port static serving: serves built app from `dist/` (with fallback to `public/models/*`)
  */
 
 export const WS_GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
 export const DEFAULT_PORT = 5174;
+export const DEFAULT_HOST = '0.0.0.0';
 export const MAX_PLAYERS = 6;
 export const MAX_PER_TEAM = 3;
 export const SWAP_INTERVAL = 5;
+
+const SERVER_DIR = path.dirname(fileURLToPath(import.meta.url));
+const PROJECT_ROOT = path.resolve(SERVER_DIR, '..');
+const DEFAULT_DIST_DIR = path.join(PROJECT_ROOT, 'dist');
+const DEFAULT_PUBLIC_DIR = path.join(PROJECT_ROOT, 'public');
+
+const MIME_TYPES = {
+  '.html': 'text/html; charset=utf-8',
+  '.htm': 'text/html; charset=utf-8',
+  '.js': 'application/javascript; charset=utf-8',
+  '.mjs': 'application/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.glb': 'model/gltf-binary',
+  '.gltf': 'model/gltf+json; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.ico': 'image/x-icon',
+  '.wasm': 'application/wasm',
+  '.bin': 'application/octet-stream',
+};
+
+export function getMimeType(filePath) {
+  const ext = path.extname(filePath).toLowerCase();
+  return MIME_TYPES[ext] ?? 'application/octet-stream';
+}
+
+export function getLanUrls(port) {
+  const urls = [];
+  const seen = new Set();
+  let ifaces;
+  try {
+    ifaces = os.networkInterfaces();
+  } catch {
+    return urls;
+  }
+  for (const entries of Object.values(ifaces)) {
+    if (!Array.isArray(entries)) continue;
+    for (const info of entries) {
+      if (!info) continue;
+      const isIPv4 = info.family === 'IPv4' || info.family === 4;
+      if (!isIPv4 || info.internal || !info.address) continue;
+      const url = `http://${info.address}:${port}/`;
+      if (!seen.has(url)) {
+        seen.add(url);
+        urls.push(url);
+      }
+    }
+  }
+  return urls;
+}
+
+function tryResolveInsideRoot(rootDir, relPath) {
+  const resolvedRoot = path.resolve(rootDir);
+  const candidate = path.resolve(resolvedRoot, relPath);
+  if (candidate !== resolvedRoot && !candidate.startsWith(resolvedRoot + path.sep)) {
+    return null;
+  }
+  try {
+    const stat = fs.statSync(candidate);
+    if (stat.isFile()) {
+      return { filePath: candidate, size: stat.size };
+    }
+  } catch {
+    // file does not exist
+  }
+  return null;
+}
+
+function resolveStaticFile(rawUrlPath, distDir, publicDir) {
+  let decoded;
+  try {
+    decoded = decodeURIComponent(rawUrlPath);
+  } catch {
+    return { badRequest: true };
+  }
+  if (decoded.includes('\0')) {
+    return { badRequest: true };
+  }
+
+  const normalized = decoded === '/' || decoded === '' ? 'index.html' : decoded.replace(/^\/+/, '');
+  if (!normalized) {
+    return tryResolveInsideRoot(distDir, 'index.html');
+  }
+
+  const fromDist = tryResolveInsideRoot(distDir, normalized);
+  if (fromDist) return fromDist;
+
+  // Clean fallback to public/models/* (and other public/* assets) if dist/ lacks them
+  if (normalized.startsWith('models/') || normalized === 'models') {
+    const fromPublic = tryResolveInsideRoot(publicDir, normalized);
+    if (fromPublic) return fromPublic;
+  }
+
+  return null;
+}
 
 const MAX_PAYLOAD_BYTES = 1024 * 1024;
 const AGENT_COLORS = ['red', 'blue', 'green', 'violet', 'gold'];
@@ -240,8 +343,10 @@ function attachWsFrameParser(socket, handlers) {
 
 export function createGameServer(options = {}) {
   const port = options.port ?? (process.env.PORT ? Number(process.env.PORT) : DEFAULT_PORT);
-  const host = options.host ?? process.env.HOST ?? '0.0.0.0';
+  const host = options.host ?? (process.env.HOST || DEFAULT_HOST);
   const silent = Boolean(options.silent);
+  const distDir = path.resolve(options.distDir ?? DEFAULT_DIST_DIR);
+  const publicDir = path.resolve(options.publicDir ?? DEFAULT_PUBLIC_DIR);
 
   let nextClientNum = 1;
 
@@ -614,12 +719,49 @@ export function createGameServer(options = {}) {
     broadcastLobbyState();
   }
 
+  function handleSetName(clientId, socket, msg, clientNum) {
+    const player = getPlayerById(clientId);
+    if (!player) {
+      sendError(socket, 'NOT_JOINED', 'Join the lobby before setting a name');
+      return;
+    }
+    player.name = sanitizeName(msg.name, clientNum);
+    broadcastLobbyState();
+  }
+
+  function handleSurrender(clientId, socket, msg) {
+    const player = getPlayerById(clientId);
+    if (!player) {
+      sendError(socket, 'NOT_JOINED', 'Join the lobby first');
+      return;
+    }
+    if (room.phase !== 'playing') {
+      sendError(socket, 'INVALID_PHASE', 'Surrender is only available during an active match');
+      return;
+    }
+    const side = VALID_SIDES.has(msg.side) ? msg.side : player.side;
+    broadcast({
+      type: 'surrender',
+      side,
+      byId: player.id,
+      byName: player.name,
+      timestampMs: Date.now(),
+    });
+  }
+
+  function finiteNum(val, fallback) {
+    const n = Number(val);
+    return Number.isFinite(n) ? n : fallback;
+  }
+
   function handleRelay(clientId, msg) {
     if (room.phase !== 'playing') return;
     const player = getPlayerById(clientId);
     if (!player) return;
 
     if (msg.type === 'player_state') {
+      const pos = msg.position && typeof msg.position === 'object' ? msg.position : {};
+      const vel = msg.velocity && typeof msg.velocity === 'object' ? msg.velocity : {};
       broadcast(
         {
           type: 'remote_state',
@@ -628,12 +770,20 @@ export function createGameServer(options = {}) {
           side: msg.side && VALID_SIDES.has(msg.side) ? msg.side : player.side,
           slotIndex: player.slotIndex,
           agentColor: AGENT_COLORS.includes(msg.agentColor) ? msg.agentColor : player.agentColor,
-          position: msg.position ?? { x: 0, y: 0, z: 0 },
-          velocity: msg.velocity ?? { x: 0, y: 0, z: 0 },
-          yaw: Number(msg.yaw) || 0,
-          pitch: Number(msg.pitch) || 0,
-          health: Number(msg.health) ?? 100,
-          armor: Number(msg.armor) ?? 0,
+          position: {
+            x: finiteNum(pos.x, 0),
+            y: finiteNum(pos.y, 0),
+            z: finiteNum(pos.z, 0),
+          },
+          velocity: {
+            x: finiteNum(vel.x, 0),
+            y: finiteNum(vel.y, 0),
+            z: finiteNum(vel.z, 0),
+          },
+          yaw: finiteNum(msg.yaw, 0),
+          pitch: finiteNum(msg.pitch, 0),
+          health: finiteNum(msg.health, 100),
+          armor: finiteNum(msg.armor, 0),
           alive: msg.alive !== false,
           weaponId: msg.weaponId ?? 'pistol',
           firing: Boolean(msg.firing),
@@ -646,12 +796,28 @@ export function createGameServer(options = {}) {
       return;
     }
 
+    if (msg.type === 'match_sync') {
+      if (clientId !== room.hostId) return;
+      broadcast(
+        {
+          ...msg,
+          roundNumber: finiteNum(msg.roundNumber, 1),
+          allyScore: finiteNum(msg.allyScore, 0),
+          enemyScore: finiteNum(msg.enemyScore, 0),
+          phaseTimerSec: finiteNum(msg.phaseTimerSec, 0),
+          fromId: player.id,
+          timestampMs: Date.now(),
+        },
+        clientId
+      );
+      return;
+    }
+
     if (
       msg.type === 'player_damage' ||
       msg.type === 'ability_cast' ||
       msg.type === 'door_event' ||
-      msg.type === 'spike_event' ||
-      msg.type === 'match_sync'
+      msg.type === 'spike_event'
     ) {
       broadcast(
         {
@@ -702,7 +868,7 @@ export function createGameServer(options = {}) {
   const server = http.createServer((req, res) => {
     const corsHeaders = {
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type',
     };
 
@@ -713,26 +879,70 @@ export function createGameServer(options = {}) {
     }
 
     const urlPath = (req.url ?? '/').split('?')[0];
-    if (req.method === 'GET' && urlPath === '/health') {
+    if ((req.method === 'GET' || req.method === 'HEAD') && urlPath === '/health') {
+      const addr = server.address();
+      const activePort = typeof addr === 'object' && addr ? addr.port : port;
       const body = JSON.stringify({
         ok: true,
         players: room.players.length,
         maxPlayers: MAX_PLAYERS,
         phase: room.phase,
+        lanUrls: getLanUrls(activePort),
       });
       res.writeHead(200, {
         ...corsHeaders,
         'Content-Type': 'application/json; charset=utf-8',
+        'Content-Length': Buffer.byteLength(body, 'utf8'),
       });
-      res.end(body);
+      res.end(req.method === 'HEAD' ? undefined : body);
       return;
+    }
+
+    if (req.method === 'GET' || req.method === 'HEAD') {
+      const resolved = resolveStaticFile(urlPath, distDir, publicDir);
+      if (resolved && resolved.badRequest) {
+        res.writeHead(400, {
+          ...corsHeaders,
+          'Content-Type': 'application/json; charset=utf-8',
+        });
+        res.end(JSON.stringify({ ok: false, error: 'Bad Request' }));
+        return;
+      }
+      if (resolved && resolved.filePath) {
+        const mime = getMimeType(resolved.filePath);
+        const cacheControl = mime.startsWith('text/html') ? 'no-cache' : 'public, max-age=3600';
+        res.writeHead(200, {
+          ...corsHeaders,
+          'Content-Type': mime,
+          'Content-Length': resolved.size,
+          'Cache-Control': cacheControl,
+        });
+        if (req.method === 'HEAD') {
+          res.end();
+          return;
+        }
+        const stream = fs.createReadStream(resolved.filePath);
+        stream.on('error', () => {
+          if (!res.headersSent) {
+            res.writeHead(500, {
+              ...corsHeaders,
+              'Content-Type': 'application/json; charset=utf-8',
+            });
+            res.end(JSON.stringify({ ok: false, error: 'Static read error' }));
+          } else if (!res.destroyed) {
+            res.destroy();
+          }
+        });
+        stream.pipe(res);
+        return;
+      }
     }
 
     res.writeHead(404, {
       ...corsHeaders,
       'Content-Type': 'application/json; charset=utf-8',
     });
-    res.end(JSON.stringify({ ok: false, error: 'Not Found' }));
+    res.end(req.method === 'HEAD' ? undefined : JSON.stringify({ ok: false, error: 'Not Found' }));
   });
 
   server.on('upgrade', (req, socket, head) => {
@@ -823,6 +1033,12 @@ export function createGameServer(options = {}) {
           case 'return_to_lobby':
             handleReturnToLobby(clientId, socket);
             break;
+          case 'set_name':
+            handleSetName(clientId, socket, msg, clientNum);
+            break;
+          case 'surrender':
+            handleSurrender(clientId, socket, msg);
+            break;
           case 'player_state':
           case 'player_damage':
           case 'ability_cast':
@@ -870,12 +1086,19 @@ export function createGameServer(options = {}) {
         server.off('error', reject);
         const addr = server.address();
         const boundPort = typeof addr === 'object' && addr ? addr.port : port;
+        const lanUrls = getLanUrls(boundPort);
         if (!silent) {
           console.log(
-            `[Chroma Strike MP] WebSocket server listening on ws://127.0.0.1:${boundPort} (max ${MAX_PLAYERS} players, ${MAX_PER_TEAM}/team)`
+            `[Chroma Strike MP] Single-port HTTP + WS server listening on http://${host}:${boundPort}/ (local: http://127.0.0.1:${boundPort}/, max ${MAX_PLAYERS} players, ${MAX_PER_TEAM}/team)`
+          );
+          for (const lanUrl of lanUrls) {
+            console.log(`[Chroma Strike MP] LAN Join URL: ${lanUrl}`);
+          }
+          console.log(
+            `[Chroma Strike MP] Internet Tunnel: cloudflared tunnel --url http://127.0.0.1:${boundPort}`
           );
         }
-        resolve({ port: boundPort, host });
+        resolve({ port: boundPort, host, lanUrls });
       });
     });
   }

@@ -48,7 +48,7 @@ import math
 import os
 import struct
 import sys
-from collections import deque
+from collections import defaultdict, deque
 from typing import Dict, List, Optional, Tuple
 
 import bmesh
@@ -439,52 +439,66 @@ class WorldMeshBuilder:
         overhang: float = 0.35,
         add_ribs: bool = False,
     ) -> None:
-        """Crisp Venetian pitched terracotta gable roof with pediments, sloped planes & ridge cap."""
+        """Crisp Venetian pitched terracotta gable roof with pediments, non-overlapping sloped planes & ridge cap."""
         ax0, ax1 = min(x0, x1), max(x0, x1)
         az0, az1 = min(z0, z1), max(z0, z1)
         cx, cz = 0.5 * (ax0 + ax1), 0.5 * (az0 + az1)
         y_ridge = y_eave + ridge_h
 
+        # Pull each roof slab slightly back from the ridge centerline along its slope so
+        # the two opposing slabs never intersect/overlap at the gable end caps (covered cleanly by ridge cap).
+        ridge_trim = 0.14
+
         if ridge_along_x:
             half_span = 0.5 * (az1 - az0) + overhang
             slope_angle = math.atan2(ridge_h, max(0.2, 0.5 * (az1 - az0)))
-            slope_len = math.hypot(ridge_h, half_span)
+            cos_a, sin_a = math.cos(slope_angle), math.sin(slope_angle)
+            full_slope_len = math.hypot(ridge_h, half_span)
+            slab_len = max(0.3, full_slope_len - ridge_trim)
+            shift_h = 0.5 * ridge_trim * cos_a
+            shift_y = -0.5 * ridge_trim * sin_a
             length_x = (ax1 - ax0) + 2.0 * overhang
-            # Triangular gable pediments on West & East ends
-            gable = [(y_eave, az0), (y_ridge - 0.08, cz), (y_eave, az1)]
+            # Triangular gable pediments on West & East ends (slightly inset in Z so never flush with roof overhang)
+            gable = [(y_eave, az0 + 0.02), (y_ridge - 0.08, cz), (y_eave, az1 - 0.02)]
             self.add_prism_extrude_x(ax0, ax0 + 0.36, gable, gable_mat)
             self.add_prism_extrude_x(ax1 - 0.36, ax1, gable, gable_mat)
             # North & South terracotta roof slopes (no bevel to stay ultra-lightweight!)
-            mid_y = y_eave + 0.5 * ridge_h + 0.04
-            self.add_oriented_box(cx, mid_y, cz - 0.5 * half_span, length_x, 0.16, slope_len, -slope_angle, 0.0, 0.0, roof_mat, bevel=0.0)
-            self.add_oriented_box(cx, mid_y, cz + 0.5 * half_span, length_x, 0.16, slope_len, slope_angle, 0.0, 0.0, roof_mat, bevel=0.0)
-            self.add_cylinder(cx, y_ridge + 0.08, cz, 0.15, 0.15, length_x + 0.08, roof_mat, segments=7, axis="x")
+            mid_y = y_eave + 0.5 * ridge_h + 0.06 + shift_y
+            self.add_oriented_box(cx, mid_y, cz - 0.5 * half_span - shift_h, length_x, 0.16, slab_len, -slope_angle, 0.0, 0.0, roof_mat, bevel=0.0)
+            self.add_oriented_box(cx, mid_y, cz + 0.5 * half_span + shift_h, length_x, 0.16, slab_len, slope_angle, 0.0, 0.0, roof_mat, bevel=0.0)
+            self.add_cylinder(cx, y_ridge + 0.10, cz, 0.16, 0.16, length_x + 0.08, roof_mat, segments=7, axis="x")
             if add_ribs:
                 n_ribs = max(3, int((ax1 - ax0) // 2.0))
+                rib_len = max(0.2, slab_len - 0.16)
                 for k in range(1, n_ribs):
                     rx = ax0 + (ax1 - ax0) * (k / n_ribs)
-                    self.add_oriented_box(rx, mid_y + 0.08, cz - 0.5 * half_span, 0.10, 0.08, slope_len - 0.1, -slope_angle, 0.0, 0.0, roof_mat, bevel=0.0)
-                    self.add_oriented_box(rx, mid_y + 0.08, cz + 0.5 * half_span, 0.10, 0.08, slope_len - 0.1, slope_angle, 0.0, 0.0, roof_mat, bevel=0.0)
+                    self.add_oriented_box(rx, mid_y + 0.09, cz - 0.5 * half_span - shift_h, 0.10, 0.08, rib_len, -slope_angle, 0.0, 0.0, roof_mat, bevel=0.0)
+                    self.add_oriented_box(rx, mid_y + 0.09, cz + 0.5 * half_span + shift_h, 0.10, 0.08, rib_len, slope_angle, 0.0, 0.0, roof_mat, bevel=0.0)
         else:
             half_span = 0.5 * (ax1 - ax0) + overhang
             slope_angle = math.atan2(ridge_h, max(0.2, 0.5 * (ax1 - ax0)))
-            slope_len = math.hypot(ridge_h, half_span)
+            cos_a, sin_a = math.cos(slope_angle), math.sin(slope_angle)
+            full_slope_len = math.hypot(ridge_h, half_span)
+            slab_len = max(0.3, full_slope_len - ridge_trim)
+            shift_h = 0.5 * ridge_trim * cos_a
+            shift_y = -0.5 * ridge_trim * sin_a
             length_z = (az1 - az0) + 2.0 * overhang
             # Triangular gable pediments on North & South ends
-            gable = [(ax0, y_eave), (cx, y_ridge - 0.08), (ax1, y_eave)]
+            gable = [(ax0 + 0.02, y_eave), (cx, y_ridge - 0.08), (ax1 - 0.02, y_eave)]
             self.add_prism_extrude_z(az0, az0 + 0.36, gable, gable_mat)
             self.add_prism_extrude_z(az1 - 0.36, az1, gable, gable_mat)
             # West & East terracotta roof slopes
-            mid_y = y_eave + 0.5 * ridge_h + 0.04
-            self.add_oriented_box(cx - 0.5 * half_span, mid_y, cz, slope_len, 0.16, length_z, 0.0, 0.0, slope_angle, roof_mat, bevel=0.0)
-            self.add_oriented_box(cx + 0.5 * half_span, mid_y, cz, slope_len, 0.16, length_z, 0.0, 0.0, -slope_angle, roof_mat, bevel=0.0)
-            self.add_cylinder(cx, y_ridge + 0.08, cz, 0.15, 0.15, length_z + 0.08, roof_mat, segments=7, axis="z")
+            mid_y = y_eave + 0.5 * ridge_h + 0.06 + shift_y
+            self.add_oriented_box(cx - 0.5 * half_span - shift_h, mid_y, cz, slab_len, 0.16, length_z, 0.0, 0.0, slope_angle, roof_mat, bevel=0.0)
+            self.add_oriented_box(cx + 0.5 * half_span + shift_h, mid_y, cz, slab_len, 0.16, length_z, 0.0, 0.0, -slope_angle, roof_mat, bevel=0.0)
+            self.add_cylinder(cx, y_ridge + 0.10, cz, 0.16, 0.16, length_z + 0.08, roof_mat, segments=7, axis="z")
             if add_ribs:
                 n_ribs = max(3, int((az1 - az0) // 2.0))
+                rib_len = max(0.2, slab_len - 0.16)
                 for k in range(1, n_ribs):
                     rz = az0 + (az1 - az0) * (k / n_ribs)
-                    self.add_oriented_box(cx - 0.5 * half_span, mid_y + 0.08, rz, slope_len - 0.1, 0.08, 0.10, 0.0, 0.0, slope_angle, roof_mat, bevel=0.0)
-                    self.add_oriented_box(cx + 0.5 * half_span, mid_y + 0.08, rz, slope_len - 0.1, 0.08, 0.10, 0.0, 0.0, -slope_angle, roof_mat, bevel=0.0)
+                    self.add_oriented_box(cx - 0.5 * half_span - shift_h, mid_y + 0.09, rz, rib_len, 0.08, 0.10, 0.0, 0.0, slope_angle, roof_mat, bevel=0.0)
+                    self.add_oriented_box(cx + 0.5 * half_span + shift_h, mid_y + 0.09, rz, rib_len, 0.08, 0.10, 0.0, 0.0, -slope_angle, roof_mat, bevel=0.0)
 
     def add_curved_arch(
         self,
@@ -501,96 +515,101 @@ class WorldMeshBuilder:
         segments: int = 10,
     ) -> None:
         """
-        Builds a genuine curved Venetian segmental stone arch + radial voussoirs + keystone!
+        Builds a genuine curved Venetian segmental stone arch + radial voussoirs + keystone
+        with ZERO coplanar internal/seam overlaps!
         `s0..s1` spans the opening width; `d0..d1` is wall thickness.
         """
         span = s1 - s0
         mid_s = 0.5 * (s0 + s1)
         half_w = 0.5 * span
         rise = max(0.35, y_crown - y_spring)
+        top_sp = y_top - 0.148
 
-        # Build spandrel segments from s0 to s1 so curved soffit is smooth and solid up to y_top
+        # 1. Single continuous connected spandrel mesh (ZERO internal seam faces!)
+        us: List[float] = []
+        arc_ys: List[float] = []
+        for i in range(segments + 1):
+            t = i / segments
+            ang = math.pi * (1.0 - t)
+            us.append(mid_s + math.cos(ang) * half_w)
+            arc_ys.append(y_spring + math.sin(ang) * rise)
+
+        if along_x:
+            b0 = [self.bm.verts.new(self._p(us[i], arc_ys[i], d0)) for i in range(segments + 1)]
+            t0 = [self.bm.verts.new(self._p(us[i], top_sp, d0)) for i in range(segments + 1)]
+            b1 = [self.bm.verts.new(self._p(us[i], arc_ys[i], d1)) for i in range(segments + 1)]
+            t1 = [self.bm.verts.new(self._p(us[i], top_sp, d1)) for i in range(segments + 1)]
+        else:
+            b0 = [self.bm.verts.new(self._p(d0, arc_ys[i], us[i])) for i in range(segments + 1)]
+            t0 = [self.bm.verts.new(self._p(d0, top_sp, us[i])) for i in range(segments + 1)]
+            b1 = [self.bm.verts.new(self._p(d1, arc_ys[i], us[i])) for i in range(segments + 1)]
+            t1 = [self.bm.verts.new(self._p(d1, top_sp, us[i])) for i in range(segments + 1)]
+
+        sp_faces: List[bmesh.types.BMFace] = []
         for i in range(segments):
-            t0 = i / segments
-            t1 = (i + 1) / segments
-            a0 = math.pi * (1.0 - t0)
-            a1 = math.pi * (1.0 - t1)
-            u0 = mid_s + math.cos(a0) * half_w
-            u1 = mid_s + math.cos(a1) * half_w
-            arc_y0 = y_spring + math.sin(a0) * rise
-            arc_y1 = y_spring + math.sin(a1) * rise
+            sp_faces.append(self.bm.faces.new([b0[i], b0[i + 1], t0[i + 1], t0[i]]))
+            sp_faces.append(self.bm.faces.new([b1[i + 1], b1[i], t1[i], t1[i + 1]]))
+            sp_faces.append(self.bm.faces.new([b0[i + 1], b0[i], b1[i], b1[i + 1]]))
+            sp_faces.append(self.bm.faces.new([t0[i], t0[i + 1], t1[i + 1], t1[i]]))
+        # End caps only at s0 and s1 (recessed flush with jambs, opposite normals to flanking walls)
+        sp_faces.append(self.bm.faces.new([b0[0], t0[0], t1[0], b1[0]]))
+        sp_faces.append(self.bm.faces.new([b0[-1], b1[-1], t1[-1], t0[-1]]))
+        self._assign_faces(sp_faces, self.palette.idx(wall_mat))
 
-            # Spandrel quad prism above the arch curve up to y_top - 0.14 (leaving room for cornice)
-            top_sp = y_top - 0.14
-            if along_x:
-                pts0 = [
-                    self.bm.verts.new(self._p(u0, arc_y0, d0)),
-                    self.bm.verts.new(self._p(u1, arc_y1, d0)),
-                    self.bm.verts.new(self._p(u1, top_sp, d0)),
-                    self.bm.verts.new(self._p(u0, top_sp, d0)),
-                ]
-                pts1 = [
-                    self.bm.verts.new(self._p(u0, arc_y0, d1)),
-                    self.bm.verts.new(self._p(u1, arc_y1, d1)),
-                    self.bm.verts.new(self._p(u1, top_sp, d1)),
-                    self.bm.verts.new(self._p(u0, top_sp, d1)),
-                ]
-            else:
-                pts0 = [
-                    self.bm.verts.new(self._p(d0, arc_y0, u0)),
-                    self.bm.verts.new(self._p(d0, arc_y1, u1)),
-                    self.bm.verts.new(self._p(d0, top_sp, u1)),
-                    self.bm.verts.new(self._p(d0, top_sp, u0)),
-                ]
-                pts1 = [
-                    self.bm.verts.new(self._p(d1, arc_y0, u0)),
-                    self.bm.verts.new(self._p(d1, arc_y1, u1)),
-                    self.bm.verts.new(self._p(d1, top_sp, u1)),
-                    self.bm.verts.new(self._p(d1, top_sp, u0)),
-                ]
-            f_list = [
-                self.bm.faces.new(pts0),
-                self.bm.faces.new(list(reversed(pts1))),
-            ]
-            for k in range(4):
-                kn = (k + 1) % 4
-                f_list.append(self.bm.faces.new([pts0[k], pts0[kn], pts1[kn], pts1[k]]))
-            self._assign_faces(f_list, self.palette.idx(wall_mat))
+        # 2. True radial wedge limestone voussoirs offset strictly along exact chord normal (ZERO coplanar overlaps!)
+        for i in range(segments):
+            su0, sy0 = us[i], arc_ys[i]
+            su1, sy1 = us[i + 1], arc_ys[i + 1]
+            tu, ty = su1 - su0, sy1 - sy0
+            chord_len = max(1e-5, math.hypot(tu, ty))
+            # Inward (opening-facing) unit normal perpendicular to chord (tu > 0 => ny < 0)
+            nu, ny = ty / chord_len, -tu / chord_len
+            f0 = 0.16 if i == 0 else 0.05
+            f1 = 0.84 if i == segments - 1 else 0.95
+            u_sp0, y_sp0 = su0 + tu * f0, sy0 + ty * f0
+            u_sp1, y_sp1 = su0 + tu * f1, sy0 + ty * f1
 
-            # Proud limestone radial voussoir block (+0.03m proud on both faces)
             is_keystone = i in (segments // 2 - 1, segments // 2)
             v_thick = 0.28 if is_keystone else 0.20
-            proud = 0.045 if is_keystone else 0.028
-            vy0_in, vy1_in = arc_y0 - 0.01, arc_y1 - 0.01
-            vy0_out, vy1_out = arc_y0 + v_thick, arc_y1 + v_thick
+            proud = 0.048 if is_keystone else 0.028
+            soffit_proud = 0.032
+
+            u0_in = u_sp0 + nu * soffit_proud
+            vy0_in = y_sp0 + ny * soffit_proud
+            u1_in = u_sp1 + nu * soffit_proud
+            vy1_in = y_sp1 + ny * soffit_proud
+            u0_out = max(s0 + 0.015, min(s1 - 0.015, u_sp0 - nu * v_thick))
+            u1_out = max(s0 + 0.015, min(s1 - 0.015, u_sp1 - nu * v_thick))
+            vy0_out = min(top_sp - 0.02, y_sp0 - ny * v_thick)
+            vy1_out = min(top_sp - 0.02, y_sp1 - ny * v_thick)
             vd0, vd1 = d0 - proud, d1 + proud
             v_mat = "Mat_Terracotta" if is_keystone and trim_mat == "Mat_Terracotta" else "Mat_Limestone"
 
             if along_x:
                 vp0 = [
-                    self.bm.verts.new(self._p(u0, vy0_in, vd0)),
-                    self.bm.verts.new(self._p(u1, vy1_in, vd0)),
-                    self.bm.verts.new(self._p(u1, vy1_out, vd0)),
-                    self.bm.verts.new(self._p(u0, vy0_out, vd0)),
+                    self.bm.verts.new(self._p(u0_in, vy0_in, vd0)),
+                    self.bm.verts.new(self._p(u1_in, vy1_in, vd0)),
+                    self.bm.verts.new(self._p(u1_out, vy1_out, vd0)),
+                    self.bm.verts.new(self._p(u0_out, vy0_out, vd0)),
                 ]
                 vp1 = [
-                    self.bm.verts.new(self._p(u0, vy0_in, vd1)),
-                    self.bm.verts.new(self._p(u1, vy1_in, vd1)),
-                    self.bm.verts.new(self._p(u1, vy1_out, vd1)),
-                    self.bm.verts.new(self._p(u0, vy0_out, vd1)),
+                    self.bm.verts.new(self._p(u0_in, vy0_in, vd1)),
+                    self.bm.verts.new(self._p(u1_in, vy1_in, vd1)),
+                    self.bm.verts.new(self._p(u1_out, vy1_out, vd1)),
+                    self.bm.verts.new(self._p(u0_out, vy0_out, vd1)),
                 ]
             else:
                 vp0 = [
-                    self.bm.verts.new(self._p(vd0, vy0_in, u0)),
-                    self.bm.verts.new(self._p(vd0, vy1_in, u1)),
-                    self.bm.verts.new(self._p(vd0, vy1_out, u1)),
-                    self.bm.verts.new(self._p(vd0, vy0_out, u0)),
+                    self.bm.verts.new(self._p(vd0, vy0_in, u0_in)),
+                    self.bm.verts.new(self._p(vd0, vy1_in, u1_in)),
+                    self.bm.verts.new(self._p(vd0, vy1_out, u1_out)),
+                    self.bm.verts.new(self._p(vd0, vy0_out, u0_out)),
                 ]
                 vp1 = [
-                    self.bm.verts.new(self._p(vd1, vy0_in, u0)),
-                    self.bm.verts.new(self._p(vd1, vy1_in, u1)),
-                    self.bm.verts.new(self._p(vd1, vy1_out, u1)),
-                    self.bm.verts.new(self._p(vd1, vy0_out, u0)),
+                    self.bm.verts.new(self._p(vd1, vy0_in, u0_in)),
+                    self.bm.verts.new(self._p(vd1, vy1_in, u1_in)),
+                    self.bm.verts.new(self._p(vd1, vy1_out, u1_out)),
+                    self.bm.verts.new(self._p(vd1, vy0_out, u0_out)),
                 ]
             vf = [self.bm.faces.new(vp0), self.bm.faces.new(list(reversed(vp1)))]
             for k in range(4):
@@ -598,16 +617,15 @@ class WorldMeshBuilder:
                 vf.append(self.bm.faces.new([vp0[k], vp0[kn], vp1[kn], vp1[k]]))
             self._assign_faces(vf, self.palette.idx(v_mat))
 
-        # Top cornice cap across the arch header
+        # 3. Proud arch header cornice cap (cleanly bounded to [s0, s1] with ZERO flanking overlap!) & impost capitals
         if along_x:
-            self.add_box(s0 - 0.02, y_top - 0.14, d0 - 0.035, s1 + 0.02, y_top, d1 + 0.035, trim_mat, bevel=0.015)
-            # Impost capitals at spring line
-            self.add_box(s0 - 0.18, y_spring - 0.14, d0 - 0.04, s0 + 0.04, y_spring, d1 + 0.04, "Mat_Limestone", bevel=0.012)
-            self.add_box(s1 - 0.04, y_spring - 0.14, d0 - 0.04, s1 + 0.18, y_spring, d1 + 0.04, "Mat_Limestone", bevel=0.012)
+            self.add_box(s0, top_sp, d0 - 0.044, s1, y_top + 0.012, d1 + 0.044, trim_mat, bevel=0.012)
+            self.add_box(s0 - 0.16, y_spring - 0.14, d0 - 0.044, s0 + 0.04, y_spring - 0.004, d1 + 0.044, "Mat_Limestone", bevel=0.012)
+            self.add_box(s1 - 0.04, y_spring - 0.14, d0 - 0.044, s1 + 0.16, y_spring - 0.004, d1 + 0.044, "Mat_Limestone", bevel=0.012)
         else:
-            self.add_box(d0 - 0.035, y_top - 0.14, s0 - 0.02, d1 + 0.035, y_top, s1 + 0.02, trim_mat, bevel=0.015)
-            self.add_box(d0 - 0.04, y_spring - 0.14, s0 - 0.18, d1 + 0.04, y_spring, s0 + 0.04, "Mat_Limestone", bevel=0.012)
-            self.add_box(d0 - 0.04, y_spring - 0.14, s1 - 0.04, d1 + 0.04, y_spring, s1 + 0.18, "Mat_Limestone", bevel=0.012)
+            self.add_box(d0 - 0.044, top_sp, s0, d1 + 0.044, y_top + 0.012, s1, trim_mat, bevel=0.012)
+            self.add_box(d0 - 0.044, y_spring - 0.14, s0 - 0.16, d1 + 0.044, y_spring - 0.004, s0 + 0.04, "Mat_Limestone", bevel=0.012)
+            self.add_box(d0 - 0.044, y_spring - 0.14, s1 - 0.04, d1 + 0.044, y_spring - 0.004, s1 + 0.16, "Mat_Limestone", bevel=0.012)
 
     def finalize_object(self, used_materials_only: bool = True) -> bpy.types.Object:
         bmesh.ops.recalc_face_normals(self.bm, faces=self.bm.faces)
@@ -665,6 +683,8 @@ class AscentArchitect:
         self.wall_rects: List[Dict] = []
         self.doors: List[Dict] = []
         self.buy_barrier_spans: List[Dict] = []
+        self.arch_blocks: List[Dict] = []
+        self.trim_obstacles: List[Tuple[float, float, float, float, float, float]] = []
 
         # Batched static mesh layers (keeps draw calls low while cleanly organized)
         self.floors_mb = WorldMeshBuilder("Ascent_Floors", palette)
@@ -681,6 +701,9 @@ class AscentArchitect:
         if cx > 13.0:
             return self.east_mb
         return self.mid_mb
+
+    def add_trim_obstacle(self, x0: float, y0: float, z0: float, x1: float, y1: float, z1: float) -> None:
+        self.trim_obstacles.append((min(x0, x1), min(y0, y1), min(z0, z1), max(x0, x1), max(y0, y1), max(z0, z1)))
 
     def add_collider(self, x0: float, y0: float, z0: float, x1: float, y1: float, z1: float, tag: str) -> None:
         ax0, ax1 = min(x0, x1), max(x0, x1)
@@ -724,7 +747,7 @@ class AscentArchitect:
         trim_mat: str = "Mat_Terracotta",
         minimap: bool = True,
     ) -> None:
-        """Thin architectural Venetian wall with proud Istrian limestone plinth & cornice."""
+        """Thin architectural Venetian wall with proud Istrian limestone plinth & cornice (zero-overlap 2-pass trim)."""
         ax0, ax1 = min(x0, x1), max(x0, x1)
         az0, az1 = min(z0, z1), max(z0, z1)
         self.add_collider(ax0, y0, az0, ax1, y1, az1, "wall")
@@ -743,29 +766,20 @@ class AscentArchitect:
 
         plinth_h = 0.32 if (y1 - y0) > 1.2 and y0 < 0.05 else 0.0
         cornice_h = 0.14 if (y1 - y0) > 1.0 else 0.0
-        proud = 0.022
-
-        body_y0 = y0 + plinth_h
-        body_y1 = y1 - cornice_h
-        if plinth_h > 0:
-            mb.add_box(ax0 - proud, y0, az0 - proud, ax1 + proud, body_y0, az1 + proud, "Mat_Limestone", bevel=0.015)
-        mb.add_box(ax0, body_y0, az0, ax1, body_y1, az1, wall_mat, bevel=0.02)
-        if cornice_h > 0:
-            mb.add_box(ax0 - proud * 1.3, body_y1, az0 - proud * 1.3, ax1 + proud * 1.3, y1, az1 + proud * 1.3, trim_mat, bevel=0.015)
-
-        # Subtle limestone pilasters every ~8m on long thin walls (non-coplanar, proud by 0.028m)
-        span_x = ax1 - ax0
-        span_z = az1 - az0
-        if span_x >= 9.0 and span_z <= 0.85 and body_y1 - body_y0 > 2.0:
-            steps = max(2, int(span_x // 7.5))
-            for k in range(1, steps):
-                px = ax0 + (span_x * k) / steps
-                mb.add_box(px - 0.16, body_y0 + 0.02, az0 - 0.028, px + 0.16, body_y1 - 0.02, az1 + 0.028, "Mat_Limestone", bevel=0.012)
-        elif span_z >= 9.0 and span_x <= 0.85 and body_y1 - body_y0 > 2.0:
-            steps = max(2, int(span_z // 7.5))
-            for k in range(1, steps):
-                pz = az0 + (span_z * k) / steps
-                mb.add_box(ax0 - 0.028, body_y0 + 0.02, pz - 0.16, ax1 + 0.028, body_y1 - 0.02, pz + 0.16, "Mat_Limestone", bevel=0.012)
+        self.arch_blocks.append({
+            "kind": "wall",
+            "x0": ax0, "x1": ax1, "z0": az0, "z1": az1, "y0": y0, "y1": y1,
+            "plinth_h": plinth_h,
+            "cornice_h": cornice_h,
+            "plinth_proud": 0.024,
+            "cornice_proud": 0.032,
+            "body_y0": y0 + plinth_h,
+            "body_y1": y1 - cornice_h,
+            "wall_mat": wall_mat,
+            "trim_mat": trim_mat,
+            "mb": mb,
+            "bevel": 0.02,
+        })
 
     def add_solid_building_mass(
         self,
@@ -777,15 +791,161 @@ class AscentArchitect:
         wall_mat: str = "Mat_PlasterWarm",
         roof_mat: str = "Mat_Terracotta",
     ) -> None:
-        """Solid perimeter/filler Venetian building block with cornice & recessed roof terrace."""
+        """Solid perimeter/filler Venetian building block with proud cornice & plinth (zero-overlap 2-pass trim)."""
         ax0, ax1 = min(x0, x1), max(x0, x1)
         az0, az1 = min(z0, z1), max(z0, z1)
         self.add_collider(ax0, 0.0, az0, ax1, y1, az1, "wall")
         self.add_minimap_wall(ax0, az0, ax1, az1, "wall")
         mb = self._pick_mb(ax0, ax1)
-        mb.add_box(ax0 - 0.018, 0.0, az0 - 0.018, ax1 + 0.018, 0.34, az1 + 0.018, "Mat_Limestone", bevel=0.015)
-        mb.add_box(ax0, 0.34, az0, ax1, y1 - 0.18, az1, wall_mat, bevel=0.025)
-        mb.add_box(ax0 - 0.03, y1 - 0.18, az0 - 0.03, ax1 + 0.03, y1, az1 + 0.03, roof_mat, bevel=0.018)
+        self.arch_blocks.append({
+            "kind": "mass",
+            "x0": ax0, "x1": ax1, "z0": az0, "z1": az1, "y0": 0.0, "y1": y1,
+            "plinth_h": 0.34,
+            "cornice_h": 0.18,
+            "plinth_proud": 0.024,
+            "cornice_proud": 0.034,
+            "body_y0": 0.34,
+            "body_y1": y1 - 0.18,
+            "wall_mat": wall_mat,
+            "trim_mat": roof_mat,
+            "mb": mb,
+            "bevel": 0.022,
+        })
+
+    def _emit_arch_blocks(self) -> None:
+        """Emits all Venetian walls & solid building masses with exact non-overlapping T-junction & corner trim."""
+        eps = 1e-3
+
+        def resolve_trim_bounds(b: Dict, band_y0: float, band_y1: float, proud: float) -> Tuple[float, float, float, float]:
+            bx0 = b["x0"] - proud
+            bx1 = b["x1"] + proud
+            bz0 = b["z0"] - proud
+            bz1 = b["z1"] + proud
+            span_x = b["x1"] - b["x0"]
+            span_z = b["z1"] - b["z0"]
+
+            for o in self.arch_blocks:
+                if o is b:
+                    continue
+                if o["y1"] <= band_y0 + eps or o["y0"] >= band_y1 - eps:
+                    continue
+                # Determine how far neighbor `o` protrudes within this vertical band
+                if o["plinth_h"] > 0 and o["y0"] < band_y1 - eps and o["body_y0"] > band_y0 + eps:
+                    o_proud = o["plinth_proud"]
+                elif o["cornice_h"] > 0 and o["body_y1"] < band_y1 - eps and o["y1"] > band_y0 + eps:
+                    o_proud = o["cornice_proud"]
+                else:
+                    o_proud = 0.0
+
+                o_span_x = o["x1"] - o["x0"]
+                o_span_z = o["z1"] - o["z0"]
+
+                # West face of b touching East face of o
+                if abs(o["x1"] - b["x0"]) <= 0.06 and o["z1"] > b["z0"] - 0.05 and o["z0"] < b["z1"] + 0.05:
+                    if o_proud == 0.0:
+                        bx0 = max(bx0, b["x0"])
+                    elif o["z0"] <= b["z0"] + eps and o["z1"] >= b["z1"] - eps and o_span_z > span_z + eps:
+                        bx0 = max(bx0, o["x1"] + o_proud)
+                    elif b["z0"] <= o["z0"] + eps and b["z1"] >= o["z1"] - eps and span_z > o_span_z + eps:
+                        pass
+                    else:
+                        bx0 = max(bx0, b["x0"])
+                # East face of b touching West face of o
+                if abs(o["x0"] - b["x1"]) <= 0.06 and o["z1"] > b["z0"] - 0.05 and o["z0"] < b["z1"] + 0.05:
+                    if o_proud == 0.0:
+                        bx1 = min(bx1, b["x1"])
+                    elif o["z0"] <= b["z0"] + eps and o["z1"] >= b["z1"] - eps and o_span_z > span_z + eps:
+                        bx1 = min(bx1, o["x0"] - o_proud)
+                    elif b["z0"] <= o["z0"] + eps and b["z1"] >= o["z1"] - eps and span_z > o_span_z + eps:
+                        pass
+                    else:
+                        bx1 = min(bx1, b["x1"])
+                # North face of b touching South face of o
+                if abs(o["z1"] - b["z0"]) <= 0.06 and o["x1"] > b["x0"] - 0.05 and o["x0"] < b["x1"] + 0.05:
+                    if o_proud == 0.0:
+                        bz0 = max(bz0, b["z0"])
+                    elif o["x0"] <= b["x0"] + eps and o["x1"] >= b["x1"] - eps and o_span_x > span_x + eps:
+                        bz0 = max(bz0, o["z1"] + o_proud)
+                    elif b["x0"] <= o["x0"] + eps and b["x1"] >= o["x1"] - eps and span_x > o_span_x + eps:
+                        pass
+                    else:
+                        bz0 = max(bz0, b["z0"])
+                # South face of b touching North face of o
+                if abs(o["z0"] - b["z1"]) <= 0.06 and o["x1"] > b["x0"] - 0.05 and o["x0"] < b["x1"] + 0.05:
+                    if o_proud == 0.0:
+                        bz1 = min(bz1, b["z1"])
+                    elif o["x0"] <= b["x0"] + eps and o["x1"] >= b["x1"] - eps and o_span_x > span_x + eps:
+                        bz1 = min(bz1, o["z0"] - o_proud)
+                    elif b["x0"] <= o["x0"] + eps and b["x1"] >= o["x1"] - eps and span_x > o_span_x + eps:
+                        pass
+                    else:
+                        bz1 = min(bz1, b["z1"])
+
+            # Clamp against archways, window walls, blast door housings & stairs so trims never overlap them
+            for ox0, oy0, oz0, ox1, oy1, oz1 in self.trim_obstacles:
+                if oy1 <= band_y0 + eps or oy0 >= band_y1 - eps:
+                    continue
+                if abs(ox1 - b["x0"]) <= 0.06 and oz1 > b["z0"] - 0.05 and oz0 < b["z1"] + 0.05:
+                    bx0 = max(bx0, ox1)
+                if abs(ox0 - b["x1"]) <= 0.06 and oz1 > b["z0"] - 0.05 and oz0 < b["z1"] + 0.05:
+                    bx1 = min(bx1, ox0)
+                if abs(oz1 - b["z0"]) <= 0.06 and ox1 > b["x0"] - 0.05 and ox0 < b["x1"] + 0.05:
+                    bz0 = max(bz0, oz1)
+                if abs(oz0 - b["z1"]) <= 0.06 and ox1 > b["x0"] - 0.05 and ox0 < b["x1"] + 0.05:
+                    bz1 = min(bz1, oz0)
+
+            return bx0, bx1, bz0, bz1
+
+        def box_hits_other_block(px0: float, py0: float, pz0: float, px1: float, py1: float, pz1: float, skip_b: Dict) -> bool:
+            pad = 0.08
+            for o in self.arch_blocks:
+                if o is skip_b:
+                    continue
+                if (px1 > o["x0"] - pad and px0 < o["x1"] + pad and
+                    py1 > o["y0"] - pad and py0 < o["y1"] + pad and
+                    pz1 > o["z0"] - pad and pz0 < o["z1"] + pad):
+                    return True
+            for ox0, oy0, oz0, ox1, oy1, oz1 in self.trim_obstacles:
+                if (px1 > ox0 - pad and px0 < ox1 + pad and
+                    py1 > oy0 - pad and py0 < oy1 + pad and
+                    pz1 > oz0 - pad and pz0 < oz1 + pad):
+                    return True
+            return False
+
+        for b in self.arch_blocks:
+            mb = b["mb"]
+            ax0, ax1, az0, az1 = b["x0"], b["x1"], b["z0"], b["z1"]
+            y0, y1 = b["y0"], b["y1"]
+            body_y0, body_y1 = b["body_y0"], b["body_y1"]
+
+            if b["plinth_h"] > 0:
+                px0, px1, pz0, pz1 = resolve_trim_bounds(b, y0, body_y0, b["plinth_proud"])
+                if px1 > px0 + 0.02 and pz1 > pz0 + 0.02:
+                    mb.add_box(px0, y0, pz0, px1, body_y0, pz1, "Mat_Limestone", bevel=0.015)
+
+            mb.add_box(ax0, body_y0, az0, ax1, body_y1, az1, b["wall_mat"], bevel=b["bevel"])
+
+            if b["cornice_h"] > 0:
+                cx0, cx1, cz0, cz1 = resolve_trim_bounds(b, body_y1, y1, b["cornice_proud"])
+                if cx1 > cx0 + 0.02 and cz1 > cz0 + 0.02:
+                    mb.add_box(cx0, body_y1, cz0, cx1, y1, cz1, b["trim_mat"], bevel=0.015)
+
+            # Subtle limestone pilasters every ~8m on long thin walls (non-coplanar, proud by 0.028m, skipping T-junctions)
+            if b["kind"] == "wall":
+                span_x = ax1 - ax0
+                span_z = az1 - az0
+                if span_x >= 9.0 and span_z <= 0.85 and body_y1 - body_y0 > 2.0:
+                    steps = max(2, int(span_x // 7.5))
+                    for k in range(1, steps):
+                        px = ax0 + (span_x * k) / steps
+                        if not box_hits_other_block(px - 0.16, body_y0 + 0.02, az0 - 0.028, px + 0.16, body_y1 - 0.02, az1 + 0.028, b):
+                            mb.add_box(px - 0.16, body_y0 + 0.02, az0 - 0.028, px + 0.16, body_y1 - 0.02, az1 + 0.028, "Mat_Limestone", bevel=0.012)
+                elif span_z >= 9.0 and span_x <= 0.85 and body_y1 - body_y0 > 2.0:
+                    steps = max(2, int(span_z // 7.5))
+                    for k in range(1, steps):
+                        pz = az0 + (span_z * k) / steps
+                        if not box_hits_other_block(ax0 - 0.028, body_y0 + 0.02, pz - 0.16, ax1 + 0.028, body_y1 - 0.02, pz + 0.16, b):
+                            mb.add_box(ax0 - 0.028, body_y0 + 0.02, pz - 0.16, ax1 + 0.028, body_y1 - 0.02, pz + 0.16, "Mat_Limestone", bevel=0.012)
 
     def add_archway_opening(
         self,
@@ -800,20 +960,24 @@ class AscentArchitect:
         trim_mat: str = "Mat_Terracotta",
     ) -> None:
         """Curved stone archway whose physics collider sits cleanly at [y_clear, y_top]."""
+        as0, as1 = min(s0, s1), max(s0, s1)
+        ad0, ad1 = min(d0, d1), max(d0, d1)
         if along_x:
-            self.add_collider(s0, y_clear, d0, s1, y_top, d1, "wall")
-            mb = self._pick_mb(s0, s1)
+            self.add_collider(as0, y_clear, ad0, as1, y_top, ad1, "wall")
+            self.add_trim_obstacle(as0, 0.0, ad0, as1, y_top, ad1)
+            mb = self._pick_mb(as0, as1)
         else:
-            self.add_collider(d0, y_clear, s0, d1, y_top, s1, "wall")
-            mb = self._pick_mb(d0, d1)
+            self.add_collider(ad0, y_clear, as0, ad1, y_top, as1, "wall")
+            self.add_trim_obstacle(ad0, 0.0, as0, ad1, y_top, as1)
+            mb = self._pick_mb(ad0, ad1)
 
         y_spring = y_clear - 0.52  # Outer spring sits gracefully near jambs while center crown = y_clear + 0.15
         mb.add_curved_arch(
             along_x=along_x,
-            s0=min(s0, s1),
-            s1=max(s0, s1),
-            d0=min(d0, d1),
-            d1=max(d0, d1),
+            s0=as0,
+            s1=as1,
+            d0=ad0,
+            d1=ad1,
             y_spring=y_spring,
             y_crown=y_clear + 0.05,
             y_top=y_top,
@@ -846,27 +1010,29 @@ class AscentArchitect:
             self.add_collider(a0, 0.0, b0, a1, y_sill, b1, "wall")
             self.add_collider(a0, y_lintel, b0, a1, y_top, b1, "wall")
             self.add_minimap_wall(a0, b0, a1, b1, "window")
+            self.add_trim_obstacle(a0, 0.0, b0, a1, y_top, b1)
             mb = self._pick_mb(a0, a1)
-            # Sill masonry + proud limestone counter ledge
+            # Sill masonry + proud limestone counter ledge (>=0.022m proud, inset 6mm from jambs)
             mb.add_box(a0, 0.0, b0, a1, y_sill - 0.08, b1, wall_mat, bevel=0.015)
-            mb.add_box(a0 - 0.02, y_sill - 0.08, b0 - 0.05, a1 + 0.02, y_sill, b1 + 0.05, "Mat_Limestone", bevel=0.012)
-            # Lintel masonry + timber header beam
-            mb.add_box(a0 - 0.02, y_lintel, b0 - 0.04, a1 + 0.02, y_lintel + 0.14, b1 + 0.04, "Mat_DarkOak", bevel=0.012)
-            mb.add_box(a0, y_lintel + 0.14, b0, a1, y_top - 0.14, b1, wall_mat, bevel=0.018)
-            mb.add_box(a0 - 0.03, y_top - 0.14, b0 - 0.03, a1 + 0.03, y_top, b1 + 0.03, "Mat_Terracotta", bevel=0.015)
-            # Open-flung Venetian wooden window shutters on exterior face
-            mb.add_box(a0 - 0.58, y_sill + 0.04, b0 - 0.07, a0 - 0.04, y_lintel - 0.04, b0 - 0.02, "Mat_TimberOak", bevel=0.01)
-            mb.add_box(a1 + 0.04, y_sill + 0.04, b0 - 0.07, a1 + 0.58, y_lintel - 0.04, b0 - 0.02, "Mat_TimberOak", bevel=0.01)
+            mb.add_box(a0 + 0.006, y_sill - 0.08, b0 - 0.05, a1 - 0.006, y_sill, b1 + 0.05, "Mat_Limestone", bevel=0.012)
+            # Lintel masonry + timber header beam + proud window header cornice (distinct Y/depth from wall cornice!)
+            mb.add_box(a0 + 0.006, y_lintel, b0 - 0.044, a1 - 0.006, y_lintel + 0.14, b1 + 0.044, "Mat_DarkOak", bevel=0.012)
+            mb.add_box(a0, y_lintel + 0.14, b0, a1, y_top - 0.148, b1, wall_mat, bevel=0.018)
+            mb.add_box(a0, y_top - 0.148, b0 - 0.044, a1, y_top + 0.012, b1 + 0.044, "Mat_Terracotta", bevel=0.012)
+            # Open-flung Venetian wooden window shutters pushed >=0.026m proud of exterior face
+            mb.add_box(a0 - 0.58, y_sill + 0.04, b0 - 0.076, a0 - 0.04, y_lintel - 0.04, b0 - 0.026, "Mat_TimberOak", bevel=0.01)
+            mb.add_box(a1 + 0.04, y_sill + 0.04, b0 - 0.076, a1 + 0.58, y_lintel - 0.04, b0 - 0.026, "Mat_TimberOak", bevel=0.01)
         else:
             self.add_collider(b0, 0.0, a0, b1, y_sill, a1, "wall")
             self.add_collider(b0, y_lintel, a0, b1, y_top, a1, "wall")
             self.add_minimap_wall(b0, a0, b1, a1, "window")
+            self.add_trim_obstacle(b0, 0.0, a0, b1, y_top, a1)
             mb = self._pick_mb(b0, b1)
             mb.add_box(b0, 0.0, a0, b1, y_sill - 0.08, a1, wall_mat, bevel=0.015)
-            mb.add_box(b0 - 0.05, y_sill - 0.08, a0 - 0.02, b1 + 0.05, y_sill, a1 + 0.02, "Mat_Limestone", bevel=0.012)
-            mb.add_box(b0 - 0.04, y_lintel, a0 - 0.02, b1 + 0.04, y_lintel + 0.14, a1 + 0.02, "Mat_DarkOak", bevel=0.012)
-            mb.add_box(b0, y_lintel + 0.14, a0, b1, y_top - 0.14, a1, wall_mat, bevel=0.018)
-            mb.add_box(b0 - 0.03, y_top - 0.14, a0 - 0.03, b1 + 0.03, y_top, a1 + 0.03, "Mat_Terracotta", bevel=0.015)
+            mb.add_box(b0 - 0.05, y_sill - 0.08, a0 + 0.006, b1 + 0.05, y_sill, a1 - 0.006, "Mat_Limestone", bevel=0.012)
+            mb.add_box(b0 - 0.044, y_lintel, a0 + 0.006, b1 + 0.044, y_lintel + 0.14, a1 - 0.006, "Mat_DarkOak", bevel=0.012)
+            mb.add_box(b0, y_lintel + 0.14, a0, b1, y_top - 0.148, a1, wall_mat, bevel=0.018)
+            mb.add_box(b0 - 0.044, y_top - 0.148, a0, b1 + 0.044, y_top + 0.012, a1, "Mat_Terracotta", bevel=0.012)
 
     def add_radianite_crate(
         self,
@@ -879,7 +1045,7 @@ class AscentArchitect:
         variant: str = "teal",
         minimap: bool = True,
     ) -> None:
-        """Sculpted Valorant Radianite crate with beveled steel frame, recessed panels & glowing core."""
+        """Sculpted Valorant Radianite crate with beveled steel frame, recessed panels & non-overlapping glowing core strips."""
         ax0, ax1 = min(x0, x1), max(x0, x1)
         az0, az1 = min(z0, z1), max(z0, z1)
         self.add_collider(ax0, y0, az0, ax1, y1, az1, "cover")
@@ -899,10 +1065,12 @@ class AscentArchitect:
         for cx0, cx1 in [(ax0, ax0 + pw), (ax1 - pw, ax1)]:
             for cz0, cz1 in [(az0, az0 + pw), (az1 - pw, az1)]:
                 mb.add_box(cx0, y0 + 0.12, cz0, cx1, y1 - 0.12, cz1, "Mat_DarkIron", bevel=0.01)
-        # Glowing Radianite seam strips on all 4 vertical faces (proud of recessed body, flush inside frame)
+        # 4 separate non-overlapping glowing Radianite seam strips proud of recessed core (zero internal crossing!)
         my = 0.5 * (y0 + y1)
-        mb.add_box(ax0 + pw + 0.06, my - 0.05, az0 + 0.02, ax1 - pw - 0.06, my + 0.05, az1 - 0.02, "Mat_RadianiteGlow", bevel=0.0)
-        mb.add_box(ax0 + 0.02, my - 0.05, az0 + pw + 0.06, ax1 - 0.02, my + 0.05, az1 - pw - 0.06, "Mat_RadianiteGlow", bevel=0.0)
+        mb.add_box(ax0 + pw + 0.06, my - 0.05, az0 + 0.02, ax1 - pw - 0.06, my + 0.05, az0 + 0.044, "Mat_RadianiteGlow", bevel=0.0)
+        mb.add_box(ax0 + pw + 0.06, my - 0.05, az1 - 0.044, ax1 - pw - 0.06, my + 0.05, az1 - 0.02, "Mat_RadianiteGlow", bevel=0.0)
+        mb.add_box(ax0 + 0.02, my - 0.05, az0 + pw + 0.06, ax0 + 0.044, my + 0.05, az1 - pw - 0.06, "Mat_RadianiteGlow", bevel=0.0)
+        mb.add_box(ax1 - 0.044, my - 0.05, az0 + pw + 0.06, ax1 - 0.02, my + 0.05, az1 - pw - 0.06, "Mat_RadianiteGlow", bevel=0.0)
 
     def add_low_stone_cover(
         self,
@@ -1041,14 +1209,14 @@ class AscentArchitect:
         az0, az1 = min(z0, z1), max(z0, z1)
         y_eave = y_base + story_h
         mb = self.skyline_mb
-        # Upper plaster facade + limestone string course + terracotta eave band (bevel=0.0 for lean GLB!)
+        # Upper plaster facade strictly capped below limestone eave cornice (y_eave - 0.16) so ZERO top-face Z-fighting!
         mb.add_box(ax0 - 0.05, y_base, az0 - 0.05, ax1 + 0.05, y_base + 0.16, az1 + 0.05, "Mat_Limestone", bevel=0.0)
-        mb.add_box(ax0, y_base + 0.16, az0, ax1, y_eave, az1, wall_mat, bevel=0.0)
+        mb.add_box(ax0, y_base + 0.16, az0, ax1, y_eave - 0.16, az1, wall_mat, bevel=0.0)
         mb.add_box(ax0 - 0.08, y_eave - 0.16, az0 - 0.08, ax1 + 0.08, y_eave, az1 + 0.08, "Mat_Limestone", bevel=0.0)
         # Pitched terracotta gable roof
         mb.add_pitched_roof(ax0, az0, ax1, az1, y_eave, ridge_h, ridge_along_x=ridge_along_x, roof_mat="Mat_Terracotta", gable_mat=wall_mat, overhang=0.35, add_ribs=False)
 
-        # Venetian shuttered window accents along the long inward-facing facades
+        # Venetian shuttered window accents along the long inward-facing facades (proud >= 0.024m, never flush!)
         span_x = ax1 - ax0
         span_z = az1 - az0
         wy0 = y_base + 0.72
@@ -1058,21 +1226,28 @@ class AscentArchitect:
                 n_win = max(1, min(4, int(span_x // 4.2)))
                 for k in range(n_win):
                     wx = ax0 + (span_x * (k + 0.5)) / n_win
-                    # Window panes + limestone sill on both North & South faces
-                    for wz in (az0 - 0.04, az1 + 0.04):
-                        mb.add_box(wx - 0.48, wy0, wz - 0.04, wx + 0.48, wy1, wz + 0.04, "Mat_DarkIron", bevel=0.0)
-                        mb.add_box(wx - 0.62, wy0 - 0.12, wz - 0.08, wx + 0.62, wy0, wz + 0.08, "Mat_Limestone", bevel=0.0)
-                        mb.add_box(wx - 0.84, wy0, wz - 0.05, wx - 0.50, wy1, wz + 0.05, "Mat_TimberOak", bevel=0.0)
-                        mb.add_box(wx + 0.50, wy0, wz - 0.05, wx + 0.84, wy1, wz + 0.05, "Mat_TimberOak", bevel=0.0)
+                    # North face (az0) & South face (az1)
+                    mb.add_box(wx - 0.48, wy0, az0 - 0.06, wx + 0.48, wy1, az0, "Mat_DarkIron", bevel=0.0)
+                    mb.add_box(wx - 0.62, wy0 - 0.12, az0 - 0.11, wx + 0.62, wy0, az0, "Mat_Limestone", bevel=0.0)
+                    mb.add_box(wx - 0.84, wy0, az0 - 0.086, wx - 0.50, wy1, az0 - 0.024, "Mat_TimberOak", bevel=0.0)
+                    mb.add_box(wx + 0.50, wy0, az0 - 0.086, wx + 0.84, wy1, az0 - 0.024, "Mat_TimberOak", bevel=0.0)
+                    mb.add_box(wx - 0.48, wy0, az1, wx + 0.48, wy1, az1 + 0.06, "Mat_DarkIron", bevel=0.0)
+                    mb.add_box(wx - 0.62, wy0 - 0.12, az1, wx + 0.62, wy0, az1 + 0.11, "Mat_Limestone", bevel=0.0)
+                    mb.add_box(wx - 0.84, wy0, az1 + 0.024, wx - 0.50, wy1, az1 + 0.086, "Mat_TimberOak", bevel=0.0)
+                    mb.add_box(wx + 0.50, wy0, az1 + 0.024, wx + 0.84, wy1, az1 + 0.086, "Mat_TimberOak", bevel=0.0)
             elif span_z > span_x and span_z >= 4.5:
                 n_win = max(1, min(4, int(span_z // 4.2)))
                 for k in range(n_win):
                     wz = az0 + (span_z * (k + 0.5)) / n_win
-                    for wx in (ax0 - 0.04, ax1 + 0.04):
-                        mb.add_box(wx - 0.04, wy0, wz - 0.48, wx + 0.04, wy1, wz + 0.48, "Mat_DarkIron", bevel=0.0)
-                        mb.add_box(wx - 0.08, wy0 - 0.12, wz - 0.62, wx + 0.08, wy0, wz + 0.62, "Mat_Limestone", bevel=0.0)
-                        mb.add_box(wx - 0.05, wy0, wz - 0.84, wx + 0.05, wy1, wz - 0.50, "Mat_TimberOak", bevel=0.0)
-                        mb.add_box(wx - 0.05, wy0, wz + 0.50, wx + 0.05, wy1, wz + 0.84, "Mat_TimberOak", bevel=0.0)
+                    # West face (ax0) & East face (ax1)
+                    mb.add_box(ax0 - 0.06, wy0, wz - 0.48, ax0, wy1, wz + 0.48, "Mat_DarkIron", bevel=0.0)
+                    mb.add_box(ax0 - 0.11, wy0 - 0.12, wz - 0.62, ax0, wy0, wz + 0.62, "Mat_Limestone", bevel=0.0)
+                    mb.add_box(ax0 - 0.086, wy0, wz - 0.84, ax0 - 0.024, wy1, wz - 0.50, "Mat_TimberOak", bevel=0.0)
+                    mb.add_box(ax0 - 0.086, wy0, wz + 0.50, ax0 - 0.024, wy1, wz + 0.84, "Mat_TimberOak", bevel=0.0)
+                    mb.add_box(ax1, wy0, wz - 0.48, ax1 + 0.06, wy1, wz + 0.48, "Mat_DarkIron", bevel=0.0)
+                    mb.add_box(ax1, wy0 - 0.12, wz - 0.62, ax1 + 0.11, wy0, wz + 0.62, "Mat_Limestone", bevel=0.0)
+                    mb.add_box(ax1 + 0.024, wy0, wz - 0.84, ax1 + 0.086, wy1, wz - 0.50, "Mat_TimberOak", bevel=0.0)
+                    mb.add_box(ax1 + 0.024, wy0, wz + 0.50, ax1 + 0.086, wy1, wz + 0.84, "Mat_TimberOak", bevel=0.0)
 
         if add_chimney:
             chx = ax0 + (ax1 - ax0) * 0.25
@@ -1092,6 +1267,7 @@ class AscentArchitect:
         self._build_center_mid_and_market()
         self._build_east_wing_site_b()
         door_objects = self._build_interactive_blast_doors()
+        self._emit_arch_blocks()
         self._build_skyline()
 
         static_objs = [
@@ -1108,34 +1284,34 @@ class AscentArchitect:
         # Single continuous ground physics slab [-42..42] x [-46..46] at y in [-0.60, 0.00]
         self.add_collider(MIN_X, -0.60, MIN_Z, MAX_X, 0.00, MAX_Z, "floor")
 
-        # Sub-base slab ends at y = -0.025m so non-overlapping paved regional slabs sit cleanly at [-0.025, 0.000] with ZERO Z-fighting!
-        self.floors_mb.add_box(MIN_X, -0.60, MIN_Z, MAX_X, -0.025, MAX_Z, "Mat_CliffRock", bevel=0.0)
+        # Structural/backing under-floor visual slab strictly BELOW y = 0.0 (-0.60 .. -0.04m) -> ZERO Z-fighting!
+        self.floors_mb.add_box(MIN_X, -0.60, MIN_Z, MAX_X, -0.040, MAX_Z, "Mat_CliffRock", bevel=0.0)
 
-        # Partition [-42..42] x [-46..46] into exact non-overlapping regional stone pavements at y = [-0.025 .. 0.000]:
+        # Partition [-42..42] x [-46..46] into exact ZERO-overlap top surface floor panels at y = [-0.040 .. 0.000]:
         # 1. South Strip (z: +20 .. +46): T-Spawn travertine/cobble
-        self.floors_mb.add_box(-42.0, -0.025, 20.0, 42.0, 0.000, 46.0, "Mat_TravertineFloor", bevel=0.0)
+        self.floors_mb.add_box(-42.0, -0.040, 20.0, 42.0, 0.000, 46.0, "Mat_TravertineFloor", bevel=0.0)
         # 2. North Strip (z: -46 .. -25.5): CT Sanctuary slate
-        self.floors_mb.add_box(-42.0, -0.025, -46.0, 42.0, 0.000, -25.5, "Mat_HarborSlate", bevel=0.0)
+        self.floors_mb.add_box(-42.0, -0.040, -46.0, 42.0, 0.000, -25.5, "Mat_HarborSlate", bevel=0.0)
         # 3. Middle Band (z: -25.5 .. +20.0) partitioned by X:
         #    - West Site A & Wine & A Lobby (x: -42.0 .. -14.0): Warm Travertine
-        self.floors_mb.add_box(-42.0, -0.025, -25.5, -14.0, 0.000, 20.0, "Mat_TravertineFloor", bevel=0.0)
+        self.floors_mb.add_box(-42.0, -0.040, -25.5, -14.0, 0.000, 20.0, "Mat_TravertineFloor", bevel=0.0)
         #    - A Tree & Mid Courtyard (x: -14.0 .. +2.0): Cobble Plaza
-        self.floors_mb.add_box(-14.0, -0.025, -25.5, 2.0, 0.000, 20.0, "Mat_CobblePlaza", bevel=0.0)
+        self.floors_mb.add_box(-14.0, -0.040, -25.5, 2.0, 0.000, 20.0, "Mat_CobblePlaza", bevel=0.0)
         #    - Mid Market (x: +2.0 .. +14.0, z: -25.5 .. -15.0) + East Mid Courtyard (x: +2.0 .. +14.0, z: -15.0 .. +20.0)
-        self.floors_mb.add_box(2.0, -0.025, -25.5, 14.0, 0.000, -15.0, "Mat_MarbleCheck", bevel=0.0)
-        self.floors_mb.add_box(2.0, -0.025, -15.0, 14.0, 0.000, 20.0, "Mat_CobblePlaza", bevel=0.0)
+        self.floors_mb.add_box(2.0, -0.040, -25.5, 14.0, 0.000, -15.0, "Mat_MarbleCheck", bevel=0.0)
+        self.floors_mb.add_box(2.0, -0.040, -15.0, 14.0, 0.000, 20.0, "Mat_CobblePlaza", bevel=0.0)
         #    - East Site B & B Main & B Lobby (x: +14.0 .. +42.0, z: -25.5 .. +20.0): Harbor Slate
-        self.floors_mb.add_box(14.0, -0.025, -25.5, 42.0, 0.000, 20.0, "Mat_HarborSlate", bevel=0.0)
+        self.floors_mb.add_box(14.0, -0.040, -25.5, 42.0, 0.000, 20.0, "Mat_HarborSlate", bevel=0.0)
 
-        # Raised decorative floor inlays (proud +0.006..+0.016m, strictly non-overlapping with zero Z-fighting!)
+        # Raised decorative floor inlays (proud +0.016m above y=0.0, bottom sunk cleanly inside slab at -0.016..-0.018m!)
         # Boathouse wooden interior boardwalk dock + recessed Venetian canal water slipway under gondola
-        self.floors_mb.add_box(26.5, 0.000, -32.0, 32.8, 0.016, -24.9, "Mat_TimberOak", bevel=0.0)
-        self.floors_mb.add_box(32.8, 0.000, -26.8, 36.0, 0.016, -24.9, "Mat_TimberOak", bevel=0.0)
-        self.floors_mb.add_box(32.8, 0.000, -32.0, 36.0, 0.006, -26.8, "Mat_CanalWater", bevel=0.0)
-        # Deepened A Wine cellar oak plank floor inlay
-        self.floors_mb.add_box(-40.2, 0.000, -7.6, -31.2, 0.012, -0.8, "Mat_TimberOak", bevel=0.0)
+        self.floors_mb.add_box(26.54, -0.016, -31.96, 32.80, 0.016, -24.94, "Mat_TimberOak", bevel=0.0)
+        self.floors_mb.add_box(32.80, -0.016, -26.80, 35.96, 0.016, -24.94, "Mat_TimberOak", bevel=0.0)
+        self.floors_mb.add_box(32.80, -0.018, -31.96, 35.96, 0.011, -26.80, "Mat_CanalWater", bevel=0.0)
+        # Deepened A Wine cellar oak plank floor inlay (inset cleanly inside walls & piers)
+        self.floors_mb.add_box(-40.16, -0.016, -7.56, -31.64, 0.016, -0.84, "Mat_TimberOak", bevel=0.0)
         # Mid Tiles Venetian marble-tile floor inlay
-        self.floors_mb.add_box(-15.6, 0.000, 2.2, -8.2, 0.010, 9.6, "Mat_MarbleCheck", bevel=0.0)
+        self.floors_mb.add_box(-15.60, -0.015, 2.20, -8.20, 0.016, 9.60, "Mat_MarbleCheck", bevel=0.0)
 
     def _build_perimeter_and_spawns(self) -> None:
         # Outer 84m x 92m Perimeter Walls
@@ -1146,8 +1322,8 @@ class AscentArchitect:
 
         # --- SOUTH T-SPAWN (z: +20.25 .. +45.4, x: -32 .. +32) ---
         self.add_walkable_rect(-32.0, 20.25, 32.0, 45.4, "spawn_a")
-        self.add_solid_building_mass(-41.4, 20.0, -32.0, 45.4, 5.8, "Mat_PlasterWarm", "Mat_Terracotta")
-        self.add_solid_building_mass(32.0, 20.0, 41.4, 45.4, 5.8, "Mat_PlasterPeach", "Mat_Terracotta")
+        self.add_solid_building_mass(-41.4, 20.25, -32.0, 45.4, 5.8, "Mat_PlasterWarm", "Mat_Terracotta")
+        self.add_solid_building_mass(32.0, 20.25, 41.4, 45.4, 5.8, "Mat_PlasterPeach", "Mat_Terracotta")
 
         # Portico wing divider colonnades in T-Spawn (blocks cross-spawn shallow diagonal sightlines while keeping wide 17m plaza!)
         self.add_venetian_wall(-16.5, 20.25, -15.9, 28.0, 0.0, 5.4, "Mat_PlasterWarm", "Mat_Terracotta")
@@ -1165,13 +1341,13 @@ class AscentArchitect:
 
         # --- SOUTH BUY-BARRIER WALL (z = +20.0, thickness 19.75 .. 20.25) ---
         # 3 Attacker Exits: West A-Lobby [-28..-23], Center Top-Mid [+3..+8], East B-Lobby [+23..+28]
-        self.add_venetian_wall(-32.0, 19.75, -28.0, 20.25, 0.0, 5.4, "Mat_PlasterWarm")
+        self.add_venetian_wall(-41.4, 19.75, -28.0, 20.25, 0.0, 5.4, "Mat_PlasterWarm")
         self.add_archway_opening(True, -28.0, -23.0, 19.75, 20.25, 3.20, 5.40, "Mat_PlasterWarm")
         self.add_venetian_wall(-23.0, 19.75, 3.0, 20.25, 0.0, 5.4, "Mat_PlasterPeach")
         self.add_archway_opening(True, 3.0, 8.0, 19.75, 20.25, 3.20, 5.40, "Mat_PlasterPeach")
         self.add_venetian_wall(8.0, 19.75, 23.0, 20.25, 0.0, 5.4, "Mat_PlasterHarbor")
         self.add_archway_opening(True, 23.0, 28.0, 19.75, 20.25, 3.20, 5.40, "Mat_PlasterHarbor")
-        self.add_venetian_wall(28.0, 19.75, 32.0, 20.25, 0.0, 5.4, "Mat_PlasterHarbor")
+        self.add_venetian_wall(28.0, 19.75, 41.4, 20.25, 0.0, 5.4, "Mat_PlasterHarbor")
 
         self.buy_barrier_spans.extend([
             {"x0": -28.0, "x1": -23.0, "z": BUY_MIN_ALLY_Z, "baseY": 0.0, "height": 3.2, "side": "attacker"},
@@ -1185,7 +1361,7 @@ class AscentArchitect:
         self.add_walkable_rect(1.75, -32.5, 14.25, -25.5, "spawn_d")  # CT-Mid outside Market Back Door
         # Outer North-West & North-East perimeter building masses
         self.add_solid_building_mass(-41.4, -45.4, -26.0, -32.5, 6.0, "Mat_PlasterWarm", "Mat_Terracotta")
-        self.add_solid_building_mass(-26.0, -45.4, -13.1, -37.0, 6.0, "Mat_PlasterWarm", "Mat_Terracotta")
+        self.add_solid_building_mass(-26.0, -45.4, -13.1, -36.8, 6.0, "Mat_PlasterWarm", "Mat_Terracotta")
         self.add_solid_building_mass(24.0, -45.4, 41.4, -32.5, 6.0, "Mat_PlasterHarbor", "Mat_Terracotta")
         # Split north-center masses framing A Tree <-> CT-A Connector (-9.8..-5.6) & Arched Mid Link (-4.75..+1.75)!
         self.add_solid_building_mass(-14.25, -27.5, -9.8, -22.5, 5.6, "Mat_PlasterWarm", "Mat_Terracotta")
@@ -1206,17 +1382,17 @@ class AscentArchitect:
     def _build_south_lobbies_and_doglegs(self) -> None:
         # 1. A LOBBY (x: -35.0 .. -16.0, z: +6.0 .. +19.75)
         self.add_walkable_rect(-35.0, 6.0, -16.0, 19.75, "ground")
-        self.add_solid_building_mass(-41.4, 6.0, -35.0, 20.0, 5.6, "Mat_PlasterWarm", "Mat_Terracotta")
-        # Dog-leg baffle wall inside A Lobby tied flush to East corner block (guarantees 0 LoS from z>=20!)
-        self.add_venetian_wall(-30.5, 13.5, -15.75, 14.1, 0.0, 5.4, "Mat_PlasterWarm")
+        self.add_solid_building_mass(-41.4, 6.25, -35.0, 19.75, 5.6, "Mat_PlasterWarm", "Mat_Terracotta")
+        # Dog-leg baffle wall inside A Lobby tied cleanly to East corner block (guarantees 0 LoS from z>=20!)
+        self.add_venetian_wall(-30.5, 13.5, -16.0, 14.1, 0.0, 5.4, "Mat_PlasterWarm")
         # Building block separating East A Lobby & South Top-Mid (x: -16.0 .. -8.0, z: +9.8 .. +19.75)
         self.add_solid_building_mass(-16.0, 9.8, -8.0, 19.75, 5.6, "Mat_PlasterPeach", "Mat_Terracotta")
         # A Lobby <-> Mid Tiles Connector Archway at x = -16.0, z: +6.25 .. +9.8 (3.55m clear curved stone arch!)
         self.add_archway_opening(False, 6.25, 9.8, -16.25, -15.75, 3.20, 5.40, "Mat_PlasterWarm")
         # North wall of A Lobby (z: +5.75 .. +6.25): opens into A Main at x: -31.0 .. -24.25
-        self.add_venetian_wall(-35.0, 5.75, -31.0, 6.25, 0.0, 5.4, "Mat_PlasterWarm")
+        self.add_venetian_wall(-41.4, 5.75, -31.0, 6.25, 0.0, 5.4, "Mat_PlasterWarm")
         self.add_archway_opening(True, -31.0, -24.25, 5.75, 6.25, 3.30, 5.40, "Mat_PlasterWarm")
-        self.add_venetian_wall(-24.25, 5.75, -16.25, 6.25, 0.0, 5.4, "Mat_PlasterWarm")
+        self.add_venetian_wall(-24.25, 5.75, -15.75, 6.25, 0.0, 5.4, "Mat_PlasterWarm")
 
         # 2. TOP MID DOG-LEG (x: -8.0 .. +11.5, z: +8.0 .. +19.75)
         self.add_walkable_rect(-8.0, 8.0, 11.25, 19.75, "ground")
@@ -1231,28 +1407,30 @@ class AscentArchitect:
         # 3. B LOBBY (x: +18.0 .. +35.0, z: +4.0 .. +19.75) & Mid-B Connector (z: +5.5 .. +9.5)
         self.add_walkable_rect(18.0, 4.0, 35.0, 19.75, "ground")
         self.add_walkable_rect(11.25, 5.5, 18.0, 9.5, "ground")
-        self.add_solid_building_mass(35.0, 4.0, 41.4, 20.0, 5.6, "Mat_PlasterHarbor", "Mat_Terracotta")
+        self.add_solid_building_mass(35.0, 4.25, 41.4, 19.75, 5.6, "Mat_PlasterHarbor", "Mat_Terracotta")
         # Dog-leg baffle wall inside B Lobby (guarantees 0 LoS from z>=20!)
         self.add_venetian_wall(18.0, 12.8, 30.2, 13.4, 0.0, 5.4, "Mat_PlasterHarbor")
         # Mid-to-B-Lobby Connector framing arch & south wall
         self.add_archway_opening(False, 5.5, 9.5, 11.25, 11.75, 3.15, 5.40, "Mat_PlasterPeach")
-        self.add_solid_building_mass(11.25, -8.0, 17.5, 5.5, 5.6, "Mat_PlasterHarbor", "Mat_Terracotta")
+        self.add_solid_building_mass(11.25, -7.75, 17.5, 5.5, 5.6, "Mat_PlasterHarbor", "Mat_Terracotta")
         # North wall of B Lobby into B Main (z: +3.75 .. +4.25, opens at x: +24.0 .. +30.5)
         self.add_venetian_wall(17.5, 3.75, 24.0, 4.25, 0.0, 5.4, "Mat_PlasterHarbor")
         self.add_archway_opening(True, 24.0, 30.5, 3.75, 4.25, 3.30, 5.40, "Mat_PlasterHarbor")
-        self.add_venetian_wall(30.5, 3.75, 35.0, 4.25, 0.0, 5.4, "Mat_PlasterHarbor")
+        self.add_venetian_wall(30.5, 3.75, 41.4, 4.25, 0.0, 5.4, "Mat_PlasterHarbor")
 
     def _build_west_wing_site_a(self) -> None:
         # 1. A MAIN & DEEPENED A WINE CELLAR ALCOVE (z: -8.0 .. +5.75)
         self.add_walkable_rect(-31.0, -8.0, -24.25, 5.75, "ground")
         self.add_walkable_rect(-40.2, -7.6, -31.0, -0.8, "ground")  # Deepened A Wine stone alcove!
         # Building mass between A Main (-24.25) and Mid Catwalk/Tiles (-15.75 / -11.8)
-        self.add_solid_building_mass(-24.25, -8.0, -15.75, 5.75, 5.6, "Mat_PlasterWarm", "Mat_Terracotta")
-        self.add_solid_building_mass(-15.75, -8.0, -11.8, 2.0, 5.6, "Mat_PlasterWarm", "Mat_Terracotta")
+        self.add_solid_building_mass(-24.25, -7.75, -15.75, 5.75, 5.6, "Mat_PlasterWarm", "Mat_Terracotta")
+        self.add_solid_building_mass(-15.75, -7.75, -11.8, 2.0, 5.6, "Mat_PlasterWarm", "Mat_Terracotta")
         # Outer West enclosures around A Main & Deepened A Wine (recessed back to x = -40.2!)
-        self.add_solid_building_mass(-41.4, -0.8, -31.0, 6.0, 5.6, "Mat_PlasterWarm", "Mat_Terracotta")
+        self.add_solid_building_mass(-41.4, -0.8, -31.0, 5.75, 5.6, "Mat_PlasterWarm", "Mat_Terracotta")
         self.add_solid_building_mass(-41.4, -8.25, -40.2, -0.8, 5.6, "Mat_BrickVenetian", "Mat_Terracotta")
-        self.add_venetian_wall(-40.2, -8.25, -31.0, -7.6, 0.0, 5.4, "Mat_BrickVenetian")
+        # Non-overlapping A Wine north / Site A south partition (z = -8.25 .. -7.6 / -7.75):
+        self.add_venetian_wall(-40.2, -8.25, -36.0, -7.6, 0.0, 5.4, "Mat_BrickVenetian")
+        self.add_venetian_wall(-36.0, -8.25, -31.0, -7.6, 0.0, 5.4, "Mat_PlasterWarm")
         # Curved Venetian stone archway framing the recessed A Wine entrance (x = -31.6 .. -31.0, z: -7.0 .. -1.4)
         self.add_venetian_wall(-31.6, -7.6, -31.0, -7.0, 0.0, 5.4, "Mat_BrickVenetian")
         self.add_archway_opening(False, -7.0, -1.4, -31.6, -31.0, 3.15, 5.40, "Mat_BrickVenetian")
@@ -1261,9 +1439,9 @@ class AscentArchitect:
         self.add_collider(-40.2, 4.25, -8.2, -31.0, 4.65, -0.8, "wall")
         self.add_minimap_wall(-40.2, -7.6, -31.2, -0.8, "roof")
         for bz in (-6.6, -5.0, -3.4, -1.8):
-            self.west_mb.add_box(-40.2, 3.65, bz - 0.14, -31.4, 3.92, bz + 0.14, "Mat_DarkOak", bevel=0.0)
-        self.west_mb.add_box(-40.4, 4.22, -8.2, -31.1, 4.48, -0.8, "Mat_DarkOak", bevel=0.0)
-        self.west_mb.add_box(-40.5, 4.48, -8.3, -31.0, 4.68, -0.7, "Mat_Terracotta", bevel=0.0)
+            self.west_mb.add_box(-40.2, 3.65, bz - 0.14, -31.6, 3.92, bz + 0.14, "Mat_DarkOak", bevel=0.0)
+        self.west_mb.add_box(-40.2, 4.22, -7.6, -31.6, 4.48, -0.8, "Mat_DarkOak", bevel=0.0)
+        self.west_mb.add_box(-40.2, 4.48, -7.6, -31.6, 4.68, -0.8, "Mat_Terracotta", bevel=0.0)
         # Recessed brick wine-shelf cornice accent on the deep back wall of A Wine
         self.west_mb.add_box(-40.18, 2.25, -6.5, -39.92, 2.38, -2.0, "Mat_Limestone", bevel=0.0)
 
@@ -1293,13 +1471,13 @@ class AscentArchitect:
         # Outer West wall of Site A & A Hell
         self.add_solid_building_mass(-41.4, -32.5, -36.0, -8.25, 6.0, "Mat_PlasterWarm", "Mat_Terracotta")
         # South wall of Site A (z: -8.25 .. -7.75) with iconic A Main Curved Stone Archway (x: -30.0 .. -25.0)
-        self.add_venetian_wall(-36.0, -8.25, -30.0, -7.75, 0.0, 5.4, "Mat_PlasterWarm")
+        self.add_venetian_wall(-31.0, -8.25, -30.0, -7.75, 0.0, 5.4, "Mat_PlasterWarm")
         self.add_archway_opening(True, -30.0, -25.0, -8.25, -7.75, 3.35, 5.40, "Mat_PlasterWarm")
         self.add_venetian_wall(-25.0, -8.25, -14.25, -7.75, 0.0, 5.4, "Mat_PlasterWarm")
 
-        # East wall of Site A (x: -14.25 .. -13.75) separating Site A from A Tree, hosting `a_tree` Blast Door at z: -19.6 .. -16.4
-        self.add_venetian_wall(-14.25, -16.4, -13.75, -7.75, 0.0, 5.4, "Mat_PlasterWarm")
-        self.add_venetian_wall(-14.25, -24.0, -13.75, -19.6, 0.0, 5.4, "Mat_PlasterWarm")
+        # East wall of Site A (x: -14.25 .. -13.75) trimmed cleanly back 0.22m for `a_tree` Blast Door rails (-19.82..-16.18)!
+        self.add_venetian_wall(-14.25, -16.18, -13.75, -7.75, 0.0, 5.4, "Mat_PlasterWarm")
+        self.add_venetian_wall(-14.25, -22.5, -13.75, -19.82, 0.0, 5.4, "Mat_PlasterWarm")
 
         # Bomb Site A Glowing Floor Border Frame (-31.0 .. -18.0, -23.0 .. -12.0)
         self._add_site_floor_border(-31.0, -23.0, -18.0, -12.0, "Mat_SiteAAccent")
@@ -1316,8 +1494,8 @@ class AscentArchitect:
         self.props_mb.add_box(gx0 + 0.14, 0.34, gz0 + 0.16, gx1 - 0.14, 1.05, gz1 - 0.16, "Mat_GenSteelBlue", bevel=0.02)
         # Iconic Large Horizontal Blue-Grey Cylindrical Industrial Turbine Drum!
         self.props_mb.add_cylinder(gcx, 1.56, gcz, 0.86, 0.86, 2.48, "Mat_GenSteelBlue", segments=16, axis="x", smooth=True)
-        # Heavy dark-iron steel reinforcing ribs & bolted end flanges around the turbine drum
-        for rx in (gx0 + 0.22, gcx - 0.55, gcx + 0.55, gx1 - 0.22):
+        # Heavy dark-iron steel reinforcing ribs inset cleanly inside drum ends (zero coplanar end caps!)
+        for rx in (gx0 + 0.28, gcx - 0.55, gcx + 0.55, gx1 - 0.28):
             self.props_mb.add_cylinder(rx, 1.56, gcz, 0.92, 0.92, 0.12, "Mat_DarkIron", segments=16, axis="x")
         # Copper dynamo end-hubs & side control console box with glowing Radianite diagnostic strip
         self.props_mb.add_cylinder(gcx, 1.56, gcz, 0.42, 0.42, 2.72, "Mat_CopperCoil", segments=12, axis="x", smooth=True)
@@ -1344,16 +1522,21 @@ class AscentArchitect:
         self.add_walkable_rect(-34.0, -32.0, -20.5, -24.0, "ground")
         # West solid abutment (-36.0 .. -34.0, z: -32.5 .. -24.0)
         self.add_solid_building_mass(-36.0, -32.5, -34.0, -24.0, 6.2, "Mat_PlasterWarm", "Mat_Terracotta")
-        # North back wall of A Hell (y = 0 .. 2.65m, separating ground Hell from CT while Heaven continues above at y = 3.00m!)
-        self.add_venetian_wall(-34.0, -32.5, -20.0, -32.0, 0.0, 2.65, "Mat_BrickVenetian", "Mat_Limestone", minimap=False)
-        # East support wall of A Hell (x: -20.5 .. -20.0, z: -32.0 .. -24.0, y: 0 .. 2.65m)
-        self.add_venetian_wall(-20.5, -32.0, -20.0, -24.0, 0.0, 2.65, "Mat_BrickVenetian", "Mat_Limestone", minimap=False)
+        # North back wall of A Hell (y = 0 .. 2.65m, cleanly butt-joined to East support wall at x = -20.5!)
+        self.add_venetian_wall(-34.0, -32.5, -20.5, -32.0, 0.0, 2.65, "Mat_BrickVenetian", "Mat_Limestone", minimap=False)
+        # East support wall of A Hell (x: -20.5 .. -20.0, z: -32.1 .. -24.0, y: 0 .. 2.65m)
+        self.add_venetian_wall(-20.5, -32.1, -20.0, -24.0, 0.0, 2.65, "Mat_BrickVenetian", "Mat_Limestone", minimap=False)
         # South arcade support piers facing Site A (leaving TWO wide 5.55m openings into A Hell with 2.65m ceiling!)
-        for px0, px1 in [(-34.0, -33.2), (-27.65, -26.85), (-21.3, -20.5)]:
+        for idx_p, (px0, px1) in enumerate([(-34.0, -33.2), (-27.65, -26.85), (-21.3, -20.5)]):
             self.add_collider(px0, 0.0, -24.5, px1, 2.65, -24.0, "wall")
-            self.west_mb.add_box(px0 - 0.03, 0.0, -24.53, px1 + 0.03, 0.30, -23.97, "Mat_Limestone", bevel=0.015)
+            self.add_trim_obstacle(px0, 0.0, -24.5, px1, 2.65, -24.0)
+            p_x0 = px0 + (0.024 if idx_p == 0 else -0.03)
+            p_x1 = px1 + (-0.024 if idx_p == 2 else 0.03)
+            c_x0 = px0 if idx_p == 0 else px0 - 0.05
+            c_x1 = px1 if idx_p == 2 else px1 + 0.05
+            self.west_mb.add_box(p_x0, 0.0, -24.53, p_x1, 0.30, -23.97, "Mat_Limestone", bevel=0.015)
             self.west_mb.add_box(px0, 0.30, -24.5, px1, 2.45, -24.0, "Mat_Limestone", bevel=0.02)
-            self.west_mb.add_box(px0 - 0.05, 2.45, -24.55, px1 + 0.05, 2.65, -23.95, "Mat_Limestone", bevel=0.015)
+            self.west_mb.add_box(c_x0, 2.45, -24.55, c_x1, 2.65, -23.95, "Mat_Limestone", bevel=0.015)
 
         # Wooden A Hell Cover Crates tucked under A Heaven (gives classic Ascent Hell peek cover!)
         self.add_wood_cover_crate(-33.6, -31.5, -31.8, -29.7, 0.0, 1.32, minimap=True)
@@ -1364,16 +1547,16 @@ class AscentArchitect:
         self.add_collider(-26.0, 2.65, -36.8, -20.0, 3.00, -32.0, "floor")
         self.add_walkable_rect(-34.0, -32.0, -20.0, -24.0, "high")
         self.add_walkable_rect(-26.0, -36.8, -20.0, -32.0, "high")
+        self.add_trim_obstacle(-34.0, 2.65, -32.0, -20.0, 3.00, -24.0)
+        self.add_trim_obstacle(-26.0, 2.65, -36.8, -20.0, 3.00, -32.0)
 
         # Visual Heaven stone underside + oak/travertine rafters deck + proud limestone fascia
         self.west_mb.add_box(-34.0, 2.65, -32.0, -20.0, 2.94, -24.0, "Mat_Limestone", bevel=0.02)
         self.west_mb.add_box(-34.0, 2.94, -32.0, -20.0, 3.00, -24.0, "Mat_TimberOak", bevel=0.01)
         self.west_mb.add_box(-26.0, 2.65, -36.8, -20.0, 2.94, -32.0, "Mat_Limestone", bevel=0.02)
         self.west_mb.add_box(-26.0, 2.94, -36.8, -20.0, 3.00, -32.0, "Mat_TimberOak", bevel=0.01)
-        # Upper Heaven back enclosure walls (y = 3.00 .. 6.00m) so players stay inside rafters
+        # Upper Heaven back enclosure wall (y = 3.00 .. 6.00m); North & West sides already enclosed by NW masses!
         self.add_venetian_wall(-34.0, -32.5, -26.0, -32.0, 3.00, 6.00, "Mat_PlasterWarm", "Mat_Terracotta", minimap=False)
-        self.add_venetian_wall(-26.5, -37.0, -26.0, -32.0, 3.00, 6.00, "Mat_PlasterWarm", "Mat_Terracotta", minimap=False)
-        self.add_venetian_wall(-26.5, -37.2, -13.1, -36.8, 0.00, 6.00, "Mat_PlasterWarm", "Mat_Terracotta", minimap=True)
 
         # A Heaven Cover Box (tactical head-glitch/peek crate on the y = 3.00m Heaven deck!)
         self.add_wood_cover_crate(-31.6, -27.4, -29.8, -25.6, 3.00, 4.24, minimap=False)
@@ -1381,21 +1564,22 @@ class AscentArchitect:
         # A Heaven 1.10m Chest-High Limestone Balustrade (y = 3.00 .. 4.10m) + 3.8m Open Drop Ledge (-26.8 .. -23.0)!
         self._add_heaven_balustrade(-34.0, -26.8, -24.38, -24.0, 3.00, 4.10, along_x=True)
         self._add_heaven_balustrade(-23.0, -20.0, -24.38, -24.0, 3.00, 4.10, along_x=True)
-        self._add_heaven_balustrade(-32.0, -24.38, -20.38, -20.0, 3.00, 4.10, along_x=False)
-        # Drop ledge caution strip on Heaven floor edge
-        self.west_mb.add_box(-26.8, 3.000, -24.35, -23.0, 3.012, -24.0, "Mat_HazardGold", bevel=0.0)
+        self._add_heaven_balustrade(-32.0, -24.38, -20.38, -20.0, 3.00, 4.10, along_x=False, trim_end=0.03)
+        # Drop ledge caution strip cleanly proud of Heaven oak deck (sunk bottom 2.992, inset 2cm from south edge)
+        self.west_mb.add_box(-26.76, 2.992, -24.35, -23.04, 3.014, -24.02, "Mat_HazardGold", bevel=0.0)
 
         # --- CT-TO-HEAVEN 7-TREAD STAIRCASE (x: -13.1 -> -20.0, z: -36.8 .. -32.6) ---
         # 6 broad 1.15m treads (+ 7th rise onto y=3.00m Heaven Landing = 7 rises of ~0.429m <= 0.50m!)
         stair_x_start = -13.10
         tread_run = 1.15
+        self.add_trim_obstacle(-20.0, 0.0, -36.8, -13.1, 2.60, -32.6)
         for i in range(6):
             tx1 = stair_x_start - i * tread_run
             tx0 = tx1 - tread_run
             ty = round((i + 1) * (3.00 / 7.0), 3)  # 0.429, 0.857, 1.286, 1.714, 2.143, 2.571 -> 3.000
             self.add_collider(tx0, 0.0, -36.8, tx1, ty, -32.6, "floor")
             self.west_mb.add_box(tx0, 0.0, -36.8, tx1, ty - 0.06, -32.6, "Mat_PlasterWarm", bevel=0.01)
-            self.west_mb.add_box(tx0 - 0.02, ty - 0.06, -36.8, tx1 + 0.02, ty, -32.6, "Mat_Limestone", bevel=0.015)
+            self.west_mb.add_box(tx0, ty - 0.06, -36.79, tx1 + 0.025, ty, -32.61, "Mat_Limestone", bevel=0.012)
         self.add_walkable_rect(-20.0, -36.8, -13.1, -32.6, "high")
         # Staircase south guard wall (z: -32.6 .. -32.1, x: -20.5 .. -13.1) separating stairs from ground CT-A alley!
         self.add_venetian_wall(-20.5, -32.6, -13.1, -32.1, 0.0, 5.2, "Mat_PlasterWarm", "Mat_Terracotta", minimap=True)
@@ -1411,15 +1595,16 @@ class AscentArchitect:
         self.add_walkable_rect(-9.8, -27.5, -5.6, -22.5, "ground")
         self.add_archway_opening(True, -9.8, -5.6, -23.0, -22.5, 3.25, 5.60, "Mat_PlasterWarm")
         self.add_archway_opening(True, -9.8, -5.6, -27.5, -27.0, 3.25, 5.60, "Mat_PlasterWarm")
-        # Vaulted covered breezeway roof over A Tree <-> CT-A connector (y = 3.90 .. 5.60m)
+        # Vaulted covered breezeway roof strictly between the two arches (-27.0..-23.0) & flanking masses (-9.8..-5.6)!
         self.add_collider(-9.8, 3.90, -27.5, -5.6, 5.60, -22.5, "wall")
         self.add_minimap_wall(-9.8, -27.5, -5.6, -22.5, "roof")
-        self.west_mb.add_box(-9.8, 3.90, -27.2, -5.6, 4.18, -22.8, "Mat_DarkOak", bevel=0.0)
-        self.west_mb.add_box(-9.9, 4.18, -27.5, -5.5, 5.42, -22.5, "Mat_PlasterWarm", bevel=0.0)
-        self.west_mb.add_box(-10.0, 5.42, -27.6, -5.4, 5.64, -22.4, "Mat_Terracotta", bevel=0.0)
+        self.add_trim_obstacle(-9.8, 3.90, -27.0, -5.6, 5.64, -23.0)
+        self.west_mb.add_box(-9.8, 3.90, -27.0, -5.6, 4.18, -23.0, "Mat_DarkOak", bevel=0.0)
+        self.west_mb.add_box(-9.8, 4.18, -27.0, -5.6, 5.44, -23.0, "Mat_PlasterWarm", bevel=0.0)
+        self.west_mb.add_box(-9.8, 5.44, -26.95, -5.6, 5.64, -23.05, "Mat_Terracotta", bevel=0.0)
 
-        # East wall of A Tree separating A Tree from Mid Pizza & Mid Link (z: -22.5 .. -8.0)
-        self.add_venetian_wall(-5.25, -22.5, -4.75, -8.0, 0.0, 5.4, "Mat_PlasterPeach")
+        # East wall of A Tree separating A Tree from Mid Pizza & Mid Link (z: -22.5 .. -8.25, cleanly butt-joined!)
+        self.add_venetian_wall(-5.25, -22.5, -4.75, -8.25, 0.0, 5.4, "Mat_PlasterPeach")
         # Overhead Venetian Garden Pergola (ledger beams + corbels + 6 cross rafters + 4 longitudinal purlins!)
         self.west_mb.add_box(-13.75, 4.08, -22.0, -13.48, 4.34, -8.4, "Mat_DarkOak", bevel=0.0)
         self.west_mb.add_box(-5.52, 4.08, -22.0, -5.25, 4.34, -8.4, "Mat_DarkOak", bevel=0.0)
@@ -1442,6 +1627,7 @@ class AscentArchitect:
         y0: float,
         y1: float,
         along_x: bool,
+        trim_end: float = 0.0,
     ) -> None:
         a0, a1 = min(s0, s1), max(s0, s1)
         b0, b1 = min(d0, d1), max(d0, d1)
@@ -1449,7 +1635,7 @@ class AscentArchitect:
             self.add_collider(a0, y0, b0, a1, y1, b1, "cover")
             self.add_minimap_wall(a0, b0, a1, b1, "cover")
             self.west_mb.add_box(a0, y0, b0, a1, y0 + 0.22, b1, "Mat_Limestone", bevel=0.012)
-            self.west_mb.add_box(a0 - 0.02, y1 - 0.16, b0 - 0.03, a1 + 0.02, y1, b1 + 0.03, "Mat_Limestone", bevel=0.015)
+            self.west_mb.add_box(a0 - 0.02, y1 - 0.16, b0 - 0.03, a1 + 0.02 - trim_end, y1, b1 + 0.03, "Mat_Limestone", bevel=0.015)
             n_bal = max(2, int((a1 - a0) / 0.55))
             mid_b = 0.5 * (b0 + b1)
             for k in range(n_bal + 1):
@@ -1459,7 +1645,7 @@ class AscentArchitect:
             self.add_collider(b0, y0, a0, b1, y1, a1, "cover")
             self.add_minimap_wall(b0, a0, b1, a1, "cover")
             self.west_mb.add_box(b0, y0, a0, b1, y0 + 0.22, a1, "Mat_Limestone", bevel=0.012)
-            self.west_mb.add_box(b0 - 0.03, y1 - 0.16, a0 - 0.02, b1 + 0.03, y1, a1 + 0.02, "Mat_Limestone", bevel=0.015)
+            self.west_mb.add_box(b0 - 0.03, y1 - 0.16, a0 - 0.02, b1 + 0.03, y1, a1 - trim_end, "Mat_Limestone", bevel=0.015)
             n_bal = max(2, int((a1 - a0) / 0.55))
             mid_b = 0.5 * (b0 + b1)
             for k in range(n_bal + 1):
@@ -1468,11 +1654,12 @@ class AscentArchitect:
 
     def _add_site_floor_border(self, x0: float, z0: float, x1: float, z1: float, mat_name: str) -> None:
         w = 0.22
-        y_top = 0.014
-        self.floors_mb.add_box(x0, 0.0, z0, x1, y_top, z0 + w, mat_name, bevel=0.0)
-        self.floors_mb.add_box(x0, 0.0, z1 - w, x1, y_top, z1, mat_name, bevel=0.0)
-        self.floors_mb.add_box(x0, 0.0, z0 + w, x0 + w, y_top, z1 - w, mat_name, bevel=0.0)
-        self.floors_mb.add_box(x1 - w, 0.0, z0 + w, x1, y_top, z1 - w, mat_name, bevel=0.0)
+        # Bottom sunk cleanly inside floor slab (-0.012) and top proud (+0.016) so ZERO Z-fighting with floors or crates!
+        y_bot, y_top = -0.012, 0.016
+        self.floors_mb.add_box(x0, y_bot, z0, x1, y_top, z0 + w, mat_name, bevel=0.0)
+        self.floors_mb.add_box(x0, y_bot, z1 - w, x1, y_top, z1, mat_name, bevel=0.0)
+        self.floors_mb.add_box(x0, y_bot, z0 + w, x0 + w, y_top, z1 - w, mat_name, bevel=0.0)
+        self.floors_mb.add_box(x1 - w, y_bot, z0 + w, x1, y_top, z1 - w, mat_name, bevel=0.0)
 
     def _build_center_mid_and_market(self) -> None:
         # 1. MID TILES (x: -15.75 .. -8.0, z: +2.0 .. +10.5)
@@ -1481,11 +1668,12 @@ class AscentArchitect:
         # 2. MID CATWALK (y = 0.85m, x: -11.8 .. -7.6, z: -8.0 .. +0.85) + 2-Step Climbs + CATWALK BOX!
         # South climb from Tiles: Step 1 (z: +0.85 .. +2.00, y = 0.425m) -> Catwalk (z: -8.00 .. +0.85, y = 0.85m)
         self.add_collider(-11.8, 0.0, 0.85, -7.6, 0.425, 2.00, "floor")
+        self.add_trim_obstacle(-11.8, 0.0, -9.15, -7.6, 0.85, 2.00)
         self.mid_mb.add_box(-11.8, 0.0, 0.85, -7.6, 0.425, 2.00, "Mat_Limestone", bevel=0.015)
 
         self.add_collider(-11.8, 0.0, -8.00, -7.6, 0.85, 0.85, "floor")
         self.mid_mb.add_box(-11.8, 0.0, -8.00, -7.6, 0.78, 0.85, "Mat_BrickVenetian", bevel=0.015)
-        self.mid_mb.add_box(-11.82, 0.78, -8.00, -7.58, 0.85, 0.85, "Mat_Limestone", bevel=0.015)
+        self.mid_mb.add_box(-11.80, 0.78, -8.00, -7.58, 0.85, 0.85, "Mat_Limestone", bevel=0.015)
         self.add_walkable_rect(-11.8, -8.0, -7.6, 2.0, "mid")
 
         # Side step from Mid Courtyard onto Catwalk (x: -7.6 .. -6.45, z: -1.8 .. +0.85, y = 0.425m)
@@ -1494,8 +1682,8 @@ class AscentArchitect:
 
         # Iconic Catwalk Box on elevated Catwalk (leaves 2.85m clear west lane x: -11.8..-8.95!)
         self.add_wood_cover_crate(-8.95, -6.2, -7.65, -4.9, 0.85, 2.02, minimap=True)
-        # Catwalk East Stone Parapet overlooking Mid Courtyard (flush south of Catwalk Box!)
-        self.add_low_stone_cover(-7.96, -4.9, -7.60, -2.0, 0.85, 1.95, "Mat_Limestone", "Mat_Terracotta")
+        # Catwalk East Stone Parapet overlooking Mid Courtyard (clean 4cm gap south of Catwalk Box!)
+        self.add_low_stone_cover(-7.96, -4.86, -7.60, -2.0, 0.85, 1.95, "Mat_Limestone", "Mat_Terracotta")
 
         # North descent from Catwalk into A Tree under Curved Venetian Stone Archway!
         self.add_archway_opening(True, -11.8, -7.6, -8.25, -7.75, 3.65, 5.40, "Mat_PlasterWarm")
@@ -1507,9 +1695,9 @@ class AscentArchitect:
 
         # MID SUBROZA / CATWALK CUBBY (y = 0.0m, tucked beside Mid Catwalk at x: -7.6 .. -5.25, z: -7.75 .. -5.0!)
         self.add_venetian_wall(-5.25, -7.75, -4.75, -5.0, 0.0, 3.12, "Mat_PlasterPeach", "Mat_Limestone")
-        # Overhead Venetian timber veranda awning sheltering the Subroza cubby (cleanly flush atop cheek wall!)
-        self.mid_mb.add_box(-7.58, 2.96, -7.72, -4.76, 3.12, -5.02, "Mat_DarkOak", bevel=0.0)
-        self.mid_mb.add_oriented_box(-6.17, 3.24, -6.38, 2.86, 0.12, 2.80, 0.09, 0.0, 0.0, "Mat_Terracotta", bevel=0.0)
+        # Overhead Venetian timber veranda awning resting cleanly ON TOP of y = 3.12 cheek wall (ZERO overlap!)
+        self.mid_mb.add_box(-7.58, 3.12, -7.72, -4.76, 3.26, -5.02, "Mat_DarkOak", bevel=0.0)
+        self.mid_mb.add_oriented_box(-6.17, 3.38, -6.38, 2.86, 0.12, 2.80, 0.09, 0.0, 0.0, "Mat_Terracotta", bevel=0.0)
 
         # 3. WIDE SUNLIT VENETIAN MID COURTYARD, MID PIZZA & ARCHED MID LINK
         self.add_walkable_rect(-7.6, -15.0, 11.25, 12.0, "ground")
@@ -1533,10 +1721,10 @@ class AscentArchitect:
         self.add_low_stone_cover(8.2, -2.0, 10.0, -0.2, 0.0, 1.25, "Mat_Limestone", "Mat_Terracotta")
 
         # Terracotta-Awning Mid Pizza Corridor (west side pizzeria counter + striped Venetian cafe awning!)
-        self.add_low_stone_cover(-4.75, -14.8, -3.45, -11.4, 0.0, 1.20, "Mat_BrickVenetian", "Mat_Limestone")
+        self.add_low_stone_cover(-4.72, -14.8, -3.45, -11.4, 0.0, 1.20, "Mat_BrickVenetian", "Mat_Limestone")
         # Pizzeria arched oven hood facade accent against west wall
-        self.mid_mb.add_box(-4.75, 1.20, -14.2, -4.35, 2.75, -12.0, "Mat_BrickVenetian", bevel=0.0)
-        self.mid_mb.add_box(-4.75, 2.75, -14.4, -4.25, 2.95, -11.8, "Mat_Limestone", bevel=0.0)
+        self.mid_mb.add_box(-4.74, 1.20, -14.2, -4.35, 2.75, -12.0, "Mat_BrickVenetian", bevel=0.0)
+        self.mid_mb.add_box(-4.74, 2.75, -14.4, -4.25, 2.95, -11.8, "Mat_Limestone", bevel=0.0)
         # Striped Terracotta & Cream Venetian Cafe Awning overhanging Mid Pizza!
         for k in range(5):
             az0 = -15.0 + k * 0.80
@@ -1546,53 +1734,50 @@ class AscentArchitect:
         self.mid_mb.add_branch((-4.72, 2.45, -11.2), (-2.75, 2.94, -11.2), 0.04, 0.04, "Mat_DarkIron", segments=6)
 
         # Arched Mid Link Portal toward Defender Spawn (z = -16.0 South Portal -> Covered Gallery -> z = -27.25 North Portal!)
-        self.add_venetian_wall(-5.25, -16.25, -2.6, -15.75, 0.0, 5.4, "Mat_BrickVenetian")
+        self.add_venetian_wall(-4.75, -16.25, -2.6, -15.75, 0.0, 5.4, "Mat_BrickVenetian")
         self.add_archway_opening(True, -2.6, 1.2, -16.25, -15.75, 3.25, 5.40, "Mat_PlasterPeach")
         self.add_venetian_wall(1.2, -16.25, 1.75, -15.75, 0.0, 5.4, "Mat_PlasterPeach")
         # North Mid Link Archway opening directly into Defender Spawn / CT Link Plaza (z = -27.5 .. -27.0)
         self.add_venetian_wall(-4.75, -27.5, -2.6, -27.0, 0.0, 5.4, "Mat_PlasterPeach")
         self.add_archway_opening(True, -2.6, 1.2, -27.5, -27.0, 3.25, 5.40, "Mat_PlasterPeach")
         self.add_venetian_wall(1.2, -27.5, 1.75, -27.0, 0.0, 5.4, "Mat_PlasterPeach")
-        # Covered Venetian roof over north half of Mid Link + pergola beams over south half + Mid Link cover block
+        # Covered Venetian roof strictly between North Arch (-27.0) & walls (-4.75..1.75) (ZERO overlap!)
         self.add_collider(-4.75, 3.90, -27.5, 1.75, 5.40, -21.5, "wall")
         self.add_minimap_wall(-4.75, -27.5, 1.75, -21.5, "roof")
-        self.mid_mb.add_box(-4.75, 3.90, -27.3, 1.75, 4.18, -21.5, "Mat_DarkOak", bevel=0.0)
-        self.mid_mb.add_box(-4.85, 4.18, -27.6, 1.85, 5.42, -21.4, "Mat_PlasterPeach", bevel=0.0)
-        self.mid_mb.add_box(-4.95, 5.42, -27.7, 1.95, 5.62, -21.3, "Mat_Terracotta", bevel=0.0)
+        self.add_trim_obstacle(-4.75, 3.90, -27.0, 1.75, 5.64, -21.5)
+        self.mid_mb.add_box(-4.75, 3.90, -27.0, 1.75, 4.18, -21.5, "Mat_DarkOak", bevel=0.0)
+        self.mid_mb.add_box(-4.75, 4.18, -27.0, 1.75, 5.44, -21.5, "Mat_PlasterPeach", bevel=0.0)
+        self.mid_mb.add_box(-4.75, 5.44, -26.95, 1.75, 5.64, -21.5, "Mat_Terracotta", bevel=0.0)
         for pz in (-20.4, -18.8, -17.2):
             self.mid_mb.add_box(-4.75, 4.18, pz - 0.12, 1.75, 4.44, pz + 0.12, "Mat_DarkOak", bevel=0.0)
         self.add_low_stone_cover(-4.65, -21.8, -3.30, -19.8, 0.0, 1.25, "Mat_Limestone", "Mat_Terracotta")
 
         # 4. ROOFED ARCHED MID MARKET (x: +2.25 .. +13.75, z: -25.5 .. -15.1)
         self.add_walkable_rect(2.25, -25.5, 13.75, -15.1, "ground")
-        # West wall of Market (4.20m under Market eaves) + short north tie into Mid Link arch (5.40m)
+        # West wall of Market (strictly between North -25.5 & South -15.35) + short north tie into Mid Link arch (5.40m)
         self.add_venetian_wall(1.75, -27.5, 2.25, -26.0, 0.0, 5.40, "Mat_PlasterPeach")
-        self.add_venetian_wall(1.75, -26.0, 2.25, -15.1, 0.0, 4.20, "Mat_PlasterPeach", "Mat_Limestone")
-        # South wall of Market (z: -15.35 .. -14.85, clean eave height y = 4.20m flush beneath pitched terracotta roof!):
-        #   - Bottom-Mid Doorway (x: +2.6 .. +6.0)
-        #   - Pier (x: +6.0 .. +7.0)
-        #   - Shoot-Through Market Window (x: +7.0 .. +11.4, open band y = 1.10 .. 2.50m!)
-        #   - Pier (x: +11.4 .. +14.25)
+        self.add_venetian_wall(1.75, -25.5, 2.25, -15.35, 0.0, 4.20, "Mat_PlasterPeach", "Mat_Limestone")
+        # South wall of Market (z: -15.35 .. -14.85, full width 1.75 .. 14.25, eave y = 4.20m):
         self.add_venetian_wall(1.75, -15.35, 2.6, -14.85, 0.0, 4.20, "Mat_PlasterPeach", "Mat_Limestone")
         self.add_archway_opening(True, 2.6, 6.0, -15.35, -14.85, 3.10, 4.20, "Mat_PlasterPeach", "Mat_Limestone")
         self.add_venetian_wall(6.0, -15.35, 7.0, -14.85, 0.0, 4.20, "Mat_PlasterPeach", "Mat_Limestone")
         self.add_shoot_window_wall(True, 7.0, 11.4, -15.35, -14.85, 1.10, 2.50, 4.20, "Mat_PlasterPeach")
         self.add_venetian_wall(11.4, -15.35, 14.25, -14.85, 0.0, 4.20, "Mat_PlasterPeach", "Mat_Limestone")
 
-        # North wall of Market (z: -26.0 .. -25.5): Back CT Doorway at x: +5.2 .. +9.4
+        # North wall of Market (z: -26.0 .. -25.5, full width 1.75 .. 14.25): Back CT Doorway at x: +5.2 .. +9.4
         self.add_venetian_wall(1.75, -26.0, 5.2, -25.5, 0.0, 4.20, "Mat_PlasterPeach", "Mat_Limestone")
         self.add_archway_opening(True, 5.2, 9.4, -26.0, -25.5, 3.20, 4.20, "Mat_PlasterPeach", "Mat_Limestone")
         self.add_venetian_wall(9.4, -26.0, 14.25, -25.5, 0.0, 4.20, "Mat_PlasterPeach", "Mat_Limestone")
 
-        # East wall of Market (x: +13.75 .. +14.25, separating Market/Mid from Site B, hosting `b_market` Blast Door at z: -22.6 .. -19.4!)
-        self.add_venetian_wall(13.75, -14.85, 14.25, -8.0, 0.0, 5.40, "Mat_PlasterHarbor")
-        self.add_venetian_wall(13.75, -19.4, 14.25, -14.85, 0.0, 4.20, "Mat_PlasterHarbor", "Mat_Limestone")
-        self.add_venetian_wall(13.75, -26.0, 14.25, -22.6, 0.0, 4.20, "Mat_PlasterHarbor", "Mat_Limestone")
+        # East wall of Market (x: +13.75 .. +14.25, cleanly butt-joined & trimmed 0.22m for `b_market` Blast Door rails!)
+        self.add_venetian_wall(13.75, -14.85, 14.25, -7.75, 0.0, 5.40, "Mat_PlasterHarbor")
+        self.add_venetian_wall(13.75, -19.18, 14.25, -15.35, 0.0, 4.20, "Mat_PlasterHarbor", "Mat_Limestone")
+        self.add_venetian_wall(13.75, -25.5, 14.25, -22.82, 0.0, 4.20, "Mat_PlasterHarbor", "Mat_Limestone")
 
-        # Roofed Market Hall Ceiling (y = 3.85 .. 4.40m -> 3.85m clear headroom!) + Clean Sloped Terracotta Gable Roof!
+        # Roofed Market Hall Ceiling strictly inside interior walls (2.25..13.75, -25.5..-15.35) + Sloped Terracotta Gable Roof!
         self.add_collider(1.75, 3.85, -26.0, 14.25, 4.40, -14.85, "wall")
         self.add_minimap_wall(2.25, -25.5, 13.75, -15.35, "roof")
-        self.mid_mb.add_box(1.9, 3.88, -25.8, 14.1, 4.18, -15.0, "Mat_DarkOak", bevel=0.0)
+        self.mid_mb.add_box(2.25, 3.88, -25.5, 13.75, 4.18, -15.35, "Mat_DarkOak", bevel=0.0)
         for mx in (4.2, 7.2, 10.2, 12.6):
             self.mid_mb.add_box(mx - 0.12, 3.68, -25.5, mx + 0.12, 3.88, -15.35, "Mat_DarkOak", bevel=0.0)
         self.mid_mb.add_pitched_roof(1.75, -26.0, 14.25, -14.85, 4.22, 1.75, ridge_along_x=True, roof_mat="Mat_Terracotta", gable_mat="Mat_PlasterPeach", overhang=0.35, add_ribs=True)
@@ -1605,26 +1790,27 @@ class AscentArchitect:
         self.add_walkable_rect(35.0, -8.0, 38.0, -3.0, "ground")  # Full 4.5m B Lane approach runway!
         self.add_walkable_rect(17.5, -7.0, 21.5, -1.5, "ground")  # B Logs recessed cubby
         self.add_solid_building_mass(38.0, -7.75, 41.4, -3.0, 5.6, "Mat_PlasterHarbor", "Mat_Terracotta")
-        self.add_solid_building_mass(35.0, -3.0, 41.4, 4.0, 5.6, "Mat_PlasterHarbor", "Mat_Terracotta")
+        self.add_solid_building_mass(35.0, -3.0, 41.4, 3.75, 5.6, "Mat_PlasterHarbor", "Mat_Terracotta")
         self.add_solid_building_mass(17.5, -1.5, 21.5, 3.75, 5.6, "Mat_PlasterHarbor", "Mat_Terracotta")
-        self.add_venetian_wall(17.5, -8.0, 21.5, -7.0, 0.0, 5.4, "Mat_PlasterHarbor")
+        self.add_venetian_wall(17.5, -7.75, 21.5, -7.0, 0.0, 5.4, "Mat_PlasterHarbor")
         # Arched opening into B Logs cubby
         self.add_archway_opening(False, -7.0, -1.5, 21.0, 21.5, 3.15, 5.40, "Mat_PlasterHarbor")
         # Sculpted Timber Logs Stack inside B Logs cubby (x: +17.7 .. +19.6, z: -6.4 .. -2.4, y: 0 .. 1.38)
         self.add_collider(17.7, 0.0, -6.4, 19.6, 1.38, -2.4, "cover")
         self.add_minimap_wall(17.7, -6.4, 19.6, -2.4, "cover")
         self.props_mb.add_box(17.75, 0.0, -6.2, 19.55, 0.18, -2.6, "Mat_DarkIron", bevel=0.01)
-        for ly, cols in [(0.42, [18.1, 18.65, 19.2]), (0.86, [18.35, 18.95]), (1.22, [18.65])]:
-            for lx in cols:
-                self.props_mb.add_cylinder(lx, ly, -4.4, 0.25, 0.24, 3.7, "Mat_TimberOak", segments=10, axis="z", smooth=True)
+        for row_i, (ly, cols) in enumerate([(0.42, [18.10, 18.65, 19.20]), (0.88, [18.38, 18.92]), (1.28, [18.65])]):
+            for col_i, lx in enumerate(cols):
+                log_len = 3.64 + 0.04 * ((row_i + col_i) % 3)  # Natural slight length stagger (ZERO coplanar end caps!)
+                self.props_mb.add_cylinder(lx, ly, -4.4, 0.24, 0.23, log_len, "Mat_TimberOak", segments=10, axis="z", smooth=True)
 
         # Enclosed Roofed Venetian Garage Ceiling & Pitched Terracotta Roof over B Main (y = 3.95 .. 4.45m -> 3.95m headroom!)
         self.add_collider(17.5, 3.95, -8.25, 38.0, 4.45, 4.25, "wall")
         self.add_minimap_wall(21.5, -7.75, 35.0, 3.75, "roof")
-        self.east_mb.add_box(17.6, 4.00, -8.1, 37.9, 4.35, 4.1, "Mat_DarkOak", bevel=0.0)
+        self.east_mb.add_box(21.5, 4.00, -7.75, 35.0, 4.35, 3.75, "Mat_DarkOak", bevel=0.0)
         for gz in (-6.0, -3.2, -0.4, 2.2):
             self.east_mb.add_box(21.5, 3.76, gz - 0.14, 35.0, 4.00, gz + 0.14, "Mat_DarkOak", bevel=0.0)
-        self.east_mb.add_pitched_roof(17.6, -8.25, 35.0, 4.25, 5.42, 1.65, ridge_along_x=True, roof_mat="Mat_Terracotta", gable_mat="Mat_PlasterHarbor", overhang=0.32, add_ribs=True)
+        self.east_mb.add_pitched_roof(17.6, -8.25, 35.0, 4.25, 5.62, 1.65, ridge_along_x=True, roof_mat="Mat_Terracotta", gable_mat="Mat_PlasterHarbor", overhang=0.32, add_ribs=True)
 
         # Wall-Bang Corner Crates inside B Main Garage (tucked behind mouth piers, leaving 6m B Main & 4.5m B Lane wide open!)
         self.add_wood_cover_crate(30.9, -7.6, 32.7, -5.8, 0.0, 1.38, minimap=True)
@@ -1644,35 +1830,37 @@ class AscentArchitect:
         self.add_collider(22.0, 0.0, -11.4, 24.4, 1.32, -9.4, "cover")
         self.add_minimap_wall(22.0, -11.4, 24.4, -9.4, "cover")
         self.props_mb.add_box(22.08, 0.0, -11.3, 24.32, 0.18, -9.5, "Mat_DarkOak", bevel=0.01)
-        for ly, z_cols in [(0.42, [-10.95, -10.40, -9.85]), (0.84, [-10.68, -10.12]), (1.16, [-10.40])]:
-            for lz in z_cols:
-                self.props_mb.add_cylinder(23.2, ly, lz, 0.24, 0.23, 2.28, "Mat_TimberOak", segments=10, axis="x", smooth=True)
+        for row_i, (ly, z_cols) in enumerate([(0.42, [-10.95, -10.40, -9.85]), (0.86, [-10.68, -10.12]), (1.24, [-10.40])]):
+            for col_i, lz in enumerate(z_cols):
+                log_len = 2.22 + 0.04 * ((row_i + col_i) % 3)  # Natural slight length stagger (ZERO coplanar end caps!)
+                self.props_mb.add_cylinder(23.2, ly, lz, 0.23, 0.22, log_len, "Mat_TimberOak", segments=10, axis="x", smooth=True)
         # Iron lashing straps binding the B Logs stack
-        self.props_mb.add_box(22.45, 0.14, -11.24, 22.58, 1.30, -9.56, "Mat_DarkIron", bevel=0.0)
-        self.props_mb.add_box(23.82, 0.14, -11.24, 23.95, 1.30, -9.56, "Mat_DarkIron", bevel=0.0)
+        self.props_mb.add_box(22.45, 0.18, -11.24, 22.58, 1.30, -9.56, "Mat_DarkIron", bevel=0.0)
+        self.props_mb.add_box(23.82, 0.18, -11.24, 23.95, 1.30, -9.56, "Mat_DarkIron", bevel=0.0)
 
         # 2. SITE B COURTYARD & ELEVATED B LANE (x: +14.25 .. +38.0, z: -32.5 .. -8.25)
         self.add_walkable_rect(14.25, -32.5, 26.0, -8.25, "ground")
         self.add_walkable_rect(26.0, -24.4, 33.5, -8.25, "ground")
-        # Outer East wall framing B Lane & Boathouse
+        # Outer East wall framing B Lane & Boathouse (x0 = 36.5 cleanly outside Boathouse east wall 36.0..36.5!)
         self.add_solid_building_mass(38.0, -32.5, 41.4, -7.75, 5.8, "Mat_PlasterHarbor", "Mat_Terracotta")
-        self.add_solid_building_mass(36.0, -32.5, 38.0, -24.4, 5.8, "Mat_PlasterHarbor", "Mat_Terracotta")
+        self.add_solid_building_mass(36.5, -32.5, 38.0, -24.4, 5.8, "Mat_PlasterHarbor", "Mat_Terracotta")
 
         # Elevated B LANE (y = 0.85m, x: +33.5 .. +38.0, z: -24.4 .. -9.15) Wooden/Stone Bridge hugging Outer East Wall!
+        self.add_trim_obstacle(33.5, 0.0, -24.4, 38.0, 0.88, -8.00)
         # South climb from B Main (z: -9.15 .. -8.00, y = 0.425m)
         self.add_collider(33.5, 0.0, -9.15, 38.0, 0.425, -8.00, "floor")
         self.east_mb.add_box(33.5, 0.0, -9.15, 38.0, 0.425, -8.00, "Mat_Limestone", bevel=0.015)
-        # Main B Lane stone/timber bridge deck (y = 0.85m) with bridge pier pilasters & dark-oak curbing
+        # Main B Lane stone/timber bridge deck (y = 0.85m) with exterior bridge pier pilasters & dark-oak curbing
         self.add_collider(33.5, 0.0, -24.4, 38.0, 0.85, -9.15, "floor")
         self.east_mb.add_box(33.5, 0.0, -24.4, 38.0, 0.76, -9.15, "Mat_Limestone", bevel=0.015)
         self.east_mb.add_box(33.48, 0.76, -24.4, 38.0, 0.85, -9.15, "Mat_TimberOak", bevel=0.012)
-        self.east_mb.add_box(33.45, 0.74, -24.4, 33.62, 0.88, -9.15, "Mat_DarkOak", bevel=0.0)
-        for bz in (-23.0, -19.5, -16.0, -12.5, -9.5):
-            self.east_mb.add_box(33.42, 0.0, bz - 0.22, 33.58, 0.82, bz + 0.22, "Mat_BrickVenetian", bevel=0.0)
+        self.east_mb.add_box(33.42, 0.74, -24.38, 33.52, 0.88, -9.17, "Mat_DarkOak", bevel=0.0)
+        for bz in (-18.5, -16.0, -13.0, -10.2):
+            self.east_mb.add_box(33.40, 0.01, bz - 0.22, 33.50, 0.75, bz + 0.22, "Mat_BrickVenetian", bevel=0.0)
         self.add_walkable_rect(33.5, -24.4, 38.0, -8.0, "mid")
         # B Lane Harbor Parapet (split cleanly around z = -16.0m Defender Buy Barrier!)
-        self.add_low_stone_cover(33.5, -15.4, 33.9, -11.0, 0.85, 1.95, "Mat_Limestone", "Mat_Terracotta")
-        self.add_low_stone_cover(33.5, -19.2, 33.9, -16.6, 0.85, 1.95, "Mat_Limestone", "Mat_Terracotta")
+        self.add_low_stone_cover(33.53, -15.4, 33.93, -11.0, 0.85, 1.95, "Mat_Limestone", "Mat_Terracotta")
+        self.add_low_stone_cover(33.53, -19.2, 33.93, -16.6, 0.85, 1.95, "Mat_Limestone", "Mat_Terracotta")
         # B Stairs descending West from B Lane into Back Site B & Boathouse front (x: +32.35 .. +33.5, z: -23.8 .. -19.5, y = 0.425m)
         self.add_collider(32.35, 0.0, -23.8, 33.5, 0.425, -19.5, "floor")
         self.east_mb.add_box(32.35, 0.0, -23.8, 33.5, 0.425, -19.5, "Mat_Limestone", bevel=0.015)
@@ -1684,12 +1872,12 @@ class AscentArchitect:
         self.add_collider(17.15, 0.0, -19.20, 17.45, 3.05, -18.90, "wall")
         self.east_mb.add_box(17.15, 0.0, -19.20, 17.45, 3.05, -18.90, "Mat_DarkOak", bevel=0.01)
         self.add_wood_cover_crate(16.35, -17.55, 17.35, -16.75, 0.0, 1.22, minimap=True)
-        # Overhead sloped terracotta & timber B Switch Shed lean-to roof (y = 3.05 .. 3.85m, collider + rafters!)
+        # Overhead sloped terracotta & timber B Switch Shed lean-to roof cleanly atop y = 3.05 wall & post!
         self.add_collider(14.25, 3.05, -19.35, 17.75, 3.85, -16.25, "wall")
         self.add_minimap_wall(14.25, -19.30, 17.65, -16.30, "roof")
         for rz in (-19.0, -17.8, -16.6):
-            self.east_mb.add_box(14.25, 2.94, rz - 0.09, 17.55, 3.12, rz + 0.09, "Mat_DarkOak", bevel=0.0)
-        self.east_mb.add_oriented_box(16.05, 3.45, -17.80, 3.70, 0.14, 3.25, 0.0, 0.0, -0.18, "Mat_Terracotta", bevel=0.0)
+            self.east_mb.add_box(14.25, 3.05, rz - 0.09, 17.55, 3.22, rz + 0.09, "Mat_DarkOak", bevel=0.0)
+        self.east_mb.add_oriented_box(16.05, 3.55, -17.80, 3.70, 0.14, 3.25, 0.0, 0.0, -0.18, "Mat_Terracotta", bevel=0.0)
 
         # Bomb Site B Glowing Floor Border Frame (19.5 .. 31.5, -24.0 .. -16.2)
         self._add_site_floor_border(19.5, -24.0, 31.5, -16.2, "Mat_SiteBAccent")
@@ -1708,23 +1896,26 @@ class AscentArchitect:
         self.add_archway_opening(True, 17.5, 23.5, -32.5, -32.0, 3.30, 5.40, "Mat_PlasterHarbor")
         self.add_venetian_wall(23.5, -32.5, 26.0, -32.0, 0.0, 5.4, "Mat_PlasterHarbor")
 
-        # 3. REAL B BOAT HOUSE (x: +26.0 .. +36.0, z: -32.0 .. -24.4)
+        # 3. REAL B BOAT HOUSE (x: +26.0 .. +36.5, z: -32.5 .. -24.4)
         #    Enclosed Venetian harbor shed with REAL sloped terracotta-tile gable roof,
         #    wooden interior dock + canal slipway, sculpted Venetian gondola hull, doorway & shoot-through window!
         self.add_walkable_rect(26.5, -32.0, 36.0, -24.9, "ground")
-        # North & East walls (eaves at y = 3.60m)
+        # North wall (full width 26.0..36.5, eaves at y = 3.60m)
         self.add_venetian_wall(26.0, -32.5, 36.5, -32.0, 0.0, 3.60, "Mat_PlasterHarbor", "Mat_DarkOak")
-        self.add_venetian_wall(36.0, -32.5, 36.5, -24.4, 0.0, 3.60, "Mat_PlasterHarbor", "Mat_DarkOak")
-        # West wall (x: +26.0 .. +26.5): Side doorway facing CT-B at z: -30.8 .. -27.4
+        # East wall strictly between North (-32.0) & South (-24.9) walls (ZERO corner overlap!)
+        self.add_venetian_wall(36.0, -32.0, 36.5, -24.9, 0.0, 3.60, "Mat_PlasterHarbor", "Mat_DarkOak")
+        # West wall (x: +26.0 .. +26.5, strictly between -32.0 & -24.9): Side doorway facing CT-B at z: -30.8 .. -27.4
         self.add_venetian_wall(26.0, -32.0, 26.5, -30.8, 0.0, 3.60, "Mat_PlasterHarbor", "Mat_DarkOak")
         self.add_collider(26.0, 2.85, -30.8, 26.5, 3.60, -27.4, "wall")
+        self.add_trim_obstacle(26.0, 0.0, -30.8, 26.5, 3.60, -27.4)
         self.east_mb.add_box(26.0, 2.85, -30.8, 26.5, 3.60, -27.4, "Mat_DarkOak", bevel=0.015)
         self.add_venetian_wall(26.0, -27.4, 26.5, -24.9, 0.0, 3.60, "Mat_PlasterHarbor", "Mat_DarkOak")
-        # South wall facing Site B (z: -24.9 .. -24.4):
+        # South wall facing Site B (z: -24.9 .. -24.4, full width 26.0..36.5):
         #   - Doorway facing Site B [27.0 .. 30.4]
         #   - Shoot-Through Window [31.4 .. 35.0] (open band y = 1.10 .. 2.50m!)
         self.add_venetian_wall(26.0, -24.9, 27.0, -24.4, 0.0, 3.60, "Mat_PlasterHarbor", "Mat_DarkOak")
         self.add_collider(27.0, 2.85, -24.9, 30.4, 3.60, -24.4, "wall")
+        self.add_trim_obstacle(27.0, 0.0, -24.9, 30.4, 3.60, -24.4)
         self.east_mb.add_box(27.0, 2.85, -24.9, 30.4, 3.60, -24.4, "Mat_DarkOak", bevel=0.015)
         self.add_venetian_wall(30.4, -24.9, 31.4, -24.4, 0.0, 3.60, "Mat_PlasterHarbor", "Mat_DarkOak")
         self.add_shoot_window_wall(True, 31.4, 35.0, -24.9, -24.4, 1.10, 2.50, 3.60, "Mat_PlasterHarbor")
@@ -1734,26 +1925,30 @@ class AscentArchitect:
         self.add_collider(26.0, 3.60, -32.5, 36.5, 4.55, -24.4, "wall")
         self.add_minimap_wall(26.0, -32.5, 36.5, -24.4, "roof")
         # Triangular stone gable pediments on West & East ends (ridge at z = -28.45, y = 5.35m)
-        gable_poly = [(3.60, -32.55), (5.25, -28.45), (3.60, -24.35)]
+        gable_poly = [(3.62, -32.50), (5.25, -28.45), (3.62, -24.40)]
         self.east_mb.add_prism_extrude_x(26.0, 26.45, gable_poly, "Mat_PlasterHarbor")
-        self.east_mb.add_prism_extrude_x(36.05, 36.5, gable_poly, "Mat_PlasterHarbor")
-        # Two sloped terracotta roof planes (pitch ~21.8 deg) + ridge barrel tiles + 3 exposed timber king-post trusses!
+        self.east_mb.add_prism_extrude_x(36.05, 36.48, gable_poly, "Mat_PlasterHarbor")
+        # Two non-overlapping sloped terracotta roof planes (pulled cleanly back from ridge centerline!)
         slope_angle = math.atan2(5.35 - 3.60, 4.35)
-        slope_len = math.hypot(5.35 - 3.60, 4.55)
-        self.east_mb.add_oriented_box(31.25, 4.52, -30.62, 11.1, 0.18, slope_len, -slope_angle, 0.0, 0.0, "Mat_Terracotta", bevel=0.0)
-        self.east_mb.add_oriented_box(31.25, 4.52, -26.28, 11.1, 0.18, slope_len, slope_angle, 0.0, 0.0, "Mat_Terracotta", bevel=0.0)
-        self.east_mb.add_cylinder(31.25, 5.46, -28.45, 0.18, 0.18, 11.2, "Mat_Terracotta", segments=8, axis="x")
+        cos_a, sin_a = math.cos(slope_angle), math.sin(slope_angle)
+        bh_trim = 0.16
+        bh_slab_len = math.hypot(5.35 - 3.60, 4.55) - bh_trim
+        bh_sh_z = 0.5 * bh_trim * cos_a
+        bh_sh_y = -0.5 * bh_trim * sin_a
+        self.east_mb.add_oriented_box(31.25, 4.52 + bh_sh_y, -30.62 - bh_sh_z, 11.0, 0.18, bh_slab_len, -slope_angle, 0.0, 0.0, "Mat_Terracotta", bevel=0.0)
+        self.east_mb.add_oriented_box(31.25, 4.52 + bh_sh_y, -26.28 + bh_sh_z, 11.0, 0.18, bh_slab_len, slope_angle, 0.0, 0.0, "Mat_Terracotta", bevel=0.0)
+        self.east_mb.add_cylinder(31.25, 5.46, -28.45, 0.18, 0.18, 11.1, "Mat_Terracotta", segments=8, axis="x")
         for rx in (27.0, 28.4, 29.8, 31.2, 32.6, 34.0, 35.4):
-            self.east_mb.add_oriented_box(rx, 4.62, -30.62, 0.12, 0.10, slope_len - 0.1, -slope_angle, 0.0, 0.0, "Mat_Terracotta", bevel=0.0)
-            self.east_mb.add_oriented_box(rx, 4.62, -26.28, 0.12, 0.10, slope_len - 0.1, slope_angle, 0.0, 0.0, "Mat_Terracotta", bevel=0.0)
-        # Exposed interior dark-oak timber trusses (tie beams + king posts)
+            self.east_mb.add_oriented_box(rx, 4.63 + bh_sh_y, -30.62 - bh_sh_z, 0.12, 0.10, bh_slab_len - 0.16, -slope_angle, 0.0, 0.0, "Mat_Terracotta", bevel=0.0)
+            self.east_mb.add_oriented_box(rx, 4.63 + bh_sh_y, -26.28 + bh_sh_z, 0.12, 0.10, bh_slab_len - 0.16, slope_angle, 0.0, 0.0, "Mat_Terracotta", bevel=0.0)
+        # Exposed interior dark-oak timber trusses (tie beams strictly below y=3.60 wall cornice + king posts above)
         for tx in (28.2, 30.8, 33.4):
-            self.east_mb.add_box(tx - 0.12, 3.42, -32.0, tx + 0.12, 3.62, -24.9, "Mat_DarkOak", bevel=0.0)
-            self.east_mb.add_box(tx - 0.10, 3.62, -28.6, tx + 0.10, 5.15, -28.3, "Mat_DarkOak", bevel=0.0)
+            self.east_mb.add_box(tx - 0.12, 3.38, -32.0, tx + 0.12, 3.56, -24.9, "Mat_DarkOak", bevel=0.0)
+            self.east_mb.add_box(tx - 0.10, 3.56, -28.6, tx + 0.10, 5.15, -28.3, "Mat_DarkOak", bevel=0.0)
 
-        # Wooden Interior Dock curbing & cast-iron Venetian mooring bollards along canal slipway edge (x = 32.78)
-        self.props_mb.add_box(32.68, 0.016, -32.0, 32.86, 0.09, -26.8, "Mat_DarkOak", bevel=0.0)
-        self.props_mb.add_box(32.68, 0.016, -26.92, 36.0, 0.09, -26.74, "Mat_DarkOak", bevel=0.0)
+        # Wooden Interior Dock curbing (butt-joined cleanly at x = 32.86!) & cast-iron Venetian mooring bollards
+        self.props_mb.add_box(32.68, 0.016, -31.96, 32.86, 0.09, -26.74, "Mat_DarkOak", bevel=0.0)
+        self.props_mb.add_box(32.86, 0.016, -26.92, 35.96, 0.09, -26.74, "Mat_DarkOak", bevel=0.0)
         for mbz in (-31.1, -29.2, -27.2):
             self.props_mb.add_cylinder(32.76, 0.22, mbz, 0.11, 0.09, 0.34, "Mat_DarkIron", segments=8, axis="y")
             self.props_mb.add_cylinder(32.76, 0.40, mbz, 0.14, 0.14, 0.06, "Mat_DarkIron", segments=8, axis="y")
@@ -1826,19 +2021,24 @@ class AscentArchitect:
             cx, cy, cz = round(0.5 * (x0 + x1), 3), round(0.5 * (y0 + y1), 3), round(0.5 * (z0 + z1), 3)
             sx, sy, sz = spec["switch_pos"]
 
-            # Static overhead mechanical shutter housing (y = 3.00 .. 6.35m) so panel retracts +3.1m cleanly inside!
+            # Static overhead mechanical shutter housing & side rail colliders
             self.add_collider(x0 - 0.06, 3.00, z0 - 0.15, x1 + 0.06, 6.35, z1 + 0.15, "wall")
+            self.add_collider(x0 - 0.03, 0.0, z0 - 0.22, x1 + 0.03, 6.35, z0, "wall")
+            self.add_collider(x0 - 0.03, 0.0, z1, x1 + 0.03, 6.35, z1 + 0.22, "wall")
+            self.add_trim_obstacle(x0 - 0.08, 0.0, z0 - 0.22, x1 + 0.08, 6.38, z1 + 0.22)
             mb = self._pick_mb(x0, x1)
-            # Side guide rails + overhead armored shutter box (hollow slot inside so zero coplanar faces with sliding panel!)
-            mb.add_box(x0 - 0.08, 0.0, z0 - 0.22, x1 + 0.08, 6.35, z0, "Mat_DarkIron", bevel=0.015)
-            mb.add_box(x0 - 0.08, 0.0, z1, x1 + 0.08, 6.35, z1 + 0.22, "Mat_DarkIron", bevel=0.015)
-            mb.add_box(x0 - 0.12, 3.00, z0 - 0.22, x0 - 0.02, 6.35, z1 + 0.22, "Mat_DarkIron", bevel=0.015)
-            mb.add_box(x1 + 0.02, 3.00, z0 - 0.22, x1 + 0.12, 6.35, z1 + 0.22, "Mat_DarkIron", bevel=0.015)
+            # Side guide rails (0.0..6.15) + overhead armored side plates strictly between rails (z0..z1, 3.00..6.15) + top cap (6.15..6.38)!
+            mb.add_box(x0 - 0.08, 0.0, z0 - 0.22, x1 + 0.08, 6.15, z0, "Mat_DarkIron", bevel=0.015)
+            mb.add_box(x0 - 0.08, 0.0, z1, x1 + 0.08, 6.15, z1 + 0.22, "Mat_DarkIron", bevel=0.015)
+            mb.add_box(x0 - 0.12, 3.00, z0, x0 - 0.02, 6.15, z1, "Mat_DarkIron", bevel=0.015)
+            mb.add_box(x1 + 0.02, 3.00, z0, x1 + 0.12, 6.15, z1, "Mat_DarkIron", bevel=0.015)
             mb.add_box(x0 - 0.14, 6.15, z0 - 0.24, x1 + 0.14, 6.38, z1 + 0.24, "Mat_HazardGold", bevel=0.015)
 
-            # Static switch mounting backplate on wall
+            # Static switch mounting backplate proud of wall face (handles both -1 and +1 facing signs cleanly!)
             face_s = spec["switch_facing_sign"]
-            mb.add_box(sx - 0.09 * face_s, sy - 0.28, sz - 0.22, sx - 0.02 * face_s, sy + 0.28, sz + 0.22, "Mat_DarkIron", bevel=0.01)
+            bp_x0 = min(sx - 0.13 * face_s, sx - 0.02 * face_s)
+            bp_x1 = max(sx - 0.13 * face_s, sx - 0.02 * face_s)
+            mb.add_box(bp_x0, sy - 0.28, sz - 0.22, bp_x1, sy + 0.28, sz + 0.22, "Mat_DarkIron", bevel=0.01)
 
             # 1. Named Interactive `DoorPanel_<id>` (pivot at exact closed center `(cx, cy, cz)`)
             panel_mb = WorldMeshBuilder(f"DoorPanel_{did}", self.palette, origin_world=(cx, cy, cz))
@@ -1908,15 +2108,24 @@ class AscentArchitect:
         mb.add_box(bx - 7.5, 0.0, bz - 7.5, bx + 7.5, 0.8, bz + 7.5, "Mat_Limestone", bevel=0.0)
         # Limestone base plinth (y: 0.8 .. 3.2)
         mb.add_box(bx - 4.2, 0.8, bz - 4.2, bx + 4.2, 3.2, bz + 4.2, "Mat_Limestone", bevel=0.0)
-        # Fluted Venetian brick shaft (y: 3.2 .. 19.5) with corner pilasters + iconic Venetian clock medallion facing Mid!
+        # Fluted Venetian brick shaft (y: 3.2 .. 19.5) with non-overlapping exterior corner & mid-face pilasters!
         mb.add_box(bx - 3.6, 3.2, bz - 3.6, bx + 3.6, 19.5, bz + 3.6, "Mat_BrickVenetian", bevel=0.0)
-        for px in (-3.72, -1.2, 1.2, 3.72):
-            mb.add_box(bx + px - 0.22, 3.4, bz - 3.75, bx + px + 0.22, 19.3, bz + 3.75, "Mat_Limestone", bevel=0.0)
-            mb.add_box(bx - 3.75, 3.4, bz + px - 0.22, bx + 3.75, 19.3, bz + px + 0.22, "Mat_Limestone", bevel=0.0)
-        # Venetian Clock Medallion facing south toward Mid Courtyard
-        mb.add_cylinder(bx, 16.5, bz + 3.72, 1.45, 1.45, 0.18, "Mat_Limestone", segments=12, axis="z")
-        mb.add_cylinder(bx, 16.5, bz + 3.82, 1.18, 1.18, 0.10, "Mat_PlasterHarbor", segments=12, axis="z")
-        mb.add_cylinder(bx, 16.5, bz + 3.90, 0.20, 0.20, 0.08, "Mat_GoldBell", segments=8, axis="z")
+        for sx in (-1.0, 1.0):
+            for sz in (-1.0, 1.0):
+                cx_p = bx + sx * 3.56
+                cz_p = bz + sz * 3.56
+                mb.add_box(cx_p - 0.24, 3.4, cz_p - 0.24, cx_p + 0.24, 19.3, cz_p + 0.24, "Mat_Limestone", bevel=0.0)
+        for p_off in (-1.2, 1.2):
+            # North & South face pilasters
+            mb.add_box(bx + p_off - 0.20, 3.4, bz - 3.74, bx + p_off + 0.20, 19.3, bz - 3.60, "Mat_Limestone", bevel=0.0)
+            mb.add_box(bx + p_off - 0.20, 3.4, bz + 3.60, bx + p_off + 0.20, 19.3, bz + 3.74, "Mat_Limestone", bevel=0.0)
+            # West & East face pilasters
+            mb.add_box(bx - 3.74, 3.4, bz + p_off - 0.20, bx - 3.60, 19.3, bz + p_off + 0.20, "Mat_Limestone", bevel=0.0)
+            mb.add_box(bx + 3.60, 3.4, bz + p_off - 0.20, bx + 3.74, 19.3, bz + p_off + 0.20, "Mat_Limestone", bevel=0.0)
+        # Venetian Clock Medallion strictly proud of south pilasters (z = bz + 3.76 .. 4.10)
+        mb.add_cylinder(bx, 16.5, bz + 3.84, 1.45, 1.45, 0.16, "Mat_Limestone", segments=12, axis="z")
+        mb.add_cylinder(bx, 16.5, bz + 3.97, 1.18, 1.18, 0.10, "Mat_PlasterHarbor", segments=12, axis="z")
+        mb.add_cylinder(bx, 16.5, bz + 4.06, 0.20, 0.20, 0.08, "Mat_GoldBell", segments=8, axis="z")
         # Cornice gallery deck (y: 19.5 .. 20.6)
         mb.add_box(bx - 4.3, 19.5, bz - 4.3, bx + 4.3, 20.6, bz + 4.3, "Mat_Limestone", bevel=0.0)
         # Open 4-sided arched Belfry Loggia (y: 20.6 .. 24.8) + Hanging Golden Bell!
@@ -2214,6 +2423,195 @@ def generate_waypoints(
     return waypoints
 
 
+def _poly_2d_intersection_area(
+    poly1: List[Tuple[float, float]],
+    poly2: List[Tuple[float, float]],
+) -> float:
+    """Exact 2D convex polygon intersection area via Sutherland-Hodgman clipping."""
+    def area2d(poly: List[Tuple[float, float]]) -> float:
+        a = 0.0
+        m = len(poly)
+        for idx in range(m):
+            x1, y1 = poly[idx]
+            x2, y2 = poly[(idx + 1) % m]
+            a += x1 * y2 - x2 * y1
+        return 0.5 * a
+
+    p1 = list(poly1)
+    p2 = list(poly2)
+    if area2d(p1) < 0.0:
+        p1.reverse()
+    if area2d(p2) < 0.0:
+        p2.reverse()
+
+    output = p1
+    m2 = len(p2)
+    for i in range(m2):
+        ax, ay = p2[i]
+        bx, by = p2[(i + 1) % m2]
+        ex, ey = bx - ax, by - ay
+        inp = output
+        output = []
+        if not inp:
+            return 0.0
+        s = inp[-1]
+        for e in inp:
+            e_in = ex * (e[1] - ay) - ey * (e[0] - ax) >= -1e-7
+            s_in = ex * (s[1] - ay) - ey * (s[0] - ax) >= -1e-7
+            if e_in:
+                if not s_in:
+                    dx, dy = e[0] - s[0], e[1] - s[1]
+                    denom = ex * dy - ey * dx
+                    if abs(denom) >= 1e-12:
+                        t = (ex * (ay - s[1]) - ey * (ax - s[0])) / denom
+                        output.append((s[0] + t * dx, s[1] + t * dy))
+                    else:
+                        output.append(s)
+                output.append(e)
+            elif s_in:
+                dx, dy = e[0] - s[0], e[1] - s[1]
+                denom = ex * dy - ey * dx
+                if abs(denom) >= 1e-12:
+                    t = (ex * (ay - s[1]) - ey * (ax - s[0])) / denom
+                    output.append((s[0] + t * dx, s[1] + t * dy))
+                else:
+                    output.append(s)
+            s = e
+    return abs(area2d(output)) if len(output) >= 3 else 0.0
+
+
+def detect_coplanar_zfight_overlaps(
+    glb_path: str,
+    plane_tol: float = 0.003,
+    min_axis_overlap: float = 0.02,
+) -> Tuple[int, List[str]]:
+    """
+    Automated Blender Coplanar Z-Fight Detector auditing the exported GLB binary:
+    Re-imports `glb_path` into a clean scene and checks every pair of world-space polygons
+    across all meshes that share the same snapped normal `(nx, ny, nz)` + plane offset `d`
+    within `plane_tol` (0.003m) and have 2D bounding overlap > `min_axis_overlap` (0.02m)
+    in both perpendicular axes (with real 2D overlap or cross-primitive coplanar overlap).
+    """
+    clear_blender_scene()
+    bpy.ops.import_scene.gltf(filepath=glb_path)
+
+    # Identify connected vertex islands (individual geometric primitives) per mesh
+    polys: List[Dict] = []
+    for obj in bpy.data.objects:
+        if obj.type != "MESH":
+            continue
+        mesh = obj.data
+        adj: Dict[int, List[int]] = defaultdict(list)
+        for edge in mesh.edges:
+            va, vb = edge.vertices
+            adj[va].append(vb)
+            adj[vb].append(va)
+        v_comp: Dict[int, int] = {}
+        cid = 0
+        for vi in range(len(mesh.vertices)):
+            if vi not in v_comp:
+                q = deque([vi])
+                v_comp[vi] = cid
+                while q:
+                    u = q.popleft()
+                    for nxt in adj[u]:
+                        if nxt not in v_comp:
+                            v_comp[nxt] = cid
+                            q.append(nxt)
+                cid += 1
+
+        mw = obj.matrix_world
+        nmat = mw.to_3x3().inverted_safe().transposed()
+        for p in mesh.polygons:
+            if p.area < 1e-6:
+                continue
+            verts = [mw @ mesh.vertices[vi].co for vi in p.vertices]
+            n = (nmat @ p.normal).normalized()
+            d = n.dot(verts[0])
+            snx = 0.0 if abs(round(n.x, 2)) < 1e-6 else round(n.x, 2)
+            sny = 0.0 if abs(round(n.y, 2)) < 1e-6 else round(n.y, 2)
+            snz = 0.0 if abs(round(n.z, 2)) < 1e-6 else round(n.z, 2)
+            ref = Vector((0.0, 0.0, 1.0)) if abs(snz) < 0.9 else Vector((1.0, 0.0, 0.0))
+            u_vec = Vector((snx, sny, snz)).normalized().cross(ref).normalized()
+            v_vec = Vector((snx, sny, snz)).normalized().cross(u_vec).normalized()
+            pts2d = [(pt.dot(u_vec), pt.dot(v_vec)) for pt in verts]
+            us = [pt[0] for pt in pts2d]
+            vs = [pt[1] for pt in pts2d]
+            xs = [pt.x for pt in verts]
+            ys = [pt.z for pt in verts]  # Three.js world Y = Blender Z
+            zs = [-pt.y for pt in verts]  # Three.js world Z = -Blender Y
+            mat_name = (
+                mesh.materials[p.material_index].name
+                if p.material_index < len(mesh.materials) and mesh.materials[p.material_index]
+                else "None"
+            )
+            polys.append({
+                "obj": obj.name,
+                "prim": (obj.name, v_comp[p.vertices[0]]),
+                "n": n,
+                "sn": (snx, sny, snz),
+                "d": d,
+                "pts2d": pts2d,
+                "u_min": min(us),
+                "u_max": max(us),
+                "v_min": min(vs),
+                "v_max": max(vs),
+                "mat": mat_name,
+                "wbox": (
+                    round(min(xs), 2), round(min(ys), 2), round(min(zs), 2),
+                    round(max(xs), 2), round(max(ys), 2), round(max(zs), 2),
+                ),
+            })
+
+    buckets: Dict[Tuple[float, float, float, int], List[int]] = defaultdict(list)
+    for idx, p in enumerate(polys):
+        db = int(round(p["d"] / plane_tol))
+        buckets[(*p["sn"], db)].append(idx)
+
+    seen_pairs = set()
+    zfight_overlaps = 0
+    report_samples: List[str] = []
+    seen_prim_reports = set()
+
+    for (snx, sny, snz, db), idxs in list(buckets.items()):
+        cand_idxs: List[int] = []
+        for d_off in (-1, 0, 1):
+            cand_idxs.extend(buckets.get((snx, sny, snz, db + d_off), []))
+        for a_i in idxs:
+            p1 = polys[a_i]
+            for b_i in cand_idxs:
+                if b_i <= a_i:
+                    continue
+                pair_key = (a_i, b_i)
+                if pair_key in seen_pairs:
+                    continue
+                seen_pairs.add(pair_key)
+                p2 = polys[b_i]
+                if abs(p1["d"] - p2["d"]) > plane_tol:
+                    continue
+                if p1["n"].dot(p2["n"]) < 0.999:
+                    continue
+                ou = min(p1["u_max"], p2["u_max"]) - max(p1["u_min"], p2["u_min"])
+                if ou <= min_axis_overlap:
+                    continue
+                ov = min(p1["v_max"], p2["v_max"]) - max(p1["v_min"], p2["v_min"])
+                if ov <= min_axis_overlap:
+                    continue
+                area = _poly_2d_intersection_area(p1["pts2d"], p2["pts2d"])
+                if area > 1e-4:
+                    zfight_overlaps += 1
+                    pr_key = (min(p1["prim"], p2["prim"]), max(p1["prim"], p2["prim"]), p1["sn"], round(p1["d"], 3))
+                    if pr_key not in seen_prim_reports and len(report_samples) < 40:
+                        seen_prim_reports.add(pr_key)
+                        wn = (round(p1["n"].x, 2), round(p1["n"].z, 2), round(-p1["n"].y, 2))
+                        report_samples.append(
+                            f"  {p1['obj']}({p1['mat']}) vs {p2['obj']}({p2['mat']}) | "
+                            f"wn={wn} d={p1['d']:.3f} area={area:.4f} | {p1['wbox']} vs {p2['wbox']}"
+                        )
+
+    return zfight_overlaps, report_samples
+
+
 def run_mandatory_proofs(
     colliders: List[Dict],
     waypoints: List[Dict],
@@ -2346,12 +2744,21 @@ def run_mandatory_proofs(
         assert math.dist(pt, [c["x"], c["y"], c["z"]]) < 0.002, f"{p_name} translation {pt} != {c}"
         assert math.dist(st, [sw["x"], sw["y"], sw["z"]]) < 0.002, f"{s_name} translation {st} != {sw}"
 
+    # 5. Automated Coplanar Z-Fight Detector across all exported GLB meshes!
+    zfight_overlaps, zfight_samples = detect_coplanar_zfight_overlaps(glb_path)
+    if zfight_overlaps > 0:
+        sample_txt = "\n".join(zfight_samples)
+        raise AssertionError(
+            f"COPLANAR Z-FIGHTING DETECTED ({zfight_overlaps} overlapping polygon pairs)!\n"
+            f"Sample pairs:\n{sample_txt}"
+        )
+
     print(
-        f"[ASCENT VERIFIED] colliders={len(colliders)} | waypoints={len(waypoints)} "
+        f"[ASCENT VERIFIED] zfightOverlaps={zfight_overlaps} | openingLoSPairs={opening_los_pairs} | bfs=100% | "
+        f"colliders={len(colliders)} | waypoints={len(waypoints)} "
         f"(heaven={len(heaven_wps)}, hell={len(hell_wps)}, treeCT={len(tree_ct_wps)}, "
         f"midLink={len(mid_link_wps)}, catwalk={len(catwalk_wps)}, bLane={len(blane_wps)}, "
-        f"boathouse={len(boathouse_wps)}, bfs=100%) | "
-        f"openingLoSPairs={opening_los_pairs} | glbBytes={glb_bytes} | triangles={total_tris}"
+        f"boathouse={len(boathouse_wps)}) | glbBytes={glb_bytes} | triangles={total_tris}"
     )
 
 

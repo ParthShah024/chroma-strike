@@ -28,6 +28,8 @@ export interface WeaponSystem {
   state: WeaponState;
   currentWeaponId: WeaponId;
   isScoped: boolean;
+  getAdsBlend(): number;
+  setAdsActive(active: boolean): void;
   equipWeapon(weaponId: WeaponId): void;
   cycleWeapon(delta: number): void;
   toggleScope(forceState?: boolean): void;
@@ -643,17 +645,28 @@ export function createWeaponSystem(
     armor: handArmorMat,
     trim: handTrimMat,
   };
-  // Illuminated holo/reflex sight ring + faint tinted lens (SMG & AR).
-  const holoRingMat = new THREE.MeshBasicMaterial({ color: AGENT_PALETTES[activeColorId].hex });
+  // Illuminated open-frame Reflex Holo optics (SMG & AR) + luminous 3-dot tritium iron sights (Pistol).
+  const holoRingMat = new THREE.MeshBasicMaterial({
+    color: AGENT_PALETTES[activeColorId].hex,
+    transparent: true,
+    opacity: 0.58,
+    depthWrite: false,
+  });
+  const holoDotMat = new THREE.MeshBasicMaterial({
+    color: new THREE.Color(AGENT_PALETTES[activeColorId].hex).lerp(new THREE.Color(0xffffff), 0.35),
+  });
   const holoLensMat = new THREE.MeshBasicMaterial({
     color: AGENT_PALETTES[activeColorId].hex,
     transparent: true,
-    opacity: 0.16,
+    opacity: 0.08,
     depthWrite: false,
     side: THREE.DoubleSide,
   });
+  const tritiumRearMat = new THREE.MeshBasicMaterial({ color: 0x7ef7d4 });
+  const tritiumFrontMat = new THREE.MeshBasicMaterial({ color: 0x38ff8c });
 
-  // 1) Pistol sub-group: compact slide + angled grip + trigger guard
+  // 1) Pistol sub-group: compact slide + angled grip + 3-dot luminous tritium iron sights
+  const PISTOL_SIGHT_Y = 0.05;
   const pistolGroup = new THREE.Group();
   const pistolSlide = new THREE.Mesh(new THREE.BoxGeometry(0.042, 0.044, 0.22), gunMetalMat);
   pistolSlide.position.set(0, 0.018, -0.04);
@@ -668,11 +681,22 @@ export function createWeaponSystem(
   pistolGrip.rotation.x = -0.24;
   pistolGroup.add(pistolGrip);
 
-  const pistolAccent = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.01, 0.16), accentMat);
-  pistolAccent.position.set(0, 0.035, -0.045);
+  const pistolAccent = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.008, 0.16), accentMat);
+  pistolAccent.position.set(0, 0.028, -0.045);
   pistolGroup.add(pistolAccent);
 
+  // Pistol rear U-notch iron sight (two posts flanking dead-center notch) + twin rear tritium dots
+  addPart(pistolGroup, new THREE.BoxGeometry(0.026, 0.004, 0.01), gunDarkMat, 0, 0.042, 0.058);
+  for (const s of [-1, 1] as const) {
+    addPart(pistolGroup, new THREE.BoxGeometry(0.0068, 0.013, 0.01), gunDarkMat, s * 0.0095, 0.0485, 0.058);
+    addPart(pistolGroup, new THREE.SphereGeometry(0.0017, 8, 8), tritiumRearMat, s * 0.0095, PISTOL_SIGHT_Y, 0.0634);
+  }
+  // Pistol front sight post + bright glowing tritium center dot aligned at y = PISTOL_SIGHT_Y
+  addPart(pistolGroup, new THREE.BoxGeometry(0.0036, 0.013, 0.01), gunDarkMat, 0, 0.0475, -0.142);
+  addPart(pistolGroup, new THREE.SphereGeometry(0.002, 8, 8), tritiumFrontMat, 0, PISTOL_SIGHT_Y, -0.1366);
+
   // 2) SMG sub-group: compact receiver + vertical foregrip + cylindrical suppressor
+  const SMG_SIGHT_Y = 0.064;
   const smgGroup = new THREE.Group();
   const smgReceiver = new THREE.Mesh(new THREE.BoxGeometry(0.056, 0.072, 0.26), gunMetalMat);
   smgGroup.add(smgReceiver);
@@ -695,15 +719,12 @@ export function createWeaponSystem(
   smgMag.rotation.x = 0.15;
   smgGroup.add(smgMag);
 
-  const smgOptic = new THREE.Mesh(new THREE.BoxGeometry(0.036, 0.026, 0.065), gunDarkMat);
-  smgOptic.position.set(0, 0.048, 0.01);
-  smgGroup.add(smgOptic);
-
   const smgAccent = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.012, 0.21), accentMat);
   smgAccent.position.set(0, 0.02, -0.02);
   smgGroup.add(smgAccent);
 
-  // 3) AR sub-group: shrouded Pulse Rifle + angled magazine + holo optic
+  // 3) AR sub-group: shrouded Pulse Rifle + angled magazine + open-frame Reflex Holo optic
+  const AR_SIGHT_Y = 0.0735;
   const arGroup = new THREE.Group();
   const arReceiver = new THREE.Mesh(new THREE.BoxGeometry(0.065, 0.085, 0.36), gunMetalMat);
   arGroup.add(arReceiver);
@@ -716,10 +737,6 @@ export function createWeaponSystem(
   arMagazine.position.set(0, -0.095, -0.05);
   arMagazine.rotation.x = 0.22;
   arGroup.add(arMagazine);
-
-  const arOptic = new THREE.Mesh(new THREE.BoxGeometry(0.044, 0.032, 0.08), gunDarkMat);
-  arOptic.position.set(0, 0.056, 0.02);
-  arGroup.add(arOptic);
 
   const arAccent = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.014, 0.28), accentMat);
   arAccent.position.set(0, 0.028, -0.06);
@@ -797,15 +814,37 @@ export function createWeaponSystem(
   sniperGrip.rotation.x = -0.24;
   addTriggerGuard(sniperGroup, -0.06, 0.076, 0.05);
 
-  // Holo/reflex sights: illuminated ring + tinted lens + reticle dot on top of each optic.
-  const addHoloSight = (group: THREE.Group, y: number, z: number, radius: number): void => {
-    addPart(group, new THREE.BoxGeometry(radius * 2.4, 0.008, 0.012), gunDarkMat, 0, y - radius - 0.002, z);
-    addPart(group, new THREE.TorusGeometry(radius, 0.0028, 8, 24), holoRingMat, 0, y, z);
-    addPart(group, new THREE.CircleGeometry(radius * 0.95, 20), holoLensMat, 0, y, z);
-    addPart(group, new THREE.SphereGeometry(0.0022, 6, 6), holoRingMat, 0, y, z - 0.001);
+  // Open-frame Reflex Holo optics (SMG & AR): thin matte-dark window bezel + faint clear glass
+  // + razor-sharp glowing center dot aligned dead-center at (x = 0.0, y = centerY).
+  const addReflexHoloOptic = (
+    group: THREE.Group,
+    railBaseY: number,
+    centerY: number,
+    z: number,
+    winW: number,
+    winH: number,
+  ): void => {
+    const bezelT = 0.0032;
+    const frameDepth = 0.016;
+    const mountH = Math.max(0.008, centerY - winH * 0.5 - railBaseY);
+    // Low-profile Picatinny rail mount base sitting flush on receiver top
+    addPart(group, new THREE.BoxGeometry(winW + 0.004, mountH, 0.068), gunDarkMat, 0, railBaseY + mountH * 0.5, z + 0.004);
+    // Thin matte-dark open window bezel (bottom sill, top hood, left/right pillars)
+    addPart(group, new THREE.BoxGeometry(winW + bezelT * 2, bezelT, frameDepth), gunDarkMat, 0, centerY - winH * 0.5 - bezelT * 0.5, z);
+    addPart(group, new THREE.BoxGeometry(winW + bezelT * 2, bezelT, frameDepth), gunDarkMat, 0, centerY + winH * 0.5 + bezelT * 0.5, z);
+    for (const s of [-1, 1] as const) {
+      addPart(group, new THREE.BoxGeometry(bezelT, winH, frameDepth), gunDarkMat, s * (winW * 0.5 + bezelT * 0.5), centerY, z);
+      // Subtle metallic cheek accent on outer bezel corners
+      addPart(group, new THREE.BoxGeometry(0.0018, winH * 0.45, 0.004), gunSteelMat, s * (winW * 0.5 + bezelT + 0.0005), centerY, z);
+    }
+    // Faint clear glass pane inside the open reflex window
+    addPart(group, new THREE.PlaneGeometry(winW - 0.001, winH - 0.001), holoLensMat, 0, centerY, z);
+    // Bright sharp glowing center dot + ultra-thin subtle outer holo ring at dead center (0, centerY, z)
+    addPart(group, new THREE.SphereGeometry(0.00135, 10, 10), holoDotMat, 0, centerY, z);
+    addPart(group, new THREE.TorusGeometry(winH * 0.27, 0.00065, 6, 32), holoRingMat, 0, centerY, z);
   };
-  addHoloSight(smgGroup, 0.077, -0.005, 0.014);
-  addHoloSight(arGroup, 0.091, 0.0, 0.017);
+  addReflexHoloOptic(smgGroup, 0.036, SMG_SIGHT_Y, 0.01, 0.038, 0.03);
+  addReflexHoloOptic(arGroup, 0.0425, AR_SIGHT_Y, 0.02, 0.044, 0.034);
 
   // Sniper: fluted barrel grooves, slotted muzzle brake, top rail + glowing chassis vents.
   for (const s of [-1, 1]) {
@@ -877,30 +916,31 @@ export function createWeaponSystem(
   placeGripHand(sniperGroup, 1, 0.016, 0.0225, new THREE.Vector3(0, -0.077, 0.127), -0.24, new THREE.Vector3(0.11, -0.38, 0.52));
   placeCradleHand(sniperGroup, 0.031, 0.044, new THREE.Vector3(0, 0.0, -0.15), new THREE.Vector3(-0.44, -0.34, 0.2));
 
+  const SNIPER_SIGHT_Y = 0.072;
   const weaponRigs: Record<WeaponId, WeaponModelRig> = {
     pistol: {
       group: pistolGroup,
       muzzleLocalPos: new THREE.Vector3(0, 0.018, -0.16),
       basePos: new THREE.Vector3(0.24, -0.22, -0.42),
-      adsPos: new THREE.Vector3(0.24, -0.22, -0.42),
+      adsPos: new THREE.Vector3(0.0, -PISTOL_SIGHT_Y, -0.34),
     },
     smg: {
       group: smgGroup,
       muzzleLocalPos: new THREE.Vector3(0, 0.01, -0.33),
       basePos: new THREE.Vector3(0.26, -0.23, -0.45),
-      adsPos: new THREE.Vector3(0.11, -0.18, -0.41),
+      adsPos: new THREE.Vector3(0.0, -SMG_SIGHT_Y, -0.34),
     },
     ar: {
       group: arGroup,
       muzzleLocalPos: new THREE.Vector3(0, 0.015, -0.49),
       basePos: VIEWMODEL_BASE_POS.clone(),
-      adsPos: new THREE.Vector3(0.12, -0.19, -0.43),
+      adsPos: new THREE.Vector3(0.0, -AR_SIGHT_Y, -0.35),
     },
     sniper: {
       group: sniperGroup,
       muzzleLocalPos: new THREE.Vector3(0, 0.016, -0.75),
       basePos: new THREE.Vector3(0.29, -0.25, -0.48),
-      adsPos: new THREE.Vector3(0.0, -0.18, -0.42),
+      adsPos: new THREE.Vector3(0.0, -SNIPER_SIGHT_Y, -0.34),
     },
   };
 
@@ -933,6 +973,11 @@ export function createWeaponSystem(
   let bobPhase = 0;
   let adsBlend = 0;
   let wallTuckZ = 0;
+  let lastLookYaw = 0;
+  let lastLookPitch = 0;
+  let hasLookSample = false;
+  let swayOffsetX = 0;
+  let swayOffsetY = 0;
 
   // Pool of active short-lived tracers & impact rings
   const activeTracers: ActiveTracer[] = [];
@@ -991,7 +1036,7 @@ export function createWeaponSystem(
 
   /**
    * Toggles optical zoom / ADS if the currently equipped weapon supports `adsFovDeg`.
-   * Cannot remain scoped while reloading or holding the un-scoped Sidearm.
+   * Cannot remain scoped while reloading.
    */
   function toggleScope(forceState?: boolean): void {
     const spec = WEAPON_SPECS[currentWeaponId];
@@ -1003,6 +1048,16 @@ export function createWeaponSystem(
 
     isScoped = typeof forceState === 'boolean' ? forceState : !isScoped;
     updateWeaponGroupVisibility();
+  }
+
+  /** Returns the current smooth ADS blend weight in `[0, 1]`. */
+  function getAdsBlend(): number {
+    return adsBlend;
+  }
+
+  /** Explicitly enables or disables ADS (supports both Hold & Toggle ADS cleanly). */
+  function setAdsActive(active: boolean): void {
+    toggleScope(active);
   }
 
   /**
@@ -1029,6 +1084,9 @@ export function createWeaponSystem(
     kickOffsetZ = 0;
     kickPitch = 0;
     wallTuckZ = 0;
+    swayOffsetX = 0;
+    swayOffsetY = 0;
+    hasLookSample = false;
     muzzleFlashTimer = 0;
     muzzleFlashMat.opacity = 0;
 
@@ -1051,6 +1109,7 @@ export function createWeaponSystem(
     accentMat.emissive.setHex(hex);
     muzzleFlashMat.color.setHex(hex);
     holoRingMat.color.setHex(hex);
+    holoDotMat.color.setHex(hex).lerp(new THREE.Color(0xffffff), 0.35);
     holoLensMat.color.setHex(hex);
     const glove = VIEWMODEL_GLOVE_STYLE[colorId];
     handArmorMat.color.setHex(glove.primary);
@@ -1309,6 +1368,12 @@ export function createWeaponSystem(
       isScoped = false;
     }
 
+    // Smoothly advance ADS blend before spread/recoil calculation so ADS tightening responds immediately
+    const targetAds = isScoped && !state.reloading ? 1 : 0;
+    adsBlend += (targetAds - adsBlend) * Math.min(1, 18 * dt);
+    if (adsBlend < 0.001 && targetAds === 0) adsBlend = 0;
+    if (adsBlend > 0.999 && targetAds === 1) adsBlend = 1;
+
     // 2. Semi-auto vs. Full-auto trigger gating
     const triggerActivated = spec.automatic ? input.fire : Boolean(input.fireJustPressed);
 
@@ -1317,15 +1382,23 @@ export function createWeaponSystem(
       state.recoilAccumulator = Math.max(0, state.recoilAccumulator - dt * RECOIL_DECAY_RATE);
     }
 
-    // 3. Compute Valorant-style weapon spread for this frame (including optical zoom spread)
+    // 3. Compute Valorant-style weapon spread weighted smoothly by `adsBlend` & `spec.adsSpreadMult`
+    const adsSpreadFactor = 1 + (spec.adsSpreadMult - 1) * adsBlend;
+    const adsDynamicFactor = 1 + (Math.max(0.45, spec.adsSpreadMult) - 1) * adsBlend;
+    const adsRecoilFactor = 1 + (spec.adsRecoilMult - 1) * adsBlend;
+
     const horizontalSpeed = getHorizontalSpeed(player.velocity);
     const isStationary = horizontalSpeed < 0.45 && player.grounded;
-    const stationaryBase = isScoped ? spec.scopedSpreadRad : spec.baseSpreadRad;
+    const stationaryBase =
+      isScoped && currentWeaponId === 'sniper' && adsBlend >= 0.65
+        ? spec.scopedSpreadRad
+        : spec.baseSpreadRad * adsSpreadFactor;
     const movePart =
       (isStationary ? 0 : (horizontalSpeed / RUN_SPEED) * spec.moveSpreadRad) *
-      moveSpreadScale;
+      moveSpreadScale *
+      adsDynamicFactor;
     const airPart = player.grounded ? 0 : spec.airSpreadRad;
-    const sprayPart = state.recoilAccumulator * 0.035;
+    const sprayPart = state.recoilAccumulator * 0.035 * adsDynamicFactor;
     state.currentSpread = stationaryBase + movePart + airPart + sprayPart;
 
     let result: ShotResult = {
@@ -1350,15 +1423,16 @@ export function createWeaponSystem(
       );
       const shotDir = applySpread(baseLookDir, state.currentSpread);
 
-      // Accumulate recoil after computing this shot so shot #1 uses initial accuracy
+      // Accumulate recoil weighted smoothly by `spec.adsRecoilMult` & `adsBlend`
       state.recoilAccumulator = Math.min(
         MAX_RECOIL_ACCUMULATOR,
-        state.recoilAccumulator + spec.recoilPerShot * recoilScale,
+        state.recoilAccumulator + spec.recoilPerShot * recoilScale * adsRecoilFactor,
       );
 
-      // Viewmodel kickback & muzzle flash
-      kickOffsetZ = Math.min(0.11, kickOffsetZ + (currentWeaponId === 'sniper' ? 0.095 : 0.055));
-      kickPitch = Math.min(0.22, kickPitch + (currentWeaponId === 'sniper' ? 0.16 : 0.075));
+      // Viewmodel kickback & muzzle flash (tighter recoil impulse while ADS so sights remain readable)
+      const kickScale = 1 - 0.35 * adsBlend;
+      kickOffsetZ = Math.min(0.11, kickOffsetZ + (currentWeaponId === 'sniper' ? 0.095 : 0.055) * kickScale);
+      kickPitch = Math.min(0.22, kickPitch + (currentWeaponId === 'sniper' ? 0.16 : 0.075) * kickScale);
       muzzleFlashTimer = 0.045;
 
       // Stage A: Raycast against solid arena geometry (walls, floor, cover, closed doors) first
@@ -1493,15 +1567,12 @@ export function createWeaponSystem(
       }
     }
 
-    // 5. Animate viewmodel kickback recovery, ADS blend, walk bob, and reload tilt
+    // 5. Animate viewmodel kickback recovery, walk bob, look sway (85% suppressed in ADS), and reload tilt
     updateWeaponGroupVisibility();
 
     const damping = Math.exp(-16 * dt);
     kickOffsetZ *= damping;
     kickPitch *= damping;
-
-    const targetAds = isScoped ? 1 : 0;
-    adsBlend += (targetAds - adsBlend) * Math.min(1, 14 * dt);
 
     if (muzzleFlashTimer > 0) {
       muzzleFlashTimer = Math.max(0, muzzleFlashTimer - dt);
@@ -1510,12 +1581,31 @@ export function createWeaponSystem(
       muzzleFlashMat.opacity = 0;
     }
 
+    // Suppress camera look sway & walk bob by 85% while ADS so sights stay rock-steady
+    const adsStability = 1 - 0.85 * adsBlend;
+
+    let dYaw = 0;
+    let dPitch = 0;
+    if (hasLookSample) {
+      dYaw = Math.atan2(Math.sin(input.yaw - lastLookYaw), Math.cos(input.yaw - lastLookYaw));
+      dPitch = input.pitch - lastLookPitch;
+    } else {
+      hasLookSample = true;
+    }
+    lastLookYaw = input.yaw;
+    lastLookPitch = input.pitch;
+
+    const swayAlpha = Math.min(1, 14 * dt);
+    const targetSwayX = Math.max(-0.018, Math.min(0.018, -dYaw * 0.16)) * adsStability;
+    const targetSwayY = Math.max(-0.014, Math.min(0.014, -dPitch * 0.14)) * adsStability;
+    swayOffsetX += (targetSwayX - swayOffsetX) * swayAlpha;
+    swayOffsetY += (targetSwayY - swayOffsetY) * swayAlpha;
+
     let bobX = 0;
     let bobY = 0;
     if (player.grounded && horizontalSpeed > 0.5) {
       bobPhase += dt * (6 + horizontalSpeed * 0.65);
-      const bobScale = isScoped ? 0.3 : 1.0;
-      const bobAmp = Math.min(1, horizontalSpeed / RUN_SPEED) * 0.008 * bobScale;
+      const bobAmp = Math.min(1, horizontalSpeed / RUN_SPEED) * 0.008 * adsStability;
       bobX = Math.cos(bobPhase * 0.5) * bobAmp;
       bobY = Math.sin(bobPhase) * bobAmp;
     }
@@ -1537,9 +1627,9 @@ export function createWeaponSystem(
     const restZ = rig.basePos.z + (rig.adsPos.z - rig.basePos.z) * adsBlend;
 
     weaponGroup.position.set(
-      restX + bobX,
-      restY + bobY + reloadDropY,
-      restZ + kickOffsetZ + wallTuckZ,
+      restX + bobX + swayOffsetX,
+      restY + bobY + swayOffsetY + reloadDropY,
+      restZ + kickOffsetZ + wallTuckZ * adsStability,
     );
     weaponGroup.rotation.set(kickPitch + reloadPitchX, 0, reloadRollZ);
 
@@ -1554,6 +1644,8 @@ export function createWeaponSystem(
     get isScoped() {
       return isScoped;
     },
+    getAdsBlend,
+    setAdsActive,
     equipWeapon,
     cycleWeapon,
     toggleScope,

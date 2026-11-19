@@ -38,7 +38,11 @@
       body.in-frontend #headshot-ring,
       body.in-frontend #damage-arc,
       body.in-frontend #kill-medal,
-      body.in-frontend #scope-overlay {
+      body.in-frontend #scope-overlay,
+      body.in-frontend #target-id-label,
+      body.in-frontend #hitmarker,
+      body.in-frontend #spectator-bar,
+      body.in-frontend #combat-report {
         display: none !important;
       }
 
@@ -775,6 +779,95 @@
         cursor: pointer;
       }
 
+      .settings-row input[type='text'] {
+        grid-column: span 2;
+        padding: 7px 10px;
+        border-radius: 7px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        background: rgba(10, 14, 21, 0.92);
+        color: #fff;
+        font: inherit;
+        font-size: 12.5px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+      }
+
+      .settings-row input[type='text']:focus {
+        outline: none;
+        border-color: var(--accent);
+      }
+
+      .settings-keybinds-card {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .settings-keybinds-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .settings-bind-btn {
+        grid-column: span 2;
+        padding: 7px 12px;
+        border-radius: 7px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: rgba(255, 255, 255, 0.06);
+        color: #fff;
+        font: inherit;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        cursor: pointer;
+        text-align: center;
+        transition: border-color 120ms ease, background 120ms ease, color 120ms ease;
+      }
+
+      .settings-bind-btn:hover {
+        border-color: var(--accent);
+        background: rgba(255, 255, 255, 0.1);
+      }
+
+      .settings-bind-btn.listening {
+        border-color: #facc15;
+        background: rgba(250, 204, 21, 0.18);
+        color: #fef08a;
+        box-shadow: 0 0 12px rgba(250, 204, 21, 0.3);
+      }
+
+      .settings-danger-btn {
+        padding: 9px 14px;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 59, 92, 0.55);
+        background: rgba(255, 59, 92, 0.16);
+        color: #ff8fa3;
+        font: inherit;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.09em;
+        cursor: pointer;
+        transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+      }
+
+      .settings-danger-btn:hover {
+        background: rgba(255, 59, 92, 0.28);
+        border-color: #ff3b5c;
+        color: #fff;
+      }
+
+      .settings-danger-btn.confirming {
+        background: #ff3b5c;
+        border-color: #ff3b5c;
+        color: #0d1117;
+      }
+
       .settings-toggle-row {
         display: flex;
         align-items: center;
@@ -1039,7 +1132,11 @@
       body.map-viewer-3d #spike-interact-hud,
       body.map-viewer-3d #headshot-ring,
       body.map-viewer-3d #damage-arc,
-      body.map-viewer-3d #kill-medal {
+      body.map-viewer-3d #kill-medal,
+      body.map-viewer-3d #target-id-label,
+      body.map-viewer-3d #hitmarker,
+      body.map-viewer-3d #spectator-bar,
+      body.map-viewer-3d #combat-report {
         opacity: 0 !important;
         pointer-events: none !important;
       }
@@ -1866,6 +1963,71 @@
         display: none;
       }
 
+      .lobby-net-bar {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .lobby-net-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+      }
+
+      .lobby-net-label {
+        font-size: 10px;
+        font-weight: 900;
+        letter-spacing: 0.1em;
+        color: var(--text-muted);
+        white-space: nowrap;
+      }
+
+      #lobby-invite-url {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        padding: 6px 9px;
+        border-radius: 6px;
+        background: rgba(7, 10, 16, 0.85);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 11px;
+        color: #7ee7ff;
+        user-select: all;
+      }
+
+      #lobby-server-input {
+        flex: 1;
+        min-width: 0;
+        padding: 6px 10px;
+        border-radius: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: rgba(7, 10, 16, 0.85);
+        color: #fff;
+        font: inherit;
+        font-size: 11.5px;
+        font-weight: 600;
+      }
+
+      #lobby-server-input:focus {
+        outline: none;
+        border-color: var(--accent);
+      }
+
+      @media (max-width: 780px) {
+        .lobby-net-bar {
+          grid-template-columns: 1fr;
+        }
+      }
+
       .lobby-teams-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2235,11 +2397,18 @@
         position: absolute;
         left: 22px;
         bottom: 14px;
+        z-index: 2;
+        padding: 5px 12px;
+        border-radius: 999px;
+        background: rgba(9, 13, 20, 0.84);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        backdrop-filter: blur(8px);
         font-size: 10.5px;
         font-weight: 700;
         letter-spacing: 0.06em;
-        color: var(--text-muted);
+        color: #cbd5e1;
         pointer-events: none;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
       }
 
       .agent-panel {
@@ -3340,6 +3509,237 @@
           grid-template-columns: 1fr;
         }
       }
+
+      /* ================= Chapter 10: Charge Pips, IFF Label, Hitmarker, Spectate & Combat Report ================= */
+      .ab-pips {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        margin-left: 5px;
+        vertical-align: middle;
+      }
+
+      .ab-pip {
+        width: 7px;
+        height: 4px;
+        border-radius: 1.5px;
+        background: rgba(255, 255, 255, 0.18);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        transition: background 120ms ease, box-shadow 120ms ease;
+      }
+
+      .ab-pip.lit {
+        background: #ffffff;
+        border-color: #ffffff;
+        box-shadow: 0 0 6px var(--accent);
+      }
+
+      #target-id-label {
+        position: fixed;
+        top: calc(50% + 26px);
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 3px 10px;
+        border-radius: 999px;
+        font-size: 10.5px;
+        font-weight: 900;
+        letter-spacing: 0.1em;
+        white-space: nowrap;
+        pointer-events: none;
+        z-index: 10;
+        backdrop-filter: blur(6px);
+        transition: opacity 70ms ease;
+      }
+
+      #target-id-label.hidden {
+        display: none;
+      }
+
+      #target-id-label.enemy {
+        color: #ffe4e8;
+        background: rgba(255, 42, 75, 0.26);
+        border: 1px solid rgba(255, 59, 92, 0.78);
+        box-shadow: 0 0 12px rgba(255, 59, 92, 0.35);
+      }
+
+      #target-id-label.ally {
+        color: #dff8ff;
+        background: rgba(0, 210, 255, 0.2);
+        border: 1px solid rgba(56, 189, 248, 0.75);
+        box-shadow: 0 0 12px rgba(56, 189, 248, 0.28);
+      }
+
+      #hitmarker {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        pointer-events: none;
+        z-index: 11;
+        opacity: 0;
+        transform: scale(0.85);
+        transition: opacity 75ms ease-out, transform 90ms ease-out;
+      }
+
+      #hitmarker.active {
+        opacity: 1;
+        transform: scale(1.06);
+      }
+
+      #hitmarker .hm-tick {
+        position: absolute;
+        width: 8px;
+        height: 2px;
+        border-radius: 1px;
+        background: #ffffff;
+        box-shadow: 0 0 4px rgba(0, 0, 0, 0.9);
+        transform-origin: center;
+      }
+
+      #hitmarker.headshot .hm-tick {
+        background: #ffd166;
+        box-shadow: 0 0 8px rgba(255, 209, 102, 0.9);
+      }
+
+      #hitmarker .hm-tick.tl {
+        transform: translate(-11px, -7px) rotate(45deg);
+      }
+      #hitmarker .hm-tick.tr {
+        transform: translate(3px, -7px) rotate(-45deg);
+      }
+      #hitmarker .hm-tick.bl {
+        transform: translate(-11px, 5px) rotate(-45deg);
+      }
+      #hitmarker .hm-tick.br {
+        transform: translate(3px, 5px) rotate(45deg);
+      }
+
+      #spectator-bar {
+        position: fixed;
+        top: 72px;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 6px 16px;
+        border-radius: 999px;
+        background: rgba(11, 16, 24, 0.86);
+        border: 1px solid rgba(56, 189, 248, 0.55);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(8px);
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        color: #e0f2fe;
+        white-space: nowrap;
+        pointer-events: none;
+        z-index: 11;
+      }
+
+      #spectator-bar.hidden {
+        display: none;
+      }
+
+      #combat-report {
+        position: fixed;
+        right: 18px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 286px;
+        padding: 11px 13px;
+        border-radius: 11px;
+        background: rgba(11, 16, 24, 0.88);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(10px);
+        box-shadow: 0 14px 36px rgba(0, 0, 0, 0.55);
+        pointer-events: none;
+        z-index: 10;
+        font-variant-numeric: tabular-nums;
+      }
+
+      #combat-report.hidden {
+        display: none;
+      }
+
+      .cr-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-bottom: 7px;
+        margin-bottom: 7px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+        font-size: 10px;
+        font-weight: 900;
+        letter-spacing: 0.12em;
+        color: var(--text-muted);
+      }
+
+      .cr-row {
+        display: grid;
+        grid-template-columns: 1fr auto auto;
+        align-items: center;
+        gap: 8px;
+        padding: 5px 6px;
+        border-radius: 6px;
+        font-size: 11px;
+        background: rgba(255, 255, 255, 0.03);
+        margin-bottom: 4px;
+      }
+
+      .cr-row:last-child {
+        margin-bottom: 0;
+      }
+
+      .cr-opp {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        min-width: 0;
+      }
+
+      .cr-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+
+      .cr-name {
+        font-weight: 800;
+        color: #fff;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .cr-stat {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        line-height: 1.25;
+      }
+
+      .cr-out {
+        color: #86efac;
+        font-weight: 800;
+      }
+
+      .cr-in {
+        color: #fda4af;
+        font-weight: 800;
+      }
+
+      .cr-hits {
+        font-size: 9.5px;
+        color: var(--text-muted);
+        font-weight: 700;
+      }
+
+      .cr-empty {
+        font-size: 11px;
+        color: var(--text-muted);
+        text-align: center;
+        padding: 4px 0;
+      }
     </style>
   </head>
   <body class="in-frontend">
@@ -3432,6 +3832,12 @@
 
     <!-- Dynamic Reactive Crosshair -->
     <div id="headshot-ring"></div>
+    <div id="hitmarker">
+      <span class="hm-tick tl"></span>
+      <span class="hm-tick tr"></span>
+      <span class="hm-tick bl"></span>
+      <span class="hm-tick br"></span>
+    </div>
     <div id="crosshair" class="show-lines">
       <div class="ch-dot"></div>
       <div class="ch-line ch-top"></div>
@@ -3439,6 +3845,9 @@
       <div class="ch-line ch-left"></div>
       <div class="ch-line ch-right"></div>
     </div>
+    <div id="target-id-label" class="hidden"></div>
+    <div id="spectator-bar" class="hidden"></div>
+    <div id="combat-report" class="hidden"></div>
 
     <!-- Directional damage arc + elimination medal + beginner control strip -->
     <div id="damage-arc"></div>
@@ -3525,10 +3934,35 @@
             <input id="set-ads-sens" type="range" min="0.4" max="1.5" step="0.05" />
             <span class="xhair-slider-val" id="set-ads-sens-val">0.75x</span>
           </div>
+          <div class="settings-row">
+            <span>Aim Down Sights (ADS)</span>
+            <select id="set-ads-mode">
+              <option value="hold">Hold Right-Click</option>
+              <option value="toggle">Toggle Right-Click</option>
+            </select>
+          </div>
           <label class="settings-toggle-row">
             <span>Invert Mouse Y-Axis</span>
             <input id="set-invert-y" type="checkbox" />
           </label>
+          <div class="settings-keybinds-card">
+            <div class="settings-keybinds-head">
+              <span class="xhair-section-label" style="margin-bottom: 0;">Ability Keybinds (Keyboard or Mouse 3/4/5)</span>
+              <button type="button" class="xhair-close" id="bind-reset-btn">Reset Defaults</button>
+            </div>
+            <div class="settings-row">
+              <span>Ability 1 (Q)</span>
+              <button type="button" class="settings-bind-btn" id="bind-ability-q">[Q]</button>
+            </div>
+            <div class="settings-row">
+              <span>Ability 2 (E)</span>
+              <button type="button" class="settings-bind-btn" id="bind-ability-e">[E]</button>
+            </div>
+            <div class="settings-row">
+              <span>Ultimate (X)</span>
+              <button type="button" class="settings-bind-btn" id="bind-ability-x">[X]</button>
+            </div>
+          </div>
         </div>
 
         <div class="settings-panel hidden" data-settings-panel="crosshair">
@@ -3633,6 +4067,10 @@
 
         <div class="settings-panel hidden" data-settings-panel="match">
           <div class="settings-row">
+            <span>Player Callsign</span>
+            <input id="set-player-name" type="text" maxlength="20" placeholder="Enter callsign..." />
+          </div>
+          <div class="settings-row">
             <span>Bot Difficulty</span>
             <select id="set-difficulty">
               <option value="casual">Casual (Forgiving bots)</option>
@@ -3653,6 +4091,10 @@
               <option value="10">First to 10 (5 ATK / 5 DEF Swap)</option>
               <option value="6">First to 6 (Quick)</option>
             </select>
+          </div>
+          <div class="settings-toggle-row" style="cursor: default;">
+            <span>Match Control (Forfeit Current Match)</span>
+            <button type="button" class="settings-danger-btn" id="set-surrender-btn">Surrender Match</button>
           </div>
         </div>
       </div>
@@ -3871,6 +4313,19 @@
 
         <div id="lobby-error" class="lobby-error hidden"></div>
 
+        <div class="lobby-net-bar">
+          <div class="lobby-net-group">
+            <span class="lobby-net-label">INVITE LAN URL</span>
+            <code id="lobby-invite-url">http://127.0.0.1:5174</code>
+            <button type="button" class="xhair-close" id="lobby-copy-invite-btn">COPY LINK</button>
+          </div>
+          <div class="lobby-net-group">
+            <span class="lobby-net-label">SERVER</span>
+            <input id="lobby-server-input" type="text" placeholder="ws://192.168.1.x:5174" aria-label="Custom Server URL" />
+            <button type="button" class="xhair-close" id="lobby-connect-custom-btn">JOIN</button>
+          </div>
+        </div>
+
         <div class="lobby-teams-grid">
           <div class="lobby-team-card atk">
             <div class="lobby-team-head">
@@ -3990,6 +4445,9 @@
           </button>
           <button type="button" class="overlay-xhair-btn" id="open-map-from-overlay">
             [M] 2D TACTICAL MAP
+          </button>
+          <button type="button" class="settings-danger-btn" id="overlay-surrender-btn">
+            SURRENDER
           </button>
         </div>
       </div>

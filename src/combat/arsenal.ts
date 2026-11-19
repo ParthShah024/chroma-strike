@@ -6,13 +6,22 @@ import type { ShieldTier, WeaponId, WeaponSpec } from '../core/types';
 export const WEAPON_ORDER: WeaponId[] = ['pistol', 'smg', 'ar', 'sniper'];
 
 /**
+ * Extended weapon specification including per-weapon Aim Down Sights (ADS)
+ * spread and recoil tightening multipliers.
+ */
+export interface AdsWeaponSpec extends WeaponSpec {
+  adsSpreadMult: number;
+  adsRecoilMult: number;
+}
+
+/**
  * Static weapon specification table inspired by tactical 5v5 arena shooters.
  *
  * Separating immutable `WeaponSpec` metadata from live per-round `WeaponState`
  * allows AI bots, HUD widgets, mobility scaling, and hitscan raycasts to read
  * balanced combat parameters from a single source of truth without duplicating data.
  */
-export const WEAPON_SPECS: Record<WeaponId, WeaponSpec> = {
+export const WEAPON_SPECS: Record<WeaponId, AdsWeaponSpec> = {
   pistol: {
     id: 'pistol',
     slotNumber: 1,
@@ -33,7 +42,9 @@ export const WEAPON_SPECS: Record<WeaponId, WeaponSpec> = {
     airSpreadRad: 0.055,
     recoilPerShot: 0.14,
     moveSpeedMult: 1.05,
-    adsFovDeg: null,
+    adsFovDeg: 72,
+    adsSpreadMult: 0.55,
+    adsRecoilMult: 0.75,
     tracerWidthScale: 0.9,
     cost: 0,
     killReward: 200,
@@ -59,6 +70,8 @@ export const WEAPON_SPECS: Record<WeaponId, WeaponSpec> = {
     recoilPerShot: 0.11,
     moveSpeedMult: 1.02,
     adsFovDeg: 64,
+    adsSpreadMult: 0.50,
+    adsRecoilMult: 0.72,
     tracerWidthScale: 0.85,
     cost: 1600,
     killReward: 200,
@@ -84,6 +97,8 @@ export const WEAPON_SPECS: Record<WeaponId, WeaponSpec> = {
     recoilPerShot: 0.18,
     moveSpeedMult: 1.0,
     adsFovDeg: 58,
+    adsSpreadMult: 0.45,
+    adsRecoilMult: 0.68,
     tracerWidthScale: 1.0,
     cost: 2900,
     killReward: 200,
@@ -109,6 +124,8 @@ export const WEAPON_SPECS: Record<WeaponId, WeaponSpec> = {
     recoilPerShot: 0.45,
     moveSpeedMult: 0.88,
     adsFovDeg: 24,
+    adsSpreadMult: 0.0,
+    adsRecoilMult: 0.85,
     tracerWidthScale: 1.8,
     cost: 4700,
     killReward: 200,

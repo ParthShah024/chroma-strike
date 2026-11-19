@@ -79,15 +79,22 @@ export interface MultiplayerError {
   message: string;
 }
 
+export interface SurrenderNetPayload {
+  side: TacticalSide;
+  byName: string;
+}
+
 export interface MultiplayerClient {
-  connect(playerName?: string): void;
+  connect(playerName?: string, customServerUrl?: string): void;
   reconnect(): void;
   disconnect(): void;
+  getServerUrl(): string;
   getLobbyState(): LobbyStateSnapshot;
   getLocalPlayerId(): string;
   getRemotePlayers(): RemotePlayerNetState[];
   isOnline(): boolean;
   isHost(): boolean;
+  setPlayerName(name: string): void;
   switchSide(side: TacticalSide): void;
   setConfig(cfg: LobbyConfigPatch): void;
   startAgentSelect(): void;
@@ -95,6 +102,7 @@ export interface MultiplayerClient {
   lockIn(color?: AgentColorId): void;
   forceStartMatch(): void;
   returnToLobby(): void;
+  sendSurrender(): void;
   sendPlayerState(state: PlayerStateOutbound): void;
   sendDoorEvent(event: DoorNetEvent): void;
   sendDamage(event: DamageNetEvent): void;
@@ -105,6 +113,7 @@ export interface MultiplayerClient {
   onDoorEvent(cb: (event: DoorNetEvent) => void): () => void;
   onDamage(cb: (event: DamageNetEvent) => void): () => void;
   onMatchSync(cb: (payload: MatchSyncPayload) => void): () => void;
+  onSurrender(cb: (payload: SurrenderNetPayload) => void): () => void;
   onError(cb: (err: MultiplayerError) => void): () => void;
 }
 
@@ -113,12 +122,78 @@ const CONNECT_TIMEOUT_MS = 2500;
 const STATE_SEND_MIN_INTERVAL_MS = 33; // ~30Hz position sync cap
 const REMOTE_STALE_MS = 5000;
 
+function isPageHttps(): boolean {
+  return typeof window !== 'undefined' && window.location?.protocol === 'https:';
+}
+
+function normalizeServerUrl(rawUrl: string): string {
+  const trimmed = rawUrl.trim();
+  if (!trimmed) return resolveDefaultServerUrl();
+
+  let url = trimmed;
+  if (/^https:\/\//i.test(url)) {
+    url = 'wss://' + url.slice(8);
+  } else if (/^http:\/\//i.test(url)) {
+    url = 'ws://' + url.slice(7);
+  } else if (!/^wss?:\/\//i.test(url)) {
+    url = `${isPageHttps() ? 'wss' : 'ws'}://${url}`;
+  }
+
+  // Upgrade ws:// -> wss:// automatically when the page itself is served over HTTPS
+  if (isPageHttps() && /^ws:\/\//i.test(url)) {
+    url = 'wss://' + url.slice(5);
+  }
+
+  return url;
+}
+
+function resolveQueryServerUrl(): string | null {
+  if (typeof window === 'undefined' || !window.location?.search) return null;
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const param = params.get('server');
+    if (param && param.trim().length > 0) {
+      return normalizeServerUrl(param);
+    }
+  } catch {
+    // ignore malformed query strings
+  }
+  return null;
+}
+
 function resolveDefaultServerUrl(): string {
-  const hostname =
-    typeof window !== 'undefined' && window.location?.hostname
-      ? window.location.hostname
-      : '127.0.0.1';
-  return `ws://${hostname}:5174`;
+  const queryUrl = resolveQueryServerUrl();
+  if (queryUrl) return queryUrl;
+
+  if (typeof window === 'undefined' || !window.location) {
+    return 'ws://127.0.0.1:5174';
+  }
+
+  const proto = isPageHttps() ? 'wss' : 'ws';
+  const hostname = window.location.hostname || '127.0.0.1';
+  const port = window.location.port;
+
+  // Vite dev server (5173) -> connect to local/LAN game server on 5174
+  if (port === '5173') {
+    return `${proto}://${hostname}:5174`;
+  }
+
+  // Single-port game server (5174) or HTTPS tunnel / reverse proxy -> same host & port
+  if (port === '5174' || window.location.host) {
+    return `${proto}://${window.location.host}`;
+  }
+
+  return `${proto}://${hostname}:5174`;
+}
+
+function sanitizeLocalName(rawName: string): string {
+  const cleaned = rawName.trim().replace(/[^\w\s\-().]/g, '').slice(0, 20);
+  return cleaned.length > 0 ? cleaned : 'AGENT-1';
+}
+
+function finiteNum(value: unknown, fallback: number): number {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
 }
 
 function cloneLobbyState(state: LobbyStateSnapshot): LobbyStateSnapshot {
@@ -134,7 +209,7 @@ function cloneLobbyState(state: LobbyStateSnapshot): LobbyStateSnapshot {
  * through Lobby -> Agent Select -> Match even when the WS server is not running.
  */
 export function createMultiplayerClient(serverUrl?: string): MultiplayerClient {
-  const wsUrl = serverUrl ?? resolveDefaultServerUrl();
+  let wsUrl = serverUrl ? normalizeServerUrl(serverUrl) : resolveDefaultServerUrl();
 
   let socket: WebSocket | null = null;
   let connectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -175,6 +250,7 @@ export function createMultiplayerClient(serverUrl?: string): MultiplayerClient {
   const doorListeners = new Set<(event: DoorNetEvent) => void>();
   const damageListeners = new Set<(event: DamageNetEvent) => void>();
   const matchSyncListeners = new Set<(payload: MatchSyncPayload) => void>();
+  const surrenderListeners = new Set<(payload: SurrenderNetPayload) => void>();
   const errorListeners = new Set<(err: MultiplayerError) => void>();
 
   function emitLobbyUpdate(): void {
@@ -294,9 +370,13 @@ export function createMultiplayerClient(serverUrl?: string): MultiplayerClient {
     };
   }
 
-  function connect(playerName?: string): void {
+  function connect(playerName?: string, customServerUrl?: string): void {
+    if (typeof customServerUrl === 'string' && customServerUrl.trim().length > 0) {
+      wsUrl = normalizeServerUrl(customServerUrl);
+    }
+
     if (playerName && playerName.trim().length > 0) {
-      localPlayerName = playerName.trim().slice(0, 20);
+      localPlayerName = sanitizeLocalName(playerName);
       if (!online && lobbyState.players[0]) {
         lobbyState.players[0].name = localPlayerName;
       }
@@ -396,8 +476,8 @@ export function createMultiplayerClient(serverUrl?: string): MultiplayerClient {
         case 'remote_state': {
           const pid = String(msg.playerId ?? '');
           if (!pid || pid === localPlayerId) break;
-          const pos = (msg.position as Vec3) ?? { x: 0, y: 0, z: 0 };
-          const vel = (msg.velocity as Vec3) ?? { x: 0, y: 0, z: 0 };
+          const pos = (msg.position as Partial<Vec3>) ?? {};
+          const vel = (msg.velocity as Partial<Vec3>) ?? {};
           const remote: RemotePlayerNetState = {
             playerId: pid,
             name: String(msg.name ?? 'AGENT'),
@@ -406,12 +486,20 @@ export function createMultiplayerClient(serverUrl?: string): MultiplayerClient {
             agentColor: AGENT_ORDER.includes(msg.agentColor as AgentColorId)
               ? (msg.agentColor as AgentColorId)
               : 'red',
-            position: { x: Number(pos.x) || 0, y: Number(pos.y) || 0, z: Number(pos.z) || 0 },
-            velocity: { x: Number(vel.x) || 0, y: Number(vel.y) || 0, z: Number(vel.z) || 0 },
-            yaw: Number(msg.yaw) || 0,
-            pitch: Number(msg.pitch) || 0,
-            health: Number(msg.health) ?? 100,
-            armor: Number(msg.armor) ?? 0,
+            position: {
+              x: finiteNum(pos.x, 0),
+              y: finiteNum(pos.y, 0),
+              z: finiteNum(pos.z, 0),
+            },
+            velocity: {
+              x: finiteNum(vel.x, 0),
+              y: finiteNum(vel.y, 0),
+              z: finiteNum(vel.z, 0),
+            },
+            yaw: finiteNum(msg.yaw, 0),
+            pitch: finiteNum(msg.pitch, 0),
+            health: finiteNum(msg.health, 100),
+            armor: finiteNum(msg.armor, 0),
             alive: msg.alive !== false,
             weaponId: (msg.weaponId as WeaponId) ?? 'pistol',
             firing: Boolean(msg.firing),
@@ -451,7 +539,7 @@ export function createMultiplayerClient(serverUrl?: string): MultiplayerClient {
             targetPlayerId:
               typeof msg.targetPlayerId === 'string' ? msg.targetPlayerId : undefined,
             targetSlotId: typeof msg.targetSlotId === 'string' ? msg.targetSlotId : undefined,
-            damage: Number(msg.damage) || 0,
+            damage: finiteNum(msg.damage, 0),
             headshot: Boolean(msg.headshot),
             weaponTag: String(msg.weaponTag ?? 'AR'),
             fromId: typeof msg.fromId === 'string' ? msg.fromId : undefined,
@@ -467,16 +555,30 @@ export function createMultiplayerClient(serverUrl?: string): MultiplayerClient {
         }
         case 'match_sync': {
           const syncPayload: MatchSyncPayload = {
-            roundNumber: Number(msg.roundNumber) || 1,
+            roundNumber: finiteNum(msg.roundNumber, 1),
             phase: String(msg.phase ?? 'buy'),
-            allyScore: Number(msg.allyScore) || 0,
-            enemyScore: Number(msg.enemyScore) || 0,
-            phaseTimerSec: Number(msg.phaseTimerSec) || 0,
+            allyScore: finiteNum(msg.allyScore, 0),
+            enemyScore: finiteNum(msg.enemyScore, 0),
+            phaseTimerSec: finiteNum(msg.phaseTimerSec, 0),
             fromId: typeof msg.fromId === 'string' ? msg.fromId : undefined,
           };
           for (const cb of matchSyncListeners) {
             try {
               cb(syncPayload);
+            } catch {
+              // ignore
+            }
+          }
+          break;
+        }
+        case 'surrender': {
+          const payload: SurrenderNetPayload = {
+            side: msg.side === 'defender' ? 'defender' : 'attacker',
+            byName: String(msg.byName ?? 'AGENT'),
+          };
+          for (const cb of surrenderListeners) {
+            try {
+              cb(payload);
             } catch {
               // ignore
             }
@@ -529,6 +631,10 @@ export function createMultiplayerClient(serverUrl?: string): MultiplayerClient {
     activateOfflineSoloLobby(true);
   }
 
+  function getServerUrl(): string {
+    return wsUrl;
+  }
+
   function getLobbyState(): LobbyStateSnapshot {
     return cloneLobbyState(lobbyState);
   }
@@ -556,6 +662,19 @@ export function createMultiplayerClient(serverUrl?: string): MultiplayerClient {
 
   function isHost(): boolean {
     return !online || lobbyState.hostId === localPlayerId;
+  }
+
+  function setPlayerName(name: string): void {
+    localPlayerName = sanitizeLocalName(name);
+    if (online) {
+      sendWs({ type: 'set_name', name: localPlayerName });
+      return;
+    }
+    const local = lobbyState.players.find((p) => p.id === localPlayerId) ?? lobbyState.players[0];
+    if (local) {
+      local.name = localPlayerName;
+      emitLobbyUpdate();
+    }
   }
 
   function switchSide(side: TacticalSide): void {
@@ -648,6 +767,23 @@ export function createMultiplayerClient(serverUrl?: string): MultiplayerClient {
     emitLobbyUpdate();
   }
 
+  function sendSurrender(): void {
+    const local = lobbyState.players.find((p) => p.id === localPlayerId) ?? lobbyState.players[0];
+    const side: TacticalSide = local?.side ?? 'attacker';
+    if (online) {
+      sendWs({ type: 'surrender', side });
+      return;
+    }
+    const payload: SurrenderNetPayload = { side, byName: localPlayerName };
+    for (const cb of surrenderListeners) {
+      try {
+        cb(payload);
+      } catch {
+        // ignore
+      }
+    }
+  }
+
   function sendPlayerState(state: PlayerStateOutbound): void {
     if (!online || lobbyState.phase !== 'playing') return;
     const now = Date.now();
@@ -717,6 +853,11 @@ export function createMultiplayerClient(serverUrl?: string): MultiplayerClient {
     return () => matchSyncListeners.delete(cb);
   }
 
+  function onSurrender(cb: (payload: SurrenderNetPayload) => void): () => void {
+    surrenderListeners.add(cb);
+    return () => surrenderListeners.delete(cb);
+  }
+
   function onError(cb: (err: MultiplayerError) => void): () => void {
     errorListeners.add(cb);
     return () => errorListeners.delete(cb);
@@ -726,11 +867,13 @@ export function createMultiplayerClient(serverUrl?: string): MultiplayerClient {
     connect,
     reconnect,
     disconnect,
+    getServerUrl,
     getLobbyState,
     getLocalPlayerId,
     getRemotePlayers,
     isOnline,
     isHost,
+    setPlayerName,
     switchSide,
     setConfig,
     startAgentSelect,
@@ -738,6 +881,7 @@ export function createMultiplayerClient(serverUrl?: string): MultiplayerClient {
     lockIn,
     forceStartMatch,
     returnToLobby,
+    sendSurrender,
     sendPlayerState,
     sendDoorEvent,
     sendDamage,
@@ -748,6 +892,7 @@ export function createMultiplayerClient(serverUrl?: string): MultiplayerClient {
     onDoorEvent,
     onDamage,
     onMatchSync,
+    onSurrender,
     onError,
   };
 }

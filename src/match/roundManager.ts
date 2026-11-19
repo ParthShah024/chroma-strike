@@ -14,6 +14,7 @@ import {
   MinimapContact,
   PlayerState,
   RemotePlayerNetState,
+  RoundCombatReportEntry,
   RoundPhase,
   ShieldTier,
   SmokeSphere,
@@ -38,7 +39,7 @@ import {
   toggleArenaDoor,
   updateArenaDoors,
 } from '../arena/map';
-import { raycastAABB, raycastSphere } from '../physics/movement';
+import { getLookDirection, raycastAABB, raycastSphere } from '../physics/movement';
 import { WEAPON_SPECS } from '../combat/arsenal';
 import { CharacterRig, createCharacterModel } from '../entities/characterModel';
 import { createSpikeModel } from '../entities/spikeModel';
@@ -77,6 +78,7 @@ export interface StartMatchOptions {
   playerAgent: AgentColorId;
   difficulty: AiDifficulty;
   winTarget?: 10 | 6;
+  playerName?: string;
   teamHumanSlots?: readonly LobbyPlayerSlot[];
   localPlayerId?: string;
 }
@@ -89,12 +91,22 @@ export interface MatchManager {
   getPlayerOwnedPrimary(): WeaponId | null;
   getPlayerSide(): TacticalSide;
   getWinTarget(): 10 | 6;
+  getLivingTeammates(): Combatant[];
+  setPlayerName(name: string): void;
   selectPlayerAgent(colorId: AgentColorId): void;
   setDifficulty(diff: AiDifficulty): void;
   getDifficulty(): AiDifficulty;
   setMatchConfig(config: { winTarget?: 10 | 6; difficulty?: AiDifficulty }): void;
   startNewMatch(options: StartMatchOptions): void;
+  surrenderMatch(): void;
   applyRemotePlayers(remotes: readonly RemotePlayerNetState[]): void;
+  applyRemoteDamage(
+    victimTargetId: string,
+    damage: number,
+    isHeadshot: boolean,
+    attackerName?: string,
+    weaponTag?: string
+  ): boolean;
   tryTakeoverAlly(): AgentColorId | null;
   skipBuyPhase(): void;
   restartMatch(): void;
@@ -153,6 +165,16 @@ const VULNERABLE_DAMAGE_MULT = 1.25;
 
 const BUY_BANNER_SUBTITLE =
   '[SPACE] FIGHT  •  [B] SHOP  •  [F] PLANT / DEFUSE  •  [G] DROP SPIKE';
+
+const BOT_CALLSIGNS: readonly string[] = ['KESTREL', 'VEX', 'NOVA', 'ATLAS', 'ROOK', 'ECHO'];
+const ALLY_TRACER_HEX = 0x38bdf8;
+const ENEMY_TRACER_HEX = 0xff3b5c;
+
+function sanitizeDisplayName(raw: string | undefined, fallback = 'YOU'): string {
+  if (typeof raw !== 'string') return fallback;
+  const cleaned = raw.trim().replace(/[^\w\s\-().]/g, '').slice(0, 20);
+  return cleaned.length > 0 ? cleaned : fallback;
+}
 
 interface SpawnDef {
   id: string;
@@ -227,6 +249,9 @@ function draftEnemyRoster(previous: AgentColorId[] | null): AgentColorId[] {
 }
 
 function formatCombatantLabel(c: Combatant): string {
+  if (c.displayName && c.displayName.trim().length > 0) {
+    return c.displayName.toUpperCase();
+  }
   if (c.isPlayer) return 'YOU';
   if (c.isRemoteHuman && c.remoteName) return c.remoteName.toUpperCase();
   const prefix = c.team === 'ally' ? 'ALLY' : 'FOE';
@@ -284,6 +309,56 @@ export function createMatchManager(
   const combatantById = new Map<string, Combatant>();
   const ownedPrimaryById = new Map<string, WeaponId | null>();
   const dotFlashCooldownById = new Map<string, number>();
+  const botCallsignById = new Map<string, string>();
+  const combatReportByOpponent = new Map<string, RoundCombatReportEntry>();
+  const combatReportRawDamage = new Map<string, { out: number; in: number }>();
+  const remoteTargetsByCombatantId = new Map<
+    string,
+    { position: Vec3; yaw: number; pitch: number; lastFireTracerAtMs: number }
+  >();
+
+  let localPlayerName = 'YOU';
+  let surrendered = false;
+  let activeFiringBotTeam: TeamId | null = null;
+
+  const spawnTeamWorldTracer: WeaponSystem['spawnWorldTracer'] = (
+    origin,
+    endPoint,
+    hitNormal,
+    colorHex,
+    isHeadshot
+  ) => {
+    let team: TeamId | null = activeFiringBotTeam;
+    activeFiringBotTeam = null;
+    if (!team) {
+      let bestDist = Infinity;
+      for (const c of combatants) {
+        if (!c.alive) continue;
+        const d = Math.hypot(c.position.x - origin.x, c.position.z - origin.z);
+        if (d < bestDist) {
+          bestDist = d;
+          team = c.team;
+        }
+      }
+    }
+    const tintedHex =
+      team === 'ally'
+        ? ALLY_TRACER_HEX
+        : team === 'enemy'
+          ? ENEMY_TRACER_HEX
+          : colorHex;
+    weaponSystem.spawnWorldTracer(origin, endPoint, hitNormal, tintedHex, isHeadshot);
+  };
+
+  const botWeaponSystemProxy: WeaponSystem = new Proxy(weaponSystem, {
+    get(target, prop, receiver) {
+      if (prop === 'spawnWorldTracer') {
+        return spawnTeamWorldTracer;
+      }
+      const value = Reflect.get(target, prop, receiver);
+      return typeof value === 'function' ? value.bind(target) : value;
+    },
+  });
 
   // Match, Side & Round State
   let phase: RoundPhase = 'buy';
@@ -341,20 +416,38 @@ export function createMatchManager(
     return playerSide === 'attacker' ? 'enemy' : 'ally';
   }
 
+  function syncCombatantDisplayName(c: Combatant): void {
+    if (c.isPlayer) {
+      c.displayName = localPlayerName;
+    } else if (c.isRemoteHuman && c.remoteName) {
+      c.displayName = sanitizeDisplayName(c.remoteName, 'AGENT');
+    } else {
+      c.displayName = botCallsignById.get(c.id) ?? 'KESTREL';
+    }
+    const rig = rigById.get(c.id) as
+      | (CharacterRig & { setDisplayName?: (n: string) => void })
+      | undefined;
+    rig?.setDisplayName?.(c.displayName);
+  }
+
   // Spawn all 6 combatants + articulated 3D CharacterRigs
   const initialSpawns = buildRosterSpawns(getAttackerTeam());
   let allyIdx = 0;
   let enemyIdx = 0;
-  for (const def of initialSpawns) {
+  for (let i = 0; i < initialSpawns.length; i++) {
+    const def = initialSpawns[i];
     const colorId: AgentColorId =
       def.team === 'ally' ? allyRoster[allyIdx++] : enemyRoster[enemyIdx++];
     const isInitialPlayer = def.team === 'ally' && colorId === preferredPlayerColor;
+    const callsign = BOT_CALLSIGNS[i % BOT_CALLSIGNS.length];
+    botCallsignById.set(def.id, callsign);
 
     const combatant: Combatant = {
       id: def.id,
       basePosition: { ...def.spawn },
       position: { ...def.spawn },
       colorId,
+      displayName: isInitialPlayer ? localPlayerName : callsign,
       health: 100,
       maxHealth: 100,
       armor: 0,
@@ -390,6 +483,7 @@ export function createMatchManager(
     combatantById.set(combatant.id, combatant);
     ownedPrimaryById.set(combatant.id, null);
     rigById.set(combatant.id, rig);
+    syncCombatantDisplayName(combatant);
   }
 
   function getPlayerCombatant(): Combatant {
@@ -408,6 +502,19 @@ export function createMatchManager(
     return winTarget;
   }
 
+  function getLivingTeammates(): Combatant[] {
+    return combatants.filter((c) => c.team === 'ally' && !c.isPlayer && c.alive);
+  }
+
+  function setPlayerName(name: string): void {
+    localPlayerName = sanitizeDisplayName(name, 'YOU');
+    for (const c of combatants) {
+      if (c.isPlayer) {
+        syncCombatantDisplayName(c);
+      }
+    }
+  }
+
   function assignAgentToCombatant(c: Combatant, colorId: AgentColorId): void {
     if (c.colorId === colorId && rigById.has(c.id)) return;
     rigById.get(c.id)?.dispose(scene);
@@ -415,6 +522,7 @@ export function createMatchManager(
     const rig = createCharacterModel(scene, c.team, colorId);
     rig.setWeaponModel(c.weaponId);
     rigById.set(c.id, rig);
+    syncCombatantDisplayName(c);
   }
 
   function addUltPoint(c: Combatant | null | undefined, amount = 1): void {
@@ -560,12 +668,72 @@ export function createMatchManager(
     }
   }
 
+  function recordCombatReportDamage(
+    opponent: Combatant,
+    direction: 'out' | 'in',
+    dmg: number,
+    isHeadshot: boolean,
+    killed: boolean,
+    weaponTag: string
+  ): void {
+    let entry = combatReportByOpponent.get(opponent.id);
+    let raw = combatReportRawDamage.get(opponent.id);
+    if (!entry || !raw) {
+      entry = {
+        opponentId: opponent.id,
+        opponentName: formatCombatantLabel(opponent),
+        opponentColor: opponent.colorId,
+        damageOut: 0,
+        hitsOutHead: 0,
+        hitsOutBody: 0,
+        damageIn: 0,
+        hitsInHead: 0,
+        hitsInBody: 0,
+        killedOpponent: false,
+        killedByOpponent: false,
+        weaponTag,
+      };
+      raw = { out: 0, in: 0 };
+      combatReportByOpponent.set(opponent.id, entry);
+      combatReportRawDamage.set(opponent.id, raw);
+    } else {
+      entry.opponentName = formatCombatantLabel(opponent);
+      entry.opponentColor = opponent.colorId;
+      if (weaponTag) entry.weaponTag = weaponTag;
+    }
+
+    if (direction === 'out') {
+      raw.out += dmg;
+      entry.damageOut = Math.round(raw.out);
+      if (isHeadshot) {
+        entry.hitsOutHead += 1;
+      } else if (dmg >= 1) {
+        entry.hitsOutBody += 1;
+      }
+      if (killed) {
+        entry.killedOpponent = true;
+      }
+    } else {
+      raw.in += dmg;
+      entry.damageIn = Math.round(raw.in);
+      if (isHeadshot) {
+        entry.hitsInHead += 1;
+      } else if (dmg >= 1) {
+        entry.hitsInBody += 1;
+      }
+      if (killed) {
+        entry.killedByOpponent = true;
+      }
+    }
+  }
+
   function applyDamageInternal(
     victim: Combatant,
     amount: number,
     isHeadshot: boolean,
     attacker: Combatant | null,
-    weaponTag: string
+    weaponTag: string,
+    attackerLabelOverride?: string
   ): boolean {
     if (!victim.alive || amount <= 0) return false;
 
@@ -589,6 +757,17 @@ export function createMatchManager(
     const absorbed = Math.min(victim.armor ?? 0, dmg);
     victim.armor = Math.max(0, (victim.armor ?? 0) - absorbed);
     victim.health = Math.max(0, victim.health - (dmg - absorbed));
+
+    const killed = victim.health <= 0;
+
+    // 4. Per-round Combat Report tracking for local player engagements.
+    if (attacker && attacker.team !== victim.team) {
+      if (attacker.isPlayer) {
+        recordCombatReportDamage(victim, 'out', dmg, isHeadshot, killed, weaponTag);
+      } else if (victim.isPlayer) {
+        recordCombatReportDamage(attacker, 'in', dmg, isHeadshot, killed, weaponTag);
+      }
+    }
 
     economy.syncDamageArmor(victim.id, victim.armor);
     if (victim.armor <= 0) {
@@ -646,7 +825,13 @@ export function createMatchManager(
         );
       } else {
         const oppTeam: TeamId = victim.team === 'ally' ? 'enemy' : 'ally';
-        pushKillFeed(weaponTag === 'SPIKE' ? 'SPIKE' : 'INFERNO', oppTeam, 'red', victim, weaponTag, false);
+        const fallbackKiller =
+          attackerLabelOverride && attackerLabelOverride.trim().length > 0
+            ? attackerLabelOverride.trim().toUpperCase()
+            : weaponTag === 'SPIKE'
+              ? 'SPIKE'
+              : 'INFERNO';
+        pushKillFeed(fallbackKiller, oppTeam, 'red', victim, weaponTag, isHeadshot);
       }
 
       updateRigVisibilities();
@@ -746,6 +931,10 @@ export function createMatchManager(
     abilities.resetRound();
     weaponSystem.resetForRound();
     dotFlashCooldownById.clear();
+    combatReportByOpponent.clear();
+    combatReportRawDamage.clear();
+    remoteTargetsByCombatantId.clear();
+    activeFiringBotTeam = null;
 
     if (!allyRoster.includes(preferredPlayerColor)) {
       allyRoster = draftAllyRoster(preferredPlayerColor);
@@ -789,6 +978,7 @@ export function createMatchManager(
       if (c.colorId !== colorId) {
         assignAgentToCombatant(c, colorId);
       }
+      syncCombatantDisplayName(c);
     }
 
     // Begin buy phase and execute bot smart buying (eco / half-buy / full-buy / sniper)
@@ -870,6 +1060,8 @@ export function createMatchManager(
       // Mid-combat swap onto a living ally transfers human control cleanly
       current.isPlayer = false;
       target.isPlayer = true;
+      syncCombatantDisplayName(current);
+      syncCombatantDisplayName(target);
       weaponSystem.equipWeapon(target.weaponId);
       weaponSystem.setAgentColor(target.colorId);
       lastSyncedPlayerHealth = target.health;
@@ -1014,10 +1206,14 @@ export function createMatchManager(
     initialStartingSide = options.startingSide;
     playerSide = options.startingSide;
     halftimeSwapped = false;
+    surrendered = false;
     allyScore = 0;
     enemyScore = 0;
     killFeed.length = 0;
     ownedPrimaryById.clear();
+    if (options.playerName !== undefined) {
+      localPlayerName = sanitizeDisplayName(options.playerName, 'YOU');
+    }
 
     for (const c of combatants) {
       c.isRemoteHuman = false;
@@ -1078,6 +1274,7 @@ export function createMatchManager(
       target.isRemoteHuman = true;
       target.remotePlayerId = remote.playerId;
       target.remoteName = remote.name;
+      syncCombatantDisplayName(target);
 
       if (target.colorId !== remote.agentColor) {
         assignAgentToCombatant(target, remote.agentColor);
@@ -1088,22 +1285,30 @@ export function createMatchManager(
       const dy = remote.position.y - target.position.y;
       const dz = remote.position.z - target.position.z;
       const dist = Math.hypot(dx, dy, dz);
-      if (dist > 4.0) {
+      const prevSnap = remoteTargetsByCombatantId.get(target.id);
+      const nextSnap = {
+        position: {
+          x: remote.position.x,
+          y: remote.position.y,
+          z: remote.position.z,
+        },
+        yaw: remote.yaw,
+        pitch: remote.pitch,
+        lastFireTracerAtMs: prevSnap?.lastFireTracerAtMs ?? 0,
+      };
+      remoteTargetsByCombatantId.set(target.id, nextSnap);
+
+      if (dist > 4.0 || !prevSnap) {
         target.position.x = remote.position.x;
         target.position.y = remote.position.y;
         target.position.z = remote.position.z;
-      } else {
-        const lerpAlpha = 0.35;
-        target.position.x += dx * lerpAlpha;
-        target.position.y += dy * lerpAlpha;
-        target.position.z += dz * lerpAlpha;
+        target.yaw = remote.yaw;
+        target.pitch = remote.pitch;
       }
 
       target.velocity.x = remote.velocity.x;
       target.velocity.y = remote.velocity.y;
       target.velocity.z = remote.velocity.z;
-      target.yaw = remote.yaw;
-      target.pitch = remote.pitch;
       target.health = Math.max(0, Math.min(target.maxHealth, remote.health));
       target.armor = Math.max(0, remote.armor);
       target.alive = remote.alive;
@@ -1118,6 +1323,39 @@ export function createMatchManager(
       }
       if (remote.firing) {
         rigById.get(target.id)?.triggerFireKick();
+        const nowMs = Date.now();
+        if (nowMs - nextSnap.lastFireTracerAtMs >= 75) {
+          nextSnap.lastFireTracerAtMs = nowMs;
+          const drop = (target.slideTimer ?? 0) > 0 ? SLIDE_HITBOX_DROP_M : 0;
+          const eyeOrigin: Vec3 = {
+            x: target.position.x,
+            y: target.position.y + EYE_HEIGHT_M - drop,
+            z: target.position.z,
+          };
+          const lookDir = getLookDirection(target.yaw, target.pitch);
+          const muzzleOrigin: Vec3 = {
+            x: eyeOrigin.x + lookDir.x * 0.48,
+            y: eyeOrigin.y - 0.12 + lookDir.y * 0.48,
+            z: eyeOrigin.z + lookDir.z * 0.48,
+          };
+          let maxDist = 75;
+          let hitNormal: Vec3 | null = null;
+          let endPoint: Vec3 = {
+            x: eyeOrigin.x + lookDir.x * maxDist,
+            y: eyeOrigin.y + lookDir.y * maxDist,
+            z: eyeOrigin.z + lookDir.z * maxDist,
+          };
+          for (const box of ARENA_COLLIDERS) {
+            const wallHit = raycastAABB(eyeOrigin, lookDir, box, maxDist);
+            if (wallHit && wallHit.distance < maxDist) {
+              maxDist = wallHit.distance;
+              endPoint = wallHit.point;
+              hitNormal = wallHit.normal;
+            }
+          }
+          const tracerHex = target.team === 'ally' ? ALLY_TRACER_HEX : ENEMY_TRACER_HEX;
+          weaponSystem.spawnWorldTracer(muzzleOrigin, endPoint, hitNormal, tracerHex, false);
+        }
       }
     }
 
@@ -1126,8 +1364,68 @@ export function createMatchManager(
         c.isRemoteHuman = false;
         c.remotePlayerId = undefined;
         c.remoteName = undefined;
+        remoteTargetsByCombatantId.delete(c.id);
+        syncCombatantDisplayName(c);
       }
     }
+  }
+
+  function applyRemoteDamage(
+    victimTargetId: string,
+    damage: number,
+    isHeadshot: boolean,
+    attackerName?: string,
+    weaponTag = 'AR'
+  ): boolean {
+    if (!Number.isFinite(damage) || damage <= 0) return false;
+    const pc = getPlayerCombatant();
+    let victim: Combatant | undefined;
+    if (victimTargetId === 'local' || victimTargetId === pc.id) {
+      victim = pc;
+    } else {
+      victim =
+        combatants.find((c) => c.remotePlayerId === victimTargetId) ??
+        combatantById.get(victimTargetId);
+    }
+    if (!victim || !victim.alive) return false;
+
+    const cleanAttacker = attackerName?.trim();
+    const attackerUpper = cleanAttacker?.toUpperCase();
+    const attacker = cleanAttacker
+      ? combatants.find(
+          (c) =>
+            c.id !== victim.id &&
+            (c.remotePlayerId === cleanAttacker ||
+              c.id === cleanAttacker ||
+              c.remoteName?.toUpperCase() === attackerUpper ||
+              c.displayName?.toUpperCase() === attackerUpper)
+        ) ?? null
+      : null;
+
+    const killed = applyDamageInternal(
+      victim,
+      damage,
+      isHeadshot,
+      attacker,
+      weaponTag || 'AR',
+      cleanAttacker
+    );
+    if (victim.isPlayer) {
+      if (isHeadshot) sfx.playHeadshot();
+      else sfx.playBodyHit();
+    }
+    return killed;
+  }
+
+  function surrenderMatch(): void {
+    if (phase === 'match_over') return;
+    surrendered = true;
+    phase = 'match_over';
+    phaseTimerSec = 0;
+    transientBannerTimer = 0;
+    roundBannerTitle = 'MATCH SURRENDERED — DEFEAT';
+    roundBannerSubtitle = '[ENTER] REMATCH  •  [L] RETURN TO LOBBY';
+    sfx.playRoundCue('lose');
   }
 
   function tryTakeoverAlly(): AgentColorId | null {
@@ -1142,6 +1440,8 @@ export function createMatchManager(
     current.isPlayer = false;
     livingAlly.isPlayer = true;
     preferredPlayerColor = livingAlly.colorId;
+    syncCombatantDisplayName(current);
+    syncCombatantDisplayName(livingAlly);
 
     weaponSystem.equipWeapon(livingAlly.weaponId);
     weaponSystem.setAgentColor(livingAlly.colorId);
@@ -1222,6 +1522,7 @@ export function createMatchManager(
     enemyScore = 0;
     playerSide = initialStartingSide;
     halftimeSwapped = false;
+    surrendered = false;
     killFeed.length = 0;
     ownedPrimaryById.clear();
     economy.resetForNewMatch(combatants);
@@ -1633,7 +1934,7 @@ export function createMatchManager(
         cameraPos,
         false,
         abilities,
-        weaponSystem,
+        botWeaponSystemProxy,
         sfx,
         () => {},
         () => {},
@@ -1708,7 +2009,7 @@ export function createMatchManager(
           cameraPos,
           true,
           abilities,
-          weaponSystem,
+          botWeaponSystemProxy,
           sfx,
           (attacker, victim, damage, isHeadshot, weaponTag) => {
             applyDamageInternal(victim, damage, isHeadshot, attacker, weaponTag);
@@ -1718,6 +2019,7 @@ export function createMatchManager(
             }
           },
           (bot) => {
+            activeFiringBotTeam = bot.team;
             rigById.get(bot.id)?.triggerFireKick();
           },
           sdContext
@@ -1769,6 +2071,22 @@ export function createMatchManager(
           sfx.playRoundCue('buy');
         }
       }
+    }
+
+    // Smooth exponential interpolation (`1 - Math.exp(-16 * dt)`) for connected remote players
+    const remoteLerpAlpha = 1 - Math.exp(-16 * Math.min(Math.max(dt, 0), 0.1));
+    for (const c of combatants) {
+      if (!c.isRemoteHuman) continue;
+      const snap = remoteTargetsByCombatantId.get(c.id);
+      if (!snap) continue;
+      c.position.x += (snap.position.x - c.position.x) * remoteLerpAlpha;
+      c.position.y += (snap.position.y - c.position.y) * remoteLerpAlpha;
+      c.position.z += (snap.position.z - c.position.z) * remoteLerpAlpha;
+      let yawDiff = snap.yaw - c.yaw;
+      while (yawDiff > Math.PI) yawDiff -= Math.PI * 2;
+      while (yawDiff < -Math.PI) yawDiff += Math.PI * 2;
+      c.yaw += yawDiff * remoteLerpAlpha;
+      c.pitch += (snap.pitch - c.pitch) * remoteLerpAlpha;
     }
 
     // 3. Update 3D Spike Model & Articulated 3D Character Rigs
@@ -1916,6 +2234,8 @@ export function createMatchManager(
       nearbyDoorPrompt,
       winTarget,
       swapInterval: SWAP_INTERVAL_ROUNDS,
+      combatReport: Array.from(combatReportByOpponent.values()).map((entry) => ({ ...entry })),
+      surrendered,
     };
   }
 
@@ -1927,12 +2247,16 @@ export function createMatchManager(
     getPlayerOwnedPrimary,
     getPlayerSide,
     getWinTarget,
+    getLivingTeammates,
+    setPlayerName,
     selectPlayerAgent,
     setDifficulty,
     getDifficulty,
     setMatchConfig,
     startNewMatch,
+    surrenderMatch,
     applyRemotePlayers,
+    applyRemoteDamage,
     tryTakeoverAlly,
     skipBuyPhase,
     restartMatch,

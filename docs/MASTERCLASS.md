@@ -290,5 +290,23 @@ $$C_{t+1} = \min\!\Big(9000,\; C_t + R_{\text{round}}(L) + 200\,K + 300\,B_{\tex
 - `WINS_TO_WIN_MATCH = 10` (`10` or `6` selectable) with recurring side swaps every `SWAP_INTERVAL_ROUNDS = 5` rounds (`800¤` & `2/5` Ult reset) and deliberate timers (`15 s` buy / `100 s` combat / `45 s` post-plant).
 - Tuned movement (`RUN_SPEED = 6.2 m/s`, `WALK_SPEED = 3.2 m/s`), scaled ability dashes/sprints, and calmed `DIFFICULTY_PROFILES` (`0.58 s` Casual / `0.38 s` Tactical / `0.24 s` Pro) for crisp, readable tactical fights.
 
+---
+
+# Chapter 10 — Zero Z-Fighting, Centered ADS, Friend-or-Foe IFF, 2/Round Charges, Mouse Rebinds, Spectate & Single-Port Join
+
+## 10.1 Zero Coplanar Overlaps & Agent Select Glitch Fix ([build_ascent_map.py](../scripts/blender/build_ascent_map.py), [agentSelect.ts](../src/ui/agentSelect.ts), [map.ts](../src/arena/map.ts))
+- **UI Glitch Fix:** Calling `previewRig.setOverheadUiVisible(false)` hides `healthBarGroup` + `teamRing` cleanly on Agent Select's 3D stage so healthbars never overlap the Agent header.
+- **Map Z-Fight Elimination:** Partitioned top surface floor panels cleanly (`y = -0.04..0.00m`) over a recessed structural slab (`y = -0.60..-0.04m`), offset decorative inlays proud (`+0.016m`), pushed wall plinths/cornices/rails proud (`>= 0.024m`), pruned coplanar overlaps to `0` (`detect_coplanar_zfight_overlaps`), set `camera.near = 0.08` / `far = 230`, raised floor decals (`+0.022m`, `polygonOffsetFactor: -2`), and added `renderOrder` (`10..15`) + `depthWrite: false` on overhead healthbar/nameplate planes.
+
+## 10.2 Centered ADS, Enemy/Ally IFF & `2/Round` Mouse-Bindable Abilities ([weapons.ts](../src/combat/weapons.ts), [characterModel.ts](../src/entities/characterModel.ts), [system.ts](../src/abilities/system.ts), [settings.ts](../src/ui/settings.ts))
+- **True Centered ADS (`adsPos.x === 0`):** Pistol 3-dot tritium irons (`72°` FOV), SMG/AR Reflex Holo Optics (`64°` / `58°`), Sniper scope (`24°`), `85%` sway suppression, Hold/Toggle RMB, and smooth hipfire crosshair fade above `adsBlend > 0.65`.
+- **IFF Readability:** Crimson `#ff2a4b` enemy armor highlight/ring/tracers + unoccluded `ENEMY • <NAME>` plate vs. cyan `#22d3ee` ally ring/tracers/`ALLY • <NAME>` plate + `#target-id-label` + X-`#hitmarker`.
+- **2 Charges Per Round + Mouse3/4/5 Binds:** Enforced `MAX_ROUND_CHARGES = 2` per round (`resetRound()` reset only, free Umbra bloom / Volt slide / Blaze Ult `+1` bonus), click-to-rebind `[Q]`/`[E]`/`[X]` to keyboard OR `Mouse3/4/5` with browser Back/Forward suppression.
+
+## 10.3 Auto-Spectate, Combat Report, Surrender, Custom Names & Single-Port Join ([main.ts](../src/main.ts), [roundManager.ts](../src/match/roundManager.ts), [gameServer.mjs](../server/gameServer.mjs))
+- **Auto-Spectate & Report:** Dead players auto-follow living teammates (`LMB`/`RMB` cycles, `[Tab]` bot takeover), viewing `#combat-report` (`OUT` vs. `IN` damage & hits per opponent) when dead or in `round_end`.
+- **Single-Port `5174` Serving (`0.0.0.0`):** `gameServer.mjs` serves BOTH built `dist/` files AND RFC 6455 WebSockets (`lanUrls` in `/health` + Lobby Copy Link) plus `set_name` & `surrender` relays.
+
+
 
 
