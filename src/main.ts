@@ -181,9 +181,13 @@ let gameStarted = false;
 
 const INPUT_BUFFER_SEC = 0.14;
 const BHOP_BUFFER_SEC = 0.075;
+const LOCAL_STEP_STRIDE_M = 2.05;
 let jumpHeld = false;
 let bhopBufferTimer = 0;
 let fireBufferTimer = 0;
+let localStepDistAccum = 0;
+let wasLocalGrounded = false;
+let prevLocalVy = 0;
 let eyeOffsetSmoothed = 0;
 let slideTiltSmoothed = 0;
 let interactHeld = false;
@@ -367,6 +371,9 @@ function syncLocalPlayerFromCombatant(): void {
   player.colorId = c.colorId;
   input.yaw = c.yaw;
   input.pitch = c.pitch;
+  localStepDistAccum = 0;
+  wasLocalGrounded = c.grounded;
+  prevLocalVy = 0;
 
   switchAgentColor(c.colorId);
   lastPlayerSide = match.getPlayerSide();
@@ -2357,10 +2364,31 @@ function tick(now: number): void {
         if (player.velocity.x > 0) player.velocity.x = 0;
       }
     }
-  } else if (weapon.isScoped) {
-    // Automatically drop sniper/ADS zoom upon death so spectator camera is unobstructed.
-    weapon.toggleScope(false);
-    input.ads = false;
+
+    if (!wasLocalGrounded && player.grounded && prevLocalVy < -3.2) {
+      sfx.playLandingThud(0, 0, clamp((-prevLocalVy - 3.2) / 6, 0.3, 1), true);
+    }
+    const localHorizSpeed = getHorizontalSpeed(player.velocity);
+    if (player.grounded && !input.walk && !player.crouching && localHorizSpeed > 3.15) {
+      localStepDistAccum += localHorizSpeed * dt;
+      if (localStepDistAccum >= LOCAL_STEP_STRIDE_M) {
+        localStepDistAccum -= LOCAL_STEP_STRIDE_M;
+        sfx.playFootstep(0, 0, false, true);
+      }
+    } else {
+      localStepDistAccum = 0;
+    }
+    wasLocalGrounded = player.grounded;
+    prevLocalVy = player.velocity.y;
+  } else {
+    localStepDistAccum = 0;
+    wasLocalGrounded = false;
+    prevLocalVy = 0;
+    if (weapon.isScoped) {
+      // Automatically drop sniper/ADS zoom upon death so spectator camera is unobstructed.
+      weapon.toggleScope(false);
+      input.ads = false;
+    }
   }
 
   // Step abilities across all 6 combatants (projectiles, persistent zones, flashes).
@@ -2589,7 +2617,15 @@ function tick(now: number): void {
     match.applyRemotePlayers(net.getRemotePlayers());
   }
   const ultRevealActive = Boolean(lastAbilityFeedback?.ultRevealActive);
-  const hud = match.update(dt, player, camera.position, feedback.activeSmokes, ultRevealActive);
+  const listenerYaw = spectateTarget ? spectateTarget.yaw : input.yaw;
+  const hud = match.update(
+    dt,
+    player,
+    camera.position,
+    feedback.activeSmokes,
+    ultRevealActive,
+    listenerYaw
+  );
   if (!(mapViewer.isOpen() && mapViewer.is3DViewActive())) {
     setArenaBuyBarriersVisible(hud.phase === 'buy');
   }
@@ -2599,6 +2635,9 @@ function tick(now: number): void {
     const c = match.getPlayerCombatant();
     input.yaw = c.yaw;
     input.pitch = c.pitch;
+    localStepDistAccum = 0;
+    wasLocalGrounded = false;
+    prevLocalVy = 0;
     spectateTargetId = null;
     switchAgentColor(c.colorId);
     syncWeaponPills(weapon.currentWeaponId);

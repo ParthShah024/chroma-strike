@@ -277,6 +277,7 @@ const UP = new THREE.Vector3(0, 1, 0);
  */
 const WEAPON_HOLD: Record<WeaponId, { socket: [number, number, number]; twist: number }> = {
   pistol: { socket: [0.0, -0.1, -0.4], twist: -0.16 },
+  shotgun: { socket: [0.06, -0.16, -0.26], twist: -0.26 },
   smg: { socket: [0.05, -0.15, -0.27], twist: -0.24 },
   ar: { socket: [0.06, -0.16, -0.25], twist: -0.28 },
   sniper: { socket: [0.06, -0.15, -0.24], twist: -0.3 },
@@ -557,7 +558,27 @@ function buildWeaponProps(trimMat: THREE.Material, glowMat: THREE.Material): Rec
   for (const s of [-1, 1]) addMesh(pistol, zCapsuleGeometry(0.0035, 0.1), trimMat, s * 0.021, 0.05, -0.08);
   const pistolSupport = makeSupport(pistol, -0.048, -0.014, -0.012);
 
-  // 2. SMG — compact receiver, forward magazine, suppressor, wire stock.
+  // 2. Shotgun — chunky receiver, twin barrel/mag tube, ribbed pump forend, ghost ring & stock.
+  const shotgun = new THREE.Group();
+  addMesh(
+    shotgun,
+    extrudeForward([[-0.09, 0.015], [0.22, 0.015], [0.23, 0.04], [0.215, 0.092], [-0.08, 0.096], [-0.1, 0.075]], 0.056),
+    metal
+  );
+  addMesh(
+    shotgun,
+    extrudeForward([[-0.08, 0.022], [-0.08, 0.09], [-0.21, 0.075], [-0.22, 0.005], [-0.17, 0.005], [-0.12, 0.022]], 0.044),
+    polymer
+  );
+  addMesh(shotgun, extrudeForward(gripProfile, 0.036), polymer);
+  addMesh(shotgun, zCylinderGeometry(0.014, 0.015, 0.36), barrel, 0, 0.068, -0.4);
+  addMesh(shotgun, zCylinderGeometry(0.012, 0.012, 0.33), metal, 0, 0.038, -0.38);
+  addMesh(shotgun, zCylinderGeometry(0.025, 0.025, 0.16, 10), polymer, 0, 0.038, -0.28);
+  addMesh(shotgun, zCapsuleGeometry(0.005, 0.2), glowMat, 0, 0.096, -0.06);
+  for (const s of [-1, 1]) addMesh(shotgun, zCapsuleGeometry(0.0045, 0.15), trimMat, s * 0.03, 0.056, -0.06);
+  const shotgunSupport = makeSupport(shotgun, 0, -0.02, -0.22);
+
+  // 2B. SMG — compact receiver, forward magazine, suppressor, wire stock.
   const smg = new THREE.Group();
   addMesh(smg, extrudeForward([[-0.1, 0.015], [0.2, 0.015], [0.215, 0.04], [0.2, 0.095], [-0.07, 0.1], [-0.11, 0.07]], 0.052), metal);
   addMesh(smg, extrudeForward(gripProfile, 0.036), polymer);
@@ -634,6 +655,7 @@ function buildWeaponProps(trimMat: THREE.Material, glowMat: THREE.Material): Rec
 
   return {
     pistol: { group: pistol, support: pistolSupport },
+    shotgun: { group: shotgun, support: shotgunSupport },
     smg: { group: smg, support: smgSupport },
     ar: { group: ar, support: arSupport },
     sniper: { group: sniper, support: sniperSupport },
@@ -1680,7 +1702,7 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
   aimPivot.add(weaponSocket);
 
   const weaponProps = buildWeaponProps(trimMat, glowMat);
-  const WEAPON_IDS: WeaponId[] = ['pistol', 'smg', 'ar', 'sniper', 'knife'];
+  const WEAPON_IDS: WeaponId[] = ['pistol', 'shotgun', 'smg', 'ar', 'sniper', 'knife'];
   for (const id of WEAPON_IDS) {
     weaponProps[id].group.visible = id === 'ar';
     weaponSocket.add(weaponProps[id].group);
@@ -2419,7 +2441,14 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
   }
 
   function triggerFireKick(): void {
-    recoilKick = activeWeapon === 'sniper' ? 0.42 : activeWeapon === 'knife' ? 0.38 : 0.26;
+    recoilKick =
+      activeWeapon === 'sniper'
+        ? 0.42
+        : activeWeapon === 'shotgun'
+          ? 0.4
+          : activeWeapon === 'knife'
+            ? 0.38
+            : 0.26;
   }
 
   function triggerHitFlash(isHeadshot: boolean): void {

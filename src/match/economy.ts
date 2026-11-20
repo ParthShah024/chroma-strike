@@ -81,9 +81,10 @@ export interface EconomySystem {
 const WEAPON_TIER_RANK: Record<WeaponId, number> = {
   knife: -1,
   pistol: 0,
-  smg: 1,
-  ar: 2,
-  sniper: 3,
+  shotgun: 1,
+  smg: 2,
+  ar: 3,
+  sniper: 4,
 };
 
 function clampCredits(value: number): number {
@@ -549,6 +550,24 @@ export function createEconomySystem(): EconomySystem {
       if (st.credits >= WEAPON_SPECS.smg.cost + SHIELD_SPECS.light.cost && canForceHalfBuy) {
         if (currentRank < WEAPON_TIER_RANK.smg) {
           buyWeapon(bot.id, 'smg', combatants);
+        }
+        const lightCost = getShieldUpgradeCost(bot.id, 'light');
+        if (st.armor < SHIELD_SPECS.light.armor && st.credits >= lightCost) {
+          buyShield(bot.id, 'light', combatants);
+        }
+        applyStateToCombatant(bot, st);
+        continue;
+      }
+
+      // Case 5B: Breach Shotgun close-range force-buy for Duelists (`1300¤ + 400¤`)
+      const isDuelist = bot.colorId === 'red' || bot.colorId === 'gold' || bot.colorId === 'cyan';
+      if (
+        isDuelist &&
+        st.credits >= WEAPON_SPECS.shotgun.cost + SHIELD_SPECS.light.cost &&
+        canForceHalfBuy
+      ) {
+        if (currentRank < WEAPON_TIER_RANK.shotgun) {
+          buyWeapon(bot.id, 'shotgun', combatants);
         }
         const lightCost = getShieldUpgradeCost(bot.id, 'light');
         if (st.armor < SHIELD_SPECS.light.armor && st.credits >= lightCost) {

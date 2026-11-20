@@ -353,7 +353,7 @@ export interface AbilityFrameFeedback {
 //    state machine and projects a clean, read-only `MatchHudState` snapshot each
 //    tick so the DOM HUD never mutates match scores or timers directly.
 
-export type WeaponId = 'pistol' | 'smg' | 'ar' | 'sniper' | 'knife';
+export type WeaponId = 'pistol' | 'shotgun' | 'smg' | 'ar' | 'sniper' | 'knife';
 
 export type TeamId = 'ally' | 'enemy';
 
@@ -362,12 +362,14 @@ export type RoundPhase = 'buy' | 'combat' | 'round_end' | 'match_over';
 /** Immutable weapon balance & optical specification for one arsenal slot. */
 export interface WeaponSpec {
   id: WeaponId;
-  slotNumber: 1 | 2 | 3 | 4;
+  slotNumber: 1 | 2 | 3 | 4 | 5;
   name: string;
   shortTag: string;
   automatic: boolean;
   isMelee?: boolean;
   maxRangeM?: number;
+  pelletCount?: number;
+  pelletSpreadRad?: number;
   fireIntervalSec: number;
   reloadDurationSec: number;
   maxAmmo: number;

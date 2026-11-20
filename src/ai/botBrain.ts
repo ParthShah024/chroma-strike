@@ -963,7 +963,8 @@ export interface BotBrainSystem {
     sfx: SoundEngine,
     onDamage: BotDamageCallback,
     onFire: BotFireCallback,
-    sdContext?: BotSdContext
+    sdContext?: BotSdContext,
+    listenerYaw?: number
   ): void;
 }
 
@@ -1077,6 +1078,16 @@ export function createBotBrainSystem(): BotBrainSystem {
     }
   }
 
+  function computeStereoPan(src: Vec3, cam: Vec3, yaw: number): number {
+    const dx = src.x - cam.x;
+    const dz = src.z - cam.z;
+    const d = Math.hypot(dx, dz);
+    if (d < 0.25) return 0;
+    const rx = Math.cos(yaw);
+    const rz = -Math.sin(yaw);
+    return clamp((dx * rx + dz * rz) / d, -0.92, 0.92);
+  }
+
   function stepSingleBot(
     bot: Combatant,
     botSlotIndex: number,
@@ -1086,6 +1097,7 @@ export function createBotBrainSystem(): BotBrainSystem {
     waypoints: ArenaWaypoint[],
     waypointById: Map<string, ArenaWaypoint>,
     cameraPos: Vec3,
+    listenerYaw: number,
     isCombatActive: boolean,
     dt: number,
     abilities: AbilitySystem,
@@ -1604,7 +1616,9 @@ export function createBotBrainSystem(): BotBrainSystem {
       if (!inStopWindow) {
         if (mem.strafeDir > 0) botInput.right = true;
         else botInput.left = true;
-        if (spottedDist > 22 && bot.weaponId === 'smg') {
+        if (spottedDist > 12 && bot.weaponId === 'shotgun') {
+          botInput.forward = true;
+        } else if (spottedDist > 22 && bot.weaponId === 'smg') {
           botInput.forward = true;
         } else if (spottedDist < 7 && bot.weaponId === 'sniper') {
           botInput.backward = true;
@@ -1791,7 +1805,7 @@ export function createBotBrainSystem(): BotBrainSystem {
     ) {
       if (mem.burstShotsLeft <= 0 && mem.burstCooldown <= 0) {
         const rawBurst =
-          bot.weaponId === 'sniper' || bot.weaponId === 'pistol'
+          bot.weaponId === 'sniper' || bot.weaponId === 'pistol' || bot.weaponId === 'shotgun'
             ? 1
             : bot.weaponId === 'smg'
               ? 4 + Math.floor(Math.random() * 3)
@@ -1813,7 +1827,10 @@ export function createBotBrainSystem(): BotBrainSystem {
         mem.fireTimer = (baseInterval * prof.fireIntervalScale) / fireRateMult;
 
         if (mem.burstShotsLeft <= 0) {
-          const rawCooldown = bot.weaponId === 'sniper' ? 0.35 : 0.26 + Math.random() * 0.2;
+          const rawCooldown =
+            bot.weaponId === 'sniper' || bot.weaponId === 'shotgun'
+              ? 0.35
+              : 0.26 + Math.random() * 0.2;
           mem.burstCooldown = rawCooldown * prof.burstCooldownScale;
         }
 
@@ -1838,7 +1855,6 @@ export function createBotBrainSystem(): BotBrainSystem {
             slewPenalty;
 
         const baseDir = getLookDirection(bot.yaw, bot.pitch + mem.recoilAccum * 0.04);
-        const shotDir = applyBotSpread(baseDir, totalSpread);
         const recoilScale = blazeUltActive ? 0.65 : windyUltActive ? 0.45 : 1.0;
         mem.recoilAccum = Math.min(1.0, mem.recoilAccum + spec.recoilPerShot * 0.85 * recoilScale);
 
@@ -1849,93 +1865,113 @@ export function createBotBrainSystem(): BotBrainSystem {
           origin.y - cameraPos.y,
           origin.z - cameraPos.z
         );
-        sfx.playWeaponShot(bot.weaponId, blazeUltActive, listenerDist);
-
-        // Raycast static colliders & closed doors first (bullets pass cleanly through open windows!)
-        let closestWallDist = BOT_MAX_RAY_DIST;
-        let closestWallHit: RaycastHit | null = null;
-        let closestWallBox: AABB | null = null;
-        for (const box of colliders) {
-          const hit = raycastAABB(origin, shotDir, box, closestWallDist);
-          if (hit && hit.distance < closestWallDist) {
-            closestWallDist = hit.distance;
-            closestWallHit = hit;
-            closestWallBox = box;
-          }
-        }
-
-        // Raycast opposing living combatants
-        let closestVictimDist = closestWallDist;
-        let hitVictim: Combatant | null = null;
-        let hitVictimHit: RaycastHit | null = null;
-        let hitHeadshot = false;
-
-        for (const other of allCombatants) {
-          if (other.team === bot.team || !other.alive) continue;
-          const { head, body } = getCombatantHitboxes(other);
-          const headHit = raycastAABB(origin, shotDir, head, closestVictimDist);
-          const bodyHit = raycastAABB(origin, shotDir, body, closestVictimDist);
-
-          if (headHit && (!bodyHit || headHit.distance <= bodyHit.distance + 1e-4)) {
-            if (headHit.distance < closestVictimDist) {
-              closestVictimDist = headHit.distance;
-              hitVictim = other;
-              hitVictimHit = headHit;
-              hitHeadshot = true;
-            }
-          } else if (bodyHit && bodyHit.distance < closestVictimDist) {
-            closestVictimDist = bodyHit.distance;
-            hitVictim = other;
-            hitVictimHit = bodyHit;
-            hitHeadshot = false;
-          }
-        }
+        const listenerPan = computeStereoPan(origin, cameraPos, listenerYaw);
+        sfx.playWeaponShot(bot.weaponId, blazeUltActive, listenerDist, listenerPan);
 
         const paletteHex = AGENT_PALETTES[bot.colorId].hex;
-        const muzzleOffset: Vec3 = {
-          x: origin.x + shotDir.x * 0.45,
-          y: origin.y - 0.12,
-          z: origin.z + shotDir.z * 0.45,
-        };
+        const pelletCount = Math.max(1, spec.pelletCount ?? 1);
+        const pelletExtraSpread = (spec.pelletSpreadRad ?? 0) * 0.85;
+        const victimAgg = new Map<string, { victim: Combatant; damage: number; anyHead: boolean }>();
 
-        if (hitVictim && hitVictimHit) {
-          const dmg = computeWeaponDamage(spec, closestVictimDist, hitHeadshot);
-          onDamage(bot, hitVictim, dmg, hitHeadshot, spec.shortTag);
-          weaponSystem.spawnWorldTracer(
-            muzzleOffset,
-            hitVictimHit.point,
-            hitVictimHit.normal,
-            paletteHex,
-            hitHeadshot
+        for (let p = 0; p < pelletCount; p++) {
+          const shotDir = applyBotSpread(
+            baseDir,
+            p === 0 ? totalSpread : totalSpread + pelletExtraSpread
           );
-        } else if (closestWallHit) {
-          if (closestWallBox && closestWallBox.tag === 'door' && closestWallBox.doorId) {
-            const doorDmg = computeWeaponDamage(spec, closestWallDist, false);
-            const doorRes = damageArenaDoor(closestWallBox.doorId, doorDmg);
-            if (doorRes.hit) {
-              if (doorRes.broken) sfx.playDoorBreak();
-              else if (listenerDist < 42) sfx.playDoorHit();
+
+          let closestWallDist = BOT_MAX_RAY_DIST;
+          let closestWallHit: RaycastHit | null = null;
+          let closestWallBox: AABB | null = null;
+          for (const box of colliders) {
+            const hit = raycastAABB(origin, shotDir, box, closestWallDist);
+            if (hit && hit.distance < closestWallDist) {
+              closestWallDist = hit.distance;
+              closestWallHit = hit;
+              closestWallBox = box;
             }
           }
-          weaponSystem.spawnWorldTracer(
-            muzzleOffset,
-            closestWallHit.point,
-            closestWallHit.normal,
-            paletteHex,
-            false
-          );
-        } else {
-          weaponSystem.spawnWorldTracer(
-            muzzleOffset,
-            {
-              x: origin.x + shotDir.x * 75,
-              y: origin.y + shotDir.y * 75,
-              z: origin.z + shotDir.z * 75,
-            },
-            null,
-            paletteHex,
-            false
-          );
+
+          let closestVictimDist = closestWallDist;
+          let hitVictim: Combatant | null = null;
+          let hitVictimHit: RaycastHit | null = null;
+          let hitHeadshot = false;
+
+          for (const other of allCombatants) {
+            if (other.team === bot.team || !other.alive) continue;
+            const { head, body } = getCombatantHitboxes(other);
+            const headHit = raycastAABB(origin, shotDir, head, closestVictimDist);
+            const bodyHit = raycastAABB(origin, shotDir, body, closestVictimDist);
+
+            if (headHit && (!bodyHit || headHit.distance <= bodyHit.distance + 1e-4)) {
+              if (headHit.distance < closestVictimDist) {
+                closestVictimDist = headHit.distance;
+                hitVictim = other;
+                hitVictimHit = headHit;
+                hitHeadshot = true;
+              }
+            } else if (bodyHit && bodyHit.distance < closestVictimDist) {
+              closestVictimDist = bodyHit.distance;
+              hitVictim = other;
+              hitVictimHit = bodyHit;
+              hitHeadshot = false;
+            }
+          }
+
+          const muzzleOffset: Vec3 = {
+            x: origin.x + shotDir.x * 0.45,
+            y: origin.y - 0.12,
+            z: origin.z + shotDir.z * 0.45,
+          };
+
+          if (hitVictim && hitVictimHit) {
+            const dmg = computeWeaponDamage(spec, closestVictimDist, hitHeadshot);
+            const prev = victimAgg.get(hitVictim.id);
+            if (prev) {
+              prev.damage += dmg;
+              prev.anyHead = prev.anyHead || hitHeadshot;
+            } else {
+              victimAgg.set(hitVictim.id, { victim: hitVictim, damage: dmg, anyHead: hitHeadshot });
+            }
+            weaponSystem.spawnWorldTracer(
+              muzzleOffset,
+              hitVictimHit.point,
+              hitVictimHit.normal,
+              paletteHex,
+              hitHeadshot
+            );
+          } else if (closestWallHit) {
+            if (closestWallBox && closestWallBox.tag === 'door' && closestWallBox.doorId) {
+              const doorDmg = computeWeaponDamage(spec, closestWallDist, false);
+              const doorRes = damageArenaDoor(closestWallBox.doorId, doorDmg);
+              if (doorRes.hit) {
+                if (doorRes.broken) sfx.playDoorBreak();
+                else if (listenerDist < 26) sfx.playDoorHit();
+              }
+            }
+            weaponSystem.spawnWorldTracer(
+              muzzleOffset,
+              closestWallHit.point,
+              closestWallHit.normal,
+              paletteHex,
+              false
+            );
+          } else {
+            weaponSystem.spawnWorldTracer(
+              muzzleOffset,
+              {
+                x: origin.x + shotDir.x * 75,
+                y: origin.y + shotDir.y * 75,
+                z: origin.z + shotDir.z * 75,
+              },
+              null,
+              paletteHex,
+              false
+            );
+          }
+        }
+
+        for (const agg of victimAgg.values()) {
+          onDamage(bot, agg.victim, agg.damage, agg.anyHead, spec.shortTag);
         }
 
         if (mem.ammo <= 0) {
@@ -1956,7 +1992,7 @@ export function createBotBrainSystem(): BotBrainSystem {
       const fireRateMult =
         (concussed ? CONCUSS_FIRE_RATE_MULT : 1.0) * (blazeUltActive ? 1.35 : 1.0);
       const rawDoorInterval =
-        bot.weaponId === 'sniper'
+        bot.weaponId === 'sniper' || bot.weaponId === 'shotgun'
           ? BOT_DOOR_FIRE_MAX_INTERVAL_SEC
           : clamp(
               spec.fireIntervalSec * 1.6,
@@ -1980,7 +2016,8 @@ export function createBotBrainSystem(): BotBrainSystem {
         origin.y - cameraPos.y,
         origin.z - cameraPos.z
       );
-      sfx.playWeaponShot(bot.weaponId, blazeUltActive, listenerDist);
+      const listenerPan = computeStereoPan(origin, cameraPos, listenerYaw);
+      sfx.playWeaponShot(bot.weaponId, blazeUltActive, listenerDist, listenerPan);
 
       const doorHit = raycastAABB(origin, shotDir, blockingDoor.box, BOT_DOOR_DETECT_DIST_M + 2.0);
       const hitPoint = doorHit ? doorHit.point : blockingDoor.center;
@@ -1995,11 +2032,12 @@ export function createBotBrainSystem(): BotBrainSystem {
       };
       weaponSystem.spawnWorldTracer(muzzleOffset, hitPoint, hitNormal, paletteHex, false);
 
-      const botDoorDamage = computeWeaponDamage(spec, hitDist, false);
+      const botDoorDamage =
+        computeWeaponDamage(spec, hitDist, false) * Math.max(1, spec.pelletCount ?? 1);
       const doorRes = damageArenaDoor(blockingDoor.doorId, botDoorDamage);
       if (doorRes.hit) {
         if (doorRes.broken) sfx.playDoorBreak();
-        else if (listenerDist < 42) sfx.playDoorHit();
+        else if (listenerDist < 26) sfx.playDoorHit();
       }
 
       if (mem.ammo <= 0) {
@@ -2021,7 +2059,8 @@ export function createBotBrainSystem(): BotBrainSystem {
     sfx: SoundEngine,
     onDamage: BotDamageCallback,
     onFire: BotFireCallback,
-    sdContext?: BotSdContext
+    sdContext?: BotSdContext,
+    listenerYaw = 0
   ): void {
     // Lazily ensure tactical roles match current attacking side (e.g., post-halftime swap)
     if (sdContext && rolesAssignedForAttackerTeam !== sdContext.attackerTeam) {
@@ -2098,6 +2137,7 @@ export function createBotBrainSystem(): BotBrainSystem {
         waypoints,
         waypointById,
         cameraPos,
+        listenerYaw,
         isCombatActive,
         dt,
         abilities,

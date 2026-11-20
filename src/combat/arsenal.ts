@@ -1,14 +1,14 @@
 import type { ShieldTier, WeaponId, WeaponSpec } from '../core/types';
 
 /**
- * Purchasable firearms displayed in the [B] Buyout Shop (`[1]`-`[4]`).
+ * Purchasable firearms displayed in the [B] Buyout Shop (`[1]`-`[5]`).
  */
-export const BUYABLE_WEAPONS: WeaponId[] = ['pistol', 'smg', 'ar', 'sniper'];
+export const BUYABLE_WEAPONS: WeaponId[] = ['pistol', 'shotgun', 'smg', 'ar', 'sniper'];
 
 /**
  * Canonical arsenal ordering including the always-equipped tactical melee knife.
  */
-export const WEAPON_ORDER: WeaponId[] = ['pistol', 'smg', 'ar', 'sniper', 'knife'];
+export const WEAPON_ORDER: WeaponId[] = ['pistol', 'shotgun', 'smg', 'ar', 'sniper', 'knife'];
 
 /**
  * Extended weapon specification including per-weapon Aim Down Sights (ADS)
@@ -54,9 +54,38 @@ export const WEAPON_SPECS: Record<WeaponId, AdsWeaponSpec> = {
     cost: 0,
     killReward: 200,
   },
+  shotgun: {
+    id: 'shotgun',
+    slotNumber: 2,
+    name: 'Breach Shotgun',
+    shortTag: 'SHOTGUN',
+    automatic: false,
+    pelletCount: 8,
+    pelletSpreadRad: 0.068,
+    fireIntervalSec: 0.88,
+    reloadDurationSec: 1.85,
+    maxAmmo: 6,
+    headDamage: 42,
+    bodyDamage: 24,
+    falloffStartM: 7,
+    falloffEndM: 18,
+    minFalloffMult: 0.18,
+    baseSpreadRad: 0.008,
+    scopedSpreadRad: 0.005,
+    moveSpreadRad: 0.032,
+    airSpreadRad: 0.055,
+    recoilPerShot: 0.38,
+    moveSpeedMult: 0.98,
+    adsFovDeg: 70,
+    adsSpreadMult: 0.82,
+    adsRecoilMult: 0.82,
+    tracerWidthScale: 0.75,
+    cost: 1300,
+    killReward: 200,
+  },
   smg: {
     id: 'smg',
-    slotNumber: 2,
+    slotNumber: 3,
     name: 'Spectre SMG',
     shortTag: 'SMG',
     automatic: true,
@@ -83,7 +112,7 @@ export const WEAPON_SPECS: Record<WeaponId, AdsWeaponSpec> = {
   },
   ar: {
     id: 'ar',
-    slotNumber: 3,
+    slotNumber: 4,
     name: 'Pulse Rifle',
     shortTag: 'AR',
     automatic: true,
@@ -110,7 +139,7 @@ export const WEAPON_SPECS: Record<WeaponId, AdsWeaponSpec> = {
   },
   sniper: {
     id: 'sniper',
-    slotNumber: 4,
+    slotNumber: 5,
     name: 'Rail Sniper',
     shortTag: 'SNIPER',
     automatic: false,

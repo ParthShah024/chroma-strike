@@ -32,9 +32,11 @@ A fast-paced, *Valorant*-inspired **3v3 Tactical 3D First-Person Shooter** built
   - Every Agent's **`[Q]` & `[E]` are limited to strictly `2` charges per round** (no unlimited timer refills; `[X]` requires `5` Ult Points).
 - **Valorant / CS Financial Economy & Single-Shield `[B]` Buyout Shop:**
   - Start at **`800¤`** (`9000¤` cap), earn **`+3000¤`** win / **`1900 / 2400 / 2900¤`** loss-streak bonus, **`+200¤`** per kill, and **`+300¤`** team plant/defuse bonuses. Survivors carry over weapons and remaining shield armor!
-  - Press **`[B]`** during the Buy Phase to buy **Sidearm (`0¤`)**, **Spectre SMG (`1600¤`)**, **Pulse Rifle AR (`2900¤`)**, **Rail Sniper (`4700¤`)**, **Light Shield (`400¤`, `+25` Armor)**, or **Heavy Shield (`1000¤`, `+50` Armor)**. **Only one shield tier may be chosen at a time** (buying/owning one locks the other; clicking your same-round shield refunds 100%), alongside `[R]` weapon refunds, squad economy strip, and `[P]` Attack/Defend side swap.
-- **Centered True ADS Across All 4 Weapons (`[1]`–`[4]` + Right-Click ADS/Scope + Mechanical 1P Android Hands):**
-  - All 4 weapons align dead-center (`x = 0`) during ADS with `85%` sway suppression and hipfire reticle fade: **3-dot luminous tritium iron sights** on **`[1]` Sidearm (`72°`)**, sculpted open-frame **Reflex Holo Optics** on **`[2]` Spectre SMG (`64°`)** & **`[3]` Pulse Rifle AR (`58°`)**, and `3.2x` (`24°`) scope on **`[4]` Rail Sniper**.
+  - Press **`[B]`** during the Buy Phase to buy **Sidearm (`0¤`)**, **Breach Shotgun (`1300¤`)**, **Spectre SMG (`1600¤`)**, **Pulse Rifle AR (`2900¤`)**, **Rail Sniper (`4700¤`)**, **Light Shield (`400¤`, `+25` Armor)**, or **Heavy Shield (`1000¤`, `+50` Armor)**. **Only one shield tier may be chosen at a time** (buying/owning one locks the other; clicking your same-round shield refunds 100%), alongside `[R]` weapon refunds, squad economy strip, and `[P]` Attack/Defend side swap.
+- **Centered ADS Across 5 Firearms (`[1–3]` Loadout + Right-Click ADS/Scope + Mechanical 1P Android Hands):**
+  - All 5 firearms align dead-center (`x = 0`) during ADS with `85%` sway suppression and hipfire reticle fade: **3-dot luminous tritium iron sights** on **Sidearm (`72°`)**, **ghost-ring & bead sight** on **Breach Shotgun (`70°`, 8 pellets high CQB damage)**, open-frame **Reflex Holo Optics** on **Spectre SMG (`64°`)** & **Pulse Rifle AR (`58°`)**, and `3.2x` (`24°`) scope on **Rail Sniper**.
+- **Warm Spatialized Audio & Proximity Footsteps ([`src/audio/sfx.ts`](src/audio/sfx.ts)):**
+  - All procedural audio sums through a warm `6.8 kHz` master lowpass, `-3.5 dB` `2.8 kHz` harshness scoop, smooth dynamics compression, and pink-noise foley; world shots and running footsteps within `24 m` use stereo panning and air absorption (holding **`Shift`** Walk or **`C`/`Ctrl`** Crouch stays silent).
 - **6 Color-Coded Blender KAY/O Agents & 18 Abilities (`[Q]`, `[E]`, & 5-Point `[X]` Signatures):**
   - Articulated **`public/models/agent_kayo.glb`** sculpted in Blender 5.2 (`16` modular bone segments mounted into FK/IK limbs + distinct dorsal kits & custom aero-vanes, glowing `Mat_VisorLED` visors, **Ally Pearl-Titanium vs. Enemy Obsidian + Red Outline**, one-knee Spike kneel + holo-keypad, back-Spike, & Ult Overcharge rings).
   - Earn **`5` Ult Points** (`2/5` at start of each half, `+1` per kill / death / plant / defuse) to unleash each Agent's signature **`[X]` Ultimate**:
@@ -54,8 +56,8 @@ A fast-paced, *Valorant*-inspired **3v3 Tactical 3D First-Person Shooter** built
 | **`W A S D`** | Move & Counter-Strafe (`5.55 m/s` run, `0.0 m/s` for 100% first-shot accuracy) |
 | **`Shift` / `C` or `Ctrl`** | Silent Walk (`3.0 m/s`, or **Power-Slide** during Volt Overdrive) / **Crouch** (`2.45 m/s`, steadier spread, lower hitbox) |
 | **`Space`** | Jump, **Windy Slow-Fall Glide**, or Skip Buy Phase |
-| **`Left Click`** | Fire (Semi-auto click for Pistol/Sniper, Hold for SMG/AR — damages closed Blast Doors!) |
-| **`Right Click`** | Optical Scope / ADS (`Sidearm`, `SMG`, `AR`, `Sniper`) |
+| **`Left Click`** | Fire (Semi-auto click for Pistol/Shotgun/Sniper, Hold for SMG/AR — damages closed Blast Doors!) |
+| **`Right Click`** | Optical Scope / ADS (`Sidearm`, `Shotgun`, `SMG`, `AR`, `Sniper`) |
 | **`1` `2` `3` / Wheel** | Equip Loadout (**`[1]` Owned Primary**, **`[2]` Sidearm Pistol**, **`[3]` 2-Hit Knife**) |
 | **`R`** | Reload (or 100% Weapon Refund in `[B]` Buy Shop) |
 | **`Q` / `E` / `X`** | Cast Abilities (`Q` opens **Smoke Tablet** for Controllers Mist/Umbra) / **Ultimate** (`5` Pts — bindable to `M3`/`M4`/`M5`/Wheel) |

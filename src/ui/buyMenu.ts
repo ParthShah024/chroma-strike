@@ -219,7 +219,13 @@ export function createBuyMenuController(options: BuyMenuOptions): BuyMenuControl
       const metaEl = btn.querySelector<HTMLElement>('.buy-item-meta');
       if (costEl) costEl.textContent = spec.cost === 0 ? 'FREE' : `¤ ${spec.cost}`;
       if (stateEl) stateEl.textContent = statusLabel;
-      if (metaEl) metaEl.textContent = `HD ${spec.headDamage} • BD ${spec.bodyDamage}`;
+      if (metaEl) {
+        const pellets = spec.pelletCount ?? 1;
+        metaEl.textContent =
+          pellets > 1
+            ? `HD ${spec.headDamage}×${pellets} • BD ${spec.bodyDamage}×${pellets}`
+            : `HD ${spec.headDamage} • BD ${spec.bodyDamage}`;
+      }
     }
 
     const canRefund = Boolean(hud.canRefundWeapon && (hud.refundableWeaponCost ?? 0) > 0);
@@ -314,25 +320,30 @@ export function createBuyMenuController(options: BuyMenuOptions): BuyMenuControl
     }
     if (e.code === 'Digit2') {
       e.preventDefault();
-      options.onBuyWeapon('smg');
+      options.onBuyWeapon('shotgun');
       return;
     }
     if (e.code === 'Digit3') {
       e.preventDefault();
-      options.onBuyWeapon('ar');
+      options.onBuyWeapon('smg');
       return;
     }
     if (e.code === 'Digit4') {
       e.preventDefault();
-      options.onBuyWeapon('sniper');
+      options.onBuyWeapon('ar');
       return;
     }
     if (e.code === 'Digit5') {
       e.preventDefault();
-      options.onBuyShield('light');
+      options.onBuyWeapon('sniper');
       return;
     }
     if (e.code === 'Digit6') {
+      e.preventDefault();
+      options.onBuyShield('light');
+      return;
+    }
+    if (e.code === 'Digit7') {
       e.preventDefault();
       options.onBuyShield('heavy');
       return;

@@ -32,7 +32,7 @@ $node = "$env:LOCALAPPDATA\nodejs-portable\node-v26.13.1-win-x64\node.exe"
 - `src/core/types.ts` — Shared contracts (`WeaponId`, `WeaponSpec`, `PlayerState`, `InputState`, `Combatant`, `MatchHudState`, `GameSettings`, `AbilitySpec`). Keep DOM/Three-free.
 - `src/physics/movement.ts` — Fixed AABB movement, counter-strafing, crouching (`1.24 m`), and edge-triggered b-hop math. Keep DOM/Three-free so Node can test it headlessly.
 - `src/combat/arsenal.ts` — `WEAPON_SPECS`, `WEAPON_ORDER`, `BUYABLE_WEAPONS`, `SHIELD_SPECS`, and piecewise distance falloff (`computeWeaponDamage`). Keep DOM/Three-free.
-- `src/combat/weapons.ts` — 1P weapon viewmodels (`pistol`, `smg`, `ar`, `sniper`, `knife`), optical ADS blend, hitscan + 5-ray close-range knife melee sweep, melee spark rings, and decoupled tracer pool (`tickTracers`, `clearAllTracers`).
+- `src/combat/weapons.ts` — 1P weapon viewmodels (`pistol`, `shotgun`, `smg`, `ar`, `sniper`, `knife`), optical ADS blend, hitscan + multi-pellet shotgun aggregation + 5-ray knife sweep, and decoupled tracer pool (`tickTracers`, `clearAllTracers`).
 - `src/abilities/` (`definitions.ts`, `system.ts`) — 6-agent `[Q]`/`[E]`/`[X]` specs, projectile bounces, persistent hazard/smoke zones, and per-frame movement modifiers.
 - `src/arena/` (`map.ts`, `textures.ts`, `ascentMapData.ts`) — Ascent-inspired `84 m × 92 m` 2-site map (`A`/`B`), `depthWrite: true` opaque Buy-Phase Barriers, toggleable/breakable Blast Doors, and Blender `.glb` + AABB collision runtime integration.
 - `scripts/blender/` (`build_ascent_map.py`, `build_kayo_agent.py`) & `public/models/` (`ascent_map.glb`, `agent_kayo.glb`) — Blender asset generation scripts and runtime `.glb` models.
@@ -41,7 +41,7 @@ $node = "$env:LOCALAPPDATA\nodejs-portable\node-v26.13.1-win-x64\node.exe"
 - `src/ai/botBrain.ts` — BFS navigation, smoke occlusion, bomb-site Spike logic, and 3-tier AI difficulty (`casual`, `tactical`, `pro`).
 - `src/ui/` (`lobby.ts`, `agentSelect.ts`, `buyMenu.ts`, `settings.ts`, `crosshair.ts`, `mapViewer.ts`, `minimap.ts`, `smokeTablet.ts`) — Lobby (`FT10`/`FT5`, side select, invite URL), 3D Agent Select, Buy Shop, Persistent Settings (`M3`/`M4`/`M5`/Wheel binds), Crosshair customizer, unified `[M]` 2D Tactical Map + 3D Orbit Viewer, radar minimap, and Controller Smoke Tablet.
 - `src/net/multiplayer.ts` & `server/gameServer.mjs` — 6-player WebSocket room sync, lobby host config, remote damage, door events, and surrender broadcast.
-- `src/audio/sfx.ts` — Procedural Web Audio synthesis (gunshots, knife slash, reload, footsteps, Spike beeps, ability cues).
+- `src/audio/sfx.ts` — Warm procedural Web Audio synthesizer (pink-noise foley, `6.8 kHz` master lowpass, stereo spatialized gunshots, `24 m` Shift-silent footsteps/landings, Spike beeps, ability cues).
 - `src/main.ts` & `index.html` — Three.js scene loop, pointer-lock input + b-hop buffer, loadout slots, HUD bindings, and modals.
 
 ## Critical Invariants & Pitfalls
@@ -56,7 +56,7 @@ $node = "$env:LOCALAPPDATA\nodejs-portable\node-v26.13.1-win-x64\node.exe"
    - `src/match/roundManager.ts` (`isPrimaryWeapon`, `transitionToRoundEnd`)
 3. **3-Slot Loadout vs. Buy Menu:**
    - In combat, slots are `[1]` Owned Primary, `[2]` Sidearm (`pistol`), and `[3]` Tactical Knife (`knife`, always equipped, `75` dmg / `2.4 m` 2-hit kill across all shield tiers, `1.12×` speed), plus mouse-wheel cycling `[Primary -> Pistol -> Knife]`.
-   - In `[B]` Buy Menu, iterate `BUYABLE_WEAPONS` only (`[1]`–`[4]` firearms, `[5]`–`[6]` single-shield buy/refund/upgrade) — never list `'knife'` as purchasable.
+   - In `[B]` Buy Menu, iterate `BUYABLE_WEAPONS` only (`[1]`–`[5]` firearms incl. Breach Shotgun `[2]`, `[6]`–`[7]` single-shield buy/refund/upgrade) — never list `'knife'` as purchasable.
 4. **Edge-Triggered B-Hopping:**
    - Do not revert jumping to hold-`Space` auto-repeat. Keep `jumpJustPressed` + `BHOP_BUFFER_SEC = 0.075` (`src/main.ts`) paired with `LANDING_BHOP_GRACE_SEC = 0.055`, `willJumpThisStep`, and `skipGroundFriction` (`src/physics/movement.ts`) so timed re-jumps preserve horizontal speed (`>= 4.9 m/s`) while holding `Space` never chains bounces.
 5. **Decoupled Tracers (`tickTracers`):**

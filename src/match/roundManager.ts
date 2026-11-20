@@ -136,7 +136,8 @@ export interface MatchManager {
     player: PlayerState,
     cameraPos: Vec3,
     activeSmokes: SmokeSphere[],
-    ultRevealAll?: boolean
+    ultRevealAll?: boolean,
+    listenerYaw?: number
   ): MatchHudState;
 }
 
@@ -333,6 +334,24 @@ export function createMatchManager(
     string,
     { position: Vec3; yaw: number; pitch: number; lastFireTracerAtMs: number }
   >();
+  const stepDistByCombatantId = new Map<string, number>();
+  const prevPosByCombatantId = new Map<string, Vec3>();
+  const prevGroundedByCombatantId = new Map<string, boolean>();
+  const prevVyByCombatantId = new Map<string, number>();
+
+  function clamp(v: number, lo: number, hi: number): number {
+    return Math.min(hi, Math.max(lo, v));
+  }
+
+  function computeListenerPan(src: Vec3, cam: Vec3, yaw: number): number {
+    const dx = src.x - cam.x;
+    const dz = src.z - cam.z;
+    const d = Math.hypot(dx, dz);
+    if (d < 0.25) return 0;
+    const rx = Math.cos(yaw);
+    const rz = -Math.sin(yaw);
+    return clamp((dx * rx + dz * rz) / d, -0.92, 0.92);
+  }
 
   function getOrCreateMatchStat(id: string) {
     let st = matchStatsById.get(id);
@@ -1021,6 +1040,10 @@ export function createMatchManager(
     combatReportRawDamage.clear();
     roundDamageByVictim.clear();
     remoteTargetsByCombatantId.clear();
+    stepDistByCombatantId.clear();
+    prevPosByCombatantId.clear();
+    prevGroundedByCombatantId.clear();
+    prevVyByCombatantId.clear();
     activeFiringBotTeam = null;
 
     if (!allyRoster.includes(preferredPlayerColor)) {
@@ -1977,7 +2000,8 @@ export function createMatchManager(
     player: PlayerState,
     cameraPos: Vec3,
     activeSmokes: SmokeSphere[],
-    ultRevealAll = false
+    ultRevealAll = false,
+    listenerYaw = 0
   ): MatchHudState {
     playerStateRef = player;
     const playerCombatant = getPlayerCombatant();
@@ -2044,7 +2068,8 @@ export function createMatchManager(
         sfx,
         () => { },
         () => { },
-        buySdContext
+        buySdContext,
+        listenerYaw
       );
 
       // Re-check proximity pickup immediately after Buy-Phase bot movement
@@ -2128,7 +2153,8 @@ export function createMatchManager(
             activeFiringBotTeam = bot.team;
             rigById.get(bot.id)?.triggerFireKick();
           },
-          sdContext
+          sdContext,
+          listenerYaw
         );
       }
 
@@ -2193,6 +2219,63 @@ export function createMatchManager(
       while (yawDiff < -Math.PI) yawDiff += Math.PI * 2;
       c.yaw += yawDiff * remoteLerpAlpha;
       c.pitch += (snap.pitch - c.pitch) * remoteLerpAlpha;
+    }
+
+    // Spatial proximity footsteps & landing thuds for all living non-player combatants (silent when walking or crouching)
+    if (dt > 0 && (phase === 'buy' || phase === 'combat')) {
+      for (const c of combatants) {
+        if (!c.alive || c.isPlayer) {
+          stepDistByCombatantId.delete(c.id);
+          prevPosByCombatantId.delete(c.id);
+          prevGroundedByCombatantId.delete(c.id);
+          prevVyByCombatantId.delete(c.id);
+          continue;
+        }
+        const prevPos = prevPosByCombatantId.get(c.id);
+        const movedHoriz = prevPos
+          ? Math.hypot(c.position.x - prevPos.x, c.position.z - prevPos.z)
+          : 0;
+        prevPosByCombatantId.set(c.id, { x: c.position.x, y: c.position.y, z: c.position.z });
+
+        const effHorizSpeed = Math.max(Math.hypot(c.velocity.x, c.velocity.z), movedHoriz / dt);
+        const effectiveGrounded = c.isRemoteHuman ? Math.abs(c.velocity.y) < 0.75 : c.grounded;
+        const wasGnd = prevGroundedByCombatantId.get(c.id) ?? effectiveGrounded;
+        const prevVy = prevVyByCombatantId.get(c.id) ?? 0;
+        prevGroundedByCombatantId.set(c.id, effectiveGrounded);
+        prevVyByCombatantId.set(c.id, c.velocity.y);
+
+        const isSpectatedAlly = spectatedCombatantId === c.id;
+        const dist = isSpectatedAlly
+          ? 0
+          : Math.hypot(
+              c.position.x - cameraPos.x,
+              c.position.y + 1.2 - cameraPos.y,
+              c.position.z - cameraPos.z
+            );
+        const pan = isSpectatedAlly ? 0 : computeListenerPan(c.position, cameraPos, listenerYaw);
+
+        if (!wasGnd && effectiveGrounded && prevVy < -3.2) {
+          sfx.playLandingThud(
+            dist,
+            pan,
+            clamp((-prevVy - 3.2) / 6, 0.3, 1),
+            isSpectatedAlly
+          );
+        }
+
+        if (effectiveGrounded && !c.crouching && effHorizSpeed > 3.25) {
+          const prevDist = stepDistByCombatantId.get(c.id) ?? 0;
+          const nextDist = prevDist + Math.min(effHorizSpeed, 12) * dt;
+          if (nextDist >= 2.05) {
+            stepDistByCombatantId.set(c.id, nextDist - 2.05);
+            sfx.playFootstep(dist, pan, c.team === 'enemy', isSpectatedAlly);
+          } else {
+            stepDistByCombatantId.set(c.id, nextDist);
+          }
+        } else {
+          stepDistByCombatantId.set(c.id, 0);
+        }
+      }
     }
 
     // 3. Update 3D Spike Model & Articulated 3D Character Rigs
