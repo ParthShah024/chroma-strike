@@ -79,6 +79,7 @@ export interface EconomySystem {
 }
 
 const WEAPON_TIER_RANK: Record<WeaponId, number> = {
+  knife: -1,
   pistol: 0,
   smg: 1,
   ar: 2,
@@ -279,6 +280,14 @@ export function createEconomySystem(): EconomySystem {
     combatants?: Combatant[]
   ): BuyWeaponResult {
     const st = getOrCreateState(playerId);
+    if (weaponId === 'knife') {
+      return {
+        ok: false,
+        reason: 'Knife is always equipped',
+        weaponId: st.weaponId,
+        credits: st.credits,
+      };
+    }
     const spec = WEAPON_SPECS[weaponId];
 
     // Clicking the already-equipped weapon is a clean no-op (prevents double charge).

@@ -16,7 +16,7 @@ export interface LobbyStateSnapshot {
   phase: LobbyPhase;
   hostId: string | null;
   difficulty: AiDifficulty;
-  winTarget: 10 | 6;
+  winTarget: 10 | 5;
   swapInterval: number;
   autoFillBots: boolean;
   maxPlayers: number;
@@ -27,7 +27,7 @@ export interface LobbyStateSnapshot {
 
 export interface LobbyConfigPatch {
   difficulty?: AiDifficulty;
-  winTarget?: 10 | 6;
+  winTarget?: 10 | 5;
   autoFillBots?: boolean;
 }
 
@@ -361,7 +361,7 @@ export function createMultiplayerClient(serverUrl?: string): MultiplayerClient {
       phase: raw.phase ?? 'lobby',
       hostId: raw.hostId ?? null,
       difficulty: raw.difficulty ?? 'casual',
-      winTarget: raw.winTarget === 6 ? 6 : 10,
+      winTarget: raw.winTarget === 5 ? 5 : 10,
       swapInterval: raw.swapInterval ?? 5,
       autoFillBots: raw.autoFillBots !== false,
       maxPlayers: raw.maxPlayers ?? 6,
@@ -699,7 +699,7 @@ export function createMultiplayerClient(serverUrl?: string): MultiplayerClient {
       return;
     }
     if (cfg.difficulty) lobbyState.difficulty = cfg.difficulty;
-    if (cfg.winTarget === 10 || cfg.winTarget === 6) lobbyState.winTarget = cfg.winTarget;
+    if (cfg.winTarget === 10 || cfg.winTarget === 5) lobbyState.winTarget = cfg.winTarget;
     if (typeof cfg.autoFillBots === 'boolean') lobbyState.autoFillBots = cfg.autoFillBots;
     emitLobbyUpdate();
   }

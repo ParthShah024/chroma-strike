@@ -282,6 +282,36 @@ export function createSoundEngine(): SoundEngine {
         boltSrc.start(t0);
         boltSrc.stop(t0 + 0.04);
       }
+    } else if (weaponId === 'knife') {
+      // Crisp tactical blade slash: high-speed aerodynamic whoosh + metallic ring shimmer
+      const slashSrc = context.createBufferSource();
+      slashSrc.buffer = noise;
+      const slashFilter = context.createBiquadFilter();
+      slashFilter.type = 'bandpass';
+      slashFilter.frequency.setValueAtTime(stimmed ? 2800 : 2400, now);
+      slashFilter.frequency.exponentialRampToValueAtTime(620, now + 0.14);
+      slashFilter.Q.setValueAtTime(1.8, now);
+      const slashGain = context.createGain();
+      slashGain.gain.setValueAtTime(GAIN_EPSILON, now);
+      slashGain.gain.exponentialRampToValueAtTime(safePeak(0.32), now + 0.014);
+      slashGain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + 0.15);
+      slashSrc.connect(slashFilter);
+      slashFilter.connect(slashGain);
+      slashGain.connect(out);
+      slashSrc.start(now);
+      slashSrc.stop(now + 0.16);
+
+      const glintOsc = context.createOscillator();
+      const glintGain = context.createGain();
+      glintOsc.type = 'sine';
+      glintOsc.frequency.setValueAtTime(stimmed ? 2100 : 1850, now);
+      glintOsc.frequency.exponentialRampToValueAtTime(1100, now + 0.085);
+      glintGain.gain.setValueAtTime(safePeak(0.11), now);
+      glintGain.gain.exponentialRampToValueAtTime(GAIN_EPSILON, now + 0.09);
+      glintOsc.connect(glintGain);
+      glintGain.connect(out);
+      glintOsc.start(now);
+      glintOsc.stop(now + 0.095);
     } else {
       // 'ar' (Pulse Rifle): punchy low-mid membrane drop + high-passed muzzle crack
       const bodyOsc = context.createOscillator();

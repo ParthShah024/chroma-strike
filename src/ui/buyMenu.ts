@@ -1,5 +1,5 @@
 import { AGENT_PALETTES, MatchHudState, ShieldTier, WeaponId } from '../core/types';
-import { SHIELD_SPECS, WEAPON_ORDER, WEAPON_SPECS } from '../combat/arsenal';
+import { BUYABLE_WEAPONS, SHIELD_SPECS, WEAPON_SPECS } from '../combat/arsenal';
 
 export interface BuyMenuOptions {
   getCurrentWeaponId: () => WeaponId;
@@ -73,7 +73,7 @@ export function createBuyMenuController(options: BuyMenuOptions): BuyMenuControl
   const readyBtn = requireEl<HTMLButtonElement>('buy-ready-btn');
 
   const weaponBtns = new Map<WeaponId, HTMLButtonElement>();
-  for (const id of WEAPON_ORDER) {
+  for (const id of BUYABLE_WEAPONS) {
     const btn = modal.querySelector<HTMLButtonElement>(`[data-buy-weapon="${id}"]`);
     if (btn) weaponBtns.set(id, btn);
   }
@@ -197,7 +197,7 @@ export function createBuyMenuController(options: BuyMenuOptions): BuyMenuControl
     const effectiveCredits =
       credits + (hud.canRefundWeapon ? hud.refundableWeaponCost ?? 0 : 0);
 
-    for (const id of WEAPON_ORDER) {
+    for (const id of BUYABLE_WEAPONS) {
       const btn = weaponBtns.get(id);
       if (!btn) continue;
       const spec = WEAPON_SPECS[id];
@@ -276,7 +276,7 @@ export function createBuyMenuController(options: BuyMenuOptions): BuyMenuControl
     renderSquadStrip(hud);
   }
 
-  for (const id of WEAPON_ORDER) {
+  for (const id of BUYABLE_WEAPONS) {
     weaponBtns.get(id)?.addEventListener('click', () => {
       options.onBuyWeapon(id);
     });

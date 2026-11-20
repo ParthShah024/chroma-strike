@@ -353,7 +353,7 @@ export interface AbilityFrameFeedback {
 //    state machine and projects a clean, read-only `MatchHudState` snapshot each
 //    tick so the DOM HUD never mutates match scores or timers directly.
 
-export type WeaponId = 'pistol' | 'smg' | 'ar' | 'sniper';
+export type WeaponId = 'pistol' | 'smg' | 'ar' | 'sniper' | 'knife';
 
 export type TeamId = 'ally' | 'enemy';
 
@@ -366,6 +366,8 @@ export interface WeaponSpec {
   name: string;
   shortTag: string;
   automatic: boolean;
+  isMelee?: boolean;
+  maxRangeM?: number;
   fireIntervalSec: number;
   reloadDurationSec: number;
   maxAmmo: number;
@@ -667,7 +669,7 @@ export interface GameSettings {
   muted: boolean;
   difficulty: AiDifficulty;
   defaultSide: TacticalSide;
-  winTarget: 10 | 6;
+  winTarget: 10 | 5;
   playerName: string;
   adsMode: 'hold' | 'toggle';
   keybinds: AbilityKeybinds;

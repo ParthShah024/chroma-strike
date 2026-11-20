@@ -43,6 +43,7 @@ export interface WeaponSystem {
     colorHex: number,
     isHeadshot: boolean,
   ): void;
+  tickTracers(dt: number): void;
   update(
     dt: number,
     player: PlayerState,
@@ -69,9 +70,9 @@ const WALL_TUCK_MAX_Z = 0.34;
 const VIEWMODEL_BASE_POS = new THREE.Vector3(0.28, -0.24, -0.48);
 
 interface ActiveTracer {
-  line: THREE.Line;
-  lineGeo: THREE.BufferGeometry;
-  lineMat: THREE.LineBasicMaterial;
+  line: THREE.Line | null;
+  lineGeo: THREE.BufferGeometry | null;
+  lineMat: THREE.LineBasicMaterial | null;
   beam: THREE.Mesh | null;
   beamGeo: THREE.CylinderGeometry | null;
   beamMat: THREE.MeshBasicMaterial | null;
@@ -568,6 +569,7 @@ export function createWeaponSystem(
     smg: WEAPON_SPECS.smg.maxAmmo,
     ar: WEAPON_SPECS.ar.maxAmmo,
     sniper: WEAPON_SPECS.sniper.maxAmmo,
+    knife: 0,
   };
 
   const state: WeaponState = {
@@ -790,6 +792,38 @@ export function createWeaponSystem(
   sniperAccent.position.set(0, 0.024, -0.16);
   sniperGroup.add(sniperAccent);
 
+  // 5) Tactical Knife sub-group: polymer grip, steel crossguard, angled tanto blade & plasma edge
+  const knifeGroup = new THREE.Group();
+  const knifeHandle = new THREE.Mesh(new THREE.BoxGeometry(0.024, 0.095, 0.036), gunDarkMat);
+  knifeHandle.position.set(0, -0.048, 0.024);
+  knifeHandle.rotation.x = -0.32;
+  knifeGroup.add(knifeHandle);
+
+  const knifePommel = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.014, 10), gunSteelMat);
+  knifePommel.rotation.z = Math.PI * 0.5;
+  knifePommel.position.set(0, -0.094, 0.04);
+  knifeGroup.add(knifePommel);
+
+  const knifeGuard = new THREE.Mesh(new THREE.BoxGeometry(0.038, 0.016, 0.062), gunMetalMat);
+  knifeGuard.position.set(0, -0.002, 0.005);
+  knifeGuard.rotation.x = -0.22;
+  knifeGroup.add(knifeGuard);
+
+  const knifeBlade = new THREE.Mesh(new THREE.BoxGeometry(0.0085, 0.026, 0.175), gunSteelMat);
+  knifeBlade.position.set(0, 0.046, -0.072);
+  knifeBlade.rotation.x = 0.45;
+  knifeGroup.add(knifeBlade);
+
+  const knifeEdge = new THREE.Mesh(new THREE.BoxGeometry(0.0045, 0.007, 0.172), accentMat);
+  knifeEdge.position.set(0, 0.058, -0.075);
+  knifeEdge.rotation.x = 0.45;
+  knifeGroup.add(knifeEdge);
+
+  const knifeTip = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.022, 0.04), gunSteelMat);
+  knifeTip.position.set(0, 0.084, -0.156);
+  knifeTip.rotation.x = 0.12;
+  knifeGroup.add(knifeTip);
+
   // --- V3 viewmodel finish: pistol grips, trigger guards, holo rings, fluted rail barrel ---
   const addTriggerGuard = (group: THREE.Group, y: number, z: number, length: number): void => {
     addPart(group, new THREE.BoxGeometry(0.008, 0.006, length), gunSteelMat, 0, y, z);
@@ -918,6 +952,9 @@ export function createWeaponSystem(
   placeGripHand(sniperGroup, 1, 0.016, 0.0225, new THREE.Vector3(0, -0.077, 0.127), -0.24, new THREE.Vector3(0.11, -0.38, 0.52));
   placeCradleHand(sniperGroup, 0.031, 0.044, new THREE.Vector3(0, 0.0, -0.15), new THREE.Vector3(-0.44, -0.34, 0.2));
 
+  // Tactical Knife: right hand grips handle, angled ready for close-quarters slash.
+  placeGripHand(knifeGroup, 1, 0.014, 0.019, new THREE.Vector3(0, -0.048, 0.024), -0.32, new THREE.Vector3(0.14, -0.36, 0.42));
+
   const SNIPER_SIGHT_Y = 0.072;
   const weaponRigs: Record<WeaponId, WeaponModelRig> = {
     pistol: {
@@ -943,6 +980,12 @@ export function createWeaponSystem(
       muzzleLocalPos: new THREE.Vector3(0, 0.016, -0.75),
       basePos: new THREE.Vector3(0.29, -0.25, -0.48),
       adsPos: new THREE.Vector3(0.0, -SNIPER_SIGHT_Y, -0.34),
+    },
+    knife: {
+      group: knifeGroup,
+      muzzleLocalPos: new THREE.Vector3(0, 0.02, -0.22),
+      basePos: new THREE.Vector3(0.24, -0.22, -0.39),
+      adsPos: new THREE.Vector3(0.24, -0.22, -0.39),
     },
   };
 
@@ -980,6 +1023,9 @@ export function createWeaponSystem(
   let hasLookSample = false;
   let swayOffsetX = 0;
   let swayOffsetY = 0;
+  let knifeSlashTimer = 0;
+  let knifeSlashDir: 1 | -1 = 1;
+  const KNIFE_SLASH_ANIM_SEC = 0.28;
 
   // Pool of active short-lived tracers & impact rings
   const activeTracers: ActiveTracer[] = [];
@@ -1019,6 +1065,7 @@ export function createWeaponSystem(
     state.reloadTimer = 0;
     state.fireTimer = 0;
     state.recoilAccumulator = 0;
+    knifeSlashTimer = 0;
     isScoped = false;
     adsBlend = 0;
 
@@ -1063,7 +1110,7 @@ export function createWeaponSystem(
   }
 
   /**
-   * Refills all 4 weapon magazines for a fresh round and resets timers/scope.
+   * Refills all firearm magazines for a fresh round and resets timers/scope.
    */
   function resetForRound(weaponId?: WeaponId): void {
     for (const id of WEAPON_ORDER) {
@@ -1085,12 +1132,14 @@ export function createWeaponSystem(
     adsBlend = 0;
     kickOffsetZ = 0;
     kickPitch = 0;
+    knifeSlashTimer = 0;
     wallTuckZ = 0;
     swayOffsetX = 0;
     swayOffsetY = 0;
     hasLookSample = false;
     muzzleFlashTimer = 0;
     muzzleFlashMat.opacity = 0;
+    clearAllTracers();
 
     applyActiveWeaponVisuals();
   }
@@ -1252,6 +1301,73 @@ export function createWeaponSystem(
     spawnTracerSegment(origin, endPoint, hitNormal, colorHex, isHeadshot, 1.0);
   }
 
+  function spawnMeleeImpactRing(hitPoint: Vec3, hitNormal: Vec3, colorHex: number): void {
+    const ringGeo = new THREE.RingGeometry(0.028, 0.095, 20);
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: colorHex,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.95,
+      depthWrite: false,
+      polygonOffset: true,
+      polygonOffsetFactor: -2,
+      polygonOffsetUnits: -2,
+    });
+    const ring = new THREE.Mesh(ringGeo, ringMat);
+    ring.position.set(
+      hitPoint.x + hitNormal.x * 0.024,
+      hitPoint.y + hitNormal.y * 0.024,
+      hitPoint.z + hitNormal.z * 0.024,
+    );
+    ring.lookAt(
+      hitPoint.x + hitNormal.x,
+      hitPoint.y + hitNormal.y,
+      hitPoint.z + hitNormal.z,
+    );
+    scene.add(ring);
+
+    activeTracers.push({
+      line: null,
+      lineGeo: null,
+      lineMat: null,
+      beam: null,
+      beamGeo: null,
+      beamMat: null,
+      ring,
+      ringGeo,
+      ringMat,
+      age: 0,
+      lifetime: 0.14,
+    });
+  }
+
+  function disposeTracerEntry(tracer: ActiveTracer): void {
+    if (tracer.line && tracer.lineGeo && tracer.lineMat) {
+      scene.remove(tracer.line);
+      tracer.lineGeo.dispose();
+      tracer.lineMat.dispose();
+    }
+
+    if (tracer.beam && tracer.beamGeo && tracer.beamMat) {
+      scene.remove(tracer.beam);
+      tracer.beamGeo.dispose();
+      tracer.beamMat.dispose();
+    }
+
+    if (tracer.ring && tracer.ringGeo && tracer.ringMat) {
+      scene.remove(tracer.ring);
+      tracer.ringGeo.dispose();
+      tracer.ringMat.dispose();
+    }
+  }
+
+  function clearAllTracers(): void {
+    for (const tracer of activeTracers) {
+      disposeTracerEntry(tracer);
+    }
+    activeTracers.length = 0;
+  }
+
   function updateTracers(dt: number): void {
     for (let i = activeTracers.length - 1; i >= 0; i--) {
       const tracer = activeTracers[i];
@@ -1259,26 +1375,13 @@ export function createWeaponSystem(
       const t = tracer.age / tracer.lifetime;
 
       if (t >= 1) {
-        scene.remove(tracer.line);
-        tracer.lineGeo.dispose();
-        tracer.lineMat.dispose();
-
-        if (tracer.beam && tracer.beamGeo && tracer.beamMat) {
-          scene.remove(tracer.beam);
-          tracer.beamGeo.dispose();
-          tracer.beamMat.dispose();
-        }
-
-        if (tracer.ring && tracer.ringGeo && tracer.ringMat) {
-          scene.remove(tracer.ring);
-          tracer.ringGeo.dispose();
-          tracer.ringMat.dispose();
-        }
-
+        disposeTracerEntry(tracer);
         activeTracers.splice(i, 1);
       } else {
         const remainingOpacity = 1 - t;
-        tracer.lineMat.opacity = remainingOpacity * 0.95;
+        if (tracer.lineMat) {
+          tracer.lineMat.opacity = remainingOpacity * 0.95;
+        }
         if (tracer.beamMat) {
           tracer.beamMat.opacity = remainingOpacity * 0.55;
         }
@@ -1307,8 +1410,6 @@ export function createWeaponSystem(
     eyeHeightOffset = 0,
     ignoreAirSpread = false,
   ): ShotResult {
-    updateTracers(dt);
-
     const spec = WEAPON_SPECS[currentWeaponId];
     const rateScale = Math.max(0.1, fireRateMultiplier);
     const recoilScale = Math.max(0, recoilMultiplier);
@@ -1365,7 +1466,7 @@ export function createWeaponSystem(
         ammoByWeapon[currentWeaponId] = state.ammo;
         state.recoilAccumulator = 0;
       }
-    } else if (state.ammo <= 0 || (input.reload && state.ammo < spec.maxAmmo)) {
+    } else if (!spec.isMelee && (state.ammo <= 0 || (input.reload && state.ammo < spec.maxAmmo))) {
       state.reloading = true;
       state.reloadTimer = spec.reloadDurationSec;
       isScoped = false;
@@ -1419,161 +1520,254 @@ export function createWeaponSystem(
       killedTarget: false,
     };
 
-    // 4. Fire hitscan shot if trigger gate passes and weapon is ready
-    if (!state.reloading && triggerActivated && state.fireTimer <= 0 && state.ammo > 0) {
-      state.ammo -= 1;
-      ammoByWeapon[currentWeaponId] = state.ammo;
+    // 4. Fire hitscan shot (or execute close-range melee sweep for knife) if trigger gate passes
+    if (!state.reloading && triggerActivated && state.fireTimer <= 0 && (spec.isMelee || state.ammo > 0)) {
       state.fireTimer = spec.fireIntervalSec / rateScale;
-
       const origin: Vec3 = eyeOrigin;
-
-      const baseLookDir = getLookDirection(
-        input.yaw,
-        input.pitch + state.recoilAccumulator * 0.06,
-      );
-      const shotDir = applySpread(baseLookDir, state.currentSpread);
-
-      // Accumulate recoil weighted smoothly by `spec.adsRecoilMult` & `adsBlend`
-      state.recoilAccumulator = Math.min(
-        MAX_RECOIL_ACCUMULATOR,
-        state.recoilAccumulator + spec.recoilPerShot * recoilScale * adsRecoilFactor,
-      );
-
-      // Viewmodel kickback & muzzle flash (tighter recoil impulse while ADS so sights remain readable)
-      const kickScale = 1 - 0.35 * adsBlend;
-      kickOffsetZ = Math.min(0.11, kickOffsetZ + (currentWeaponId === 'sniper' ? 0.095 : 0.055) * kickScale);
-      kickPitch = Math.min(0.22, kickPitch + (currentWeaponId === 'sniper' ? 0.16 : 0.075) * kickScale);
-      muzzleFlashTimer = 0.045;
-
-      // Stage A: Raycast against solid arena geometry (walls, floor, cover, closed doors) first
-      let closestWallDist = MAX_RAY_DISTANCE;
-      let closestWallHit: RaycastHit | null = null;
-      let closestWallBox: AABB | null = null;
-
-      for (const box of colliders) {
-        const hit = raycastAABB(origin, shotDir, box, closestWallDist);
-        if (hit && hit.distance < closestWallDist) {
-          closestWallDist = hit.distance;
-          closestWallHit = hit;
-          closestWallBox = box;
-        }
-      }
-
-      // Stage B: Raycast against alive targets strictly closer than the nearest wall
-      let closestTargetDist = closestWallDist;
-      let hitTargetId: string | null = null;
-      let hitTargetHit: RaycastHit | null = null;
-      let hitWasHeadshot = false;
-
-      for (const target of targetsMgr.targets) {
-        if (!target.alive) continue;
-
-        const { head, body } = targetsMgr.getHitboxes(target);
-        const headHit = raycastAABB(origin, shotDir, head, closestTargetDist);
-        const bodyHit = raycastAABB(origin, shotDir, body, closestTargetDist);
-
-        if (headHit && (!bodyHit || headHit.distance <= bodyHit.distance + 1e-4)) {
-          if (headHit.distance < closestTargetDist) {
-            closestTargetDist = headHit.distance;
-            hitTargetId = target.id;
-            hitTargetHit = headHit;
-            hitWasHeadshot = true;
-          }
-        } else if (bodyHit && bodyHit.distance < closestTargetDist) {
-          closestTargetDist = bodyHit.distance;
-          hitTargetId = target.id;
-          hitTargetHit = bodyHit;
-          hitWasHeadshot = false;
-        }
-      }
-
-      // Determine world-space tracer start point (first-person muzzle vs. 3rd-person barrel offset)
-      let tracerOrigin: Vec3;
-      if (viewmodelVisible && !(isScoped && currentWeaponId === 'sniper')) {
-        camera.updateMatrixWorld(true);
-        muzzleNode.getWorldPosition(tempMuzzleWorld);
-        tracerOrigin = {
-          x: tempMuzzleWorld.x,
-          y: tempMuzzleWorld.y,
-          z: tempMuzzleWorld.z,
-        };
-      } else {
-        tracerOrigin = {
-          x: origin.x + shotDir.x * 0.45,
-          y: origin.y - 0.14 + shotDir.y * 0.45,
-          z: origin.z + shotDir.z * 0.45,
-        };
-      }
-
       const paletteHex = AGENT_PALETTES[activeColorId].hex;
 
-      // Stage C: Resolve piecewise falloff damage, ShotResult, and 3D bullet tracer
-      if (hitTargetId && hitTargetHit) {
-        const damage = computeWeaponDamage(spec, closestTargetDist, hitWasHeadshot);
-        const killed = targetsMgr.applyDamage(hitTargetId, damage, hitWasHeadshot);
+      if (spec.isMelee) {
+        knifeSlashTimer = KNIFE_SLASH_ANIM_SEC;
+        knifeSlashDir = knifeSlashDir === 1 ? -1 : 1;
 
-        result = {
-          fired: true,
-          hitPoint: hitTargetHit.point,
-          hitType: hitWasHeadshot ? 'head' : 'body',
-          damageDealt: damage,
-          killedTarget: killed,
-        };
-        spawnTracerSegment(
-          tracerOrigin,
-          hitTargetHit.point,
-          hitTargetHit.normal,
-          paletteHex,
-          hitWasHeadshot,
-          spec.tracerWidthScale,
-        );
-      } else if (closestWallHit) {
-        const hitDoorId = closestWallBox?.doorId;
-        const doorDmg = hitDoorId ? computeWeaponDamage(spec, closestWallDist, false) : undefined;
-        result = {
-          fired: true,
-          hitPoint: closestWallHit.point,
-          hitType: 'wall',
-          damageDealt: 0,
-          killedTarget: false,
-          ...(hitDoorId ? { hitDoorId, doorDamageDealt: doorDmg } : {}),
-        };
-        spawnTracerSegment(
-          tracerOrigin,
-          closestWallHit.point,
-          closestWallHit.normal,
-          paletteHex,
-          false,
-          spec.tracerWidthScale,
-        );
+        const meleeRange = spec.maxRangeM ?? 2.4;
+        const offsets: Array<[number, number]> = [
+          [0, 0],
+          [-0.085, 0],
+          [0.085, 0],
+          [0, -0.055],
+          [0, 0.055],
+        ];
+
+        let bestTargetDist = meleeRange + 1;
+        let hitTargetId: string | null = null;
+        let hitTargetHit: RaycastHit | null = null;
+        let centerWallDist = meleeRange + 1;
+        let centerWallHit: RaycastHit | null = null;
+        let centerWallBox: AABB | null = null;
+
+        for (let rIdx = 0; rIdx < offsets.length; rIdx++) {
+          const [dYaw, dPitch] = offsets[rIdx];
+          const rayDir = getLookDirection(input.yaw + dYaw, input.pitch + dPitch);
+
+          let rayWallDist = meleeRange;
+          let rayWallHit: RaycastHit | null = null;
+          let rayWallBox: AABB | null = null;
+
+          for (const box of colliders) {
+            const hit = raycastAABB(origin, rayDir, box, rayWallDist);
+            if (hit && hit.distance < rayWallDist) {
+              rayWallDist = hit.distance;
+              rayWallHit = hit;
+              rayWallBox = box;
+            }
+          }
+
+          if (rIdx === 0 && rayWallHit) {
+            centerWallDist = rayWallDist;
+            centerWallHit = rayWallHit;
+            centerWallBox = rayWallBox;
+          }
+
+          let maxEnemyDist = Math.min(rayWallDist, bestTargetDist);
+          for (const target of targetsMgr.targets) {
+            if (!target.alive) continue;
+            const { head, body } = targetsMgr.getHitboxes(target);
+            const headHit = raycastAABB(origin, rayDir, head, maxEnemyDist);
+            const bodyHit = raycastAABB(origin, rayDir, body, maxEnemyDist);
+            const closerHit =
+              headHit && (!bodyHit || headHit.distance <= bodyHit.distance) ? headHit : bodyHit;
+            if (closerHit && closerHit.distance < maxEnemyDist) {
+              maxEnemyDist = closerHit.distance;
+              bestTargetDist = closerHit.distance;
+              hitTargetId = target.id;
+              hitTargetHit = closerHit;
+            }
+          }
+        }
+
+        if (hitTargetId && hitTargetHit) {
+          const damage = spec.bodyDamage;
+          const killed = targetsMgr.applyDamage(hitTargetId, damage, false);
+          result = {
+            fired: true,
+            hitPoint: hitTargetHit.point,
+            hitType: 'body',
+            damageDealt: damage,
+            killedTarget: killed,
+          };
+          spawnMeleeImpactRing(hitTargetHit.point, hitTargetHit.normal, paletteHex);
+        } else if (centerWallHit && centerWallDist <= meleeRange) {
+          const hitDoorId = centerWallBox?.doorId;
+          const doorDmg = hitDoorId ? spec.bodyDamage : undefined;
+          result = {
+            fired: true,
+            hitPoint: centerWallHit.point,
+            hitType: 'wall',
+            damageDealt: 0,
+            killedTarget: false,
+            ...(hitDoorId ? { hitDoorId, doorDamageDealt: doorDmg } : {}),
+          };
+          spawnMeleeImpactRing(centerWallHit.point, centerWallHit.normal, paletteHex);
+        } else {
+          result = {
+            fired: true,
+            hitPoint: null,
+            hitType: 'none',
+            damageDealt: 0,
+            killedTarget: false,
+          };
+        }
       } else {
-        const missPoint: Vec3 = {
-          x: origin.x + shotDir.x * 80,
-          y: origin.y + shotDir.y * 80,
-          z: origin.z + shotDir.z * 80,
-        };
-        result = {
-          fired: true,
-          hitPoint: missPoint,
-          hitType: 'none',
-          damageDealt: 0,
-          killedTarget: false,
-        };
-        spawnTracerSegment(
-          tracerOrigin,
-          missPoint,
-          null,
-          paletteHex,
-          false,
-          spec.tracerWidthScale,
-        );
-      }
+        state.ammo -= 1;
+        ammoByWeapon[currentWeaponId] = state.ammo;
 
-      // Immediately begin reload if the final round in the magazine was just fired
-      if (state.ammo <= 0 && !state.reloading) {
-        state.reloading = true;
-        state.reloadTimer = spec.reloadDurationSec;
-        isScoped = false;
+        const baseLookDir = getLookDirection(
+          input.yaw,
+          input.pitch + state.recoilAccumulator * 0.06,
+        );
+        const shotDir = applySpread(baseLookDir, state.currentSpread);
+
+        // Accumulate recoil weighted smoothly by `spec.adsRecoilMult` & `adsBlend`
+        state.recoilAccumulator = Math.min(
+          MAX_RECOIL_ACCUMULATOR,
+          state.recoilAccumulator + spec.recoilPerShot * recoilScale * adsRecoilFactor,
+        );
+
+        // Viewmodel kickback & muzzle flash (tighter recoil impulse while ADS so sights remain readable)
+        const kickScale = 1 - 0.35 * adsBlend;
+        kickOffsetZ = Math.min(0.11, kickOffsetZ + (currentWeaponId === 'sniper' ? 0.095 : 0.055) * kickScale);
+        kickPitch = Math.min(0.22, kickPitch + (currentWeaponId === 'sniper' ? 0.16 : 0.075) * kickScale);
+        muzzleFlashTimer = 0.045;
+
+        // Stage A: Raycast against solid arena geometry (walls, floor, cover, closed doors) first
+        let closestWallDist = MAX_RAY_DISTANCE;
+        let closestWallHit: RaycastHit | null = null;
+        let closestWallBox: AABB | null = null;
+
+        for (const box of colliders) {
+          const hit = raycastAABB(origin, shotDir, box, closestWallDist);
+          if (hit && hit.distance < closestWallDist) {
+            closestWallDist = hit.distance;
+            closestWallHit = hit;
+            closestWallBox = box;
+          }
+        }
+
+        // Stage B: Raycast against alive targets strictly closer than the nearest wall
+        let closestTargetDist = closestWallDist;
+        let hitTargetId: string | null = null;
+        let hitTargetHit: RaycastHit | null = null;
+        let hitWasHeadshot = false;
+
+        for (const target of targetsMgr.targets) {
+          if (!target.alive) continue;
+
+          const { head, body } = targetsMgr.getHitboxes(target);
+          const headHit = raycastAABB(origin, shotDir, head, closestTargetDist);
+          const bodyHit = raycastAABB(origin, shotDir, body, closestTargetDist);
+
+          if (headHit && (!bodyHit || headHit.distance <= bodyHit.distance + 1e-4)) {
+            if (headHit.distance < closestTargetDist) {
+              closestTargetDist = headHit.distance;
+              hitTargetId = target.id;
+              hitTargetHit = headHit;
+              hitWasHeadshot = true;
+            }
+          } else if (bodyHit && bodyHit.distance < closestTargetDist) {
+            closestTargetDist = bodyHit.distance;
+            hitTargetId = target.id;
+            hitTargetHit = bodyHit;
+            hitWasHeadshot = false;
+          }
+        }
+
+        // Determine world-space tracer start point (first-person muzzle vs. 3rd-person barrel offset)
+        let tracerOrigin: Vec3;
+        if (viewmodelVisible && !(isScoped && currentWeaponId === 'sniper')) {
+          camera.updateMatrixWorld(true);
+          muzzleNode.getWorldPosition(tempMuzzleWorld);
+          tracerOrigin = {
+            x: tempMuzzleWorld.x,
+            y: tempMuzzleWorld.y,
+            z: tempMuzzleWorld.z,
+          };
+        } else {
+          tracerOrigin = {
+            x: origin.x + shotDir.x * 0.45,
+            y: origin.y - 0.14 + shotDir.y * 0.45,
+            z: origin.z + shotDir.z * 0.45,
+          };
+        }
+
+        // Stage C: Resolve piecewise falloff damage, ShotResult, and 3D bullet tracer
+        if (hitTargetId && hitTargetHit) {
+          const damage = computeWeaponDamage(spec, closestTargetDist, hitWasHeadshot);
+          const killed = targetsMgr.applyDamage(hitTargetId, damage, hitWasHeadshot);
+
+          result = {
+            fired: true,
+            hitPoint: hitTargetHit.point,
+            hitType: hitWasHeadshot ? 'head' : 'body',
+            damageDealt: damage,
+            killedTarget: killed,
+          };
+          spawnTracerSegment(
+            tracerOrigin,
+            hitTargetHit.point,
+            hitTargetHit.normal,
+            paletteHex,
+            hitWasHeadshot,
+            spec.tracerWidthScale,
+          );
+        } else if (closestWallHit) {
+          const hitDoorId = closestWallBox?.doorId;
+          const doorDmg = hitDoorId ? computeWeaponDamage(spec, closestWallDist, false) : undefined;
+          result = {
+            fired: true,
+            hitPoint: closestWallHit.point,
+            hitType: 'wall',
+            damageDealt: 0,
+            killedTarget: false,
+            ...(hitDoorId ? { hitDoorId, doorDamageDealt: doorDmg } : {}),
+          };
+          spawnTracerSegment(
+            tracerOrigin,
+            closestWallHit.point,
+            closestWallHit.normal,
+            paletteHex,
+            false,
+            spec.tracerWidthScale,
+          );
+        } else {
+          const missPoint: Vec3 = {
+            x: origin.x + shotDir.x * 80,
+            y: origin.y + shotDir.y * 80,
+            z: origin.z + shotDir.z * 80,
+          };
+          result = {
+            fired: true,
+            hitPoint: missPoint,
+            hitType: 'none',
+            damageDealt: 0,
+            killedTarget: false,
+          };
+          spawnTracerSegment(
+            tracerOrigin,
+            missPoint,
+            null,
+            paletteHex,
+            false,
+            spec.tracerWidthScale,
+          );
+        }
+
+        // Immediately begin reload if the final round in the magazine was just fired
+        if (state.ammo <= 0 && !state.reloading) {
+          state.reloading = true;
+          state.reloadTimer = spec.reloadDurationSec;
+          isScoped = false;
+        }
       }
     }
 
@@ -1631,17 +1825,40 @@ export function createWeaponSystem(
       reloadPitchX = -0.35 * reloadCurve;
     }
 
+    let slashX = 0;
+    let slashY = 0;
+    let slashZ = 0;
+    let slashPitch = 0;
+    let slashYaw = 0;
+    let slashRoll = 0;
+    if (currentWeaponId === 'knife' && knifeSlashTimer > 0) {
+      knifeSlashTimer = Math.max(0, knifeSlashTimer - dt);
+      const t = 1 - knifeSlashTimer / KNIFE_SLASH_ANIM_SEC;
+      const swing = Math.sin(Math.min(1, Math.max(0, t)) * Math.PI);
+      slashX = -0.18 * swing * knifeSlashDir;
+      slashY = -0.05 * swing;
+      slashZ = -0.22 * swing;
+      slashPitch = -0.68 * swing;
+      slashYaw = 0.52 * swing * knifeSlashDir;
+      slashRoll = 0.72 * swing * knifeSlashDir;
+    }
+
     const rig = weaponRigs[currentWeaponId];
     const restX = rig.basePos.x + (rig.adsPos.x - rig.basePos.x) * adsBlend;
     const restY = rig.basePos.y + (rig.adsPos.y - rig.basePos.y) * adsBlend;
     const restZ = rig.basePos.z + (rig.adsPos.z - rig.basePos.z) * adsBlend;
+    const tuckFactor = spec.isMelee ? 0.4 : adsStability;
 
     weaponGroup.position.set(
-      restX + bobX + swayOffsetX,
-      restY + bobY + swayOffsetY + reloadDropY,
-      restZ + kickOffsetZ + wallTuckZ * adsStability,
+      restX + bobX + swayOffsetX + slashX,
+      restY + bobY + swayOffsetY + reloadDropY + slashY,
+      restZ + kickOffsetZ + wallTuckZ * tuckFactor + slashZ,
     );
-    weaponGroup.rotation.set(kickPitch + reloadPitchX, 0, reloadRollZ);
+    weaponGroup.rotation.set(
+      kickPitch + reloadPitchX + slashPitch,
+      slashYaw,
+      reloadRollZ + slashRoll,
+    );
 
     return result;
   }
@@ -1663,6 +1880,7 @@ export function createWeaponSystem(
     setViewmodelVisible,
     setAgentColor,
     spawnWorldTracer,
+    tickTracers: updateTracers,
     update,
   };
 }

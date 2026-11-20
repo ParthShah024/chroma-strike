@@ -229,7 +229,12 @@ function sanitizeSettings(raw: Partial<GameSettings> | null | undefined): GameSe
     defaultSide: VALID_SIDES.includes(src.defaultSide as TacticalSide)
       ? (src.defaultSide as TacticalSide)
       : DEFAULT_GAME_SETTINGS.defaultSide,
-    winTarget: src.winTarget === 6 || src.winTarget === 10 ? src.winTarget : DEFAULT_GAME_SETTINGS.winTarget,
+    winTarget:
+      src.winTarget === 5 || src.winTarget === 10
+        ? src.winTarget
+        : src.winTarget === 6
+          ? 5
+          : DEFAULT_GAME_SETTINGS.winTarget,
     playerName: sanitizeCallsign(src.playerName, DEFAULT_GAME_SETTINGS.playerName),
     adsMode: VALID_ADS_MODES.includes(src.adsMode as GameSettings['adsMode'])
       ? (src.adsMode as GameSettings['adsMode'])
@@ -743,7 +748,7 @@ export function createSettingsController(): SettingsController {
   });
 
   winTargetSelect?.addEventListener('change', () => {
-    applyPatch({ winTarget: Number(winTargetSelect.value) === 6 ? 6 : 10 });
+    applyPatch({ winTarget: Number(winTargetSelect.value) === 5 ? 5 : 10 });
   });
 
   surrenderBtn?.addEventListener('click', () => {

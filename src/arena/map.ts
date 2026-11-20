@@ -864,7 +864,7 @@ function bindLoadedAscentGlb(gltfRoot: THREE.Group, fallbackGroup: THREE.Group):
 }
 
 /**
- * Translucent animated hex-grid Buy-Phase Setup Barriers across all 11 Valorant-style
+ * Opaque armored hex-grid Buy-Phase Setup Barriers across all 11 Valorant-style
  * Attacker & Defender forward chokes using `getBuyBarrierTexture()`.
  */
 function buildBuyBarriers(): THREE.Group {
@@ -872,30 +872,30 @@ function buildBuyBarriers(): THREE.Group {
   group.name = 'buy-phase-barriers';
   const hex = getBuyBarrierTexture();
   const uvRepeatM = 1.6;
-  const baseOpacity = hex.map ? 0.78 : 0.45;
+  const baseAttackColor = new THREE.Color(COLOR_BARRIER_ATTACK);
+  const baseDefendColor = new THREE.Color(COLOR_BARRIER_DEFEND);
 
   const sideMatByTeam: Record<'attacker' | 'defender', THREE.MeshBasicMaterial> = {
     attacker: new THREE.MeshBasicMaterial({
       color: COLOR_BARRIER_ATTACK,
-      transparent: true,
-      opacity: baseOpacity,
+      transparent: false,
+      opacity: 1.0,
       side: THREE.DoubleSide,
-      depthWrite: false,
+      depthWrite: true,
       toneMapped: false,
     }),
     defender: new THREE.MeshBasicMaterial({
       color: COLOR_BARRIER_DEFEND,
-      transparent: true,
-      opacity: baseOpacity,
+      transparent: false,
+      opacity: 1.0,
       side: THREE.DoubleSide,
-      depthWrite: false,
+      depthWrite: true,
       toneMapped: false,
     }),
   };
 
   for (const side of ['attacker', 'defender'] as const) {
     if (hex.map) sideMatByTeam[side].map = hex.map;
-    if (hex.alphaMap) sideMatByTeam[side].alphaMap = hex.alphaMap;
   }
 
   const railMats: Record<'attacker' | 'defender', THREE.MeshBasicMaterial> = {
@@ -909,10 +909,13 @@ function buildBuyBarriers(): THREE.Group {
     const t = nowSeconds();
     if (t === lastAnimTime) return;
     lastAnimTime = t;
-    sideMatByTeam.attacker.opacity = baseOpacity * (0.86 + 0.14 * Math.sin(t * 2.4));
-    sideMatByTeam.defender.opacity = baseOpacity * (0.86 + 0.14 * Math.sin(t * 2.4 + 1.7));
+    sideMatByTeam.attacker.color
+      .copy(baseAttackColor)
+      .multiplyScalar(0.92 + 0.12 * Math.sin(t * 2.4));
+    sideMatByTeam.defender.color
+      .copy(baseDefendColor)
+      .multiplyScalar(0.92 + 0.12 * Math.sin(t * 2.4 + 1.7));
     if (hex.map) hex.map.offset.set((t * 0.015) % 1, (t * 0.11) % 1);
-    if (hex.alphaMap && hex.map) hex.alphaMap.offset.copy(hex.map.offset);
   };
 
   ASCENT_MAP_DATA.buyBarrierSpans.forEach((span) => {

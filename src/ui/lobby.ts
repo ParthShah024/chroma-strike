@@ -8,11 +8,11 @@ import type { LobbyStateSnapshot } from '../net/multiplayer';
 
 export interface LobbyControllerOptions {
   initialDifficulty?: AiDifficulty;
-  initialWinTarget?: 10 | 6;
+  initialWinTarget?: 10 | 5;
   initialSide?: TacticalSide;
   onJoinSide: (side: TacticalSide) => void;
   onDifficultyChange: (diff: AiDifficulty) => void;
-  onWinTargetChange: (winTarget: 10 | 6) => void;
+  onWinTargetChange: (winTarget: 10 | 5) => void;
   onCallsignChange?: (callsign: string) => void;
   onRetryConnect: (callsign: string) => void;
   onConnectCustomServer?: (url: string) => void;
@@ -29,7 +29,7 @@ export interface LobbyController {
   showError(msg: string): void;
   getSelectedSide(): TacticalSide;
   getDifficulty(): AiDifficulty;
-  getWinTarget(): 10 | 6;
+  getWinTarget(): 10 | 5;
   getCallsign(): string;
   setCallsign(name: string): void;
   setInviteUrl(url: string): void;
@@ -153,7 +153,7 @@ export function createLobbyController(options: LobbyControllerOptions): LobbyCon
   let openState = false;
   let selectedSide: TacticalSide = options.initialSide ?? 'attacker';
   let difficulty: AiDifficulty = options.initialDifficulty ?? 'casual';
-  let winTarget: 10 | 6 = options.initialWinTarget === 6 ? 6 : 10;
+  let winTarget: 10 | 5 = options.initialWinTarget === 5 ? 5 : 10;
   let callsign = loadSavedCallsign();
   let inviteUrl = getDefaultInviteUrl();
   let lastOnline = false;
@@ -301,7 +301,7 @@ export function createLobbyController(options: LobbyControllerOptions): LobbyCon
       selectedSide = localPlayer.side;
     }
     difficulty = snapshot.difficulty;
-    winTarget = snapshot.winTarget === 6 ? 6 : 10;
+    winTarget = snapshot.winTarget === 5 ? 5 : 10;
 
     // Header connection badge
     statusBadgeEl.classList.toggle('online', snapshot.online);
@@ -464,7 +464,7 @@ export function createLobbyController(options: LobbyControllerOptions): LobbyCon
   for (const btn of winTargetBtns) {
     btn.addEventListener('click', () => {
       if (lastOnline && !lastIsHost) return;
-      const wt = Number(btn.dataset.lobbyWintarget) === 6 ? 6 : 10;
+      const wt = Number(btn.dataset.lobbyWintarget) === 5 ? 5 : 10;
       winTarget = wt;
       syncControlsState();
       options.onWinTargetChange(wt);

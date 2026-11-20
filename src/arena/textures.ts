@@ -723,8 +723,8 @@ function generateHexBarrier(): BarrierTextureSet {
     ctx.globalAlpha = 1;
   };
 
-  drawLattice(colorCanvas.ctx, '#b8d8ff', '#ffffff', '#ffffff');
-  drawLattice(alphaCanvas.ctx, '#262626', '#ffffff', '#bfbfbf');
+  drawLattice(colorCanvas.ctx, '#28364a', '#ffffff', '#ffffff');
+  drawLattice(alphaCanvas.ctx, '#ffffff', '#ffffff', '#ffffff');
 
   const map = finishTexture(colorCanvas.canvas, true);
   const alphaMap = finishTexture(alphaCanvas.canvas, false);

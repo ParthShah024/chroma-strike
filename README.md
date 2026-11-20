@@ -21,14 +21,14 @@ A fast-paced, *Valorant*-inspired **3v3 Tactical 3D First-Person Shooter** built
   - **1st-Person-Only Camera:** The `[V]` 3rd-person camera toggle has been removed; combat stays crisp 1st-person and eliminated players auto-spectate living teammates from true **1st-person POV** (`Left/Right Click` cycles teammates, `[Tab]` takes over a bot), paired with an upgraded **Combat Report** showing a per-round **Kills / Assists / DMG OUT / DMG IN** summary strip plus `[KILL]`, `[ASSIST]` (`>=25 DMG` threshold), and `[KO]` badges per opponent.
 - **Post-Match Ranked Performance Summary & Brimstone-Style Controller Smoke Tablet:**
   - **Ranked End-of-Match Scoreboard:** When a match finishes (`#match-summary-modal`), every combatant is ranked `#1..#6` with **`S+ / S / A / B / C` tiers**, **Match MVP** banner, `K / D / A`, Total Damage, `ADR`, `HS%`, and Average Combat Score (`ACS = round((150*K + 50*A + DMG) / Rounds)`), plus `[Enter]` Rematch & `[L]` Return to Lobby buttons.
-  - **Tactical Map Smoke Tablet (All Controllers):** Pressing `[Q]` on **Mist** or **Umbra** opens a top-down Brimstone-style Ascent tablet ([`src/ui/smokeTablet.ts`](src/ui/smokeTablet.ts)) showing active smokes, teammates, doors, and a `40 m` deployment radius (`Left-Click` places opaque Frost/Void smoke at floor/Heaven level; `Right-Click` / `[Q]` / `[Esc]` cancels cleanly).
+  - **Bigger, Easier Controller Smoke Tablet (`620×680` / `1240×1360` Canvas):** Pressing `[Q]` on **Mist** or **Umbra** opens a larger top-down Brimstone-style Ascent tablet ([`src/ui/smokeTablet.ts`](src/ui/smokeTablet.ts)) showing active smokes, teammates, doors, callout target badge, and shaded `40 m` deployment radius (`Left-Click` places opaque Frost/Void smoke; `Right-Click` / `[Q]` / `[Esc]` cancels).
 - **Unified `[M]` 2D/3D Map (No Sightlines), `[C / Ctrl]` Crouching & Mouse Rebinds:**
   - Press **`[M]`** (or click the minimap) to open the large **`620×680 px`** (`2×` DPR) **2D Valorant Top-Down Tactical Map** (`[3D FLYOVER]` secondary tab, clean pan & scroll zoom with **no sightline clutter**; duplicate `[CapsLock]` overlay removed), while **`[N]`** toggles Rotating Radar <-> Fixed North-Up.
   - Hold **`[C]`** or **`[Ctrl]`** to **Crouch** (`2.45 m/s` speed, `1.24 m` standing-clearance-checked capsule, `-0.52 m` 1P camera & `-0.46 m` hitbox profile drop, `~22–28%` tighter crouching weapon spread, and crouched 3D leg IK).
   - Press **`[O]`** anytime for **Unified Settings** (`Controls` incl. **Hold/Toggle ADS**, click-to-rebind **`[Q]/[E]/[X]` to Keyboard, `Mouse3/4/5`, or `WheelUp/Down`**, PLUS 1-click **`M3` / `M4` / `M5`** quick-bind pills, **`Crosshair`**, `Video & Minimap`, `Audio`, and `Match` rules).
-- **2-Site Search & Destroy (`20 s` Forward Buy Phase, `5/5` Swap, First to 10) & `5.55 m/s` Tactical Pacing:**
-  - Plays **5 rounds on your chosen starting side**, **swaps Attack <-> Defense every 5 rounds** with `800¤` economy/ult resets, and crowns the **First to 10** (`First to 6` quick option); deliberate tactical pacing (`5.55 m/s` normal run — ~10% slower than before, `3.0 m/s` walk) and Single T-Spawn Spike Pedestal.
-  - **20-Second Forward Buy Phase (`11` Ascent Setup Chokes):** Expanded Buy Barriers sit at **12 forward segments across 11 Ascent chokes** (with real temporary `ARENA_COLLIDERS` walls during Buy Phase and `0` opening sightline leaks), letting **Defenders stage directly inside Site A, A Tree, Market, and Site B** while **Attackers advance right up to A Lobby, Top-Mid, and B Lobby**.
+- **2-Site Search & Destroy (`25 s` Forward Buy Phase, `5/5` Swap, First to 10) & Responsive B-Hop / `5.55 m/s` Tactical Pacing:**
+  - Plays **5 rounds on your chosen starting side**, **swaps Attack <-> Defense every 5 rounds** with `800¤` economy/ult resets, and crowns the **First to 10** (`First to 5` quick option); deliberate tactical pacing (`5.55 m/s` normal run, `3.0 m/s` walk, `2.45 m/s` crouch) plus crisp **edge-triggered B-Hopping** (`6.7 m/s` jump, `0.075 s` pre-land tap buffer, momentum preserved on timed re-jumps while holding `Space` still blocks auto-bouncing), always-equipped **Tactical Knife** in slot `[3]` (2 close-range hits kill), and Single T-Spawn Spike Pedestal.
+  - **25-Second Opaque Forward Buy Phase (`11` Ascent Setup Chokes):** Opaque (`depthWrite: true`) Buy Barriers sit at **12 forward segments across 11 Ascent chokes** (with real temporary `ARENA_COLLIDERS` walls during Buy Phase blocking both movement and pre-round sightlines completely), letting **Defenders stage directly inside Site A, A Tree, Market, and Site B** while **Attackers advance right up to A Lobby, Top-Mid, and B Lobby**.
   - Every Agent's **`[Q]` & `[E]` are limited to strictly `2` charges per round** (no unlimited timer refills; `[X]` requires `5` Ult Points).
 - **Valorant / CS Financial Economy & Single-Shield `[B]` Buyout Shop:**
   - Start at **`800¤`** (`9000¤` cap), earn **`+3000¤`** win / **`1900 / 2400 / 2900¤`** loss-streak bonus, **`+200¤`** per kill, and **`+300¤`** team plant/defuse bonuses. Survivors carry over weapons and remaining shield armor!
@@ -56,11 +56,11 @@ A fast-paced, *Valorant*-inspired **3v3 Tactical 3D First-Person Shooter** built
 | **`Space`** | Jump, **Windy Slow-Fall Glide**, or Skip Buy Phase |
 | **`Left Click`** | Fire (Semi-auto click for Pistol/Sniper, Hold for SMG/AR — damages closed Blast Doors!) |
 | **`Right Click`** | Optical Scope / ADS (`Sidearm`, `SMG`, `AR`, `Sniper`) |
-| **`1` `2` `3` `4` / Wheel** | Equip Purchased Weapons (`Sidearm` / Owned Primary) — Buys Weapons in Shop |
+| **`1` `2` `3` / Wheel** | Equip Loadout (**`[1]` Owned Primary**, **`[2]` Sidearm Pistol**, **`[3]` 2-Hit Knife**) |
 | **`R`** | Reload (or 100% Weapon Refund in `[B]` Buy Shop) |
 | **`Q` / `E` / `X`** | Cast Abilities (`Q` opens **Smoke Tablet** for Controllers Mist/Umbra) / **Ultimate** (`5` Pts — bindable to `M3`/`M4`/`M5`/Wheel) |
 | **`F` / `G`** | Hold **`F`** to **Plant / Defuse Spike** (`3 s` / `5 s`); Tap **`F`** at switches to **Toggle Blast Doors**; **`G`** to **Drop Spike** |
-| **`B` / `H`** | Open **`[B]` Buyout Shop & Economy** (`20 s` setup window) / **`[H]` 3D Agent Select & AI Difficulty** |
+| **`B` / `H`** | Open **`[B]` Buyout Shop & Economy** (`25 s` setup window) / **`[H]` 3D Agent Select & AI Difficulty** |
 | **`M` / `N`** | Open/Close **Unified 2D Tactical Map** (`[3D FLYOVER]` tab; click radar) / **`N`** toggles **Rotating Radar <-> Fixed** |
 | **`O`** | Open **Unified Settings (`Controls` incl. `M3`/`M4`/`M5` pills / `Crosshair` / `Video` / `Audio` / `Match`)** |
 | **`F1` – `F6`** | Quick Switch Agent (**Blaze**, **Mist**, **Pulse**, **Umbra**, **Volt**, **Windy**) |
@@ -125,32 +125,32 @@ chroma-strike/
 │   ├── audio/
 │   │   └── sfx.ts                # Procedural Web Audio + Windy gale/blade & Door/Ult/Spike SFX
 │   ├── combat/
-│   │   ├── arsenal.ts            # WEAPON_SPECS (ADS FOV/spread/recoil & buyouts), SHIELD_SPECS & falloff
+│   │   ├── arsenal.ts            # WEAPON_SPECS (incl. slot-3 2-hit Knife), BUYABLE_WEAPONS & falloff
 │   │   ├── targets.ts            # Practice target module (Ch.1/2 sandbox)
-│   │   └── weapons.ts            # 4 centered-ADS viewmodels + KAY/O 1P hands, crouch spread & Blade Storm
+│   │   └── weapons.ts            # 4 firearms + Tactical Knife viewmodel, melee sweep & decoupled tracers
 │   ├── core/
-│   │   └── types.ts              # 6-Agent, Crouch, CombatSummary, MatchPerformanceEntry & Economy types
+│   │   └── types.ts              # 6-Agent, Knife, FT5/FT10, Crouch, CombatSummary & Economy contracts
 │   ├── entities/
-│   │   ├── characterModel.ts     # BackSide enemy red outline, Windy rig, crouch IK & gait (no 3D bars)
+│   │   ├── characterModel.ts     # BackSide enemy red outline, Windy rig, Knife prop, crouch IK & gait
 │   │   ├── glbOverride.ts        # SPA-safe Blender .glb + GLTFLoader runtime loader
 │   │   └── spikeModel.ts         # Procedural 3D Radianite Spike canister, dropped beam & blast
 │   ├── match/
 │   │   ├── economy.ts            # Valorant/CS credits, single-shield exclusion/refund & carryover
-│   │   └── roundManager.ts       # Assists, Ranked Match Summary, Crouch Hitboxes, 20s Buy & 5/5 Swap
+│   │   └── roundManager.ts       # Assists, Ranked Summary, Crouch Hitboxes, 25s Buy & FT5/FT10 5/5 Swap
 │   ├── net/
 │   │   └── multiplayer.ts        # 6-player WebSocket client w/ crouch sync & ?server= override
 │   ├── physics/
-│   │   └── movement.ts           # Counter-strafe (5.55 m/s), Crouch (2.45 m/s, 1.24m clearance) & Updraft
+│   │   └── movement.ts           # Counter-strafe, edge-triggered B-Hop (6.7m/s) & Crouch (1.24m)
 │   ├── ui/
 │   │   ├── agentSelect.ts        # Clean 6-Agent 3D Select ([F1–F6], [1–6], [Q]/[E]/[X] loadout)
 │   │   ├── buyMenu.ts            # Valorant/CS [B] Buyout Shop (1-shield exclusion + Squad Economy)
 │   │   ├── crosshair.ts          # CSS-variable reactive Crosshair Customizer (Settings Crosshair tab)
-│   │   ├── lobby.ts              # Attack/Defend Team Select Lobby (`0-3/3`, Invite URL & Callsign)
+│   │   ├── lobby.ts              # Attack/Defend Team Select Lobby (`0-3/3`, FT10/FT5 & Invite URL)
 │   │   ├── mapViewer.ts          # Unified [M] Large 2D Valorant Map + 3D Flyover (clean, no sightlines)
 │   │   ├── minimap.ts            # 2x DPR Vector Rotating Radar Minimap (renders smokes, click -> [M])
 │   │   ├── settings.ts           # Persistent 5-tab Settings ([O] Mouse3/4/5/Wheel + M3/M4/M5 pills)
-│   │   └── smokeTablet.ts        # Brimstone-style 40m top-down map Smoke Placement Tablet (Controllers)
-│   └── main.ts                   # Engine, Ranked Summary, Kills/Assists Report, Tablet, Crouch & Net loop
+│   │   └── smokeTablet.ts        # Larger 620x680 Brimstone-style Smoke Tablet w/ callout badges
+│   └── main.ts                   # Engine, B-Hop buffer, Loadout [1-3]/Wheel, Tracers & Net loop
 ├── index.html                    # Lobby, Agent Select, Smoke Tablet, Match Summary & HUD modals
 ├── package.json
 ├── play.bat                      # Windows one-click server + Vite dev launcher

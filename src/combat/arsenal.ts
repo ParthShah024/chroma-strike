@@ -1,9 +1,14 @@
 import type { ShieldTier, WeaponId, WeaponSpec } from '../core/types';
 
 /**
- * Canonical slot ordering matching keys `[1]` through `[4]` and mouse-wheel cycling.
+ * Purchasable firearms displayed in the [B] Buyout Shop (`[1]`-`[4]`).
  */
-export const WEAPON_ORDER: WeaponId[] = ['pistol', 'smg', 'ar', 'sniper'];
+export const BUYABLE_WEAPONS: WeaponId[] = ['pistol', 'smg', 'ar', 'sniper'];
+
+/**
+ * Canonical arsenal ordering including the always-equipped tactical melee knife.
+ */
+export const WEAPON_ORDER: WeaponId[] = ['pistol', 'smg', 'ar', 'sniper', 'knife'];
 
 /**
  * Extended weapon specification including per-weapon Aim Down Sights (ADS)
@@ -128,6 +133,35 @@ export const WEAPON_SPECS: Record<WeaponId, AdsWeaponSpec> = {
     adsRecoilMult: 0.85,
     tracerWidthScale: 1.8,
     cost: 4700,
+    killReward: 200,
+  },
+  knife: {
+    id: 'knife',
+    slotNumber: 3,
+    name: 'Tactical Knife',
+    shortTag: 'KNIFE',
+    automatic: false,
+    isMelee: true,
+    maxRangeM: 2.4,
+    fireIntervalSec: 0.42,
+    reloadDurationSec: 0,
+    maxAmmo: 0,
+    headDamage: 75,
+    bodyDamage: 75,
+    falloffStartM: 2.4,
+    falloffEndM: 2.4,
+    minFalloffMult: 1.0,
+    baseSpreadRad: 0.0,
+    scopedSpreadRad: 0.0,
+    moveSpreadRad: 0.0,
+    airSpreadRad: 0.0,
+    recoilPerShot: 0.0,
+    moveSpeedMult: 1.12,
+    adsFovDeg: null,
+    adsSpreadMult: 1.0,
+    adsRecoilMult: 1.0,
+    tracerWidthScale: 0,
+    cost: 0,
     killReward: 200,
   },
 };

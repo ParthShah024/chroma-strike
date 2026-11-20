@@ -180,7 +180,9 @@ let frozenDrawn = false;
 let gameStarted = false;
 
 const INPUT_BUFFER_SEC = 0.14;
+const BHOP_BUFFER_SEC = 0.075;
 let jumpHeld = false;
+let bhopBufferTimer = 0;
 let fireBufferTimer = 0;
 let eyeOffsetSmoothed = 0;
 let slideTiltSmoothed = 0;
@@ -311,23 +313,42 @@ function switchAgentColor(colorId: AgentColorId): void {
 function syncWeaponPills(weaponId: WeaponId): void {
   const ownedPrimary = match.getPlayerOwnedPrimary();
   for (const pill of weaponPills) {
-    const wpn = pill.dataset.weapon as WeaponId | undefined;
-    const isOwned = wpn === 'pistol' || wpn === ownedPrimary;
-    pill.classList.toggle('active', wpn === weaponId);
-    pill.classList.toggle('unowned', !isOwned);
+    const slot = pill.dataset.slot as 'primary' | 'sidearm' | 'melee' | undefined;
+    if (slot === 'primary') {
+      pill.textContent = ownedPrimary ? `[1] ${WEAPON_SPECS[ownedPrimary].shortTag}` : '[1] PRIMARY';
+      pill.classList.toggle('active', Boolean(ownedPrimary && weaponId === ownedPrimary));
+      pill.classList.toggle('unowned', !ownedPrimary);
+    } else if (slot === 'sidearm') {
+      pill.textContent = '[2] PISTOL';
+      pill.classList.toggle('active', weaponId === 'pistol');
+      pill.classList.toggle('unowned', false);
+    } else if (slot === 'melee') {
+      pill.textContent = '[3] KNIFE';
+      pill.classList.toggle('active', weaponId === 'knife');
+      pill.classList.toggle('unowned', false);
+    }
   }
 }
 
-function tryEquipOwnedWeapon(weaponId: WeaponId): void {
+function tryEquipLoadoutSlot(slot: 'primary' | 'sidearm' | 'melee'): void {
   if (!isPointerLocked() || isAnyModalOpen() || !match.getPlayerCombatant().alive) return;
-  if (weaponId !== 'pistol' && match.getPlayerOwnedPrimary() !== weaponId) {
-    sfx.playBuyError();
-    if (lastHudPhase === 'buy') {
-      unownedHintTimer = 1.4;
+  let targetWeapon: WeaponId;
+  if (slot === 'primary') {
+    const ownedPrimary = match.getPlayerOwnedPrimary();
+    if (!ownedPrimary) {
+      sfx.playBuyError();
+      if (lastHudPhase === 'buy') {
+        unownedHintTimer = 1.4;
+      }
+      return;
     }
-    return;
+    targetWeapon = ownedPrimary;
+  } else if (slot === 'sidearm') {
+    targetWeapon = 'pistol';
+  } else {
+    targetWeapon = 'knife';
   }
-  weapon.equipWeapon(weaponId);
+  weapon.equipWeapon(targetWeapon);
   input.ads = weapon.isScoped;
   syncWeaponPills(weapon.currentWeaponId);
 }
@@ -410,6 +431,7 @@ function clearHeldInputs(): void {
   interactHeld = false;
   dropSpikePressed = false;
   jumpHeld = false;
+  bhopBufferTimer = 0;
   fireBufferTimer = 0;
 }
 
@@ -557,7 +579,7 @@ const lobby = createLobbyController({
       syncingLobbySettings = false;
     }
   },
-  onWinTargetChange: (winTarget: 10 | 6) => {
+  onWinTargetChange: (winTarget: 10 | 5) => {
     net.setConfig({ winTarget });
     if (!syncingLobbySettings) {
       syncingLobbySettings = true;
@@ -1122,13 +1144,14 @@ window.addEventListener(
     const dir = Math.sign(e.deltaY);
     if (dir !== 0) {
       const ownedPrimary = match.getPlayerOwnedPrimary();
-      if (ownedPrimary) {
-        const nextWeapon: WeaponId =
-          weapon.currentWeaponId === 'pistol' ? ownedPrimary : 'pistol';
-        weapon.equipWeapon(nextWeapon);
-        input.ads = weapon.isScoped;
-        syncWeaponPills(weapon.currentWeaponId);
-      }
+      const loadout: WeaponId[] = ownedPrimary
+        ? [ownedPrimary, 'pistol', 'knife']
+        : ['pistol', 'knife'];
+      const curIdx = loadout.indexOf(weapon.currentWeaponId);
+      const nextIdx = curIdx === -1 ? 0 : (curIdx + dir + loadout.length) % loadout.length;
+      weapon.equipWeapon(loadout[nextIdx]);
+      input.ads = weapon.isScoped;
+      syncWeaponPills(weapon.currentWeaponId);
     }
   },
   { passive: false }
@@ -1169,16 +1192,13 @@ function handleKey(code: string, isDown: boolean): void {
       input.interact = isDown;
       break;
     case 'Digit1':
-      if (isDown) tryEquipOwnedWeapon('pistol');
+      if (isDown) tryEquipLoadoutSlot('primary');
       break;
     case 'Digit2':
-      if (isDown) tryEquipOwnedWeapon('smg');
+      if (isDown) tryEquipLoadoutSlot('sidearm');
       break;
     case 'Digit3':
-      if (isDown) tryEquipOwnedWeapon('ar');
-      break;
-    case 'Digit4':
-      if (isDown) tryEquipOwnedWeapon('sniper');
+      if (isDown) tryEquipLoadoutSlot('melee');
       break;
   }
 }
@@ -1390,6 +1410,7 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
           match.skipBuyPhase();
         } else if (!jumpHeld) {
           input.jumpJustPressed = true;
+          bhopBufferTimer = BHOP_BUFFER_SEC;
         }
       }
 
@@ -2120,7 +2141,7 @@ function syncSpikeAndEconomyHud(hud: MatchHudState): void {
     spikeHalfwayTagEl.classList.add('hidden');
   } else if (unownedHintTimer > 0 && hud.phase === 'buy') {
     spikeInteractHudEl.classList.remove('hidden', 'plant', 'defuse', 'door');
-    spikeInteractLabelEl.textContent = 'WEAPON NOT OWNED — PRESS [B] BUY SHOP';
+    spikeInteractLabelEl.textContent = 'NO PRIMARY OWNED — PRESS [B] BUY SHOP';
     spikeProgressTrackEl.classList.add('hidden');
     spikeHalfwayNotchEl.classList.add('hidden');
     spikeHalfwayTagEl.classList.add('hidden');
@@ -2274,6 +2295,8 @@ function tick(now: number): void {
     }
     input.fireJustPressed = false;
     input.jumpJustPressed = false;
+    bhopBufferTimer = 0;
+    weapon.tickTracers(dt);
     return;
   }
   frozenDrawn = false;
@@ -2286,6 +2309,11 @@ function tick(now: number): void {
   const isAlive = playerCombatant.alive;
   const activeSpec = WEAPON_SPECS[weapon.currentWeaponId];
 
+  bhopBufferTimer = Math.max(0, bhopBufferTimer - dt);
+  if (isAlive && player.grounded && lastHudPhase !== 'buy' && bhopBufferTimer > 0) {
+    input.jumpJustPressed = true;
+    bhopBufferTimer = 0;
+  }
   input.jump = jumpHeld;
 
   // Apply 0.25x movement speed multiplier while actively channeling Spike plant/defuse.
@@ -2433,7 +2461,10 @@ function tick(now: number): void {
     );
   }
 
-  // Step weapon cooldowns, spread, hitscan raycast & tracers (only while player is alive).
+  // Advance active bullet tracers / beams unconditionally so mid-flight tracers fade even after death.
+  weapon.tickTracers(dt);
+
+  // Step weapon cooldowns, spread & hitscan raycast (only while player is alive).
   const wasReloading = weapon.state.reloading;
   let firedThisFrame = false;
 
@@ -2487,7 +2518,7 @@ function tick(now: number): void {
 
       // Low-ammo warning click on the last few rounds of a magazine.
       const lowThreshold = Math.min(5, Math.ceil(activeSpec.maxAmmo * 0.3));
-      if (weapon.state.ammo > 0 && weapon.state.ammo <= lowThreshold) {
+      if (!activeSpec.isMelee && weapon.state.ammo > 0 && weapon.state.ammo <= lowThreshold) {
         sfx.playLowAmmoClick();
       }
 
@@ -2684,14 +2715,19 @@ function tick(now: number): void {
 
   // Update ammo readout (low / empty warning tint) and active weapon pill.
   syncWeaponPills(weapon.currentWeaponId);
-  const ammoNow = weapon.state.ammo;
-  const lowAmmoThreshold = Math.min(5, Math.ceil(activeSpec.maxAmmo * 0.3));
-  ammoEl.classList.toggle('low', !weapon.state.reloading && ammoNow > 0 && ammoNow <= lowAmmoThreshold);
-  ammoEl.classList.toggle('empty', !weapon.state.reloading && ammoNow <= 0);
-  if (weapon.state.reloading) {
-    ammoEl.innerHTML = `<span class="muted">RELOAD...</span>`;
+  if (activeSpec.isMelee) {
+    ammoEl.classList.remove('low', 'empty');
+    ammoEl.innerHTML = `MELEE <span class="muted">&infin;</span>`;
   } else {
-    ammoEl.innerHTML = `${ammoNow} <span class="muted">/ ${activeSpec.maxAmmo}</span>`;
+    const ammoNow = weapon.state.ammo;
+    const lowAmmoThreshold = Math.min(5, Math.ceil(activeSpec.maxAmmo * 0.3));
+    ammoEl.classList.toggle('low', !weapon.state.reloading && ammoNow > 0 && ammoNow <= lowAmmoThreshold);
+    ammoEl.classList.toggle('empty', !weapon.state.reloading && ammoNow <= 0);
+    if (weapon.state.reloading) {
+      ammoEl.innerHTML = `<span class="muted">RELOAD...</span>`;
+    } else {
+      ammoEl.innerHTML = `${ammoNow} <span class="muted">/ ${activeSpec.maxAmmo}</span>`;
+    }
   }
 
   if (mapViewer.isOpen() && mapViewer.is3DViewActive()) {

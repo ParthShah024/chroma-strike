@@ -48,16 +48,14 @@ export const STEP_HEIGHT = 0.52;
 // in under 80ms for crisp first-shot accuracy.
 const ACCEL = 58;
 const FRICTION = 10.5;
-const AIR_ACCEL = 7.5;
-const GRAVITY = 19.6;
-const JUMP_SPEED = 6.5;
-const AIR_SPEED_MULT = 0.78;
-const JUMP_TAKEOFF_HORIZ_DAMP = 0.84;
-const LANDING_VEL_DAMP = 0.58;
-const LANDING_SLOW_MULT = 0.62;
-const LANDING_SLOW_DURATION_SEC = 0.28;
-const JUMP_COOLDOWN_SEC = 0.42;
-const LANDING_JUMP_LOCKOUT_SEC = 0.32;
+const AIR_ACCEL = 14;
+const GRAVITY = 19.5;
+const JUMP_SPEED = 6.7;
+const AIR_SPEED_MULT = 0.98;
+const JUMP_TAKEOFF_HORIZ_DAMP = 0.98;
+const LANDING_VEL_DAMP = 0.90;
+const LANDING_BHOP_GRACE_SEC = 0.055;
+const JUMP_COOLDOWN_SEC = 0.08;
 
 /**
  * Small geometric inset used on non-moving axes during AABB overlap checks.
@@ -135,9 +133,10 @@ function updateHorizontalVelocity(
   wishDirZ: number,
   hasWish: boolean,
   maxSpeed: number,
-  dt: number
+  dt: number,
+  skipGroundFriction = false
 ): void {
-  if (player.grounded) {
+  if (player.grounded && !skipGroundFriction) {
     // Exponential damping (`e^(-FRICTION * dt)`) is frame-rate independent:
     // whether running at 60Hz or 240Hz, speed decays by the exact same ratio per second.
     const decay = Math.exp(-FRICTION * dt);
@@ -236,7 +235,8 @@ export function updatePlayerMovement(
   const wasGrounded = player.grounded;
   const preStepVy = player.velocity.y;
   player.jumpCooldown = Math.max(0, (player.jumpCooldown ?? 0) - stepDt);
-  player.landingSlowTimer = Math.max(0, (player.landingSlowTimer ?? 0) - stepDt);
+  const prevLandingGrace = player.landingSlowTimer ?? 0;
+  player.landingSlowTimer = Math.max(0, prevLandingGrace - stepDt);
 
   const wantsCrouch = Boolean(input.crouch && !modifiers?.slideActive);
   const canStandUp =
@@ -244,6 +244,24 @@ export function updatePlayerMovement(
     wantsCrouch ||
     canStepUpToY(player.position.x, player.position.y, player.position.z, colliders, PLAYER_HEIGHT);
   player.crouching = wantsCrouch || !canStandUp;
+
+  const willJumpThisStep = Boolean(
+    !modifiers?.dashActive &&
+      !(modifiers?.verticalImpulse !== undefined && modifiers.verticalImpulse > 0) &&
+      player.grounded &&
+      Boolean(input.jumpJustPressed) &&
+      (player.jumpCooldown ?? 0) <= 0 &&
+      !modifiers?.suppressJump &&
+      (!player.crouching ||
+        canStepUpToY(player.position.x, player.position.y, player.position.z, colliders, PLAYER_HEIGHT))
+  );
+
+  if (willJumpThisStep) {
+    player.landingSlowTimer = 0;
+  } else if (!modifiers?.dashActive && player.grounded && prevLandingGrace > 0 && player.landingSlowTimer <= 0) {
+    player.velocity.x *= LANDING_VEL_DAMP;
+    player.velocity.z *= LANDING_VEL_DAMP;
+  }
 
   if (modifiers?.dashActive) {
     // Impulse override: lock velocity to the dash impulse vector and skip
@@ -274,41 +292,29 @@ export function updatePlayerMovement(
       wishZ /= wishLen;
     }
 
-    // Scale movement speed cap by stance (crouch / walk / run), landing recovery slow,
-    // air speed cap, and active ability modifiers.
+    // Scale movement speed cap by stance (crouch / walk / run), air control & ability modifiers.
     const baseMoveSpeed = player.crouching ? CROUCH_SPEED : input.walk ? WALK_SPEED : RUN_SPEED;
-    const stanceMult = player.grounded
-      ? (player.landingSlowTimer ?? 0) > 0
-        ? LANDING_SLOW_MULT
-        : 1.0
-      : AIR_SPEED_MULT;
+    const stanceMult = player.grounded ? 1.0 : AIR_SPEED_MULT;
     const maxSpeed = baseMoveSpeed * stanceMult * (modifiers?.speedMultiplier ?? 1.0);
-    updateHorizontalVelocity(player, wishX, wishZ, hasWish, maxSpeed, stepDt);
+    updateHorizontalVelocity(player, wishX, wishZ, hasWish, maxSpeed, stepDt, willJumpThisStep);
 
     if (!player.grounded && !modifiers?.slideActive) {
       const curHoriz = getHorizontalSpeed(player.velocity);
       if (curHoriz > maxSpeed && curHoriz > 1e-5) {
-        const targetHoriz = curHoriz + (maxSpeed - curHoriz) * (1 - Math.exp(-6.0 * stepDt));
+        const targetHoriz = curHoriz + (maxSpeed - curHoriz) * (1 - Math.exp(-3.5 * stepDt));
         const scale = targetHoriz / curHoriz;
         player.velocity.x *= scale;
         player.velocity.z *= scale;
       }
     }
 
-    // 3. Edge-triggered tactical jump impulse, vertical ability impulse (Windy Updraft),
-    //    passive glide clamp & downward gravity. Holding Space does NOT bunnyhop.
+    // 3. Edge-triggered tactical b-hop jump impulse, vertical ability impulse (Windy Updraft),
+    //    passive glide clamp & downward gravity. Holding Space does NOT auto-bounce.
     if (modifiers?.verticalImpulse !== undefined && modifiers.verticalImpulse > 0) {
       player.velocity.y = modifiers.verticalImpulse;
       player.grounded = false;
       player.crouching = false;
-    } else if (
-      player.grounded &&
-      Boolean(input.jumpJustPressed) &&
-      (player.jumpCooldown ?? 0) <= 0 &&
-      !modifiers?.suppressJump &&
-      (!player.crouching ||
-        canStepUpToY(player.position.x, player.position.y, player.position.z, colliders, PLAYER_HEIGHT))
-    ) {
+    } else if (willJumpThisStep) {
       player.velocity.y = JUMP_SPEED;
       player.velocity.x *= JUMP_TAKEOFF_HORIZ_DAMP;
       player.velocity.z *= JUMP_TAKEOFF_HORIZ_DAMP;
@@ -480,13 +486,10 @@ export function updatePlayerMovement(
     }
   }
 
-  // Tactical landing fatigue: touching down from a jump/drop damps momentum
-  // and applies a brief movement + re-jump recovery window.
+  // Arm a short b-hop grace window on landing so buffered re-jumps preserve momentum,
+  // while normal landings apply a gentle settle if no jump follows within 55 ms.
   if (!wasGrounded && player.grounded && preStepVy < -2.2) {
-    player.velocity.x *= LANDING_VEL_DAMP;
-    player.velocity.z *= LANDING_VEL_DAMP;
-    player.landingSlowTimer = LANDING_SLOW_DURATION_SEC;
-    player.jumpCooldown = Math.max(player.jumpCooldown ?? 0, LANDING_JUMP_LOCKOUT_SEC);
+    player.landingSlowTimer = LANDING_BHOP_GRACE_SEC;
   }
 }
 

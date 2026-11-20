@@ -129,7 +129,7 @@ const MAX_PAYLOAD_BYTES = 1024 * 1024;
 const AGENT_COLORS = ['red', 'blue', 'green', 'violet', 'gold', 'cyan'];
 const VALID_SIDES = new Set(['attacker', 'defender']);
 const VALID_DIFFICULTIES = new Set(['casual', 'tactical', 'pro']);
-const VALID_WIN_TARGETS = new Set([10, 6]);
+const VALID_WIN_TARGETS = new Set([10, 5]);
 
 // ---------------------------------------------------------------------------
 // RFC 6455 WebSocket Frame Encoder & Parser

@@ -280,6 +280,7 @@ const WEAPON_HOLD: Record<WeaponId, { socket: [number, number, number]; twist: n
   smg: { socket: [0.05, -0.15, -0.27], twist: -0.24 },
   ar: { socket: [0.06, -0.16, -0.25], twist: -0.28 },
   sniper: { socket: [0.06, -0.15, -0.24], twist: -0.3 },
+  knife: { socket: [0.14, -0.14, -0.32], twist: -0.08 },
 };
 
 const clamp = (v: number, lo: number, hi: number): number => Math.min(hi, Math.max(lo, v));
@@ -601,11 +602,42 @@ function buildWeaponProps(trimMat: THREE.Material, glowMat: THREE.Material): Rec
   addMesh(sniper, zCapsuleGeometry(0.005, 0.3), trimMat, 0.033, 0.06, -0.1);
   const sniperSupport = makeSupport(sniper, 0, -0.02, -0.215);
 
+  // 5. Tactical Knife — polymer grip, steel crossguard, tanto blade & plasma edge strip.
+  const knife = new THREE.Group();
+  addMesh(
+    knife,
+    extrudeForward([[-0.045, -0.014], [0.055, -0.012], [0.055, 0.016], [-0.045, 0.014]], 0.024),
+    polymer
+  );
+  addMesh(
+    knife,
+    extrudeForward([[0.052, -0.032], [0.072, -0.032], [0.072, 0.036], [0.052, 0.036]], 0.038),
+    metal
+  );
+  addMesh(
+    knife,
+    extrudeForward(
+      [[0.072, -0.012], [0.245, -0.012], [0.29, 0.016], [0.23, 0.026], [0.072, 0.022]],
+      0.008
+    ),
+    barrel
+  );
+  addMesh(
+    knife,
+    extrudeForward(
+      [[0.074, 0.019], [0.232, 0.023], [0.29, 0.016], [0.232, 0.029], [0.074, 0.025]],
+      0.01
+    ),
+    glowMat
+  );
+  const knifeSupport = makeSupport(knife, -0.26, -0.06, 0.04);
+
   return {
     pistol: { group: pistol, support: pistolSupport },
     smg: { group: smg, support: smgSupport },
     ar: { group: ar, support: arSupport },
     sniper: { group: sniper, support: sniperSupport },
+    knife: { group: knife, support: knifeSupport },
   };
 }
 
@@ -1648,7 +1680,7 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
   aimPivot.add(weaponSocket);
 
   const weaponProps = buildWeaponProps(trimMat, glowMat);
-  const WEAPON_IDS: WeaponId[] = ['pistol', 'smg', 'ar', 'sniper'];
+  const WEAPON_IDS: WeaponId[] = ['pistol', 'smg', 'ar', 'sniper', 'knife'];
   for (const id of WEAPON_IDS) {
     weaponProps[id].group.visible = id === 'ar';
     weaponSocket.add(weaponProps[id].group);
@@ -2387,7 +2419,7 @@ export function createCharacterModel(scene: THREE.Scene, team: TeamId, colorId: 
   }
 
   function triggerFireKick(): void {
-    recoilKick = activeWeapon === 'sniper' ? 0.42 : 0.26;
+    recoilKick = activeWeapon === 'sniper' ? 0.42 : activeWeapon === 'knife' ? 0.38 : 0.26;
   }
 
   function triggerHitFlash(isHeadshot: boolean): void {

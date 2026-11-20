@@ -58,7 +58,7 @@ import { createEconomySystem } from './economy';
  * 3v3 Search & Destroy Round State Machine, Economy & Spike Orchestrator
  * ============================================================================
  *
- * Match Structure (`First to 6 Wins`, Halftime Side Swap after Round 5):
+ * Match Structure (`First to 10 Wins` / `First to 5` Quick Mode, Halftime Side Swap every 5 Rounds):
  *   - Rounds 1–5: Allies start as `'attacker'` (South `+Z`), Enemies as `'defender'` (North `-Z`).
  *   - Round 6+  : Halftime side swap — Allies become `'defender'` (North `-Z`),
  *                 Enemies become `'attacker'` (South `+Z`), economy resets to
@@ -80,7 +80,7 @@ export interface StartMatchOptions {
   startingSide: TacticalSide;
   playerAgent: AgentColorId;
   difficulty: AiDifficulty;
-  winTarget?: 10 | 6;
+  winTarget?: 10 | 5;
   playerName?: string;
   teamHumanSlots?: readonly LobbyPlayerSlot[];
   localPlayerId?: string;
@@ -93,13 +93,13 @@ export interface MatchManager {
   getPlayerCombatant(): Combatant;
   getPlayerOwnedPrimary(): WeaponId | null;
   getPlayerSide(): TacticalSide;
-  getWinTarget(): 10 | 6;
+  getWinTarget(): 10 | 5;
   getLivingTeammates(): Combatant[];
   setPlayerName(name: string): void;
   selectPlayerAgent(colorId: AgentColorId): void;
   setDifficulty(diff: AiDifficulty): void;
   getDifficulty(): AiDifficulty;
-  setMatchConfig(config: { winTarget?: 10 | 6; difficulty?: AiDifficulty }): void;
+  setMatchConfig(config: { winTarget?: 10 | 5; difficulty?: AiDifficulty }): void;
   startNewMatch(options: StartMatchOptions): void;
   surrenderMatch(): void;
   applyRemotePlayers(remotes: readonly RemotePlayerNetState[]): void;
@@ -140,12 +140,12 @@ export interface MatchManager {
   ): MatchHudState;
 }
 
-const WINS_TO_WIN_MATCH: 10 | 6 = 10;
+const WINS_TO_WIN_MATCH: 10 | 5 = 10;
 const SWAP_INTERVAL_ROUNDS = 5;
 const MAX_ULT_POINTS = 5;
 const INITIAL_ULT_POINTS = 2;
 const PLAYER_ULT_ACTIVE_SEC = 7.5;
-const BUY_PHASE_DURATION_SEC = 20.0;
+const BUY_PHASE_DURATION_SEC = 25.0;
 const COMBAT_PHASE_DURATION_SEC = 100.0;
 const POST_PLANT_DURATION_SEC = 45.0;
 const PLANT_TIME_SEC = 3.0;
@@ -406,7 +406,7 @@ export function createMatchManager(
   let phaseTimerSec = BUY_PHASE_DURATION_SEC;
   let allyScore = 0;
   let enemyScore = 0;
-  let winTarget: 10 | 6 = WINS_TO_WIN_MATCH;
+  let winTarget: 10 | 5 = WINS_TO_WIN_MATCH;
   let initialStartingSide: TacticalSide = 'attacker';
   let playerSide: TacticalSide = 'attacker';
   let halftimeSwapped = false;
@@ -526,6 +526,10 @@ export function createMatchManager(
     syncCombatantDisplayName(combatant);
   }
 
+  function isPrimaryWeapon(id: WeaponId): boolean {
+    return id !== 'pistol' && id !== 'knife';
+  }
+
   function getPlayerCombatant(): Combatant {
     return combatants.find((c) => c.isPlayer) ?? combatants[0];
   }
@@ -538,7 +542,7 @@ export function createMatchManager(
     return playerSide;
   }
 
-  function getWinTarget(): 10 | 6 {
+  function getWinTarget(): 10 | 5 {
     return winTarget;
   }
 
@@ -627,9 +631,9 @@ export function createMatchManager(
   function buildSpikeHudState(playerCombatant: Combatant): SpikeHudState {
     const canPlantNow: BombSiteId | null =
       phase === 'combat' &&
-      spikeStatus === 'carried' &&
-      spikeCarrierId === playerCombatant.id &&
-      playerCombatant.alive
+        spikeStatus === 'carried' &&
+        spikeCarrierId === playerCombatant.id &&
+        playerCombatant.alive
         ? getBombSiteAt(playerCombatant.position.x, playerCombatant.position.z)
         : null;
 
@@ -664,7 +668,7 @@ export function createMatchManager(
   economy.beginBuyPhase(combatants);
   economy.runBotBuyPhase(combatants, getAttackerTeam());
   for (const c of combatants) {
-    ownedPrimaryById.set(c.id, c.weaponId !== 'pistol' ? c.weaponId : null);
+    ownedPrimaryById.set(c.id, isPrimaryWeapon(c.weaponId) ? c.weaponId : null);
     rigById.get(c.id)?.setWeaponModel(c.weaponId);
   }
   weaponSystem.equipWeapon(getPlayerCombatant().weaponId);
@@ -961,7 +965,7 @@ export function createMatchManager(
     get targets(): TargetDummy[] {
       return combatants.filter((c) => c.team === 'enemy');
     },
-    update(): void {},
+    update(): void { },
     getHitboxes: getCombatantHitboxes,
     applyDamage(targetId: string, amount: number, isHeadshot: boolean): boolean {
       const victim = combatantById.get(targetId);
@@ -977,7 +981,7 @@ export function createMatchManager(
     get targets(): TargetDummy[] {
       return combatants;
     },
-    update(): void {},
+    update(): void { },
     getHitboxes: getCombatantHitboxes,
     applyDamage(targetId: string, amount: number, isHeadshot: boolean): boolean {
       const victim = combatantById.get(targetId);
@@ -1070,7 +1074,7 @@ export function createMatchManager(
     economy.runBotBuyPhase(combatants, attackerTeam);
 
     for (const c of combatants) {
-      ownedPrimaryById.set(c.id, c.weaponId !== 'pistol' ? c.weaponId : null);
+      ownedPrimaryById.set(c.id, isPrimaryWeapon(c.weaponId) ? c.weaponId : null);
       rigById.get(c.id)?.setWeaponModel(c.weaponId);
     }
 
@@ -1158,14 +1162,14 @@ export function createMatchManager(
   }
 
   function buyWeapon(weaponId: WeaponId): boolean {
-    if (phase !== 'buy') {
+    if (phase !== 'buy' || weaponId === 'knife') {
       sfx.playBuyError();
       return false;
     }
     const pc = getPlayerCombatant();
 
-    // Switching back to an already-owned primary in-hand (e.g. after pressing [1] for pistol)
-    if (weaponId !== 'pistol' && ownedPrimaryById.get(pc.id) === weaponId) {
+    // Switching back to an already-owned primary in-hand (e.g. after pressing [2] for pistol)
+    if (isPrimaryWeapon(weaponId) && ownedPrimaryById.get(pc.id) === weaponId) {
       if (pc.weaponId === weaponId) {
         sfx.playBuyError();
         return false;
@@ -1200,7 +1204,7 @@ export function createMatchManager(
       return false;
     }
     pc.weaponId = res.weaponId;
-    ownedPrimaryById.set(pc.id, res.weaponId !== 'pistol' ? res.weaponId : null);
+    ownedPrimaryById.set(pc.id, isPrimaryWeapon(res.weaponId) ? res.weaponId : null);
     weaponSystem.equipWeapon(res.weaponId);
     rigById.get(pc.id)?.setWeaponModel(res.weaponId);
     sfx.playBuyPurchase();
@@ -1219,7 +1223,7 @@ export function createMatchManager(
       return false;
     }
     pc.weaponId = res.weaponId;
-    ownedPrimaryById.set(pc.id, res.weaponId !== 'pistol' ? res.weaponId : null);
+    ownedPrimaryById.set(pc.id, isPrimaryWeapon(res.weaponId) ? res.weaponId : null);
     weaponSystem.equipWeapon(res.weaponId);
     rigById.get(pc.id)?.setWeaponModel(res.weaponId);
     sfx.playBuyPurchase();
@@ -1261,8 +1265,8 @@ export function createMatchManager(
     return difficulty;
   }
 
-  function setMatchConfig(config: { winTarget?: 10 | 6; difficulty?: AiDifficulty }): void {
-    if (config.winTarget === 10 || config.winTarget === 6) {
+  function setMatchConfig(config: { winTarget?: 10 | 5; difficulty?: AiDifficulty }): void {
+    if (config.winTarget === 10 || config.winTarget === 5) {
       winTarget = config.winTarget;
     }
     if (config.difficulty) {
@@ -1287,7 +1291,7 @@ export function createMatchManager(
   }
 
   function startNewMatch(options: StartMatchOptions): void {
-    winTarget = options.winTarget === 6 ? 6 : 10;
+    winTarget = options.winTarget === 5 ? 5 : 10;
     setDifficulty(options.difficulty);
     preferredPlayerColor = options.playerAgent;
     initialStartingSide = options.startingSide;
@@ -1487,13 +1491,13 @@ export function createMatchManager(
     const attackerUpper = cleanAttacker?.toUpperCase();
     const attacker = cleanAttacker
       ? combatants.find(
-          (c) =>
-            c.id !== victim.id &&
-            (c.remotePlayerId === cleanAttacker ||
-              c.id === cleanAttacker ||
-              c.remoteName?.toUpperCase() === attackerUpper ||
-              c.displayName?.toUpperCase() === attackerUpper)
-        ) ?? null
+        (c) =>
+          c.id !== victim.id &&
+          (c.remotePlayerId === cleanAttacker ||
+            c.id === cleanAttacker ||
+            c.remoteName?.toUpperCase() === attackerUpper ||
+            c.displayName?.toUpperCase() === attackerUpper)
+      ) ?? null
       : null;
 
     const killed = applyDamageInternal(
@@ -1731,12 +1735,14 @@ export function createMatchManager(
     phaseTimerSec = ROUND_END_DURATION_SEC;
     transientBannerTimer = 0;
 
-    // Surviving while holding backup Sidearm still preserves purchased SMG/AR/Sniper into next round.
+    // Surviving while holding backup Sidearm or Knife still preserves purchased SMG/AR/Sniper into next round.
     for (const c of combatants) {
       if (!c.alive) continue;
       const primary = ownedPrimaryById.get(c.id);
-      if (primary && c.weaponId === 'pistol') {
+      if (primary && (c.weaponId === 'pistol' || c.weaponId === 'knife')) {
         c.weaponId = primary;
+      } else if (c.weaponId === 'knife') {
+        c.weaponId = 'pistol';
       }
     }
 
@@ -2036,8 +2042,8 @@ export function createMatchManager(
         abilities,
         botWeaponSystemProxy,
         sfx,
-        () => {},
-        () => {},
+        () => { },
+        () => { },
         buySdContext
       );
 
@@ -2304,9 +2310,9 @@ export function createMatchManager(
     const minimapEnemies = computeMinimapEnemies(activeSmokes, ultRevealAll);
     const nearbyDoorPrompt =
       phase === 'combat' &&
-      playerCombatant.alive &&
-      !spikeHud.canPlantNow &&
-      !spikeHud.canDefuseNow
+        playerCombatant.alive &&
+        !spikeHud.canPlantNow &&
+        !spikeHud.canDefuseNow
         ? findNearbyDoorSwitch(player.position, 2.5)
         : null;
 

@@ -10,7 +10,7 @@ import {
   CONTROLLER_SMOKE_RANGE_M,
   getControllerSmokeRadius,
 } from '../abilities/system';
-import { ARENA_WIDTH_M } from '../arena/map';
+import { ARENA_WIDTH_M, ASCENT_CALLOUTS } from '../arena/map';
 import {
   drawAscentBlueprintBase,
   drawAscentDynamicEntities,
@@ -40,13 +40,26 @@ export interface SmokeTabletController {
   dispose(): void;
 }
 
-const TABLET_W = 460;
-const TABLET_H = 504;
+const TABLET_W = 620;
+const TABLET_H = 680;
 const TABLET_DPR = 2;
+
+function findNearestCallout(wx: number, wz: number): string {
+  let bestName = '';
+  let bestDist = Infinity;
+  for (const c of ASCENT_CALLOUTS) {
+    const d = Math.hypot(wx - c.x, wz - c.z);
+    if (d < bestDist) {
+      bestDist = d;
+      bestName = c.name;
+    }
+  }
+  return bestName;
+}
 
 /**
  * Brimstone-style Tactical Wristpad Tablet allowing any Controller agent
- * (`Mist`, `Umbra`) to place smokes cleanly on a top-down map overview.
+ * (`Mist`, `Umbra`) to place smokes cleanly on a large top-down map overview.
  */
 export function createSmokeTabletController(
   options: SmokeTabletOptions
@@ -75,7 +88,7 @@ export function createSmokeTabletController(
       height: TABLET_H,
       showCallouts: true,
       showSiteLabels: true,
-      labelScale: (TABLET_W / 480) * 1.15,
+      labelScale: (TABLET_W / 480) * 1.32,
     });
   }
 
@@ -156,7 +169,7 @@ export function createSmokeTabletController(
       nowSec,
       detailedDoors: true,
       drawSiteLabelsUpright: false,
-      entityScale: 1.15,
+      entityScale: 1.35,
     });
 
     // Player deployment range circle
@@ -169,11 +182,14 @@ export function createSmokeTabletController(
     const agentCss = AGENT_PALETTES[activeColor].css;
 
     ctx.save();
-    ctx.strokeStyle = 'rgba(226, 232, 240, 0.38)';
-    ctx.lineWidth = 1.4;
-    ctx.setLineDash([6, 5]);
+    ctx.fillStyle =
+      activeColor === 'violet' ? 'rgba(168, 85, 247, 0.06)' : 'rgba(56, 189, 248, 0.05)';
+    ctx.strokeStyle = 'rgba(226, 232, 240, 0.44)';
+    ctx.lineWidth = 1.6;
+    ctx.setLineDash([7, 5]);
     ctx.beginPath();
     ctx.arc(px, py, maxRangePx, 0, Math.PI * 2);
+    ctx.fill();
     ctx.stroke();
     ctx.setLineDash([]);
 
@@ -182,14 +198,15 @@ export function createSmokeTabletController(
       const wz = mapToWorldZ(cursorLogical.y, TABLET_H);
       const dist = Math.hypot(wx - player.position.x, wz - player.position.z);
       const inRange = dist <= CONTROLLER_SMOKE_RANGE_M && chargesLeft > 0;
+      const callout = findNearestCallout(wx, wz);
 
       ctx.fillStyle = inRange
         ? activeColor === 'violet'
-          ? 'rgba(168, 85, 247, 0.28)'
-          : 'rgba(0, 210, 255, 0.28)'
-        : 'rgba(239, 68, 68, 0.22)';
+          ? 'rgba(168, 85, 247, 0.30)'
+          : 'rgba(0, 210, 255, 0.30)'
+        : 'rgba(239, 68, 68, 0.24)';
       ctx.strokeStyle = inRange ? agentCss : '#ef4444';
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 2.2;
       ctx.beginPath();
       ctx.arc(cursorLogical.x, cursorLogical.y, smokeRadiusPx, 0, Math.PI * 2);
       ctx.fill();
@@ -198,8 +215,30 @@ export function createSmokeTabletController(
       // Center crosshair dot
       ctx.fillStyle = '#ffffff';
       ctx.beginPath();
-      ctx.arc(cursorLogical.x, cursorLogical.y, 2.5, 0, Math.PI * 2);
+      ctx.arc(cursorLogical.x, cursorLogical.y, 2.8, 0, Math.PI * 2);
       ctx.fill();
+
+      // Crisp floating callout + distance tag right above preview circle
+      const badgeLabel = inRange
+        ? `${callout || 'TARGET'} • ${Math.round(dist)}m`
+        : `OUT OF RANGE (${Math.round(dist)}m)`;
+      ctx.font = '800 10.5px Inter, "Segoe UI", sans-serif';
+      const tw = ctx.measureText(badgeLabel).width;
+      const bw = tw + 14;
+      const bh = 18;
+      const bx = Math.max(8, Math.min(TABLET_W - bw - 8, cursorLogical.x - bw * 0.5));
+      const by = Math.max(8, cursorLogical.y - smokeRadiusPx - bh - 6);
+      ctx.fillStyle = 'rgba(9, 14, 23, 0.92)';
+      ctx.strokeStyle = inRange ? agentCss : '#ef4444';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.roundRect(bx, by, bw, bh, 5);
+      ctx.fill();
+      ctx.stroke();
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = inRange ? '#f8fafc' : '#fca5a5';
+      ctx.fillText(badgeLabel, bx + bw * 0.5, by + bh * 0.5 + 0.5);
 
       if (hintEl) {
         hintEl.textContent = inRange
